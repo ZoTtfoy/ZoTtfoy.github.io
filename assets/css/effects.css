@@ -38,6 +38,9 @@
 }
 .spotlight.is-on { opacity: 1; }
 
+/* 按住拖拽时收起常驻追光：两个光同时出现会叠成一片糊，也浪费一次合成 */
+.spotlight.is-hold { opacity: 0; }
+
 /* 触屏 / 关掉光效时不渲染 */
 html[data-effects="off"] .spotlight { display: none; }
 @media (hover: none), (pointer: coarse) {
@@ -98,6 +101,141 @@ html[data-effects="off"] .about__side::before {
 .social { overflow: hidden; }
 .interest { overflow: hidden; }
 .contact { overflow: hidden; }
+
+/* ---------------------------------------------------- 4. 拖拽光效（桌面） */
+/* 按住鼠标拖动时：光团跟随 + 撒拖尾点。
+   与「追光」的区别：追光是不按键也跟随的常驻气氛，拖拽光是明确的交互反馈，
+   所以它更亮、更聚拢、只在按住期间存在。
+
+   实现要点（都是前面踩坑总结的）：
+   · 不用 filter: blur()，模糊画进渐变里
+   · 拖尾点用 CSS 动画淡出，JS 只写 transform/位置，不逐帧改样式属性
+   · 点用对象池复用，避免每次移动都创建/销毁 DOM
+   · 一切只在按住期间运行，松手立即停止 —— 不影响滚动帧率 */
+.drag-glow {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 90;
+  width: 220px;
+  height: 220px;
+  margin: -110px 0 0 -110px;
+  border-radius: 50%;
+  pointer-events: none;
+  opacity: 0;
+  /* 中心实、边缘快速衰减：比均匀渐变更像"聚光" */
+  background: radial-gradient(circle closest-side,
+    var(--accent-soft) 0%,
+    color-mix(in srgb, var(--accent) 14%, transparent) 30%,
+    transparent 66%);
+  transform: translate3d(-999px, -999px, 0) translateZ(0);
+  /* 只过渡透明度，不过渡尺寸。
+     原因：尺寸（含 margin）过渡会让光团中心从指尖位置慢慢滑向上方，
+     实测前 300ms 内中心偏移从 0 变到 -36px，看起来光"飘"了一下。
+     尺寸直接生效、只做淡入，位置从一开始就是准的。 */
+  transition: opacity .22s var(--ease);
+  contain: paint;
+}
+/* 不支持 color-mix 时退回单段 */
+@supports not (color: color-mix(in srgb, red, blue)) {
+  .drag-glow {
+    background: radial-gradient(circle closest-side, var(--accent-soft) 0%, transparent 66%);
+  }
+}
+
+.drag-glow.is-dragging {
+  opacity: 1;
+  /* 只在真正拖拽时提升为独立层；静止时不占显存 */
+  will-change: transform, opacity;
+}
+
+/* 桌面用鼠标：光标本身就是精确的，光团可以小一点、贴合指针 */
+.drag-glow[data-kind="mouse"] {
+  width: 180px;
+  height: 180px;
+  margin: -90px 0 0 -90px;
+}
+
+/* 触屏：手指会遮住中心约 45~50px，所以光团做大、并把视觉中心上移，
+   让光的边缘露在指尖之外，才看得出"有光跟着手指" */
+.drag-glow[data-kind="touch"] {
+  width: 280px;
+  height: 280px;
+  margin: -176px 0 0 -140px;     /* 上移 36px，其余居中 */
+  background: radial-gradient(circle closest-side,
+    color-mix(in srgb, var(--accent) 20%, transparent) 22%,
+    color-mix(in srgb, var(--accent) 8%, transparent) 46%,
+    transparent 70%);
+}
+@supports not (color: color-mix(in srgb, red, blue)) {
+  .drag-glow[data-kind="touch"] {
+    background: radial-gradient(circle closest-side, var(--accent-soft) 22%, transparent 70%);
+  }
+}
+
+/* ------------------------------------------------------------ 拖尾光点 */
+.drag-trail {
+  position: fixed;
+  inset: 0;
+  z-index: 89;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.drag-trail__dot {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 14px;
+  height: 14px;
+  margin: -7px 0 0 -7px;
+  border-radius: 50%;
+  pointer-events: none;
+  opacity: 0;
+  background: radial-gradient(circle closest-side,
+    var(--accent) 0%,
+    color-mix(in srgb, var(--accent) 40%, transparent) 55%,
+    transparent 100%);
+  /* ⚠️ 不要在这里写 will-change。
+     这些点是对象池预建的（20 个），写上等于 20 个图层常驻显存 ——
+     实测让常驻合成层从 6 涨到 27（verify-perf 会直接报错）。
+     Web Animations 播放期间浏览器自己会提升图层，不需要常驻声明。 */
+}
+@supports not (color: color-mix(in srgb, red, blue)) {
+  .drag-trail__dot {
+    background: radial-gradient(circle closest-side, var(--accent) 0%, transparent 100%);
+  }
+}
+
+/* 撒出去就自己缩小淡出，JS 不再管它 */
+@keyframes trail-fade {
+  0%   { opacity: .5; transform: var(--at) scale(1); }
+  100% { opacity: 0;  transform: var(--at) scale(.35); }
+}
+.drag-trail__dot.is-live {
+  animation: trail-fade .52s var(--ease-out) forwards;
+}
+
+/* 触屏的拖尾点更小更淡：手指路径密集，点太大会糊成一片 */
+.drag-trail[data-kind="touch"] .drag-trail__dot {
+  width: 12px;
+  height: 12px;
+  margin: -6px 0 0 -6px;
+}
+
+/* 触屏 / 关掉光效时不渲染 */
+html[data-effects="off"] .drag-glow,
+html[data-effects="off"] .drag-glow.is-dragging { opacity: 0; }
+@media (hover: none), (pointer: coarse) {
+  /* 触屏保留拖拽光，但要挡住桌面那套追光 */
+  .spotlight { display: none; }
+}
+
+/* 减少动态效果：整套拖拽光效不出现 */
+@media (prefers-reduced-motion: reduce) {
+  .drag-glow { display: none; }
+  .drag-trail__dot { animation: none; opacity: 0; }
+}
 
 /* -------------------------------------------------------------- 3. 触控涟漪 */
 .tap-ripple {
