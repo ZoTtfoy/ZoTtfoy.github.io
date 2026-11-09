@@ -186,7 +186,8 @@ html[data-paged="on"] .about__body p { line-height: 1.85; }
    避免和 [data-reveal] 的渐显叠加成二次变暗。 */
 html[data-paged="on"] .section > .container {
   transition: transform .8s var(--ease-out);
-  will-change: transform;
+  /* 同样不写 will-change：每个 .container 都是一个整屏大小的图层，
+     6 个常驻会明显吃掉移动端的显存。位移只有 14px，无需预提升。 */
 }
 html[data-paged="on"] .section:not(.is-page-active):not([data-tall="1"]) > .container {
   transform: translate3d(0, 14px, 0);
