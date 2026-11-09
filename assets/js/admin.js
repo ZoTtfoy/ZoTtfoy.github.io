@@ -686,6 +686,177 @@ window.ADMIN = {
   window.ADMIN_SERIALIZE = serialize;
 
   /* ============================================================ 发布 */
+
+  function ghHeaders(token) {
+    return {
+      "Authorization": "Bearer " + token,
+      "Accept": "application/vnd.github+json",
+      "X-GitHub-Api-Version": "2022-11-28",
+      "Content-Type": "application/json"
+    };
+  }
+
+  /* 把状态码翻译成「发生了什么 + 怎么修」。
+     关键背景：GitHub 对「无权限」和「不存在」都返回 404（避免泄露仓库是否存在），
+     所以 404 绝不能只当成「文件不存在」——绝大多数情况其实是令牌没授权到。 */
+  function explain(status, action) {
+    var where = "https://github.com/settings/tokens";
+    var map = {
+      401: "令牌无效或已过期。请到 " + where + " 重新生成一个，注意复制完整、别带空格。",
+      403: "被拒绝（403）。若是 Fine-grained token，可能是没勾 Contents 写权限；" +
+           "也可能是触发了频率限制，等几分钟再试。",
+      404: "GitHub 说「找不到」（404）。这一步通常是①令牌没被授权到这个仓库，" +
+           "或②令牌所属账号对 " + A.repo + " 没有写权限。" +
+           "前者请到 Fine-grained token 设置里把 Repository access 选成 Only select repositories → " +
+           A.repo + "，并在 Permissions → Contents 选 Read and write。",
+      409: "内容冲突（409）：远端文件在你编辑期间被改过。关掉抽屉、刷新页面再改一次即可。",
+      422: "请求内容被拒（422）。常见原因是文件太大或 base64 编码异常，可以改用「不用令牌」那条路。",
+      429: "请求太频繁（429），等几分钟再试。"
+    };
+    return (map[status] || (action + "失败（HTTP " + status + "）。")) +
+           (map[status] ? "［" + action + "阶段］" : "");
+  }
+
+  /* ---------------------------------------------------------- 连接诊断 */
+  function diagRow(ok, label, detail) {
+    var icon = ok === true ? "✓" : ok === false ? "✕" : "•";
+    var cls = ok === true ? "is-ok" : ok === false ? "is-bad" : "is-info";
+    return '<li class="diag__row ' + cls + '">' +
+      '<span class="diag__icon">' + icon + '</span>' +
+      '<span class="diag__text"><strong>' + esc(label) + '</strong>' +
+      (detail ? '<small>' + detail + '</small>' : '') + '</span></li>';
+  }
+
+  async function diagnose() {
+    var input = $("#tokenInput");
+    var list = $("#diagList");
+    var msg = $("#pushMsg");
+    var token = (input.value || localStorage.getItem(TOKEN_KEY) || "").trim();
+
+    list.hidden = false;
+    list.innerHTML = "";
+    msg.textContent = "";
+
+    // 所有结论先累积在 rows 里，最后一次渲染，避免后一步覆盖前一步的反馈
+    var rows = [];
+    var pass = true;
+
+    if (!token) {
+      list.innerHTML = diagRow(false, "没有填令牌",
+        "先在上面粘贴一个 GitHub Token。建议用 Fine-grained token，只授权这一个仓库。");
+      return false;
+    }
+
+    // 令牌格式自查：先挡掉一眼就能看出的问题，省一次网络往返
+    if (!/^(gh[psour]_[A-Za-z0-9_]{20,}|github_pat_[A-Za-z0-9_]{20,})$/.test(token)) {
+      list.innerHTML = diagRow(false, "令牌格式不对",
+        "应以 <code>ghp_</code>、<code>github_pat_</code> 等开头，且没有多余空格或换行。" +
+        "你现在填的以 <code>" + esc(token.slice(0, 6)) + "…</code> 开头，共 " +
+        token.length + " 个字符。");
+      return false;
+    }
+    rows.push(diagRow(true, "令牌格式正常", "共 " + token.length + " 个字符"));
+    try { localStorage.setItem(TOKEN_KEY, token); } catch (e) {}
+
+    var headers = ghHeaders(token);
+
+    /* 1. 令牌是否有效 —— 顺便拿到它属于哪个账号 */
+    var login = null, scopes = null;
+    try {
+      var r1 = await fetch("https://api.github.com/user", { headers: headers });
+      scopes = r1.headers.get("X-OAuth-Scopes");
+      if (r1.ok) {
+        login = (await r1.json()).login;
+        rows.push(diagRow(true, "令牌有效", "属于账号 <b>" + esc(login) + "</b>"));
+      } else {
+        rows.push(diagRow(false, "令牌无效", explain(r1.status, "验证令牌")));
+        pass = false;
+      }
+    } catch (e) {
+      rows.push(diagRow(false, "连不上 GitHub",
+        "网络或浏览器拦截了请求。" + (location.protocol === "file:" ?
+        "你似乎是用 file:// 直接打开的，请改用本地服务器或线上地址。" : "")));
+      pass = false;
+    }
+
+    /* 2. 经典令牌（ghp_）的 scope 检查；Fine-grained 没有这个头，跳过 */
+    if (login && token.indexOf("ghp_") === 0) {
+      if (scopes && scopes.indexOf("repo") >= 0) {
+        rows.push(diagRow(true, "权限范围够用", "scope: " + esc(scopes)));
+      } else {
+        rows.push(diagRow(false, "经典令牌缺少 repo 权限",
+          "创建 <code>ghp_</code> 令牌时必须勾选 <b>repo</b>（完整控制私有/公开仓库），" +
+          "否则连自己的公开仓库也写不进去。当前 scope: <code>" + esc(scopes || "空") + "</code>"));
+        pass = false;
+      }
+    }
+
+    /* 3. 能否访问这个仓库 + 有没有写权限 */
+    try {
+      var r2 = await fetch("https://api.github.com/repos/" + A.repo, { headers: headers });
+      if (r2.ok) {
+        var repoData = await r2.json();
+        var perm = repoData.permissions || {};
+        if (perm.push === true || (perm.admin === true) || (perm.maintain === true)) {
+          rows.push(diagRow(true, "能访问仓库且有写权限", esc(A.repo) +
+            " · " + (repoData.private ? "私有" : "公开")));
+        } else if (perm.push === false || perm.admin === false) {
+          rows.push(diagRow(false, "只读权限",
+            "这个令牌能读 " + esc(A.repo) + " 但不能写。请到 Fine-grained token 的 " +
+            "Permissions → Contents 改为 <b>Read and write</b>。"));
+          pass = false;
+        } else {
+          rows.push(diagRow(null, "仓库可访问", "权限信息未返回，继续尝试提交"));
+        }
+      } else {
+        rows.push(diagRow(false, "访问不到这个仓库", explain(r2.status, "读取仓库")));
+        pass = false;
+      }
+    } catch (e) {
+      rows.push(diagRow(false, "读取仓库时网络中断", esc(e.message)));
+      pass = false;
+    }
+
+    /* 4. 目标文件是否可读（这一步能提前发现路径/分支问题） */
+    if (pass) {
+      try {
+        var r3 = await fetch(
+          "https://api.github.com/repos/" + A.repo + "/contents/" + A.configPath +
+          "?ref=" + A.branch + "&t=" + Date.now(), { headers: headers });
+        if (r3.ok) {
+          var f = await r3.json();
+          rows.push(diagRow(true, "能读到配置文件", A.configPath + " · " +
+            Math.round((f.size || 0) / 1024) + " KB · 分支 " + esc(A.branch)));
+        } else {
+          rows.push(diagRow(false, "读不到配置文件", explain(r3.status, "读取 " + A.configPath) +
+            "（也请确认分支名是 <code>" + esc(A.branch) + "</code>）"));
+          pass = false;
+        }
+      } catch (e) {
+        rows.push(diagRow(false, "读取文件时网络中断", esc(e.message)));
+        pass = false;
+      }
+    }
+
+    /* 5. 账号归属提醒：不是仓库主人时，后面很可能因权限不足失败 */
+    if (login && A.repo.indexOf("/") > 0) {
+      var owner = A.repo.split("/")[0];
+      if (login.toLowerCase() !== owner.toLowerCase()) {
+        rows.push(diagRow(null, "账号与仓库主人不同",
+          "令牌属于 <b>" + esc(login) + "</b>，而仓库属于 <b>" + esc(owner) + "</b>。" +
+          "只要你对这个仓库有写权限就没问题，否则会失败。"));
+      }
+    }
+
+    rows.push(diagRow(pass, pass ? "可以提交了" : "先解决上面标 ✕ 的项",
+      pass ? "点下面的「提交到 GitHub」即可。" : "改完再点一次「先检查连接」。"));
+
+    list.innerHTML = rows.join("");
+    var btn = $("#pushBtn");
+    if (btn) btn.disabled = !pass;
+    return pass;
+  }
+
   function b64utf8(str) {
     var bytes = new TextEncoder().encode(str);
     var bin = "";
@@ -703,20 +874,21 @@ window.ADMIN = {
     if (!token) { msg.textContent = "请先填 GitHub Token。"; return; }
     try { localStorage.setItem(TOKEN_KEY, token); } catch (e) {}
 
+    var btn = $("#pushBtn");
+    btn.disabled = true;
     msg.textContent = "正在提交…";
+
     var api = "https://api.github.com/repos/" + A.repo + "/contents/" + A.configPath;
-    var headers = {
-      "Authorization": "Bearer " + token,
-      "Accept": "application/vnd.github+json",
-      "X-GitHub-Api-Version": "2022-11-28"
-    };
+    var headers = ghHeaders(token);
 
     try {
-      var cur = await fetch(api + "?ref=" + A.branch, { headers: headers });
+      // 先取当前 sha（更新已有文件必须带）
+      var cur = await fetch(api + "?ref=" + A.branch + "&t=" + Date.now(), { headers: headers });
       var sha = null;
-      if (cur.ok) { sha = (await cur.json()).sha; }
-      else if (cur.status !== 404) {
-        throw new Error("读取现有文件失败（" + cur.status + "），请检查令牌权限。");
+      if (cur.ok) {
+        sha = (await cur.json()).sha;
+      } else {
+        throw new Error(explain(cur.status, "读取现有文件"));
       }
 
       var res = await fetch(api, {
@@ -726,20 +898,27 @@ window.ADMIN = {
           message: "content: update from admin",
           content: b64utf8(serialize(draft)),
           branch: A.branch,
-          sha: sha || undefined
+          sha: sha
         })
       });
 
       if (!res.ok) {
         var err = await res.json().catch(function () { return {}; });
-        throw new Error("提交失败（" + res.status + "）" + (err.message ? "：" + err.message : ""));
+        var hint = explain(res.status, "提交");
+        throw new Error(hint + (err.message ? "（GitHub 原话：" + err.message + "）" : ""));
       }
 
-      msg.textContent = "已提交。GitHub Pages 约 1–2 分钟后自动上线。";
+      var data = await res.json();
+      var commit = (data.commit && data.commit.sha) ? data.commit.sha.slice(0, 7) : "";
+      msg.innerHTML = "已提交" + (commit ? "（" + commit + "）" : "") +
+        "。GitHub Pages 通常 1–2 分钟后自动上线，稍后刷新主页即可。";
       mark(false);
       toast("已提交到 GitHub");
     } catch (err) {
       msg.textContent = err.message || "提交失败，请重试。";
+      toast("提交失败");
+    } finally {
+      btn.disabled = false;
     }
   }
 
@@ -772,9 +951,29 @@ window.ADMIN = {
     $$("[data-close]").forEach(function (el) { el.addEventListener("click", closeSheet); });
     document.addEventListener("keydown", function (e) { if (e.key === "Escape") closeSheet(); });
 
+    /* ---- 两条路线的切换 ---- */
+    var pubTabs = $("#pubTabs");
+    if (pubTabs) {
+      pubTabs.addEventListener("click", function (e) {
+        var t = e.target.closest("[data-pub]");
+        if (!t) return;
+        var which = t.getAttribute("data-pub");
+        Array.prototype.forEach.call(pubTabs.querySelectorAll("[data-pub]"), function (b) {
+          b.classList.toggle("is-active", b === t);
+        });
+        $("#paneManual").hidden = which !== "manual";
+        $("#paneToken").hidden = which !== "token";
+      });
+    }
+
     $("#copyCfg").addEventListener("click", function () {
-      copy(serialize(draft)).then(function () { toast("config.js 已复制"); })
-        .catch(function () { toast("复制失败，请改用下载"); });
+      copy(serialize(draft)).then(function () {
+        toast("已复制，去 GitHub 编辑页粘贴即可");
+        var btn = $("#copyCfg");
+        var old = btn.textContent;
+        btn.textContent = "✓ 已复制";
+        setTimeout(function () { btn.textContent = old; }, 2000);
+      }).catch(function () { toast("复制失败，请改用下载"); });
     });
 
     $("#editOnGithub").href = "https://github.com/" + A.repo + "/edit/" + A.branch + "/" + A.configPath;
@@ -784,11 +983,29 @@ window.ADMIN = {
       toast("已下载 config.js");
     });
 
+    var checkBtn = $("#checkBtn");
+    if (checkBtn) checkBtn.addEventListener("click", function () {
+      checkBtn.disabled = true;
+      diagnose().then(function () { checkBtn.disabled = false; })
+                .catch(function (e) { checkBtn.disabled = false; toast("检查出错：" + e.message); });
+    });
+
     $("#pushBtn").addEventListener("click", pushToGithub);
+
     $("#forgetToken").addEventListener("click", function () {
       try { localStorage.removeItem(TOKEN_KEY); } catch (e) {}
       $("#tokenInput").value = "";
       $("#pushMsg").textContent = "已清除本机保存的令牌。";
+      $("#diagList").hidden = true;
+      $("#pushBtn").disabled = true;
+    });
+
+    // 改令牌内容后，之前的诊断结论就不成立了，禁掉提交等重新检查
+    var ti = $("#tokenInput");
+    if (ti) ti.addEventListener("input", function () {
+      $("#pushBtn").disabled = true;
+      $("#diagList").hidden = true;
+      $("#pushMsg").textContent = "";
     });
 
     $("#genHash").addEventListener("click", function () {
