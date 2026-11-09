@@ -67,7 +67,7 @@ zotrod-homepage/
 | `about` | `paragraphs` / `facts` / `tags` | 正文段落、右侧信息表、关键词标签 |
 | `services` | `items[]` | 业务卡片：`icon` / `title` / `desc` / `tags` |
 | `interests` | `items[]` | 喜好卡片：`icon` / `title` / `desc` / `meta` |
-| `social` | `items[]` | 平台链接：`icon` / `label` / `handle` / `url` |
+| `social` | `items[]` | 平台链接：`icon` / `label` / `handle` / `url`；没有公开主页的（QQ、微信）用 `copy` 代替 `url`，点一下即复制 |
 | | `contactHint` | 底部联系区那句提示语 |
 | `ui` | `themeDefault` | `auto` 跟随系统 / `light` / `dark` |
 | | `showProgress` / `showBackToTop` | 滚动进度条、回到顶部按钮 |
@@ -78,6 +78,7 @@ zotrod-homepage/
 
 - **删掉一个平台 / 一张卡片**：在对应 `items` 数组里删掉那一整个 `{ ... }` 就行，栅格会自动重排。
 - **加一张卡片**：复制一份 `{ ... }` 改内容。
+- **QQ / 微信号**：写成 `{ icon: "qq", label: "QQ", handle: "点一下复制", copy: "你的号码" }`，卡片会变成可点击复制，不会出现打不开的链接。
 - **换图标**：把 `icon` 改成 `icons.js` 顶部注释里列出的任意名字；找不到会自动回退成 ✦ 图标。
 - **隐藏整个模块**：`sections.xxx.enabled = false`。
 - **换主题色**：改 `tokens.css` 里的 `--accent`（浅色 / 深色各一处）。
