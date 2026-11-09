@@ -340,12 +340,23 @@ window.SITE_PAGED = (function () {
       ticking = false;
       updateActive();
     });
+
+    /* 停手后归位：拖动滚动条、触摸划动、或惯性滚动结束时，
+       页面可能停在两页之间，这里把它落回最近的边界。
+       程序滚动（goTo / 滚轮）期间跳过，否则会把自己的动画打断。 */
+    clearTimeout(snapTimer);
+    snapTimer = setTimeout(snapToNearest, SETTLE_DELAY);
   }
 
   /* ------------------------------------------------------------ 跳转某页 */
   function goTo(i) {
     if (i < 0 || i >= pages.length) return;
-    var top = pages[i].getBoundingClientRect().top + (window.scrollY || window.pageYOffset || 0);
+    if (!pageTops.length) measureTops();
+    var top = pageTops[i];
+    if (top === undefined) {
+      top = pages[i].getBoundingClientRect().top + (window.scrollY || window.pageYOffset || 0);
+    }
+    markProgrammatic(520);
     window.scrollTo({ top: Math.max(0, top), behavior: smooth() });
     setActive(i);
     scheduleSettle();
@@ -369,59 +380,99 @@ window.SITE_PAGED = (function () {
     return true;
   }
 
-  /* -------------------------------------------------------------- 滚轮
-     为什么需要它：强制吸附下，鼠标滚 400px（不足半屏）会被浏览器吸回原页，
-     用户会觉得「滚了没反应」。
-     这里把「一次明确的滚动意图」翻译成「翻一页」。
-     为了不冒犯触控板：累加增量达阈值才翻，翻完锁 700ms，
-     横向滚动（deltaX 占主导）和非强制吸附模式一律不接管。 */
-  var WHEEL_THRESHOLD = 46;
-  var WHEEL_LOCK = 700;
+  /* ======================================================== 滚动所有权
+     这一块是重做的。早先的做法是「CSS 强制吸附 + JS 劫持滚轮」两条腿走路，
+     两者互相打架，桌面端表现成：
+       单格滚轮要滚 3 次才过一页（0 → 641 → 897 → 900）
+       向下滚第 3 格完全没反应
+     原因：JS 调 scrollTo(smooth) 的同时浏览器的 snap 也在往吸附点拉，
+     两边都在改 scrollTop，结果是走到一半被拽回去。
+
+     现在改成**单一所有权**：paged 模式下关掉 CSS 吸附，翻页完全由 JS 负责。
+       · 滚轮：攒够一格的量就翻一页（不劫持浏览器惯性的中间态）
+       · 键盘 / 页码：直接 goTo
+       · 拖动滚动条、触摸划动：自由滚动，停手后自动落到最近的页边界
+     没有第二套规则参与，就不会再出现"滚了没反应"。 */
+  var WHEEL_STEP = 40;          // 一格滚轮的判定量（真实鼠标一格约 100）
+  var SETTLE_DELAY = 150;       // 停手多久后归位
   var wheelAcc = 0;
   var wheelLockedUntil = 0;
   var wheelResetTimer = null;
+  var programmatic = false;     // JS 正在滚动（到点前不做归位）
+  var progTimer = null;
+  /* ⚠️ 这里必须用独立的变量名。
+     早先复用了 settleTimer（章节入场动画也在用它），
+     结果 updateActive → setActive → scheduleSettle 每次都把归位定时器 clear 掉，
+     自动归位永远不执行 —— 表现为"自由滚动后停在两页中间"。 */
+  var snapTimer = null;
+
+  /* 标记「接下来这段时间的滚动是程序触发的」，归位逻辑要跳过 */
+  function markProgrammatic(ms) {
+    programmatic = true;
+    clearTimeout(progTimer);
+    progTimer = setTimeout(function () { programmatic = false; }, ms);
+  }
+
+  /* 落到最近的页边界。仅在用户自由滚动（拖滚动条 / 触摸）后调用 */
+  function snapToNearest() {
+    if (!enabled || programmatic) return;
+    if (document.documentElement.dataset.snap !== "mandatory") return;  // 有高个页时不强制
+    if (!pageTops.length) measureTops();
+    var y = window.scrollY || window.pageYOffset || 0;
+
+    /* 候选落点 = 每页顶部 + 文档最底部。
+       把「最底部」也算进去，页脚才能被滚到；
+       否则最后一页再往下滚会被吸回页顶，页脚永远看不到。 */
+    var bottom = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
+    var cands = pageTops.slice();
+    if (bottom > pageTops[pageTops.length - 1] + 4) cands.push(bottom);
+
+    var best = cands[0], bestD = Infinity;
+    for (var i = 0; i < cands.length; i++) {
+      var d = Math.abs(cands[i] - y);
+      if (d < bestD) { bestD = d; best = cands[i]; }
+    }
+    if (bestD > 3) {
+      markProgrammatic(520);
+      window.scrollTo({ top: best, behavior: smooth() });
+    }
+  }
 
   function wheelPagingAllowed(e) {
+    if (!enabled) return false;
     if (document.documentElement.dataset.snap !== "mandatory") return false;
-    // 横向滚动交给卡片导轨，不要抢
-    if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return false;
+    if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return false;   // 横向手势不管
     // 面板打开时不接管
     var panels = ["skinPanel", "mobileNav", "publishSheet"];
     for (var i = 0; i < panels.length; i++) {
       var el = $(panels[i]);
       if (el && !el.hidden) return false;
     }
-    // 由键盘/程序触发的滚动不拦
-    if (e.ctrlKey || e.metaKey) return false;
+    if (e.ctrlKey || e.metaKey) return false;                   // 缩放
     return true;
   }
 
   function initWheel() {
     window.addEventListener("wheel", function (e) {
-      if (!enabled) return;
       if (!wheelPagingAllowed(e)) return;
 
       var now = Date.now();
-      if (now < wheelLockedUntil) {
-        // 锁定期间吃掉事件，避免一次手势连翻好几页
-        e.preventDefault();
-        return;
-      }
+      if (now < wheelLockedUntil) { e.preventDefault(); return; }
 
       wheelAcc += e.deltaY;
-
       clearTimeout(wheelResetTimer);
-      wheelResetTimer = setTimeout(function () { wheelAcc = 0; }, 160);
+      wheelResetTimer = setTimeout(function () { wheelAcc = 0; }, 140);
 
-      if (Math.abs(wheelAcc) < WHEEL_THRESHOLD) {
-        // 还没攒够：先不让页面自己滚，否则会先动一下再翻，看着发抖
+      if (Math.abs(wheelAcc) < WHEEL_STEP) {
+        // 不足一格：吃掉事件，避免先动一小段再被拽回（那是"发抖"的来源）
         e.preventDefault();
         return;
       }
 
       var dir = wheelAcc > 0 ? 1 : -1;
       wheelAcc = 0;
-      wheelLockedUntil = now + WHEEL_LOCK;
+      // 锁时间略大于滚动动画（420ms），避免一次手势连翻几页
+      wheelLockedUntil = now + 460;
       e.preventDefault();
       goBy(dir);
     }, { passive: false });
@@ -570,6 +621,8 @@ window.SITE_PAGED = (function () {
   return {
     init: init,
     goTo: goTo,
+    /* 暴露给自检使用：手动触发一次"归位"，便于验证自由滚动后的对齐逻辑 */
+    snapNow: function () { snapToNearest(); },
     pages: function () { return pages.slice(); },
     activeIndex: function () { return activeIndex; },
     refresh: function () { markTall(); updateActive(); }
