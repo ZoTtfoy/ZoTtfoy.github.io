@@ -108,11 +108,35 @@ html[data-motion="off"] .ambient__orb { animation: none; }
   .to-top:hover { color: var(--text); border-color: var(--line-strong); }
 }
 
-/* 触摸设备：给一个轻微的按压反馈 */
+/* 触摸设备：给一个轻微的按压反馈。
+   --------------------------------------------------------------------------
+   这是触屏唯一能立刻感知到的「我按到了」——比涟漪更即时（涟漪要等抬指）。
+   缩放值刻意很小（.985 ~ .97）：再大就会显得像按钮在"跳"。
+   列表补齐了 6 屏重构后的新组件：chip / preview / game / track / calc__opt。 */
 @media (hover: none) {
-  .btn:active, .social:active, .card:active, .interest:active, .icon-btn:active {
+  .btn:active,
+  .social:active,
+  .icon-btn:active,
+  .chip:active,
+  .preview:active,
+  .game:active,
+  .calc__opt:active,
+  .track__go:active,
+  .mailbox__mail:active {
+    transform: scale(.97);
+    transition-duration: .1s;
+  }
+  .game__uid:active,
+  .calc__reset:active {
     transform: scale(.985);
     transition-duration: .1s;
+  }
+
+  /* 磁贴与摘要在按下时同时压一下边框，给出"被选中"的感觉 */
+  .chip:active,
+  .preview:active,
+  .game:active {
+    border-color: var(--line-strong);
   }
 }
 
