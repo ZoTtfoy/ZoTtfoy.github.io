@@ -64,6 +64,7 @@
   <link rel="stylesheet" href="assets/css/components.css">
   <link rel="stylesheet" href="assets/css/skin.css">
   <link rel="stylesheet" href="assets/css/paged.css">
+  <link rel="stylesheet" href="assets/css/gaming.css">
   <link rel="stylesheet" href="assets/css/live.css">
   <link rel="stylesheet" href="assets/css/effects.css">
   <link rel="stylesheet" href="assets/css/motion.css">
@@ -215,6 +216,18 @@
         </div>
       </section>
 
+      <!-- ============ 游戏 ============ -->
+      <section class="section section--games" id="gaming" data-section="gaming" aria-labelledby="gamingTitle">
+        <div class="container">
+          <header class="section__head" data-reveal>
+            <p class="eyebrow" data-field="eyebrow"></p>
+            <h2 class="section__title" id="gamingTitle" data-field="title"></h2>
+            <p class="section__lead" data-field="lead"></p>
+          </header>
+          <div class="game-rail" id="gameRail"></div>
+        </div>
+      </section>
+
       <!-- ============ 个人喜好 ============ -->
       <section class="section" id="interests" data-section="interests" aria-labelledby="interestsTitle">
         <div class="container">
@@ -266,6 +279,12 @@
   </nav>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <!-- 首次进入时的翻页手势提示：动一下就消失，只出现一次 -->
+  <div class="page-hint" id="pageHint" aria-hidden="true">
+    <span>上下滑动翻页</span>
+    <span class="page-hint__key">↓</span>
+  </div>
 
   <!-- 无构建、无依赖：按顺序加载即可；本地双击 index.html 也能直接看 -->
   <script src="assets/js/icons.js"></script>

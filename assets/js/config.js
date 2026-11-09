@@ -31,8 +31,9 @@ window.SITE_CONFIG = {
   sections: {
     about:     { enabled: true, order: 1, label: "关于" },
     services:  { enabled: true, order: 2, label: "业务" },
-    interests: { enabled: true, order: 3, label: "喜好" },
-    social:    { enabled: true, order: 4, label: "联系" }
+    gaming:    { enabled: true, order: 3, label: "游戏" },
+    interests: { enabled: true, order: 4, label: "喜好" },
+    social:    { enabled: true, order: 5, label: "联系" }
   },
 
   /* ------------------------------------------------------------ 3. 首页按钮 */
@@ -107,6 +108,108 @@ window.SITE_CONFIG = {
     ]
   },
 
+  /* ------------------------------------------------------------ 6. 游戏 */
+  // 每个游戏一张卡片：ID 点一下即可复制（方便对方加好友），下面的 stats 是「可展现资产」。
+  // uidLabel 可自定义（博士ID / Riot ID / Steam ID …），stats 想写几个都行。
+  // color 是卡片顶部的品牌色细条，留空则用主题主色。
+  gaming: {
+    eyebrow: "05 / GAMES",
+    title: "在游戏里",
+    lead: "想一起玩的话，ID 都在这里，点一下就能复制。",
+    items: [
+      {
+        icon: "tower",
+        name: "明日方舟",
+        uidLabel: "博士 ID",
+        uid: "Zotrod#0001",
+        server: "官服",
+        rank: "Lv. 120",
+        color: "#4a90d9",
+        stats: [
+          { label: "六星干员", value: "88" },
+          { label: "主线进度", value: "全通" },
+          { label: "合约危机", value: "19" }
+        ],
+        note: "每天上线收菜，顺便摸摸公开招募。"
+      },
+      {
+        icon: "crosshair",
+        name: "无畏契约",
+        uidLabel: "Riot ID",
+        uid: "Zotrod#0806",
+        server: "亚服",
+        rank: "钻石 II",
+        color: "#ff4655",
+        stats: [
+          { label: "主玩", value: "贤者" },
+          { label: "最高段位", value: "超凡 I" },
+          { label: "常用枪", value: "暴徒" }
+        ],
+        note: "喜欢打信息位，不太爱冲锋。"
+      },
+      {
+        icon: "target",
+        name: "Apex Legends",
+        uidLabel: "EA ID",
+        uid: "Zotrod_APEX",
+        server: "亚服",
+        rank: "大师",
+        color: "#da292a",
+        stats: [
+          { label: "主玩传奇", value: "恶灵" },
+          { label: "最高伤害", value: "4.2k" },
+          { label: "生涯击杀", value: "8,600" }
+        ],
+        note: "三排最爱，单排随缘。"
+      },
+      {
+        icon: "note",
+        name: "DJMAX RESPECT V",
+        uidLabel: "Steam",
+        uid: "Zotrod",
+        server: "Steam",
+        rank: "Lv. 87",
+        color: "#7b61ff",
+        stats: [
+          { label: "主要难度", value: "MX" },
+          { label: "偏好键位", value: "6B" },
+          { label: "最爱曲", value: "OBLIVION" }
+        ],
+        note: "手速不够，靠背谱补。"
+      },
+      {
+        icon: "disc",
+        name: "Phigros",
+        uidLabel: "游戏 ID",
+        uid: "Zotrod",
+        server: "国服",
+        rank: "RKS 15.24",
+        color: "#00c8b4",
+        stats: [
+          { label: "最高难度", value: "AT 15" },
+          { label: "全连曲数", value: "126" },
+          { label: "本命谱", value: "Spasmodic" }
+        ],
+        note: "免费音游里最爱的一个。"
+      },
+      {
+        icon: "music",
+        name: "中二节奏",
+        uidLabel: "CHUNITHM ID",
+        uid: "Zotrod",
+        server: "国服",
+        rank: "评级 S",
+        color: "#f0a500",
+        stats: [
+          { label: "段位", value: "白金" },
+          { label: "擅长难度", value: "EXPERT" },
+          { label: "出勤频率", value: "周更" }
+        ],
+        note: "机厅常驻，欢迎约架。"
+      }
+    ]
+  },
+
   /* ---------------------------------------------------------- 7. 社交平台 */
   social: {
     eyebrow: "04 / FIND ME",
@@ -169,8 +272,9 @@ window.SITE_CONFIG = {
     accent: "",             // 可选：在风格之上再覆盖浅色主色，如 "#2f6b5b"；留空则用风格自带
     accentDark: "",         // 可选：覆盖深色主色
 
-    paged: true,            // ★ 翻页式：一屏一页，上下翻动时吸附
-    showPager: true,        //   右侧页码指示器
+    paged: true,            // ★ 翻页式：一屏一章，上下翻动时吸附（Apple 式章节）
+    showPager: true,        //   右侧页码指示器（手机上为底部分段）
+    showHint: true,         //   首次进入时提示「上下滑动翻页」，动一下即消失
     lightEffects: true,     // ★ 指针追光 / 卡片光斑 / 触控涟漪
 
     showSkinPicker: true,   // 右上角风格切换按钮

@@ -195,6 +195,99 @@ html[data-paged="on"] .section.is-page-active > .container {
   transform: none;
 }
 
+/* ==================================================== Apple 式章节递进
+   翻到某一页时，页内元素逐项错开淡入并轻微上移——不是整块出现，
+   而是一层一层落位。这是「章节衔接」的观感来源。
+   只在这一页刚被翻到时播放一次（is-entering 由 JS 加，920ms 后移除）。 */
+@keyframes chapter-item {
+  from { opacity: 0; transform: translate3d(0, 20px, 0); }
+  to   { opacity: 1; transform: none; }
+}
+
+html[data-paged="on"] .section.is-entering > .container > * {
+  animation: chapter-item .62s var(--ease-out) both;
+}
+html[data-paged="on"] .section.is-entering > .container > *:nth-child(1) { animation-delay: .04s; }
+html[data-paged="on"] .section.is-entering > .container > *:nth-child(2) { animation-delay: .12s; }
+html[data-paged="on"] .section.is-entering > .container > *:nth-child(3) { animation-delay: .20s; }
+html[data-paged="on"] .section.is-entering > .container > *:nth-child(4) { animation-delay: .28s; }
+html[data-paged="on"] .section.is-entering > .container > *:nth-child(n+5) { animation-delay: .34s; }
+
+/* 卡片本身再错开一层，让横滑轨道里的卡片依次浮现 */
+html[data-paged="on"] .section.is-entering .card,
+html[data-paged="on"] .section.is-entering .interest,
+html[data-paged="on"] .section.is-entering .social,
+html[data-paged="on"] .section.is-entering .game {
+  animation: chapter-item .55s var(--ease-out) both;
+}
+html[data-paged="on"] .section.is-entering .card:nth-child(1),
+html[data-paged="on"] .section.is-entering .interest:nth-child(1),
+html[data-paged="on"] .section.is-entering .social:nth-child(1),
+html[data-paged="on"] .section.is-entering .game:nth-child(1) { animation-delay: .34s; }
+html[data-paged="on"] .section.is-entering .card:nth-child(2),
+html[data-paged="on"] .section.is-entering .interest:nth-child(2),
+html[data-paged="on"] .section.is-entering .social:nth-child(2),
+html[data-paged="on"] .section.is-entering .game:nth-child(2) { animation-delay: .40s; }
+html[data-paged="on"] .section.is-entering .card:nth-child(3),
+html[data-paged="on"] .section.is-entering .interest:nth-child(3),
+html[data-paged="on"] .section.is-entering .social:nth-child(3),
+html[data-paged="on"] .section.is-entering .game:nth-child(3) { animation-delay: .46s; }
+html[data-paged="on"] .section.is-entering .card:nth-child(n+4),
+html[data-paged="on"] .section.is-entering .interest:nth-child(n+4),
+html[data-paged="on"] .section.is-entering .social:nth-child(n+4),
+html[data-paged="on"] .section.is-entering .game:nth-child(n+4) { animation-delay: .50s; }
+
+/* ==================================================== 首次翻页手势提示
+   陌生人打开不知道这页是翻页式的，给一次很轻的提示，动一下就消失。 */
+.page-hint {
+  position: fixed;
+  left: 50%;
+  bottom: calc(24px + env(safe-area-inset-bottom));
+  z-index: 55;
+  display: none;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-full);
+  background: var(--bg-elev);
+  box-shadow: var(--shadow-sm);
+  transform: translateX(-50%);
+  font-size: .74rem;
+  color: var(--text-2);
+  pointer-events: none;
+  animation: hint-in .6s var(--ease-out) both, hint-bob 2.4s 1s var(--ease) infinite;
+}
+.page-hint.is-shown { display: inline-flex; }
+.page-hint.is-gone { animation: hint-out .4s var(--ease) both; }
+
+.page-hint__key {
+  padding: 1px 6px;
+  border: 1px solid var(--line-strong);
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: .7rem;
+  color: var(--text);
+}
+
+@keyframes hint-in {
+  from { opacity: 0; transform: translate(-50%, 10px); }
+  to   { opacity: 1; transform: translate(-50%, 0); }
+}
+@keyframes hint-bob {
+  0%, 100% { transform: translate(-50%, 0); }
+  50%      { transform: translate(-50%, -5px); }
+}
+@keyframes hint-out {
+  from { opacity: 1; }
+  to   { opacity: 0; transform: translate(-50%, 8px); }
+}
+
+/* 手机端提示上移，让开底部分段页码 */
+@media (max-width: 900px) {
+  .page-hint { bottom: calc(44px + env(safe-area-inset-bottom)); font-size: .72rem; }
+}
+
 /* ============================================================ 页码指示器 */
 .pager {
   position: fixed;
@@ -340,6 +433,17 @@ html[data-paged="on"] .pager { display: flex; }
     transition: none !important;
     transform: none !important;
   }
+  /* 章节入场：CSS 层也兜一道，万一 JS 没拦住也不会动 */
+  html[data-paged="on"] .section.is-entering > .container > *,
+  html[data-paged="on"] .section.is-entering .card,
+  html[data-paged="on"] .section.is-entering .interest,
+  html[data-paged="on"] .section.is-entering .social,
+  html[data-paged="on"] .section.is-entering .game {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+  .page-hint { display: none !important; }
 }
 
 /* 关闭翻页时，页码指示器隐藏、回到普通长页面 */

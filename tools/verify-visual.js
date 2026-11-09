@@ -123,6 +123,7 @@ function contrast(a, b) {
         intersectArea: area,
         contentBottom: Math.round(maxBottom),
         dotCount: dots.length,
+        pageCount: document.querySelectorAll('.hero, .section').length,
         listVisible: getComputedStyle(list).display !== 'none',
         trackVisible: getComputedStyle(track).display !== 'none',
         dotSize: dots.length ? Math.round(dots[0].width) + 'x' + Math.round(dots[0].height) : '-'
@@ -135,7 +136,7 @@ function contrast(a, b) {
       ok(pager.intersectArea === 0,
         tag + '页码与内容零重叠（相交面积 ' + pager.intersectArea + 'px²，正文底边 ' +
         pager.contentBottom + ' / 页码顶边 ' + pager.y + '）');
-      ok(pager.dotCount === 5, tag + '页码数量 5');
+      ok(pager.dotCount === pager.pageCount, tag + '页码数量与页数一致（' + pager.dotCount + '）');
       // 断点 900px：以下用底部分段，以上用侧边圆点
       if (vp.width <= 900) {
         ok(pager.y > vp.height * 0.9, tag + '页码贴底（y=' + pager.y + '）');
@@ -218,7 +219,7 @@ function contrast(a, b) {
     /* ---------- 6. 翻页吸附生效 ---------- */
     const snaps = await page.evaluate(() =>
       [...document.querySelectorAll('.hero, .section')].map(p => getComputedStyle(p).scrollSnapAlign));
-    ok(snaps.every(s => s === 'start'), tag + '每页都参与吸附（' + snaps.join('/') + '）');
+    ok(snaps.every(s => s === 'start'), tag + '每页都参与吸附（' + snaps.length + ' 页）');
 
     /* ---------- 7. 键盘翻页真的会动 ---------- */
     await page.evaluate(() => window.scrollTo(0, 0));

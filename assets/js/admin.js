@@ -200,6 +200,7 @@ window.ADMIN = {
     { id: "basic", label: "基础" },
     { id: "about", label: "关于" },
     { id: "services", label: "业务" },
+    { id: "gaming", label: "游戏" },
     { id: "interests", label: "喜好" },
     { id: "social", label: "社交" },
     { id: "theme", label: "外观" }
@@ -245,6 +246,28 @@ window.ADMIN = {
         { k: "label", label: "名称" },
         { k: "value", label: "内容" }
       ]
+    },
+    gaming: {
+      path: ["gaming", "items"], title: "游戏卡片", desc: "ID 点一下即可复制；「可展现资产」每行写一个「名称: 内容」",
+      make: function () {
+        return {
+          icon: "gamepad", name: "新游戏", uidLabel: "ID", uid: "",
+          server: "", rank: "", color: "", stats: [], note: "", link: ""
+        };
+      },
+      fields: [
+        { k: "icon",     label: "图标名（tower / crosshair / target / note / disc / music）" },
+        { k: "name",     label: "游戏名" },
+        { k: "uidLabel", label: "ID 的标签（博士 ID / Riot ID …）" },
+        { k: "uid",      label: "ID（点卡片可复制）" },
+        { k: "server",   label: "区服" },
+        { k: "rank",     label: "等级 / 段位" },
+        { k: "color",    label: "品牌色（如 #ff4655，留空用主题色）", full: true },
+        { k: "stats",    label: "可展现资产", type: "pairs", full: true,
+          hint: "每行一个：六星干员: 88" },
+        { k: "note",     label: "一句备注", type: "area", full: true },
+        { k: "link",     label: "外部主页链接（可留空）", full: true }
+      ]
     }
   };
 
@@ -269,6 +292,23 @@ window.ADMIN = {
       var fields = def.fields.map(function (f) {
         var v = it[f.k];
         if (f.type === "csv") v = (Array.isArray(v) ? v.join(", ") : (v || ""));
+
+        /* pairs：{label,value} 数组 ↔ 「名称: 内容」多行文本。
+           用文本而不用嵌套小表单，是因为一行一个最好改，也不容易点错。 */
+        if (f.type === "pairs") {
+          var lines = Array.isArray(v)
+            ? v.map(function (p) {
+                return (p.label || "") + ": " + (p.value == null ? "" : p.value);
+              }).join("\n")
+            : (v || "");
+          return '<label class="field field--full">' +
+                 '<span class="field__label">' + esc(f.label) +
+                 (f.hint ? '　<em style="font-style:normal;color:var(--text-3)">' + esc(f.hint) + '</em>' : '') +
+                 '</span>' +
+                 '<textarea class="area" style="min-height:74px" data-idx="' + i + '" data-key="' + key +
+                 '" data-f="' + f.k + '" data-pairs="1">' + esc(lines) + '</textarea></label>';
+        }
+
         if (f.type === "area") {
           return '<label class="field' + (f.full ? ' field--full' : '') + '">' +
                  '<span class="field__label">' + esc(f.label) + '</span>' +
@@ -389,6 +429,20 @@ window.ADMIN = {
       body += renderList("services");
     }
 
+    if (activeTab === "gaming") {
+      body += group("标题文案", "", scalarFields([
+        { path: ["gaming", "eyebrow"], label: "小标签", value: getPath(draft, ["gaming", "eyebrow"]) },
+        { path: ["gaming", "title"], label: "标题", value: getPath(draft, ["gaming", "title"]) },
+        { path: ["gaming", "lead"], label: "副标题", value: getPath(draft, ["gaming", "lead"]), full: true }
+      ]));
+      body += group("小提示", "",
+        '<p class="sheet__hint">ID 那一栏会做成「点一下复制」的按钮，' +
+        '对方在社交场合想加好友时直接一点就行。<br>' +
+        '「可展现资产」每行写一个 <code>名称: 内容</code>，' +
+        '例如 <code>六星干员: 88</code>；不写冒号也可以，会当成只有名称。</p>');
+      body += renderList("gaming");
+    }
+
     if (activeTab === "interests") {
       body += group("标题文案", "", scalarFields([
         { path: ["interests", "eyebrow"], label: "小标签", value: getPath(draft, ["interests", "eyebrow"]) },
@@ -431,8 +485,9 @@ window.ADMIN = {
 
       body += group("翻页与光效", "这两个开关决定页面是「翻页式」还是「长滚动」，以及指针光效", 
         scalarFields([
-          { path: ["ui", "paged"], label: "翻页式（一屏一页，上下吸附）", value: ui.paged, type: "bool" },
+          { path: ["ui", "paged"], label: "翻页式（一屏一章，上下吸附）", value: ui.paged, type: "bool" },
           { path: ["ui", "showPager"], label: "页码指示器", value: ui.showPager, type: "bool" },
+          { path: ["ui", "showHint"], label: "首次进入时提示「上下滑动翻页」", value: ui.showHint, type: "bool" },
           { path: ["ui", "lightEffects"], label: "指针追光 / 卡片光斑 / 触控涟漪", value: ui.lightEffects, type: "bool" }
         ]) +
         '<p class="sheet__hint">关掉「翻页式」会回到普通长页面（原来的滚动手感）。' +
@@ -545,6 +600,23 @@ window.ADMIN = {
         var key = el.dataset.key, i = +el.dataset.idx, f = el.dataset.f;
         var arr = getPath(draft, LISTS[key].path);
         var def = LISTS[key].fields.filter(function (x) { return x.k === f; })[0];
+
+        if (def && def.type === "pairs") {
+          // 「名称: 内容」→ [{label, value}]；半角/全角冒号都认，空行忽略
+          arr[i][f] = el.value.split("\n").map(function (line) {
+            var t = line.trim();
+            if (!t) return null;
+            var cut = t.search(/[:：]/);
+            if (cut < 0) return { label: t, value: "" };
+            return {
+              label: t.slice(0, cut).trim(),
+              value: t.slice(cut + 1).trim()
+            };
+          }).filter(function (x) { return x && x.label; });
+          mark();
+          return;
+        }
+
         arr[i][f] = def && def.type === "csv"
           ? el.value.split(",").map(function (x) { return x.trim(); }).filter(Boolean)
           : el.value;

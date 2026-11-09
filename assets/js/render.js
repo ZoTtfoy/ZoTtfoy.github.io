@@ -227,6 +227,63 @@ window.SITE_RENDER = (function () {
     }).join(""));
   }
 
+  /* ---------- 游戏 ---------- */
+  function renderGaming() {
+    var d = C.gaming || {};
+    var grid = $("gameRail");
+    if (!grid) return;
+
+    var items = arr(d.items);
+    grid.innerHTML = items.map(function (g, i) {
+      var color = g.color ? ' style="--game:' + esc(g.color) + ';' + delay(i, 60) + '"'
+                          : ' style="' + delay(i, 60) + '"';
+
+      var stats = arr(g.stats).map(function (s) {
+        return '<div class="game__stat">' +
+                 '<dt>' + esc(s.label) + '</dt>' +
+                 '<dd>' + esc(s.value) + '</dd>' +
+               '</div>';
+      }).join("");
+
+      var metaBits = [];
+      if (g.server) metaBits.push(esc(g.server));
+      if (g.rank) metaBits.push(esc(g.rank));
+
+      // ID 是可点击复制的主体：社交场合对方要加好友，这一步最有用
+      var uidBlock = (g.uid || g.copy)
+        ? '<button class="game__uid" type="button" ' +
+            'data-copy="' + esc(g.uid || g.copy) + '" ' +
+            'aria-label="复制 ' + esc(g.name) + ' 的 ' + esc(g.uidLabel || "ID") +
+            '：' + esc(g.uid || g.copy) + '">' +
+            '<span class="game__uid-label">' + esc(g.uidLabel || "ID") + '</span>' +
+            '<span class="game__uid-value">' + esc(g.uid || g.copy) + '</span>' +
+            '<span class="game__uid-copy">' + icon("copy") + '</span>' +
+          '</button>'
+        : "";
+
+      return '' +
+        '<article class="game" data-reveal' + color + '>' +
+          '<header class="game__head">' +
+            '<span class="game__icon">' + icon(g.icon) + '</span>' +
+            '<div class="game__title">' +
+              '<h3>' + esc(g.name) + '</h3>' +
+              (metaBits.length ? '<p>' + metaBits.join(" · ") + '</p>' : '') +
+            '</div>' +
+          '</header>' +
+          uidBlock +
+          (stats ? '<dl class="game__stats">' + stats + '</dl>' : '') +
+          (g.note ? '<p class="game__note">' + esc(g.note) + '</p>' : '') +
+          (g.link
+            ? '<a class="game__link" href="' + esc(g.link) + '" target="_blank" rel="noopener noreferrer">' +
+              '查看主页' + icon("arrow-up-right") + '</a>'
+            : "") +
+        '</article>';
+    }).join("");
+
+    // 卡片少于 2 张时不做横滑，避免出现空白轨道
+    grid.classList.toggle("is-static", items.length < 2);
+  }
+
   /* ---------- 社交平台 ---------- */
   function renderSocial() {
     var d = C.social || {}, s = C.site || {};
@@ -298,6 +355,7 @@ window.SITE_RENDER = (function () {
     renderAbout();
     renderServices();
     renderInterests();
+    renderGaming();
     renderSocial();
     renderControls();
   }

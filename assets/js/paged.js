@@ -139,9 +139,51 @@ window.SITE_PAGED = (function () {
   }
 
   /* ------------------------------------------------------------ 状态同步 */
-  function setActive(i, announce) {
+  var enterTimer = null;
+  var settleTimer = null;
+  var lastAnimated = -1;
+
+  /* 章节入场：只在这一页「滚动停稳后」播放一次。
+     为什么不在滚动过程中播：从第 1 页跳到第 5 页时会途经中间几页，
+     若每经过一页都触发，就会有多页同时挂着 is-entering，动画互相打架。
+     所以改成「停稳 140ms 后再判断」，并且每次都先把其他页的标记清干净。 */
+  function playEnter(page) {
+    if (!page || reduced()) return false;
+
+    /* 只给「确实在视口里」的页播动画。
+       平滑滚动从第 1 页跳到第 6 页时，中途可能有短暂停顿触发调度，
+       若不校验，那一页会在屏幕外播完动画、真正翻到时反而什么都不动。 */
+    var rect = page.getBoundingClientRect();
+    var vh = window.innerHeight || 800;
+    if (rect.top > vh * 0.5 || rect.bottom < vh * 0.5) return false;
+
+    pages.forEach(function (p) { p.classList.remove("is-entering"); });
+    void page.offsetHeight;                 // 强制回流，保证重复进入也能重播
+    page.classList.add("is-entering");
+
+    clearTimeout(enterTimer);
+    enterTimer = setTimeout(function () {
+      page.classList.remove("is-entering");
+    }, 920);
+    return true;
+  }
+
+  function scheduleSettle() {
+    clearTimeout(settleTimer);
+    settleTimer = setTimeout(function () {
+      if (activeIndex < 0 || activeIndex === lastAnimated) return;
+      /* 只有真的播了才算「已播放」。
+         早先在这里先把 lastAnimated 置位再判断能否播放，
+         结果一旦因不在视口内被跳过，这一页就永远不会再播 —— 已成历史 bug。 */
+      if (playEnter(pages[activeIndex])) {
+        lastAnimated = activeIndex;
+        if (UI.lightEffects !== false && !reduced()) sweep();
+      }
+    }, 140);
+  }
+
+  function setActive(i) {
     if (i === activeIndex || i < 0 || i >= pages.length) return;
-    var prev = activeIndex;
     activeIndex = i;
 
     pages.forEach(function (p, k) {
@@ -155,11 +197,6 @@ window.SITE_PAGED = (function () {
     segs.forEach(function (s, k) {
       s.classList.toggle("is-current", k === i);
     });
-
-    // 翻页时给一道极淡的光扫，暗示换页了（首次加载不扫）
-    if (announce && prev !== -1 && UI.lightEffects !== false && !reduced()) {
-      sweep();
-    }
   }
 
   function sweep() {
@@ -193,7 +230,8 @@ window.SITE_PAGED = (function () {
         if (d < min) { min = d; idx = j; }
       }
     }
-    setActive(idx, true);
+    setActive(idx);
+    scheduleSettle();
   }
 
   function onScroll() {
@@ -210,7 +248,8 @@ window.SITE_PAGED = (function () {
     if (i < 0 || i >= pages.length) return;
     var top = pages[i].getBoundingClientRect().top + (window.scrollY || window.pageYOffset || 0);
     window.scrollTo({ top: Math.max(0, top), behavior: smooth() });
-    setActive(i, true);
+    setActive(i);
+    scheduleSettle();
   }
 
   function goBy(delta) {
@@ -344,6 +383,41 @@ window.SITE_PAGED = (function () {
     }, 180);
   }
 
+  /* ------------------------------------------------------ 首次翻页提示 */
+  function initHint() {
+    var el = $("pageHint");
+    if (!el || UI.showHint === false) return;
+
+    var seen = false;
+    try { seen = sessionStorage.getItem("zotrod-hint") === "1"; } catch (e) {}
+    if (seen) return;
+
+    // 只在高个页不存在、确实能一页一页翻的时候提示，否则提示会误导
+    if (document.documentElement.dataset.snap !== "mandatory") return;
+
+    el.classList.add("is-shown");
+
+    var gone = false;
+    function dismiss() {
+      if (gone) return;
+      gone = true;
+      el.classList.add("is-gone");
+      setTimeout(function () { el.classList.remove("is-shown", "is-gone"); }, 420);
+      try { sessionStorage.setItem("zotrod-hint", "1"); } catch (e) {}
+      window.removeEventListener("wheel", dismiss);
+      window.removeEventListener("touchstart", dismiss);
+      window.removeEventListener("keydown", dismiss);
+      window.removeEventListener("scroll", dismiss);
+    }
+
+    window.addEventListener("wheel", dismiss, { passive: true, once: false });
+    window.addEventListener("touchstart", dismiss, { passive: true });
+    window.addEventListener("keydown", dismiss);
+    window.addEventListener("scroll", dismiss, { passive: true });
+    // 8 秒没动作也自动收掉，别一直挂着
+    setTimeout(dismiss, 8000);
+  }
+
   /* ------------------------------------------------------------ 初始化 */
   function init() {
     enabled = UI.paged !== false;
@@ -359,6 +433,8 @@ window.SITE_PAGED = (function () {
     // 首帧先确定当前页，但不触发光扫
     activeIndex = -1;
     updateActive();
+    // 首帧就把「已播放入场的页」对齐当前页，避免一进页面就动一次
+    lastAnimated = activeIndex;
 
     window.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("resize", onResize, { passive: true });
@@ -381,6 +457,7 @@ window.SITE_PAGED = (function () {
 
     initKeys();
     initWheel();
+    initHint();
   }
 
   return {

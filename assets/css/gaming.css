@@ -1,0 +1,246 @@
+/* ==========================================================================
+ *  gaming.css —— 游戏卡片与横向轨道
+ * --------------------------------------------------------------------------
+ *  为什么用横向轨道（所有断点都是）：
+ *    6 个游戏竖排必然超过一屏，那一页就会失去吸附——「锁定单屏」直接破功。
+ *    改成横向滑：一次看一张（桌面 2.5 张），高度恒定，一屏永远装得下。
+ *    这也正是 Apple 产品页常用的卡片横滑手势。
+ *
+ *  每张卡片顶部有一条品牌色细条（--game），是唯一的彩色信息，
+ *  其余仍走主题变量，所以 7 套风格下都不会打架。
+ * ========================================================================== */
+
+.game-rail {
+  display: flex;
+  gap: 14px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  overscroll-behavior-x: contain;      /* 别把横滑识别成浏览器后退 */
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+
+  /* 负边距 + 等量内边距：卡片能贴到屏幕边缘滑出 */
+  margin-inline: calc(var(--gutter) * -1);
+  padding-inline: var(--gutter);
+  padding-block: 6px 16px;             /* 给卡片阴影留空间 */
+  scroll-padding-inline: var(--gutter);
+}
+.game-rail::-webkit-scrollbar { display: none; }
+
+/* 卡片宽度：桌面露出 2.5 张，平板 1.6 张，手机 1 张多一点 */
+.game-rail > .game {
+  flex: 0 0 clamp(240px, 30vw, 320px);
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+}
+
+/* 少于两张时不做横滑 */
+.game-rail.is-static {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  overflow: visible;
+  margin-inline: 0;
+  padding-inline: 0;
+}
+
+/* ---------------------------------------------------------------- 卡片本体 */
+.game {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--bg-elev);
+  overflow: hidden;
+  transition: border-color var(--t) var(--ease), box-shadow var(--t) var(--ease),
+              transform var(--t) var(--ease);
+}
+
+/* 顶部品牌色细条 */
+.game::after {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 2px;
+  background: var(--game, var(--accent));
+  opacity: .85;
+}
+
+/* 品牌色的极淡底光，让卡片不至于一片灰 */
+.game::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: .05;
+  background: radial-gradient(120% 80% at 15% 0%, var(--game, var(--accent)) 0%, transparent 62%);
+}
+.game > * { position: relative; z-index: 1; }
+
+.game__head {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  margin-bottom: 14px;
+}
+.game__icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--game, var(--accent)) 12%, transparent);
+  color: var(--game, var(--accent));
+}
+/* 不支持 color-mix 的浏览器退回主题软色 */
+@supports not (background: color-mix(in srgb, red 10%, transparent)) {
+  .game__icon { background: var(--accent-soft); color: var(--accent); }
+}
+.game__icon .icon { width: 19px; height: 19px; }
+
+.game__title { min-width: 0; }
+.game__title h3 {
+  font-family: var(--font-display, var(--font-sans));
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: -.01em;
+  line-height: 1.35;
+}
+.game__title p {
+  margin-top: 2px;
+  font-family: var(--font-mono);
+  font-size: .66rem;
+  letter-spacing: .04em;
+  color: var(--text-3);
+}
+
+/* ------------------------------------------------------------------ ID 行 */
+.game__uid {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  margin-bottom: 14px;
+  padding: 8px 10px;
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--r-sm);
+  background: var(--bg-soft);
+  text-align: left;
+  transition: border-color var(--t-fast) var(--ease), background-color var(--t-fast) var(--ease);
+}
+.game__uid:hover {
+  border-color: var(--game, var(--accent));
+  border-style: solid;
+  background: var(--bg);
+}
+.game__uid-label {
+  flex: none;
+  font-family: var(--font-mono);
+  font-size: .58rem;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+.game__uid-value {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-family: var(--font-mono);
+  font-size: .78rem;
+  font-weight: 600;
+  color: var(--text);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.game__uid-copy {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  color: var(--text-3);
+  transition: color var(--t-fast) var(--ease), background-color var(--t-fast) var(--ease);
+}
+.game__uid-copy .icon { width: 13px; height: 13px; }
+.game__uid:hover .game__uid-copy { color: var(--game, var(--accent)); background: var(--bg-soft); }
+
+/* -------------------------------------------------------------- 数据网格 */
+.game__stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(78px, 1fr));
+  gap: 8px;
+  margin: 0 0 12px;
+}
+.game__stat {
+  padding: 8px 9px;
+  border-radius: calc(var(--r-sm) * .8);
+  background: var(--bg-soft);
+}
+.game__stat dt {
+  font-size: .62rem;
+  line-height: 1.4;
+  color: var(--text-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.game__stat dd {
+  margin: 2px 0 0;
+  font-family: var(--font-mono);
+  font-size: .82rem;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.game__note {
+  margin-top: auto;
+  padding-top: 4px;
+  font-size: .76rem;
+  line-height: 1.65;
+  color: var(--text-2);
+}
+
+.game__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 10px;
+  font-size: .74rem;
+  color: var(--game, var(--accent));
+}
+.game__link .icon { width: 13px; height: 13px; }
+.game__link:hover { text-decoration: underline; text-underline-offset: 3px; }
+
+/* ---------------------------------------------------------- 悬停反馈 */
+@media (hover: hover) and (pointer: fine) {
+  .game:hover {
+    transform: translateY(-4px);
+    border-color: var(--line-strong);
+    box-shadow: var(--shadow-md);
+  }
+}
+@media (hover: none) {
+  .game:active { transform: scale(.99); transition-duration: .1s; }
+}
+
+/* ------------------------------------------------------------ 小屏收紧 */
+@media (max-width: 680px) {
+  .game { padding: 16px; }
+  .game__stats { gap: 6px; }
+  .game__stat { padding: 7px 8px; }
+  .game__stat dd { font-size: .78rem; }
+  .game__note { font-size: .74rem; }
+}
+
+/* 减少动态效果：不做位移 */
+@media (prefers-reduced-motion: reduce) {
+  .game:hover { transform: none; }
+}

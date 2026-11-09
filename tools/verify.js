@@ -200,6 +200,22 @@ check(H('heroStatus').includes('status-dot') === !!C.site.available, '合作状�
 check(count('serviceGrid', /class="card"/g) === (C.services?.items || []).length, '业务卡片数量正确');
 check(count('interestGrid', /class="interest"/g) === (C.interests?.items || []).length, '喜好卡片数量正确');
 check(count('socialGrid', /class="social"/g) === (C.social?.items || []).length, '社交链接数量正确');
+
+/* ---------- 游戏模块 ---------- */
+const games = (C.gaming?.items || []);
+check(count('gameRail', /class="game"/g) === games.length, '游戏卡片数量正确');
+check(count('gameRail', /data-copy="/g) === games.filter(g => g.uid || g.copy).length,
+  '每张游戏卡都有可复制的 ID');
+check(count('gameRail', /class="game__stat"/g) === games.reduce((n, g) => n + (g.stats || []).length, 0),
+  '可展现资产条数与配置一致');
+games.forEach(g => {
+  check(!!ctx.SITE_ICONS[g.icon], '游戏图标存在: ' + g.name + ' → ' + g.icon);
+});
+check(H('gameRail').includes('博士 ID') || H('gameRail').includes('Riot ID'),
+  'ID 标签来自配置（uidLabel）');
+check(!/undefined|NaN/.test(H('gameRail')), '游戏卡片没有 undefined / NaN 泄漏');
+check((C.gaming?.items || []).every(g => !g.color || /^#[0-9a-f]{3,8}$/i.test(g.color)),
+  '品牌色都是合法色值');
 check(count('navList', /<li>/g) === enabledKeys.length, '桌面导航与模块开关一致');
 check(count('mobileNavList', /<li>/g) === enabledKeys.length, '移动导航与模块开关一致');
 check(count('aboutFacts', /facts__row/g) === (C.about?.facts || []).length, '关于信息表行数正确');
