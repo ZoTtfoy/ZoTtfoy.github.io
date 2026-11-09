@@ -4,10 +4,10 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="color-scheme" content="light dark">
-  <meta name="description" content="Zotrod 的个人主页 — 关于我、业务范畴、个人喜好与社交账号。">
+  <meta name="description" content="Zotrod 的个人主页 —— 联系方式、最近在听、在玩的游戏，以及维修报价。">
   <meta property="og:type" content="website">
   <meta property="og:title" content="Zotrod · 个人主页">
-  <meta property="og:description" content="Zotrod 的个人主页 — 关于我、业务范畴、个人喜好与社交账号。">
+  <meta property="og:description" content="Zotrod 的个人主页 —— 联系方式、最近在听、在玩的游戏，以及维修报价。">
   <meta name="theme-color" content="#fbfbf9">
 
   <title>Zotrod · 个人主页</title>
@@ -63,6 +63,8 @@
        因为它们要给首屏内联脚本用；其余都在解析完成后、DOMContentLoaded 之前执行。 -->
   <script defer src="assets/js/icons.js"></script>
   <script defer src="assets/js/render.js"></script>
+  <script defer src="assets/js/sync.js"></script>
+  <script defer src="assets/js/repair.js"></script>
   <script defer src="assets/js/skin.js"></script>
   <script defer src="assets/js/backdrop.js"></script>
   <script defer src="assets/js/live.js"></script>
@@ -75,6 +77,7 @@
   <link rel="stylesheet" href="assets/css/backdrop.css">
   <link rel="stylesheet" href="assets/css/layout.css">
   <link rel="stylesheet" href="assets/css/components.css">
+  <link rel="stylesheet" href="assets/css/blocks.css">
   <link rel="stylesheet" href="assets/css/skin.css">
   <link rel="stylesheet" href="assets/css/paged.css">
   <link rel="stylesheet" href="assets/css/gaming.css">
@@ -171,74 +174,77 @@
   </nav>
 
   <main id="main">
-    <!-- ============ Hero ============ -->
-    <section class="hero" id="top" aria-labelledby="heroTitle">
+
+    <!-- ============================================================ Q1 · 我 -->
+    <section class="hero" id="top" aria-labelledby="heroName">
       <div class="container hero__inner">
-        <div class="hero__avatar" id="heroAvatar" data-reveal hidden></div>
-        <p class="hero__status" id="heroStatus" data-reveal></p>
-        <h1 class="hero__title" id="heroTitle" data-reveal style="--reveal-delay:80ms"></h1>
-        <p class="hero__role" id="heroRole" data-reveal style="--reveal-delay:160ms"></p>
-        <p class="hero__desc" id="heroDesc" data-reveal style="--reveal-delay:230ms"></p>
-        <div class="hero__actions" data-reveal style="--reveal-delay:300ms">
-          <a class="btn btn--primary" id="heroPrimary" href="#services"></a>
-          <a class="btn btn--quiet" id="heroSecondary" href="#social"></a>
+
+        <!-- 身份区：头像 + 名字 + 副标题 + 简介 -->
+        <div class="profile">
+          <div class="profile__head">
+            <div class="profile__avatar" id="heroAvatar" data-reveal hidden></div>
+            <div class="profile__id">
+              <p class="profile__greet" id="heroGreet" data-reveal></p>
+              <h1 class="profile__name" id="heroName" data-reveal style="--reveal-delay:60ms"></h1>
+            </div>
+          </div>
+
+          <p class="profile__tagline" id="heroTagline" data-reveal style="--reveal-delay:110ms"></p>
+          <p class="profile__role" id="heroRole" data-reveal style="--reveal-delay:150ms"></p>
+          <p class="profile__intro" id="heroIntro" data-reveal style="--reveal-delay:200ms"></p>
+
+          <!-- QQ / 微信：点一下复制 -->
+          <div class="chips" id="heroContacts" data-reveal style="--reveal-delay:250ms"></div>
+
+          <div class="hero__actions" data-reveal style="--reveal-delay:290ms">
+            <a class="btn btn--primary" id="heroPrimary" href="#listen"></a>
+            <a class="btn btn--quiet" id="heroSecondary" href="#gaming"></a>
+          </div>
         </div>
 
-        <!-- 一言：默认本地精选，点一下换一句 -->
-        <p class="hero__quote" id="liveQuote" data-reveal style="--reveal-delay:360ms" hidden></p>
+        <!-- 两个主页的摘要卡：有封面显示封面，没有就是纯文字信息卡 -->
+        <div class="preview-grid" id="heroPreviews" data-reveal style="--reveal-delay:330ms"></div>
 
-        <!-- 实时时钟 + 日期 + 今年进度 -->
-        <div class="hero__meta" id="liveMeta" data-reveal style="--reveal-delay:410ms" hidden>
+        <!-- 一言 / 时钟 / 进度：默认关闭（见 config.js 的 live），留骨架方便随时打开 -->
+        <p class="hero__quote" id="liveQuote" hidden></p>
+        <div class="hero__meta" id="liveMeta" hidden>
           <b id="liveClock">--:--</b>
           <span class="hero__meta__sep" aria-hidden="true">·</span>
           <span id="liveWeek"></span>
           <span id="liveDate"></span>
         </div>
-        <div class="hero__progress" id="liveProgress" data-reveal style="--reveal-delay:450ms" hidden>
+        <div class="hero__progress" id="liveProgress" hidden>
           <span class="hero__progress__track" aria-hidden="true">
             <span class="hero__progress__fill" id="liveProgressFill"></span>
           </span>
           <span class="hero__progress__label" id="liveProgressLabel"></span>
         </div>
       </div>
-      <div class="hero__scroll" aria-hidden="true" data-reveal style="--reveal-delay:420ms">
-        <span>向下滚动</span><span class="hero__scroll-line"></span>
+
+      <div class="hero__scroll" aria-hidden="true">
+        <span>向下翻页</span><span class="hero__scroll-line"></span>
       </div>
     </section>
 
     <div class="sections" id="sections">
 
-      <!-- ============ 关于个人 ============ -->
-      <section class="section" id="about" data-section="about" aria-labelledby="aboutTitle">
+      <!-- ====================================================== Q2 · 在听 -->
+      <section class="section" id="listen" data-section="listen" aria-labelledby="listenTitle">
         <div class="container">
           <header class="section__head" data-reveal>
             <p class="eyebrow" data-field="eyebrow"></p>
-            <h2 class="section__title" id="aboutTitle" data-field="title"></h2>
+            <h2 class="section__title" id="listenTitle" data-field="title"></h2>
             <p class="section__lead" data-field="lead"></p>
           </header>
-          <div class="about__grid">
-            <div class="about__body" id="aboutBody" data-reveal></div>
-            <aside class="about__side" data-reveal style="--reveal-delay:120ms">
-              <dl class="facts" id="aboutFacts"></dl>
-              <ul class="tags" id="aboutTags" aria-label="关键词"></ul>
-            </aside>
+
+          <div class="listen">
+            <ul class="track-list" id="trackList" aria-label="最近在听"></ul>
+            <p class="listen__foot" id="listenFoot"></p>
           </div>
         </div>
       </section>
 
-      <!-- ============ 业务范畴 ============ -->
-      <section class="section" id="services" data-section="services" aria-labelledby="servicesTitle">
-        <div class="container">
-          <header class="section__head" data-reveal>
-            <p class="eyebrow" data-field="eyebrow"></p>
-            <h2 class="section__title" id="servicesTitle" data-field="title"></h2>
-            <p class="section__lead" data-field="lead"></p>
-          </header>
-          <div class="card-grid" id="serviceGrid"></div>
-        </div>
-      </section>
-
-      <!-- ============ 游戏 ============ -->
+      <!-- ====================================================== Q3 · 游戏 -->
       <section class="section section--games" id="gaming" data-section="gaming" aria-labelledby="gamingTitle">
         <div class="container">
           <header class="section__head" data-reveal>
@@ -250,28 +256,49 @@
         </div>
       </section>
 
-      <!-- ============ 个人喜好 ============ -->
-      <section class="section" id="interests" data-section="interests" aria-labelledby="interestsTitle">
+      <!-- ====================================================== Q4 · 维修 -->
+      <section class="section" id="repair" data-section="repair" aria-labelledby="repairTitle">
         <div class="container">
-          <header class="section__head" data-reveal>
+          <header class="section__head section__head--tight" data-reveal>
             <p class="eyebrow" data-field="eyebrow"></p>
-            <h2 class="section__title" id="interestsTitle" data-field="title"></h2>
+            <h2 class="section__title" id="repairTitle" data-field="title"></h2>
             <p class="section__lead" data-field="lead"></p>
           </header>
-          <div class="interest-grid" id="interestGrid"></div>
+
+          <div class="repair">
+            <!-- 左：闲鱼摘要卡 + 报价表 -->
+            <div class="repair__left">
+              <div class="preview-grid preview-grid--single" id="repairPreview"></div>
+              <div class="quote" id="repairQuote"></div>
+            </div>
+
+            <!-- 右：四步估价器 -->
+            <div class="calc" id="repairCalc"></div>
+          </div>
         </div>
       </section>
 
-      <!-- ============ 社交平台 ============ -->
-      <section class="section" id="social" data-section="social" aria-labelledby="socialTitle">
+      <!-- ====================================================== Q5 · 其他 -->
+      <section class="section" id="links" data-section="links" aria-labelledby="linksTitle">
         <div class="container">
           <header class="section__head" data-reveal>
             <p class="eyebrow" data-field="eyebrow"></p>
-            <h2 class="section__title" id="socialTitle" data-field="title"></h2>
+            <h2 class="section__title" id="linksTitle" data-field="title"></h2>
             <p class="section__lead" data-field="lead"></p>
           </header>
-          <div class="social-grid" id="socialGrid"></div>
-          <div class="contact" id="contactBlock" data-reveal></div>
+          <div class="social-grid" id="linksGrid"></div>
+        </div>
+      </section>
+
+      <!-- ====================================================== Q6 · 邮箱 -->
+      <section class="section" id="contact" data-section="contact" aria-labelledby="contactTitle">
+        <div class="container">
+          <header class="section__head" data-reveal>
+            <p class="eyebrow" data-field="eyebrow"></p>
+            <h2 class="section__title" id="contactTitle" data-field="title"></h2>
+            <p class="section__lead" data-field="lead"></p>
+          </header>
+          <div class="mailbox" id="contactBox" data-reveal></div>
         </div>
       </section>
 
@@ -310,6 +337,6 @@
 
   <!-- 无构建、无依赖：本地双击 index.html 也能直接看。
        JS 统一放在 head 里用 defer：浏览器在解析 HTML 的同时就能并行下载，
-       执行顺序仍按下面的先后（defer 保证），不会打乱依赖。 -->
+       执行顺序仍按上面的先后（defer 保证），不会打乱依赖。 -->
 </body>
 </html>
