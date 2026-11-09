@@ -111,6 +111,10 @@
 
   <!-- 跟随指针的一团淡光（触屏设备不显示） -->
   <div class="spotlight" id="spotlight" aria-hidden="true"></div>
+
+  <!-- 拖拽光效：按住时跟随的光团 + 拖尾点（点用对象池复用，不反复创建 DOM） -->
+  <div class="drag-glow" id="dragGlow" aria-hidden="true"></div>
+  <div class="drag-trail" id="dragTrail" aria-hidden="true"></div>
   <!-- 翻页时的光扫 -->
   <div class="page-sweep" aria-hidden="true"></div>
 

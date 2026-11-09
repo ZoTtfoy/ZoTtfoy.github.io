@@ -125,7 +125,12 @@ const documentStub = {
     return [];
   },
   addEventListener() {},
-  createElement(tag) { return new El(tag); }
+  createElement(tag) { return new El(tag); },
+  createDocumentFragment() {
+    const frag = new El('#fragment');
+    frag.appendChild = function (el) { this.children.push(el); return el; };
+    return frag;
+  }
 };
 function allReveal() {
   return [...byId.values()].filter(e => 'data-reveal' in e.attrs);

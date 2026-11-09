@@ -68,6 +68,7 @@ zotrod-homepage/
 │   ├── verify-backdrop.js        # 背景分层 + 7 主题可读性
 │   ├── verify-backdrop-admin.js  # 编辑器背景面板
 │   ├── verify-perf.js            # 性能回归（帧耗时 / 合成层 / 布局读取）
+│   ├── verify-drag.js            # 拖拽光效（含真实触摸手势）
 │   ├── verify-visual.js          # 可选：Chromium 真机式布局验证
 │   ├── verify-dom.js             # 可选：jsdom 真实 DOM 深度验证
 │   ├── verify-push.js            # 发布：状态码翻译 / 真实 API 探测
@@ -354,27 +355,55 @@ SITE_THEMES.resolve('paper','dark')  // 合并后的完整变量表（键名不�
 
 ## 三之三、指针与触控光效
 
-三层，彼此独立：
+四层，彼此独立：
 
 | 光效 | 行为 | 生效条件 |
 | --- | --- | --- |
-| **全局追光** | 一团很淡的光缓动跟随鼠标，制造「有光源」的感觉 | 仅精确指针设备（有鼠标） |
+| **全局追光** | 一团很淡的光缓动跟随鼠标，制造「有光源」的感觉 | 仅精确指针设备 |
 | **卡片光斑** | 指针在卡片内时，光落在指针所在位置，不是固定居中 | 仅精确指针设备 |
 | **触控涟漪** | 手指按下处扩散一圈，给即时反馈 | 仅触屏 |
+| **拖拽光效** | 按住拖动时聚光团跟随 + 撒拖尾点 | 桌面与触屏都有（参数不同） |
 
-追光与卡片光斑都刻意做得很淡：`--accent-soft` 本身就是 9% 透明度的主色，再叠一层径向渐变。光效是气氛，不该抢内容。
+光效都刻意做得很淡：`--accent-soft` 本身就是 9% 透明度的主色。光效是气氛，不该抢内容。
 
-从性能与克制角度做的几件事：
+### 拖拽光效：两端参数不同
 
-- 所有指针事件 `passive` + `requestAnimationFrame` 节流，不会因为 mousemove 掉帧
-- 追光 `pointer-events: none` 且 `z-index: 1`（在背景之上、内容之下），绝不拦截点击
-- 指针离开窗口或窗口失焦，光立即熄灭，不会在角落留一团
-- 涟漪动画结束自动移除 DOM，不残留节点
+| | 桌面 | 触屏 |
+| --- | --- | --- |
+| 光团直径 | 180px | **280px**（指尖会遮住约 45px，必须做大） |
+| 光团位置 | 正中指针 | **上移 36px**（让光露在指尖之外） |
+| 跟随系数 | 0.38（慢一点更柔） | **0.62**（慢会显得"追不上"） |
+| 撒点间隔 | 12px | 19px |
+| 拖尾点径 | 14px | 12px |
+
+按住时还会**暂时收起常驻追光** —— 两个光叠在一起会糊成一片。
+
+### 这里有一个必须知道的手势陷阱
+
+**在可滚动页面上，浏览器一旦判定为滚动手势就会发 `pointercancel`，之后 `pointermove` 完全停止。**
+
+实测一次 12 步的竖直拖动：
+
+| 事件 | 触发次数 |
+| --- | --- |
+| `pointermove` | **1** |
+| `pointercancel` | 1 |
+| `touchmove` | **9** |
+
+所以如果用 Pointer Events 统一处理，触屏拖拽光效在真机上几乎不生效（只有按下那一瞬间闪一下）。**结论是触屏必须监听 `touch` 事件，桌面才用 `pointer` 事件。**
+
+这个坑还有个隐蔽之处：用 `new PointerEvent('pointerdown', {pointerType:'touch'})` 手工派发是测不出来的 —— 手工事件不会触发浏览器的滚动手势识别，`pointermove` 会照常触发。必须用 CDP 的真实触摸序列（`Input.dispatchTouchEvent`）才能复现。`tools/verify-drag.js` 就是这么测的。
+
+### 三个实现约束
+
+- **拖尾点用对象池**（预建 20 个 DOM 循环复用），移动时零创建/销毁
+- **淡出用 Web Animations API**，不切 class、不读 `offsetWidth`，所以没有强制回流（切 class 重启动画每次都会触发布局）
+- **绝不给池里的点写 `will-change`**：20 个点等于 20 个图层常驻显存，会让常驻合成层从 6 涨到 27。`verify-perf.js` 会直接报错拦住这种写法
 
 ### 全部会自动关闭的情况
 
-- 系统开启「减少动态效果」→ 追光、光斑、涟漪、翻页吸附全部停用，内容照常可读
-- 触屏设备 → 不渲染追光（没有指针）
+- 系统开启「减少动态效果」→ 追光、光斑、涟漪、**拖拽光效**、翻页吸附全部停用
+- 触屏设备 → 不渲染追光（没有指针），但保留拖拽光与涟漪
 - `ui.lightEffects: false` → 整层关闭
 
 ---
@@ -605,6 +634,7 @@ node tools/verify-live.js     # 载入动画 / 时钟 / 进度条 / 一言 / 音
 node tools/verify-gaming.js   # 游戏模块 / 章节衔接 / 横滑不误翻 / 编辑器填资产
 node tools/verify-backdrop.js # 背景分层 / 7 主题 × 2 明暗的图片可读性
 node tools/verify-perf.js     # 性能：帧耗时 / 合成层 / 布局读取 / 传输体积
+node tools/verify-drag.js     # 拖拽光效：桌面鼠标 + 触屏真实手势
 
 # 可选：真实浏览器验证布局（需 npm install playwright-core --no-save && npx playwright install chromium）
 node tools/verify-visual.js   # 一屏一页 / 页码不压内容 / 吸附落位 / 光效 / 触屏
