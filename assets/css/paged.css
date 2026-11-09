@@ -13,19 +13,16 @@
  * ========================================================================== */
 
 html[data-paged="on"] {
-  scroll-snap-type: y proximity;
-  /* 页内已把页头高度算进 padding，这里不能再偏移，否则会差一个页头 */
+  /* ⚠️ 刻意不用 CSS scroll-snap（早先是 proximity + mandatory 两档）。
+     原因：CSS 吸附会和 JS 的翻页动画同时改 scrollTop，两边互相拽，
+     桌面端表现成"单格滚轮要滚 3 次才过一页、偶尔干脆不动"。
+     现在翻页由 paged.js 独占：滚轮/键盘翻页，自由滚动后自动归位。
+     详见 paged.js 顶部「滚动所有权」那段。 */
+  scroll-snap-type: none;
   scroll-padding-top: 0;
-  /* body 上的 overflow-x:hidden 会让 body 抢走滚动容器，吸附就失效了。
+  /* body 上的 overflow-x:hidden 会让 body 抢走滚动容器，
      所以翻页模式下把横向裁切放到 html 上。 */
   overflow-x: hidden;
-}
-
-/* 当每一页都装得进一屏时（JS 判定后设置 data-snap="mandatory"），
-   升级成强制吸附：任何一次滚动都会停在页边界，翻页感最干脆。
-   只要有一页装不下，就退回 proximity，避免用户读不到该页中间的内容。 */
-html[data-paged="on"][data-snap="mandatory"] {
-  scroll-snap-type: y mandatory;
 }
 
 /* ⚠️ 关键：body 上的 overflow-x:hidden 会把 body 变成滚动容器，
@@ -50,8 +47,6 @@ html[data-paged="on"] .site-header {
 
 html[data-paged="on"] .hero,
 html[data-paged="on"] .section {
-  scroll-snap-align: start;
-  scroll-snap-stop: always;
   min-height: 100vh;
   min-height: 100svh;
   display: flex;
@@ -121,42 +116,13 @@ html[data-paged="on"] .facts__row { padding: 11px 0; }
 html[data-paged="on"] .tags { margin-top: 18px; }
 html[data-paged="on"] .about__body p { line-height: 1.85; }
 
-/* ============================================ 手机端：卡片改成横向滑动
-   6 张喜好卡片竖着排必然超过一屏。与其让这一页失去吸附，
-   不如让卡片横向滑——一屏只显示一张半，右手一划就过渡，
-   在社交场合拿给别人看时，比一直往下滚更自然。 */
-@media (max-width: 900px) {
-  html[data-paged="on"] .card-grid,
-  html[data-paged="on"] .interest-grid,
-  html[data-paged="on"] .social-grid {
-    display: flex;
-    gap: 12px;
-    overflow-x: auto;
-    overflow-y: hidden;
-    scroll-snap-type: x mandatory;
-    overscroll-behavior-x: contain;         /* 别把横滑识别成浏览器后退 */
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-
-    /* 负边距 + 等量内边距：让卡片横滑时能贴到屏幕边缘 */
-    margin-inline: calc(var(--gutter) * -1);
-    padding-block: 4px 14px;                /* 给卡片阴影留出空间 */
-    padding-inline: var(--gutter);
-    scroll-padding-inline: var(--gutter);
-  }
-  html[data-paged="on"] .card-grid::-webkit-scrollbar,
-  html[data-paged="on"] .interest-grid::-webkit-scrollbar,
-  html[data-paged="on"] .social-grid::-webkit-scrollbar { display: none; }
-
-  /* 露出一张半，暗示「右边还有」 */
-  html[data-paged="on"] .card-grid > *,
-  html[data-paged="on"] .interest-grid > *,
-  html[data-paged="on"] .social-grid > * {
-    flex: 0 0 min(78%, 340px);
-    scroll-snap-align: center;
-    scroll-snap-stop: always;
-  }
-}
+/* ==================================== 手机上不再用横向滑动轨道
+   早先窄屏把业务/喜好/社交卡片改成 overflow-x 横滑。现在改回网格，原因：
+     · 左右横滑和上下翻页是两套方向的手势，在同一个页面上极易互相误触
+     · 横滑区的右边缘常常"看起来就是最后一列"，用户不知道还能划
+     · 横滑容器会吞掉一部分滚轮 / 触摸事件，让页面滚动感觉卡顿
+   代价是卡片要竖向排开 —— 高度交给 fit.css 的档位压缩控制；
+   实在装不下时该页会自然变成可滚动页，而不是把所有内容藏进滑块。 */
 
 /* 手机端进一步收紧首页与区块留白 */
 @media (max-width: 680px) {
