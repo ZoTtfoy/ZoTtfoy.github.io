@@ -105,8 +105,30 @@ window.SITE_MOTION = (function () {
       var target = document.querySelector(hash);
       if (!target) return;
       e.preventDefault();
-      var top = target.getBoundingClientRect().top + window.scrollY - headerHeight() - 18;
-      if (hash === "#top") top = 0;
+
+      var paged = document.documentElement.dataset.paged === "on";
+      var top;
+
+      if (paged) {
+        // 翻页模式下，页内已经把页头高度算进 padding，锚点直接对齐页顶，
+        // 不能再减一次页头高度，否则会差出一整条。
+        top = target.getBoundingClientRect().top + window.scrollY;
+        // 如果是某个区块，交给 paged 精确对齐
+        if (window.SITE_PAGED && target.matches(".section, .hero")) {
+          var all = window.SITE_PAGED.pages();
+          var idx = all.indexOf(target);
+          if (idx >= 0) {
+            window.SITE_PAGED.goTo(idx);
+            if (history.pushState) history.pushState(null, "", hash);
+            closeMenu();
+            return;
+          }
+        }
+      } else {
+        top = target.getBoundingClientRect().top + window.scrollY - headerHeight() - 18;
+        if (hash === "#top") top = 0;
+      }
+
       window.scrollTo({ top: Math.max(0, top), behavior: reduced() ? "auto" : "smooth" });
       if (history.pushState) history.pushState(null, "", hash);
       closeMenu();

@@ -1,0 +1,154 @@
+/* ==========================================================================
+ *  effects.css —— 指针与触控光效
+ * --------------------------------------------------------------------------
+ *  三层，各自独立、都能单独关掉：
+ *    1. 全局追光  .spotlight        鼠标移动时一团很淡的光跟着走
+ *    2. 卡片光斑  --mx / --my       光斑落在卡片内的实际位置
+ *    3. 触控涟漪  .tap-ripple       手指点下去的位置扩散一圈
+ *
+ *  统一原则：宁可淡到几乎看不见，也不要抢内容。光效是气氛，不是主角。
+ *  触屏设备不显示追光（没有指针），只保留涟漪。
+ * ========================================================================== */
+
+/* -------------------------------------------------------------- 1. 全局追光 */
+.spotlight {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 1;                    /* 在背景之上、内容之下 */
+  width: 560px;
+  height: 560px;
+  margin: -280px 0 0 -280px;     /* 以自身中心对准指针 */
+  border-radius: 50%;
+  pointer-events: none;
+  opacity: 0;
+  background: radial-gradient(
+    circle closest-side,
+    var(--accent-soft) 0%,
+    transparent 72%
+  );
+  transition: opacity .5s var(--ease);
+  will-change: transform, opacity;
+}
+.spotlight.is-on { opacity: 1; }
+
+/* 触屏 / 关掉光效时不渲染 */
+html[data-effects="off"] .spotlight { display: none; }
+@media (hover: none), (pointer: coarse) {
+  .spotlight { display: none; }
+}
+
+/* ------------------------------------------------------- 2. 卡片跟随光斑
+   卡片把指针位置写进 --mx / --my，这里只负责用这两个值画光。
+   ::before 用于光斑，::after 已被卡片顶部的彩色细线占用。 */
+.card,
+.interest,
+.social,
+.contact,
+.about__side {
+  position: relative;
+  isolation: isolate;            /* 让光斑的混合只作用在卡片内部 */
+}
+
+.card::before,
+.interest::before,
+.social::before,
+.contact::before,
+.about__side::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  background: radial-gradient(
+    180px circle at var(--mx, 50%) var(--my, 50%),
+    var(--accent-soft) 0%,
+    transparent 68%
+  );
+  transition: opacity .45s var(--ease);
+}
+
+/* 只在真有鼠标的设备上亮，避免触屏留下擦不掉的印子 */
+@media (hover: hover) and (pointer: fine) {
+  .card:hover::before,
+  .interest:hover::before,
+  .social:hover::before,
+  .contact:hover::before,
+  .about__side:hover::before {
+    opacity: 1;
+  }
+}
+html[data-effects="off"] .card::before,
+html[data-effects="off"] .interest::before,
+html[data-effects="off"] .social::before,
+html[data-effects="off"] .contact::before,
+html[data-effects="off"] .about__side::before {
+  display: none;
+}
+
+/* 社交卡是 <button> 时也要有 overflow 裁切，光斑才不会溢出圆角 */
+.social { overflow: hidden; }
+.interest { overflow: hidden; }
+.contact { overflow: hidden; }
+
+/* -------------------------------------------------------------- 3. 触控涟漪 */
+.tap-ripple {
+  position: fixed;
+  z-index: 95;
+  width: 18px;
+  height: 18px;
+  margin: -9px 0 0 -9px;
+  border-radius: 50%;
+  pointer-events: none;
+  background: radial-gradient(circle, var(--accent) 0%, transparent 70%);
+  opacity: .38;
+  animation: tap-ripple .62s var(--ease-out) forwards;
+}
+@keyframes tap-ripple {
+  0%   { transform: scale(.4); opacity: .42; }
+  60%  { opacity: .18; }
+  100% { transform: scale(6.2); opacity: 0; }
+}
+
+/* 大屏上点按也想要一点反馈，但比触屏克制 */
+@media (hover: none) {
+  .tap-ripple { opacity: .34; }
+}
+
+/* ------------------------------------------------- 翻页时页内的轻微光扫
+   每翻到一页，顶部有一道很淡的横向光带走一遍，暗示「换页了」。 */
+.page-sweep {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 0;
+  z-index: 2;
+  height: 46vh;
+  pointer-events: none;
+  opacity: 0;
+  background: linear-gradient(
+    to bottom,
+    var(--accent-soft) 0%,
+    transparent 100%
+  );
+}
+.page-sweep.is-running { animation: page-sweep .9s var(--ease-out); }
+@keyframes page-sweep {
+  0%   { opacity: 0; transform: translateY(-8px); }
+  35%  { opacity: .55; }
+  100% { opacity: 0; transform: translateY(14px); }
+}
+
+/* --------------------------------------------------------- 减少动态效果 */
+@media (prefers-reduced-motion: reduce) {
+  .spotlight { display: none; }
+  .card::before,
+  .interest::before,
+  .social::before,
+  .contact::before,
+  .about__side::before { display: none; }
+  .tap-ripple { animation-duration: .01ms; }
+  .page-sweep { display: none; }
+}

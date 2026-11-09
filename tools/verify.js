@@ -24,8 +24,10 @@ class El {
     this.textContent = '';
     this.hidden = false;
     this.children = [];
-    this.style = { transform: '', cssText: '' };
+    this.style = { transform: '', cssText: '', minHeight: '', alignItems: '', setProperty() {} };
     this.dataset = {};
+    this.offsetHeight = 0;
+    this.offsetTop = 0;
     this._classes = new Set();
     this.classList = {
       add: c => this._classes.add(c),
@@ -36,6 +38,9 @@ class El {
   }
   setAttribute(k, v) { this.attrs[k] = String(v); }
   getAttribute(k) { return this.attrs[k] ?? null; }
+  removeAttribute(k) { delete this.attrs[k]; }
+  hasAttribute(k) { return k in this.attrs; }
+  matches() { return false; }
   appendChild(el) {
     this.children = this.children.filter(c => c !== el);
     this.children.push(el);
@@ -158,7 +163,8 @@ vm.createContext(ctx);
 
 /* ---------- 依次执行站点脚本 ---------- */
 const scripts = ['assets/js/config.js','assets/js/themes.js','assets/js/icons.js','assets/js/render.js',
-                 'assets/js/skin.js','assets/js/motion.js','assets/js/main.js'];
+                 'assets/js/skin.js','assets/js/paged.js','assets/js/effects.js',
+                 'assets/js/motion.js','assets/js/main.js'];
 for (const rel of scripts) {
   const code = fs.readFileSync(path.join(ROOT, rel), 'utf8');
   try { vm.runInContext(code, ctx, { filename: rel }); }

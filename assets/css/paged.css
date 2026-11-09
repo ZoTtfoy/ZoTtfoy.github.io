@@ -1,0 +1,352 @@
+/* ==========================================================================
+ *  paged.css —— 翻页式布局
+ * --------------------------------------------------------------------------
+ *  思路：整页吸附（scroll-snap）+ 每页占满一屏 + 右侧页码指示。
+ *
+ *  为什么用 proximity 而不是 mandatory
+ *    mandatory 会把「内容比一屏高」的页死死卡住，用户滚不到页中间——
+ *    在手机上这几乎必然发生（6 张喜好卡片一屏放不下）。
+ *    proximity 只在靠近吸附点时才吸，配合 scroll-snap-stop: always
+ *    仍然是一页一页地翻，但高个页可以让用户自由看。
+ *
+ *  高个页靠 JS 打上 data-tall="1"，自动放弃吸附（见 paged.js）。
+ * ========================================================================== */
+
+html[data-paged="on"] {
+  scroll-snap-type: y proximity;
+  /* 页内已把页头高度算进 padding，这里不能再偏移，否则会差一个页头 */
+  scroll-padding-top: 0;
+  /* body 上的 overflow-x:hidden 会让 body 抢走滚动容器，吸附就失效了。
+     所以翻页模式下把横向裁切放到 html 上。 */
+  overflow-x: hidden;
+}
+
+/* 当每一页都装得进一屏时（JS 判定后设置 data-snap="mandatory"），
+   升级成强制吸附：任何一次滚动都会停在页边界，翻页感最干脆。
+   只要有一页装不下，就退回 proximity，避免用户读不到该页中间的内容。 */
+html[data-paged="on"][data-snap="mandatory"] {
+  scroll-snap-type: y mandatory;
+}
+
+/* ⚠️ 关键：body 上的 overflow-x:hidden 会把 body 变成滚动容器，
+   于是 html 上的吸附点全部失效（实测滚 400px 完全不吸）。
+   overflow-x:clip 能裁切但「不创建滚动容器」，正好解决这个问题。
+   Safari 16 以下不支持 clip，届时退化为普通滚动，内容仍可读。 */
+html[data-paged="on"] body {
+  overflow-x: clip;
+  overflow-y: visible;
+}
+
+/* ------------------------------------------------------------ 每页占满一屏 */
+/* 页头在翻页模式下改成固定定位：
+   原本 sticky 会占掉文档流顶部的一个页头高度，导致第一页永远差 72px 露不全。
+   固定在顶后，页面从 y=0 开始，每一页都能精确对齐视口顶部。 */
+html[data-paged="on"] .site-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+}
+
+html[data-paged="on"] .hero,
+html[data-paged="on"] .section {
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+  min-height: 100vh;
+  min-height: 100svh;
+  display: flex;
+  align-items: center;
+
+  /* 页头是浮在上面的，所以把它的高度加进上内边距 */
+  padding-top: calc(var(--header-h) + clamp(20px, 4vh, 52px));
+  padding-bottom: clamp(36px, 7vh, 88px);
+  border-top: 1px solid var(--line);
+}
+
+html[data-paged="on"] .hero {
+  justify-content: center;
+  padding-bottom: clamp(48px, 9vh, 100px);
+}
+
+html[data-paged="on"] .section > .container,
+html[data-paged="on"] .hero > .hero__inner {
+  width: min(calc(100% - var(--gutter) * 2), var(--w));
+  margin-inline: auto;
+}
+
+/* 区块标题与内容之间收一点，避免一屏塞不下 */
+html[data-paged="on"] .section__head { margin-bottom: clamp(24px, 3.6vh, 44px); }
+
+/* 翻页模式下不再需要「向下滚动」那根线，右侧有页码 */
+html[data-paged="on"] .hero__scroll { display: none; }
+
+/* ------------------------------------------------------- 高个页：放弃吸附 */
+html[data-paged="on"] .section[data-tall="1"] {
+  min-height: 0;
+  align-items: flex-start;
+  scroll-snap-align: none;
+  scroll-snap-stop: normal;
+  padding-top: calc(var(--header-h) + clamp(36px, 7vh, 72px));
+  padding-bottom: clamp(56px, 10vh, 110px);
+}
+
+/* 页脚不参与吸附循环，但要能被滚到：给它一个 end 对齐的吸附点，
+   否则强制吸附模式下最后会永远弹回最后一页，页脚看不到。 */
+html[data-paged="on"] .site-footer { scroll-snap-align: end; }
+
+/* ======================================================= 翻页模式：紧凑化
+   目标：让每一页真正装进一屏。否则吸附会失效，「翻页」就名存实亡。
+   这里只收紧留白与卡片体量，不改字号层级，视觉重量基本不变。 */
+html[data-paged="on"] .card {
+  min-height: 0;
+  padding: clamp(22px, 2.6vw, 30px);
+}
+html[data-paged="on"] .card__icon { margin-bottom: 20px; }
+html[data-paged="on"] .card__tags { padding-top: 18px; }
+
+html[data-paged="on"] .interest {
+  min-height: 0;
+  padding: 20px;
+}
+html[data-paged="on"] .interest__icon { margin-bottom: 16px; }
+html[data-paged="on"] .interest__meta { padding-top: 14px; }
+
+html[data-paged="on"] .contact {
+  margin-top: clamp(28px, 4vh, 46px);
+  padding: clamp(28px, 4.5vw, 52px) 24px;
+}
+
+html[data-paged="on"] .about__side { padding: clamp(20px, 2.6vw, 28px); }
+html[data-paged="on"] .facts__row { padding: 11px 0; }
+html[data-paged="on"] .tags { margin-top: 18px; }
+html[data-paged="on"] .about__body p { line-height: 1.85; }
+
+/* ============================================ 手机端：卡片改成横向滑动
+   6 张喜好卡片竖着排必然超过一屏。与其让这一页失去吸附，
+   不如让卡片横向滑——一屏只显示一张半，右手一划就过渡，
+   在社交场合拿给别人看时，比一直往下滚更自然。 */
+@media (max-width: 900px) {
+  html[data-paged="on"] .card-grid,
+  html[data-paged="on"] .interest-grid,
+  html[data-paged="on"] .social-grid {
+    display: flex;
+    gap: 12px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x mandatory;
+    overscroll-behavior-x: contain;         /* 别把横滑识别成浏览器后退 */
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+
+    /* 负边距 + 等量内边距：让卡片横滑时能贴到屏幕边缘 */
+    margin-inline: calc(var(--gutter) * -1);
+    padding-block: 4px 14px;                /* 给卡片阴影留出空间 */
+    padding-inline: var(--gutter);
+    scroll-padding-inline: var(--gutter);
+  }
+  html[data-paged="on"] .card-grid::-webkit-scrollbar,
+  html[data-paged="on"] .interest-grid::-webkit-scrollbar,
+  html[data-paged="on"] .social-grid::-webkit-scrollbar { display: none; }
+
+  /* 露出一张半，暗示「右边还有」 */
+  html[data-paged="on"] .card-grid > *,
+  html[data-paged="on"] .interest-grid > *,
+  html[data-paged="on"] .social-grid > * {
+    flex: 0 0 min(78%, 340px);
+    scroll-snap-align: center;
+    scroll-snap-stop: always;
+  }
+}
+
+/* 手机端进一步收紧首页与区块留白 */
+@media (max-width: 680px) {
+  html[data-paged="on"] .hero,
+  html[data-paged="on"] .section {
+    padding-top: calc(var(--header-h) + 18px);
+    padding-bottom: 34px;
+  }
+  html[data-paged="on"] .section__head { margin-bottom: 20px; }
+  html[data-paged="on"] .section__lead { margin-top: 8px; }
+  html[data-paged="on"] .hero__title { font-size: clamp(2.2rem, 10vw, 3rem); }
+  html[data-paged="on"] .hero__desc { font-size: .92rem; }
+  html[data-paged="on"] .hero__actions { margin-top: 24px; }
+  html[data-paged="on"] .about__body p { font-size: .96rem; line-height: 1.8; }
+  html[data-paged="on"] .about__body p + p { margin-top: .9em; }
+  html[data-paged="on"] .about__side { padding: 18px; }
+  html[data-paged="on"] .facts__row { padding: 9px 0; }
+  html[data-paged="on"] .tags { margin-top: 14px; gap: 6px; }
+  html[data-paged="on"] .tag { padding: 4px 10px; font-size: .72rem; }
+  html[data-paged="on"] .contact { margin-top: 24px; padding: 26px 18px; }
+  html[data-paged="on"] .contact__actions { margin-top: 20px; }
+  html[data-paged="on"] .contact__mail { margin-top: 14px; }
+}
+
+/* ---------------------------------------------------------- 页间细微层次
+   未激活的页内容轻微下沉，激活后归位。只做位移、不做透明度，
+   避免和 [data-reveal] 的渐显叠加成二次变暗。 */
+html[data-paged="on"] .section > .container {
+  transition: transform .8s var(--ease-out);
+  will-change: transform;
+}
+html[data-paged="on"] .section:not(.is-page-active):not([data-tall="1"]) > .container {
+  transform: translate3d(0, 14px, 0);
+}
+html[data-paged="on"] .section.is-page-active > .container {
+  transform: none;
+}
+
+/* ============================================================ 页码指示器 */
+.pager {
+  position: fixed;
+  top: 50%;
+  right: max(18px, calc((100vw - var(--w)) / 2 - 56px));
+  z-index: 50;
+  transform: translateY(-50%);
+  display: none;                 /* 只有翻页模式才出现 */
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-full);
+  background: var(--bg-elev);
+  box-shadow: var(--shadow-sm);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+}
+html[data-paged="on"] .pager { display: flex; }
+
+.pager__list { display: flex; flex-direction: column; gap: 2px; }
+
+.pager__item { display: flex; justify-content: flex-end; }
+
+.pager__dot {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0;
+  height: 26px;
+  padding: 0 7px;
+  border-radius: var(--r-full);
+  color: var(--text-3);
+  transition: color var(--t-fast) var(--ease);
+}
+/* 圆点本体 */
+.pager__dot::before {
+  content: "";
+  display: block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: .45;
+  transition: opacity var(--t) var(--ease), transform var(--t) var(--ease),
+              background-color var(--t) var(--ease);
+}
+.pager__dot:hover { color: var(--text); }
+.pager__dot:hover::before { opacity: .85; transform: scale(1.25); }
+
+.pager__dot.is-current { color: var(--accent); }
+.pager__dot.is-current::before {
+  opacity: 1;
+  transform: scale(1.5);
+  box-shadow: 0 0 0 4px var(--accent-soft);
+}
+
+/* 悬停时向左滑出标签 */
+.pager__label {
+  position: absolute;
+  right: calc(100% + 8px);
+  top: 50%;
+  padding: 4px 10px;
+  border-radius: var(--r-sm);
+  background: var(--bg-elev);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-sm);
+  font-size: .72rem;
+  color: var(--text-2);
+  white-space: nowrap;
+  opacity: 0;
+  transform: translate(6px, -50%);
+  pointer-events: none;
+  transition: opacity var(--t-fast) var(--ease), transform var(--t-fast) var(--ease);
+}
+.pager__dot:hover .pager__label,
+.pager__dot:focus-visible .pager__label {
+  opacity: 1;
+  transform: translate(0, -50%);
+}
+.pager__label b { color: var(--accent); font-family: var(--font-mono); font-weight: 600; }
+
+/* ------------------------------------------- 页码：手机上改成底部细分段
+   手机屏幕窄，浮在右侧的圆点会压在卡片上。改成贴着屏幕底边的分段进度：
+   只占 3px 高、落在页面留白里，既能看出「第几页 / 共几页」，又完全挡不到内容。 */
+.pager__track { display: none; }
+
+@media (max-width: 900px) {
+  .pager {
+    top: auto;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    transform: none;
+    display: block;
+    padding: 0 12px calc(7px + env(safe-area-inset-bottom));
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    pointer-events: none;
+  }
+  .pager__list { display: none; }
+
+  .pager__track {
+    display: flex;
+    gap: 4px;
+  }
+  .pager__seg {
+    flex: 1;
+    height: 3px;
+    border-radius: 2px;
+    background: var(--line-strong);
+    transition: background-color var(--t) var(--ease), transform var(--t) var(--ease);
+  }
+  .pager__seg.is-current {
+    background: var(--accent);
+    transform: scaleY(1.6);
+  }
+}
+
+/* 分段只在手机显示，桌面保持圆点 */
+@media (min-width: 901px) {
+  .pager__track { display: none; }
+}
+
+/* 横屏矮屏：一屏放不下时内容会更长，别硬撑 */
+@media (max-height: 560px) and (orientation: landscape) {
+  html[data-paged="on"] .hero,
+  html[data-paged="on"] .section {
+    min-height: 0;
+    padding-top: calc(var(--header-h) + 28px);
+    padding-bottom: 40px;
+  }
+}
+
+/* ---------------------------------------------------------- 减少动态效果 */
+@media (prefers-reduced-motion: reduce) {
+  html[data-paged="on"] { scroll-snap-type: none; }
+  html[data-paged="on"] .section > .container {
+    transition: none !important;
+    transform: none !important;
+  }
+}
+
+/* 关闭翻页时，页码指示器隐藏、回到普通长页面 */
+html[data-paged="off"] .pager { display: none; }
+
+/* 打印：不要吸附 */
+@media print {
+  html[data-paged="on"] { scroll-snap-type: none; }
+  html[data-paged="on"] .section { min-height: 0; padding: 24px 0; }
+}

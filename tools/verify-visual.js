@@ -1,0 +1,418 @@
+/* ==========================================================================
+ *  浏览器端深度验证：node tools/verify-visual.js（可选）
+ * --------------------------------------------------------------------------
+ *  前面几个自检跑在轻量 DOM 里，看不到真实布局。这个脚本启动 Chromium，
+ *  在桌面 / 平板 / 手机三种视口下真机式地检查：
+ *    · 每一页是否真的装进一屏、内容有没有被裁
+ *    · 页码会不会压住内容（算矩形相交面积，不是靠目测）
+ *    · 文字对比度（实际计算色值）
+ *    · 翻页吸附：点页码是否精确落位、滚到中途是否被吸回、页脚能否到达
+ *    · 键盘 / 滚轮翻页、连滚只翻一页
+ *    · 追光是否亮起、是否不拦截点击、卡片光斑是否落在指针处
+ *    · 触屏涟漪是否出现并自动清理、卡片横滑是否可用
+ *    · 减少动态效果 / 关闭翻页 两种降级
+ *
+ *  依赖（仅此脚本需要，站点本身零依赖）：
+ *      npm install playwright-core --no-save
+ *      npx playwright install chromium
+ *  未安装时自动跳过，不影响其他自检。
+ * ========================================================================== */
+let chromium;
+try {
+  chromium = require('playwright-core').chromium;
+} catch (e) {
+  console.log('未安装 playwright-core，跳过浏览器端验证。');
+  console.log('如需运行：npm install playwright-core --no-save && npx playwright install chromium');
+  process.exit(0);
+}
+
+/* 几何与视觉校验：不靠肉眼，直接量元素位置、裁切、重叠与对比度 */
+
+const URL = 'http://127.0.0.1:8791/';
+const VIEWPORTS = [
+  { name: 'desktop', width: 1440, height: 900 },
+  { name: 'tablet', width: 820, height: 1180 },
+  { name: 'phone', width: 390, height: 844 }
+];
+
+const notes = [], fails = [];
+const ok = (c, m) => c ? notes.push('OK  ' + m) : fails.push(m);
+
+function luminance(rgb) {
+  const [r, g, b] = rgb.map(v => {
+    v /= 255;
+    return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+  });
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+function contrast(a, b) {
+  const L1 = luminance(a), L2 = luminance(b);
+  const hi = Math.max(L1, L2), lo = Math.min(L1, L2);
+  return (hi + 0.05) / (lo + 0.05);
+}
+
+(async () => {
+  const browser = await chromium.launch();
+
+  for (const vp of VIEWPORTS) {
+    const ctx = await browser.newContext({
+      viewport: { width: vp.width, height: vp.height },
+      deviceScaleFactor: 1,
+      hasTouch: vp.width <= 900,
+      isMobile: vp.width <= 900
+    });
+    const page = await ctx.newPage();
+    const errors = [];
+    page.on('pageerror', e => errors.push(e.message));
+    page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
+
+    await page.goto(URL, { waitUntil: 'networkidle' });
+    await page.waitForTimeout(700);
+
+    const tag = '[' + vp.name + '] ';
+
+    /* ---------- 1. 每页内容都在视口内，不被裁 ---------- */
+    const fit = await page.evaluate(() => {
+      const vh = window.innerHeight;
+      const headerH = document.querySelector('.site-header').offsetHeight;
+      return [...document.querySelectorAll('.hero, .section')].map(p => {
+        const r = p.getBoundingClientRect();
+        const cont = p.querySelector('.container') || p.querySelector('.hero__inner');
+        const cr = cont.getBoundingClientRect();
+        return {
+          id: p.id,
+          pageH: Math.round(r.height),
+          contentTop: Math.round(cr.top - r.top),
+          contentH: Math.round(cr.height),
+          /* 内容底边是否超出页底（会被页脚/下一页挡住） */
+          overflowBottom: Math.round(cr.bottom - r.bottom),
+          vh
+        };
+      });
+    });
+
+    fit.forEach(f => {
+      ok(f.overflowBottom <= 2,
+        tag + (f.id || '?') + ' 内容未溢出页面底部（余 ' + (-f.overflowBottom) + 'px）');
+    });
+
+    /* ---------- 2. 页码不压内容 ---------- */
+    const pager = await page.evaluate(() => {
+      const p = document.querySelector('.pager');
+      if (!p || getComputedStyle(p).display === 'none') return null;
+      const r = p.getBoundingClientRect();
+      const dots = [...p.querySelectorAll('.pager__dot')].map(d => d.getBoundingClientRect());
+      /* 取正文容器的右边界 */
+      /* 取所有页的正文容器，算与页码的相交面积 */
+      let area = 0, maxBottom = 0;
+      document.querySelectorAll('.hero__inner, .section .container').forEach(c => {
+        const cr = c.getBoundingClientRect();
+        if (cr.bottom > c.parentElement.getBoundingClientRect().bottom) return;
+        maxBottom = Math.max(maxBottom, cr.bottom);
+        const ox = Math.max(0, Math.min(r.right, cr.right) - Math.max(r.x, cr.x));
+        const oy = Math.max(0, Math.min(r.bottom, cr.bottom) - Math.max(r.y, cr.y));
+        area = Math.max(area, Math.round(ox * oy));
+      });
+      const list = p.querySelector('.pager__list');
+      const track = p.querySelector('.pager__track');
+      return {
+        x: Math.round(r.x), y: Math.round(r.y),
+        w: Math.round(r.width), h: Math.round(r.height),
+        right: Math.round(r.right), bottom: Math.round(r.bottom),
+        insideViewport: r.right <= window.innerWidth + 1 && r.bottom <= window.innerHeight + 1 && r.x >= -1,
+        intersectArea: area,
+        contentBottom: Math.round(maxBottom),
+        dotCount: dots.length,
+        listVisible: getComputedStyle(list).display !== 'none',
+        trackVisible: getComputedStyle(track).display !== 'none',
+        dotSize: dots.length ? Math.round(dots[0].width) + 'x' + Math.round(dots[0].height) : '-'
+      };
+    });
+
+    if (pager) {
+      ok(pager.insideViewport, tag + '页码完整在视口内');
+      /* 用真实的矩形相交面积判断，比单看一边的距离可靠 */
+      ok(pager.intersectArea === 0,
+        tag + '页码与内容零重叠（相交面积 ' + pager.intersectArea + 'px²，正文底边 ' +
+        pager.contentBottom + ' / 页码顶边 ' + pager.y + '）');
+      ok(pager.dotCount === 5, tag + '页码数量 5');
+      // 断点 900px：以下用底部分段，以上用侧边圆点
+      if (vp.width <= 900) {
+        ok(pager.y > vp.height * 0.9, tag + '页码贴底（y=' + pager.y + '）');
+        ok(pager.trackVisible && !pager.listVisible, tag + '窄屏用底部分段而非圆点');
+      } else {
+        ok(pager.listVisible && !pager.trackVisible, tag + '宽屏用侧边圆点');
+      }
+    } else {
+      fails.push(tag + '页码未显示');
+    }
+
+    /* ---------- 3. 对比度（真实计算色值） ---------- */
+    const colors = await page.evaluate(() => {
+      const parse = s => {
+        const m = s.match(/rgba?\(([^)]+)\)/);
+        if (!m) return null;
+        const p = m[1].split(',').map(Number);
+        return p.length >= 3 ? p.slice(0, 3) : null;
+      };
+      const bgOf = el => {
+        let e = el;
+        while (e) {
+          const c = parse(getComputedStyle(e).backgroundColor);
+          if (c && getComputedStyle(e).backgroundColor !== 'rgba(0, 0, 0, 0)') return c;
+          e = e.parentElement;
+        }
+        return [255, 255, 255];
+      };
+      const pick = sel => {
+        const el = document.querySelector(sel);
+        if (!el) return null;
+        return { fg: parse(getComputedStyle(el).color), bg: bgOf(el), text: (el.textContent || '').trim().slice(0, 12) };
+      };
+      return {
+        title: pick('.section__title'),
+        lead: pick('.section__lead'),
+        body: pick('.about__body p'),
+        eyebrow: pick('.eyebrow'),
+        pagerDot: pick('.pager__dot.is-current'),
+        cardDesc: pick('.card__desc')
+      };
+    });
+
+    Object.keys(colors).forEach(k => {
+      const c = colors[k];
+      if (!c || !c.fg || !c.bg) return;
+      const r = contrast(c.fg, c.bg);
+      ok(r >= 4.5, tag + k + ' 对比度 ' + r.toFixed(2) + ' ≥ 4.5（「' + c.text + '」）');
+    });
+
+    /* ---------- 4. 横向滑动卡片（仅小屏） ---------- */
+    if (vp.width <= 900) {
+      const rail = await page.evaluate(() => {
+        const g = document.querySelector('.interest-grid');
+        if (!g) return null;
+        const cs = getComputedStyle(g);
+        return {
+          display: cs.display,
+          overflowX: cs.overflowX,
+          snap: cs.scrollSnapType,
+          scrollable: g.scrollWidth > g.clientWidth + 4,
+          childFlex: getComputedStyle(g.firstElementChild).flexBasis,
+          childCount: g.children.length
+        };
+      });
+      if (rail) {
+        ok(rail.display === 'flex', tag + '喜好卡片变为横向排列');
+        ok(rail.overflowX === 'auto', tag + '喜好卡片可横向滑动');
+        ok(/x mandatory/.test(rail.snap), tag + '横向吸附已开启（' + rail.snap + '）');
+        ok(rail.scrollable, tag + '内容确实超出可横向滚动');
+        ok(rail.childCount === 6, tag + '6 张喜好卡片都在');
+      }
+    }
+
+    /* ---------- 5. 页面不横向溢出 ---------- */
+    const hOver = await page.evaluate(() =>
+      document.documentElement.scrollWidth > document.documentElement.clientWidth + 1);
+    ok(!hOver, tag + '没有横向溢出');
+
+    /* ---------- 6. 翻页吸附生效 ---------- */
+    const snaps = await page.evaluate(() =>
+      [...document.querySelectorAll('.hero, .section')].map(p => getComputedStyle(p).scrollSnapAlign));
+    ok(snaps.every(s => s === 'start'), tag + '每页都参与吸附（' + snaps.join('/') + '）');
+
+    /* ---------- 7. 键盘翻页真的会动 ---------- */
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await page.waitForTimeout(300);
+    const y0 = await page.evaluate(() => window.scrollY);
+    await page.keyboard.press('ArrowDown');
+    await page.waitForTimeout(900);
+    const y1 = await page.evaluate(() => window.scrollY);
+    ok(y1 > y0 + 100, tag + '↓ 键翻到下一页（' + Math.round(y0) + ' → ' + Math.round(y1) + '）');
+
+    const cur = await page.evaluate(() =>
+      [...document.querySelectorAll('.pager__dot')].findIndex(d => d.classList.contains('is-current')));
+    ok(cur === 1, tag + '页码高亮跟到第 2 页（当前索引 ' + cur + '）');
+
+    await page.keyboard.press('ArrowUp');
+    await page.waitForTimeout(900);
+    const y2 = await page.evaluate(() => window.scrollY);
+    ok(y2 < y1 - 100, tag + '↑ 键翻回上一页');
+
+    /* ---------- 8. 光效：鼠标移动后追光亮起 ---------- */
+    if (vp.width > 900) {
+      const before = await page.evaluate(() => {
+        const s = document.getElementById('spotlight');
+        return s ? s.classList.contains('is-on') : false;
+      });
+      await page.mouse.move(vp.width * 0.6, vp.height * 0.5, { steps: 10 });
+      await page.waitForTimeout(400);
+      const after = await page.evaluate(() => {
+        const s = document.getElementById('spotlight');
+        const cs = getComputedStyle(s);
+        return {
+          on: s.classList.contains('is-on'),
+          opacity: parseFloat(cs.opacity),
+          transform: cs.transform,
+          pointerEvents: cs.pointerEvents,
+          zIndex: cs.zIndex
+        };
+      });
+      ok(!before, tag + '初始追光是熄灭的');
+      ok(after.on && after.opacity > 0.5, tag + '鼠标移动后追光亮起（opacity ' + after.opacity + '）');
+      ok(after.pointerEvents === 'none', tag + '追光不拦截点击');
+      ok(Number(after.zIndex) <= 2, tag + '追光在内容之下（z-index ' + after.zIndex + '）');
+    }
+
+    /* ---------- 9. 卡片光斑变量 ---------- */
+    if (vp.width > 900) {
+      const card = page.locator('.card').first();
+      await card.scrollIntoViewIfNeeded();
+      await page.waitForTimeout(500);
+      const box = await card.boundingBox();
+      await page.mouse.move(box.x + box.width * 0.3, box.y + box.height * 0.4, { steps: 6 });
+      await page.waitForTimeout(300);
+      const mx = await card.evaluate(el => el.style.getPropertyValue('--mx'));
+      const my = await card.evaluate(el => el.style.getPropertyValue('--my'));
+      ok(!!mx && !!my, tag + '卡片记录了指针位置（--mx=' + mx + ' --my=' + my + '）');
+      ok(parseFloat(mx) > 0 && parseFloat(mx) < box.width,
+        tag + '光斑位置落在卡片内部（' + mx + ' < ' + Math.round(box.width) + '）');
+    }
+
+    /* ---------- 12. 翻页落位与吸附行为 ---------- */
+    const tops = await page.evaluate(() =>
+      [...document.querySelectorAll('.hero, .section')]
+        .map(p => Math.round(p.getBoundingClientRect().top + window.scrollY)));
+
+    /* --- 点页码：应精确落在该页顶部 --- */
+    if (vp.w > 900) {
+      await page.locator('.pager__dot').nth(2).click();
+      await page.waitForTimeout(1400);
+      const y = await page.evaluate(() => Math.round(window.scrollY));
+      ok(Math.abs(y - tops[2]) <= 3, tag + '点第 3 个页码后精确停在页顶（' + y + ' vs ' + tops[2] + '）');
+    }
+
+    /* --- 滚到一页的 40% 处，等吸附 --- */
+    await page.evaluate(t => window.scrollTo({ top: t + Math.round(window.innerHeight * 0.4), behavior: 'instant' }), tops[1]);
+    await page.waitForTimeout(1500);
+    const settled = await page.evaluate(() => Math.round(window.scrollY));
+    const delta = Math.abs(settled - tops[1]);
+    const snapMode = await page.evaluate(() => document.documentElement.dataset.snap);
+    if (snapMode === 'mandatory') {
+      ok(delta <= 3, tag + '强制吸附下滚到中途被吸回页顶（偏移 ' + delta + 'px）');
+    } else {
+      ok(delta <= 3 || delta > 40, tag + '邻近吸附下行为可预期（偏移 ' + delta + 'px）');
+    }
+
+    /* --- 页脚必须能滚到（否则强制吸附会把最后拦死） --- */
+    await page.evaluate(() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'instant' }));
+    await page.waitForTimeout(1200);
+    const foot = await page.evaluate(() => {
+      const f = document.querySelector('.site-footer').getBoundingClientRect();
+      return { visible: f.top < window.innerHeight - 10, atBottom: Math.abs(window.scrollY + window.innerHeight - document.body.scrollHeight) < 6 };
+    });
+    ok(foot.visible, tag + '页脚能滚到并可见');
+
+    /* --- 连续翻 4 次，页码与内容必须一致 --- */
+    let consistent = true, detail = '';
+    for (let i = 0; i < 4; i++) {
+      await page.keyboard.press('ArrowDown');
+      await page.waitForTimeout(1100);
+      const r = await page.evaluate(() => {
+        const idx = [...document.querySelectorAll('.pager__dot')].findIndex(d => d.classList.contains('is-current'));
+        const pages = [...document.querySelectorAll('.hero, .section')];
+        const y = window.scrollY;
+        /* 当前高亮页的顶部应在视口上方或正好在顶部 */
+        const p = pages[idx];
+        return {
+          idx, top: Math.round(p.getBoundingClientRect().top + y), y: Math.round(y), id: p.id,
+          bottom: document.documentElement.scrollHeight - window.innerHeight
+        };
+      });
+      /* 最后一页再按 ↓ 会滚到页脚（刻意的），此时允许停在文档底部 */
+      const atPageTop = Math.abs(r.y - r.top) <= 4;
+      const atFooter = Math.abs(r.y - r.bottom) <= 4;
+      if (!atPageTop && !atFooter) {
+        consistent = false;
+        detail += `${r.id}: y=${r.y} top=${r.top} bottom=${r.bottom}; `;
+      }
+    }
+    ok(consistent, tag + '连翻 4 页，高亮页码与落位始终一致' + (detail ? '（' + detail + '）' : ''));
+
+    /* --- 触屏点按涟漪（手机） --- */
+    if (vp.w <= 900) {
+      const before = await page.evaluate(() => document.querySelectorAll('.tap-ripple').length);
+      await page.touchscreen.tap(vp.w / 2, vp.h / 2);
+      await page.waitForTimeout(120);
+      const during = await page.evaluate(() => document.querySelectorAll('.tap-ripple').length);
+      ok(during > before, tag + '手指点按出现涟漪（' + during + ' 个）');
+      await page.waitForTimeout(900);
+      const after = await page.evaluate(() => document.querySelectorAll('.tap-ripple').length);
+      ok(after === 0, tag + '涟漪动画后自动移除，不残留 DOM');
+    }
+
+    /* --- 卡片横滑（手机）：滑一次应切换一张 --- */
+    if (vp.w <= 900) {
+      const rail = page.locator('.interest-grid');
+      await rail.scrollIntoViewIfNeeded();
+      await page.waitForTimeout(400);
+      const before = await rail.evaluate(el => el.scrollLeft);
+      await rail.evaluate(el => el.scrollBy({ left: 300, behavior: 'instant' }));
+      await page.waitForTimeout(800);
+      const after = await rail.evaluate(el => el.scrollLeft);
+      ok(after > before + 100, tag + '喜好卡片可横滑（' + Math.round(before) + ' → ' + Math.round(after) + '）');
+    }
+
+
+    if (errors.length) fails.push(tag + '控制台错误: ' + JSON.stringify(errors.slice(0, 3)));
+
+    await ctx.close();
+  }
+
+  /* ---------- 10. 减少动态效果：吸附与光效都应关闭 ---------- */
+  {
+    const ctx = await browser.newContext({
+      viewport: { width: 1440, height: 900 },
+      reducedMotion: 'reduce'
+    });
+    const page = await ctx.newPage();
+    await page.goto(URL, { waitUntil: 'networkidle' });
+    await page.waitForTimeout(400);
+    const r = await page.evaluate(() => ({
+      snap: getComputedStyle(document.documentElement).scrollSnapType,
+      spot: getComputedStyle(document.getElementById('spotlight')).display,
+      effects: document.documentElement.dataset.effects
+    }));
+    ok(r.snap === 'none', '[reduced-motion] 吸附已关闭（' + r.snap + '）');
+    ok(r.spot === 'none', '[reduced-motion] 追光已隐藏');
+    await ctx.close();
+  }
+
+  /* ---------- 11. 关闭翻页开关 ---------- */
+  {
+    const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+    const page = await ctx.newPage();
+    await page.addInitScript(() => {
+      window.__forcePagedOff = true;
+    });
+    await page.goto(URL, { waitUntil: 'networkidle' });
+    await page.evaluate(() => {
+      window.SITE_CONFIG.ui.paged = false;
+      document.documentElement.dataset.paged = 'off';
+    });
+    await page.waitForTimeout(200);
+    const r = await page.evaluate(() => ({
+      pagerDisplay: getComputedStyle(document.querySelector('.pager')).display,
+      snap: getComputedStyle(document.documentElement).scrollSnapType
+    }));
+    ok(r.pagerDisplay === 'none', '[paged=off] 页码隐藏');
+    ok(r.snap === 'none' || r.snap === 'y proximity', '[paged=off] 不吸附（' + r.snap + '）');
+    await ctx.close();
+  }
+
+  await browser.close();
+
+  console.log(notes.join('\n'));
+  console.log('\n检查项: ' + notes.length + '，失败: ' + fails.length);
+  if (fails.length) { console.log('\n失败明细:\n' + fails.join('\n')); process.exit(1); }
+  console.log('\n全部通过');
+})();

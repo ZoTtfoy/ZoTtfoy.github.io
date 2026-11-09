@@ -132,6 +132,11 @@ window.SITE_CONFIG = {
     themeDefault: "auto",   // "auto" 跟随系统 | "light" 默认浅色 | "dark" 默认深色
     accent: "",             // 可选：在风格之上再覆盖浅色主色，如 "#2f6b5b"；留空则用风格自带
     accentDark: "",         // 可选：覆盖深色主色
+
+    paged: true,            // ★ 翻页式：一屏一页，上下翻动时吸附
+    showPager: true,        //   右侧页码指示器
+    lightEffects: true,     // ★ 指针追光 / 卡片光斑 / 触控涟漪
+
     showSkinPicker: true,   // 右上角风格切换按钮
     showProgress: true,     // 顶部滚动进度条
     showBackToTop: true,    // 右下角回到顶部

@@ -429,6 +429,15 @@ window.ADMIN = {
         '<p class="sheet__hint"><a href="themes.html" target="_blank" rel="noopener" ' +
         'style="color:var(--accent)">把所有风格并排看一遍 →</a></p>');
 
+      body += group("翻页与光效", "这两个开关决定页面是「翻页式」还是「长滚动」，以及指针光效", 
+        scalarFields([
+          { path: ["ui", "paged"], label: "翻页式（一屏一页，上下吸附）", value: ui.paged, type: "bool" },
+          { path: ["ui", "showPager"], label: "页码指示器", value: ui.showPager, type: "bool" },
+          { path: ["ui", "lightEffects"], label: "指针追光 / 卡片光斑 / 触控涟漪", value: ui.lightEffects, type: "bool" }
+        ]) +
+        '<p class="sheet__hint">关掉「翻页式」会回到普通长页面（原来的滚动手感）。' +
+        '光效在触屏设备上只保留点按涟漪；系统开启「减少动态效果」时会全部自动关闭。</p>');
+
       body += group("主题与动效", "", scalarFields([
         { path: ["ui", "themeDefault"], label: "默认明暗（auto / light / dark）", value: ui.themeDefault, mono: true },
         { path: ["ui", "accent"], label: "覆盖浅色主色（留空则用风格自带）", value: ui.accent || "", mono: true },

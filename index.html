@@ -53,6 +53,8 @@
   <link rel="stylesheet" href="assets/css/layout.css">
   <link rel="stylesheet" href="assets/css/components.css">
   <link rel="stylesheet" href="assets/css/skin.css">
+  <link rel="stylesheet" href="assets/css/paged.css">
+  <link rel="stylesheet" href="assets/css/effects.css">
   <link rel="stylesheet" href="assets/css/motion.css">
 </head>
 
@@ -67,6 +69,11 @@
     <span class="ambient__orb ambient__orb--b"></span>
     <span class="ambient__grain"></span>
   </div>
+
+  <!-- 跟随指针的一团淡光（触屏设备不显示） -->
+  <div class="spotlight" id="spotlight" aria-hidden="true"></div>
+  <!-- 翻页时的光扫 -->
+  <div class="page-sweep" aria-hidden="true"></div>
 
   <header class="site-header" id="siteHeader">
     <div class="container header__inner">
@@ -210,12 +217,21 @@
   </footer>
 
   <button class="to-top" id="toTop" type="button" aria-label="回到顶部" title="回到顶部"></button>
+
+  <!-- 右侧页码：翻页模式下显示，可点击跳转；手机上变成底部细分段 -->
+  <nav class="pager" id="pager" aria-label="页面导航">
+    <ol class="pager__list" id="pagerList"></ol>
+    <div class="pager__track" id="pagerTrack" aria-hidden="true"></div>
+  </nav>
+
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
   <!-- 无构建、无依赖：按顺序加载即可；本地双击 index.html 也能直接看 -->
   <script src="assets/js/icons.js"></script>
   <script src="assets/js/render.js"></script>
   <script src="assets/js/skin.js"></script>
+  <script src="assets/js/paged.js"></script>
+  <script src="assets/js/effects.js"></script>
   <script src="assets/js/motion.js"></script>
   <script src="assets/js/main.js"></script>
 </body>
