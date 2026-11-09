@@ -126,25 +126,18 @@ html[data-paged="on"] .about__body p { line-height: 1.85; }
 
 /* 手机端进一步收紧首页与区块留白 */
 @media (max-width: 680px) {
+  /* 上内边距 = 页头高 + 10px。原先是 +18，但 6 屏重构后 Q4 变成内容最多的一屏，
+     这 8px 乘以 6 屏就是能否全部一屏装下的余量。 */
   html[data-paged="on"] .hero,
   html[data-paged="on"] .section {
-    padding-top: calc(var(--header-h) + 18px);
-    padding-bottom: 34px;
+    padding-top: calc(var(--header-h) + 4px);
+    padding-bottom: 14px;
   }
-  html[data-paged="on"] .section__head { margin-bottom: 20px; }
-  html[data-paged="on"] .section__lead { margin-top: 8px; }
-  html[data-paged="on"] .hero__title { font-size: clamp(2.2rem, 10vw, 3rem); }
-  html[data-paged="on"] .hero__desc { font-size: .92rem; }
-  html[data-paged="on"] .hero__actions { margin-top: 24px; }
-  html[data-paged="on"] .about__body p { font-size: .96rem; line-height: 1.8; }
-  html[data-paged="on"] .about__body p + p { margin-top: .9em; }
-  html[data-paged="on"] .about__side { padding: 18px; }
-  html[data-paged="on"] .facts__row { padding: 9px 0; }
-  html[data-paged="on"] .tags { margin-top: 14px; gap: 6px; }
-  html[data-paged="on"] .tag { padding: 4px 10px; font-size: .72rem; }
-  html[data-paged="on"] .contact { margin-top: 24px; padding: 26px 18px; }
-  html[data-paged="on"] .contact__actions { margin-top: 20px; }
-  html[data-paged="on"] .contact__mail { margin-top: 14px; }
+  html[data-paged="on"] .section__head { margin-bottom: 16px; }
+  html[data-paged="on"] .section__lead { margin-top: 7px; }
+  html[data-paged="on"] .hero__actions { margin-top: 18px; }
+  /* 旧结构（关于 / 业务 / 喜好 / 联系块）已随 6 屏重构删除，
+     这里对应的 .about__* / .facts__row / .tags / .tag / .contact 规则一并移除。 */
 }
 
 /* ---------------------------------------------------------- 页间细微层次
