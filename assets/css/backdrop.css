@@ -219,12 +219,27 @@ html[data-motion="on"][data-bd-stars="on"] .ambient__stars::before {
 }
 
 /* ============================================================== 6. 噪点 */
+/* 噪点：用**预渲染的点阵纹理**，不要用 SVG feTurbulence 滤镜。
+   上一版是 feTurbulence 分形噪声，浏览器每次重绘都要重新算噪声图 ——
+   实测它是继光晕之后最大的掉帧源。
+   ⚠️ 但换成点阵后仍然掉帧（8/170）：因为它是**覆盖全屏的半透明图层**，
+   只要存在，滚动时合成器就要为它多做一遍混合，与纹理内容无关。
+   所以最终策略和光晕一致：滚动时整层隐藏（transition 0 延迟，看不出来）。 */
 .ambient__grain {
   display: none;
   opacity: var(--grain-opacity);
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.45'/%3E%3C/svg%3E");
+  background-image:
+    radial-gradient(circle at 20% 30%, currentColor 0.5px, transparent 0.6px),
+    radial-gradient(circle at 70% 65%, currentColor 0.5px, transparent 0.6px),
+    radial-gradient(circle at 45% 85%, currentColor 0.5px, transparent 0.6px);
+  background-size: 4px 4px, 5px 5px, 7px 7px;
+  color: var(--text-3);
 }
 html[data-bd-grain="on"] .ambient__grain { display: block; }
+
+/* 滚动时隐藏噪点层：它是全屏半透明层，留着就要多一次全屏混合。
+   停手即恢复，颗粒感本来就极淡，瞬时消失察觉不到。 */
+html[data-scrolling="on"] .ambient__grain { display: none; }
 
 /* ====================================================== 内容层要在背景之上 */
 body > main, .site-footer { position: relative; z-index: 1; }
