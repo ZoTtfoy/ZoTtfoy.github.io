@@ -101,6 +101,28 @@ ok(modeBtns.length === 3, '明暗控件有三段');
 ok(doc.querySelector('[data-mode="auto"]').classList.contains('is-active') ===
    (root.dataset.modeRaw === 'auto'), '明暗控件高亮与实际状态一致');
 
+/* 回归测试：主题名写在 <html data-skin> 上，全局 [data-skin] 选择器会连根元素一起命中。
+   这曾导致两个真实故障：
+     · <html> 被错误加上 .is-active
+     · 点击模式按钮时 closest("[data-skin]") 先命中 <html>，模式分支永不执行
+   所以下面必须断言「根元素不被污染」且「模式按钮真的生效」。 */
+ok(!root.classList.contains('is-active'), '根元素没有被误加 .is-active');
+ok(doc.querySelectorAll('[data-skin]').length === win.SITE_THEMES.list.length + 1,
+   '全局 [data-skin] 命中数 = 风格数 + <html> 自身');
+ok(skinList.querySelectorAll('[data-skin]').length === win.SITE_THEMES.list.length,
+   '限定在 #skinList 内查询时只得到风格项');
+
+const segDark = doc.querySelector('[data-mode="dark"]');
+segDark.dispatchEvent(new win.MouseEvent('click', { bubbles: true }));
+ok(root.dataset.theme === 'dark' && root.dataset.modeRaw === 'dark',
+   '点击「深色」真的切换了明暗（mode=' + root.dataset.modeRaw + '）');
+const segLight = doc.querySelector('[data-mode="light"]');
+segLight.dispatchEvent(new win.MouseEvent('click', { bubbles: true }));
+ok(root.dataset.theme === 'light' && root.dataset.modeRaw === 'light',
+   '点击「浅色」真的切换了明暗（mode=' + root.dataset.modeRaw + '）');
+ok([...doc.querySelectorAll('[data-mode]')].filter(b => b.classList.contains('is-active')).length === 1,
+   '明暗控件同时只有一项高亮');
+
 // 点一个风格，检查变量是否真的变了
 const before = root.getAttribute('style');
 const target = items[2]; // 第三套
