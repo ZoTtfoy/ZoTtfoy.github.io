@@ -111,14 +111,16 @@ window.SITE_CONFIG = {
     eyebrow: "04 / FIND ME",
     title: "在其他地方找到我",
     lead: "挑一个你顺手的方式，随时欢迎打招呼。",
-    // url 换成你自己的主页地址；不用的平台直接删掉整行即可
+    // url 换成你自己的主页地址；不用的平台直接删掉整行即可。
+    // 想写「点一下就复制」的账号（比如 QQ 号、微信号），用 copy 代替 url。
     items: [
-      { icon: "github",    label: "GitHub",    handle: "@Zotrod",        url: "https://github.com/Zotrod" },
-      { icon: "x",         label: "X",         handle: "@Zotrod",        url: "https://x.com/Zotrod" },
-      { icon: "bilibili",  label: "哔哩哔哩",  handle: "偶尔更新",         url: "https://space.bilibili.com/" },
-      { icon: "zhihu",     label: "知乎",      handle: "随便写写",         url: "https://www.zhihu.com/" },
-      { icon: "mail",      label: "邮箱",      handle: "hello@example.com", url: "mailto:hello@example.com" },
-      { icon: "globe",     label: "博客",      handle: "文章存档",         url: "https://example.com" }
+      { icon: "github",    label: "GitHub",     handle: "@Zotrod",        url: "https://github.com/Zotrod" },
+      { icon: "x",         label: "X",          handle: "@Zotrod",        url: "https://x.com/Zotrod" },
+      { icon: "bilibili",  label: "哔哩哔哩",   handle: "偶尔更新",        url: "https://space.bilibili.com/" },
+      { icon: "netease",   label: "网易云音乐", handle: "歌单与红心",      url: "https://music.163.com/" },
+      { icon: "mail",      label: "邮箱",       handle: "hello@example.com", url: "mailto:hello@example.com" },
+      { icon: "qq",        label: "QQ",         handle: "点一下复制号码",   copy: "100000000" },
+      { icon: "wechat",    label: "微信",       handle: "点一下复制微信号", copy: "zotrod" }
     ],
     contactHint: "有想法、有项目，或者只是想聊两句？"
   },
