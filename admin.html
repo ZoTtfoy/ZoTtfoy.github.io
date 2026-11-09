@@ -79,44 +79,74 @@
 
       <p class="sheet__hint">
         站点是纯静态的，内容存在 <code>assets/js/config.js</code> 里。
-        下面三种方式任选——<strong>都已把改动写在这份文件里</strong>。
+        下面两条路任选，都只是把这份文件换掉。
       </p>
 
-      <ol class="steps">
-        <li>
-          <h3>方式一 · 直接在网页里改（最省事，手机也行）</h3>
-          <p>打开 GitHub 的在线编辑页，全选删除后粘贴下面的内容，点 Commit 即自动上线。</p>
-          <div class="row">
-            <button class="btn btn--quiet btn--sm" type="button" id="copyCfg">复制 config.js</button>
-            <a class="btn btn--quiet btn--sm" id="editOnGithub" target="_blank" rel="noopener">打开 GitHub 编辑页</a>
-          </div>
-        </li>
+      <div class="tabs tabs--inline" id="pubTabs" role="tablist">
+        <button class="tab is-active" type="button" data-pub="manual" role="tab">不用令牌（推荐）</button>
+        <button class="tab" type="button" data-pub="token" role="tab">用令牌一键推送</button>
+      </div>
 
-        <li>
-          <h3>方式二 · 下载后本地提交</h3>
-          <p>下载替换 <code>assets/js/config.js</code>，然后 <code>git commit &amp;&amp; git push</code>。</p>
-          <div class="row">
-            <button class="btn btn--quiet btn--sm" type="button" id="downloadCfg">下载 config.js</button>
-          </div>
-        </li>
+      <!-- ============ 路线一：零令牌 ============ -->
+      <div class="pub-pane" id="paneManual">
+        <p class="pub-note">
+          <strong>为什么推荐这条：</strong>浏览器里不存任何令牌，就没有令牌可泄露。
+          你本来就是用 GitHub 账号登录的状态，2FA 由 GitHub 自己弹，站点完全不接触。
+        </p>
 
-        <li>
-          <h3>方式三 · 一键推送（需要 GitHub 令牌）</h3>
-          <p class="warn">
-            令牌只存在这台设备的浏览器里，不会上传。建议新建一个 <em>Fine-grained token</em>，
-            仅授权这一个仓库的 <em>Contents: Read and write</em>，随时可撤销。
-          </p>
-          <label class="field">
-            <span class="field__label">GitHub Token（ghp_ 或 github_pat_ 开头）</span>
-            <input class="input" id="tokenInput" type="password" placeholder="只保存在本机 localStorage" autocomplete="off">
-          </label>
-          <div class="row">
-            <button class="btn btn--primary btn--sm" type="button" id="pushBtn">提交到 GitHub</button>
-            <button class="btn btn--quiet btn--sm" type="button" id="forgetToken">清除已保存的令牌</button>
-          </div>
-          <p class="sheet__msg" id="pushMsg" role="status"></p>
-        </li>
-      </ol>
+        <ol class="steps">
+          <li>
+            <h3><span class="step-no">1</span>复制新的 config.js</h3>
+            <p>下面这个按钮会把当前编辑好的内容整份复制到剪贴板。</p>
+            <div class="row">
+              <button class="btn btn--primary btn--sm" type="button" id="copyCfg">复制 config.js</button>
+              <button class="btn btn--quiet btn--sm" type="button" id="downloadCfg">下载文件</button>
+            </div>
+          </li>
+
+          <li>
+            <h3><span class="step-no">2</span>打开 GitHub 的编辑页</h3>
+            <p>在新标签页打开，页面里就是现在线上的那份内容。</p>
+            <div class="row">
+              <a class="btn btn--quiet btn--sm" id="editOnGithub" target="_blank" rel="noopener">
+                打开 GitHub 编辑页 ↗
+              </a>
+            </div>
+          </li>
+
+          <li>
+            <h3><span class="step-no">3</span>全选 → 粘贴 → 提交</h3>
+            <p>
+              在编辑页里按 <kbd>Ctrl/Cmd + A</kbd> 全选，<kbd>Ctrl/Cmd + V</kbd> 粘贴，
+              然后点绿色的 <em>Commit changes</em>。约 1–2 分钟自动上线。
+            </p>
+          </li>
+        </ol>
+      </div>
+
+      <!-- ============ 路线二：令牌推送 ============ -->
+      <div class="pub-pane" id="paneToken" hidden>
+        <p class="pub-note">
+          令牌只存在这台设备的浏览器里。<strong>请用 Fine-grained token</strong>，
+          只授权这一仓库的 <em>Contents: Read and write</em>——这样即使泄露，影响也仅限这个仓库。
+        </p>
+
+        <label class="field">
+          <span class="field__label">GitHub Token（github_pat_ 或 ghp_ 开头）</span>
+          <input class="input input--mono" id="tokenInput" type="password"
+                 placeholder="只保存在本机 localStorage" autocomplete="off">
+        </label>
+
+        <div class="row">
+          <button class="btn btn--quiet btn--sm" type="button" id="checkBtn">先检查连接</button>
+          <button class="btn btn--primary btn--sm" type="button" id="pushBtn" disabled>提交到 GitHub</button>
+          <button class="btn btn--quiet btn--sm" type="button" id="forgetToken">清除令牌</button>
+        </div>
+
+        <!-- 诊断结果逐项列出，失败的那一项会直接说怎么修 -->
+        <ul class="diag" id="diagList" hidden></ul>
+        <p class="sheet__msg" id="pushMsg" role="status"></p>
+      </div>
 
       <details class="adv">
         <summary>更改管理账户 / 口令</summary>
