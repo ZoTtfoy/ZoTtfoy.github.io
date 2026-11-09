@@ -78,6 +78,16 @@ window.SITE_ICONS = {
   "arrow-up":       '<line x1="12" y1="20" x2="12" y2="4"/><polyline points="6 10 12 4 18 10"/>',
   "arrow-down":     '<line x1="12" y1="4" x2="12" y2="20"/><polyline points="6 14 12 20 18 14"/>',
   "arrow-up-right": '<path d="M7 17 17 7"/><polyline points="8 7 17 7 17 16"/>',
+  "chevron-right":  '<polyline points="9.5 5 16.5 12 9.5 19"/>',
+  refresh:          '<path d="M20 12a8 8 0 1 1-2.35-5.65"/><polyline points="20.5 3.5 20.5 8 16 8"/>',
+  play:             '<path d="M8.5 5.2 19 12 8.5 18.8z"/>',
+
+  /* ---- 主页新模块 ---- */
+  box:      '<path d="M3.5 8.4 12 3.4l8.5 5v7.2L12 20.6 3.5 15.6z"/><path d="M3.5 8.4 12 13.4l8.5-5"/><path d="M12 13.4v7.2"/>',
+  shop:     '<path d="M3 9.6 4.7 4.4h14.6L21 9.6z"/><path d="M5 9.6V20h14V9.6"/><path d="M9.6 20v-5.4h4.8V20"/>',
+  wrench:   '<path d="M14.7 3.4a4.9 4.9 0 0 0-6.3 6.3L3.4 14.7v3.4h3.4l4.9-5a4.9 4.9 0 0 0 6.3-6.3l-2.5 2.5-3.2-3.2z"/>',
+  calc:     '<rect x="4.5" y="3" width="15" height="18" rx="2.6"/><path d="M8 7.4h8"/><path d="M8.6 12h.01M12 12h.01M15.4 12h.01M8.6 16.2h.01M12 16.2h.01M15.4 16.2h.01"/>',
+  tag:      '<path d="M4 4h7.2a2 2 0 0 1 1.4.6l7 7a2 2 0 0 1 0 2.8l-5.2 5.2a2 2 0 0 1-2.8 0l-7-7A2 2 0 0 1 4 11.2z"/><circle cx="8.4" cy="8.4" r="1.3" fill="currentColor" stroke="none"/>',
 
   /* ---- 中文平台（官方品牌标识） ----
      来源于公开图标库，可自由使用（CC0 / MIT）：
