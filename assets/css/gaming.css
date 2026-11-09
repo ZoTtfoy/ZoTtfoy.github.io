@@ -1,47 +1,33 @@
 /* ==========================================================================
- *  gaming.css —— 游戏卡片与横向轨道
+ *  gaming.css —— 游戏卡片
  * --------------------------------------------------------------------------
- *  为什么用横向轨道（所有断点都是）：
- *    6 个游戏竖排必然超过一屏，那一页就会失去吸附——「锁定单屏」直接破功。
- *    改成横向滑：一次看一张（桌面 2.5 张），高度恒定，一屏永远装得下。
- *    这也正是 Apple 产品页常用的卡片横滑手势。
+ *  早先是横向滑动轨道（overflow-x: auto + scroll-snap）。改回网格了，原因：
+ *    1. 桌面鼠标用户没有"横滑"这个手势 —— 必须去拖滚动条或按住 shift 滚轮，
+ *       实际几乎没人能发现卡片右边还有内容。
+ *    2. 触屏虽然能划，但它和"上下翻页"是两套方向的手势，容易误触。
+ *    3. 轨道容器会吞掉一部分滚轮事件，让桌面滚动感觉"卡"。
+ *  现在用网格自动换行：所有内容一眼看全，高度靠 fit.css 的档位压缩控制。
  *
  *  每张卡片顶部有一条品牌色细条（--game），是唯一的彩色信息，
  *  其余仍走主题变量，所以 7 套风格下都不会打架。
  * ========================================================================== */
 
+/* 网格：列数随宽度自适应，卡片等宽等高，行数自动增加。
+   桌面 3 列（6 张 = 2 行），平板 2~3 列，手机 2 列。
+   手机用 2 列而不是 1 列：6 张竖排会远超一屏，2 列能把高度压下来。 */
 .game-rail {
-  display: flex;
-  gap: 14px;
-  overflow-x: auto;
-  overflow-y: hidden;
-  scroll-snap-type: x mandatory;
-  overscroll-behavior-x: contain;      /* 别把横滑识别成浏览器后退 */
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
-
-  /* 负边距 + 等量内边距：卡片能贴到屏幕边缘滑出 */
-  margin-inline: calc(var(--gutter) * -1);
-  padding-inline: var(--gutter);
-  padding-block: 6px 16px;             /* 给卡片阴影留空间 */
-  scroll-padding-inline: var(--gutter);
-}
-.game-rail::-webkit-scrollbar { display: none; }
-
-/* 卡片宽度：桌面露出 2.5 张，平板 1.6 张，手机 1 张多一点 */
-.game-rail > .game {
-  flex: 0 0 clamp(240px, 30vw, 320px);
-  scroll-snap-align: start;
-  scroll-snap-stop: always;
-}
-
-/* 少于两张时不做横滑 */
-.game-rail.is-static {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  overflow: visible;
-  margin-inline: 0;
-  padding-inline: 0;
+  grid-template-columns: repeat(auto-fit, minmax(228px, 1fr));
+  gap: 12px;
+  align-items: stretch;
+}
+
+/* 手机：固定两列，卡片更紧凑 */
+@media (max-width: 680px) {
+  .game-rail {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 9px;
+  }
 }
 
 /* ---------------------------------------------------------------- 卡片本体 */
