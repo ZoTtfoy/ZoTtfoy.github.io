@@ -142,13 +142,22 @@ html[data-bd-aurora="on"] .ambient__orb { display: block; }
  * 视觉上没有任何损失 —— 用户盯着看的时候它一直在动；
  * 滚动时注意力在内容上，谁也注意不到背景停了一瞬。
  * 实测掉帧从 3~4/110 降到 0。 */
+/* 透明度整体压到原来的四成左右。
+ *
+ * 原来 0.72~1 是「满强度呼吸」，配合主题里 20% alpha 的 glow 色，
+ * 实际叠出约 14~20% 的彩色雾。两团彩色雾在角落缓慢对向漂移，
+ * 就是 2024 年那批 AI 生成站点的标准背景 —— 光看背景就知道是生成的。
+ *
+ * 现在 0.26~0.42，叠出来约 5~8%，只是一层几乎察觉不到的暖意：
+ * 盯着看仍能感到空气在动，但不会抢内容，也不会「一看就是 AI 做的」。
+ * 想彻底关掉的话，编辑器里把「光晕」开关去掉即可。 */
 @keyframes glow-a {
-  0%, 100% { opacity: .72; }
-  50%      { opacity: 1; }
+  0%, 100% { opacity: .26; }
+  50%      { opacity: .42; }
 }
 @keyframes glow-b {
-  0%, 100% { opacity: 1; }
-  50%      { opacity: .62; }
+  0%, 100% { opacity: .40; }
+  50%      { opacity: .24; }
 }
 html[data-motion="on"][data-bd-aurora="on"] .ambient__orb--a {
   animation: glow-a 19s ease-in-out infinite;
