@@ -1,0 +1,652 @@
+/* ==========================================================================
+ *  blocks.css —— 6 屏结构里的新模块
+ * --------------------------------------------------------------------------
+ *    Q1  .profile / .chips / .chip / .preview
+ *    Q2  .listen / .track-list / .track
+ *    Q4  .repair / .quote / .calc
+ *    Q6  .mailbox
+ *
+ *  设计语言沿用 2026-11-10 那轮「去 AI 感」定下的规矩：
+ *    · 圆角用 --r-sm / --r-md / --r-xs，不出现胶囊（浮层控件除外）
+ *    · 层次只用「1px 线 + 底色」，不叠 box-shadow
+ *    · 强调色只在真正需要指向的地方出现（这里几乎为零）
+ * ========================================================================== */
+
+/* ======================================================== Q1 · 身份区 */
+/* hero 原来是大标题 + 一堆装饰，现在要装下 头像/名字/简介/QQ/微信/两张摘要卡，
+   所以整体收紧：内边距缩小、标题字号下调、装饰性元素（一言/时钟）默认关闭。 */
+.hero {
+  justify-content: center;
+  min-height: min(92svh, 900px);
+  padding: clamp(56px, 8vh, 96px) 0 clamp(40px, 6vh, 72px);
+}
+
+.profile { max-width: 760px; }
+
+.profile__head { display: flex; align-items: center; gap: clamp(14px, 2vw, 22px); }
+
+.profile__avatar { flex: none; }
+.profile__avatar img {
+  display: block;
+  width: clamp(56px, 7vw, 76px);
+  height: clamp(56px, 7vw, 76px);
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--bg-soft);
+  border: 1px solid var(--line);
+}
+
+.profile__id { min-width: 0; }
+
+.profile__greet {
+  font-family: var(--font-mono);
+  font-size: .7rem;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--text-2);
+}
+
+.profile__name {
+  margin-top: 2px;
+  font-family: var(--font-display, var(--font-sans));
+  font-size: clamp(2.2rem, 5.6vw, 3.8rem);
+  font-weight: 600;
+  line-height: 1.05;
+  letter-spacing: var(--tracking-title, -.035em);
+  text-wrap: balance;
+}
+
+.profile__tagline {
+  margin-top: clamp(12px, 1.6vh, 18px);
+  font-size: clamp(.95rem, 1.5vw, 1.08rem);
+  line-height: 1.6;
+  color: var(--text);
+}
+
+.profile__role {
+  margin-top: 6px;
+  font-family: var(--font-mono);
+  font-size: .74rem;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--text-2);
+}
+
+.profile__intro {
+  max-width: 54ch;
+  margin-top: clamp(12px, 1.6vh, 18px);
+  font-size: .92rem;
+  line-height: 1.72;
+  color: var(--text-2);
+  text-wrap: pretty;
+}
+
+.hero__actions { margin-top: clamp(18px, 2.4vh, 26px); }
+
+/* --------------------------------------------------- QQ / 微信 复制胶囊 */
+/* 注意这里是**方角**不是胶囊 —— 它是内容区元素，跟着 2026-11-10 那轮
+   「去掉 35 个 999px 药丸」的规矩走。 */
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: clamp(18px, 2.4vh, 26px);
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 13px 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--bg-elev);
+  text-align: left;
+  transition: border-color var(--t-fast) var(--ease);
+}
+.chip:hover { border-color: var(--line-strong); }
+
+.chip__icon {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  flex: none;
+  color: var(--text);
+}
+.chip__icon .icon { width: 17px; height: 17px; }
+
+.chip__text { display: flex; flex-direction: column; line-height: 1.28; }
+.chip__label { font-size: .68rem; color: var(--text-3); }
+.chip__value { font-family: var(--font-mono); font-size: .84rem; font-weight: 500; }
+.chip__hint {
+  margin-left: 4px;
+  font-size: .66rem;
+  color: var(--text-3);
+  white-space: nowrap;
+}
+
+/* ==================================================== 外链摘要卡（通用） */
+/* 一个组件，两种形态：
+     有 cover → 上方 16:9 封面 + 下方信息（缩略图卡）
+     无 cover → 纯文字信息卡，平台图标顶在左上
+   数据优先用 data/previews.json（Actions 抓的），抓不到用 config 兜底。 */
+.preview-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: clamp(22px, 3.4vh, 36px);
+}
+.preview-grid--single { grid-template-columns: minmax(0, 1fr); margin-top: 0; }
+
+.preview {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 128px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--bg-elev);
+  transition: border-color var(--t-fast) var(--ease);
+}
+.preview:hover { border-color: var(--line-strong); }
+
+.preview__cover {
+  display: block;
+  margin: -16px -16px 14px;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  background: var(--bg-soft);
+}
+.preview__cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform var(--t-slow) var(--ease-out);
+}
+.preview:hover .preview__cover img { transform: scale(1.03); }
+
+.preview__body { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+
+.preview__top { display: flex; align-items: center; gap: 8px; margin-bottom: 9px; }
+.preview__icon {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  flex: none;
+  color: var(--pc, var(--text-2));
+}
+.preview__icon .icon { width: 17px; height: 17px; }
+.preview__platform {
+  font-size: .71rem;
+  letter-spacing: .04em;
+  color: var(--text-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.preview__go {
+  width: 14px;
+  height: 14px;
+  margin-left: auto;
+  flex: none;
+  color: var(--text-3);
+  transition: transform var(--t) var(--ease), color var(--t) var(--ease);
+}
+.preview:hover .preview__go { transform: translate(2px, -2px); color: var(--text); }
+
+.preview__title {
+  font-size: .94rem;
+  font-weight: 500;
+  letter-spacing: -.01em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.preview__meta {
+  margin-top: 4px;
+  font-size: .77rem;
+  line-height: 1.55;
+  /* --text-3 实测对比度只有 3.67:1，小字不达标（被 verify-visual 拦下）。
+     这里是"歌单 · 红心 · 最近在听"这类说明，属于要读的信息，不是装饰，
+     所以用 --text-2（6.5:1）。 */
+  color: var(--text-2);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.preview__stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  margin-top: auto;
+  padding-top: 11px;
+}
+.preview__stat { font-size: .68rem; color: var(--text-3); line-height: 1.35; }
+.preview__stat b {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: .9rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+/* ============================================================ Q2 · 在听 */
+.track-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: clamp(24px, 4vw, 56px);
+  border-top: 1px solid var(--line);
+}
+
+/* 曲目少于 4 首时不用两列 —— 2 列排 3 首会变成「左 2 右 1」，
+   右边空出半排，比单列更难看。setTracks() 会把数量写到 data-count 上。 */
+.track-list[data-count="1"],
+.track-list[data-count="2"],
+.track-list[data-count="3"] { grid-template-columns: minmax(0, 1fr); }
+
+.track {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding: 17px 0;
+  border-bottom: 1px solid var(--line);
+  min-width: 0;
+}
+
+.track__idx {
+  flex: none;
+  width: 22px;
+  font-family: var(--font-mono);
+  font-size: .72rem;
+  color: var(--text-3);
+}
+
+.track__main { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.track__title {
+  font-size: 1rem;
+  font-weight: 500;
+  letter-spacing: -.005em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.track__meta {
+  margin-top: 3px;
+  font-size: .78rem;
+  color: var(--text-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.track__go {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  flex: none;
+  border-radius: var(--r-xs);
+  color: var(--text-3);
+  transition: color var(--t-fast) var(--ease), background-color var(--t-fast) var(--ease);
+}
+.track__go .icon { width: 13px; height: 13px; }
+.track__go:hover { color: var(--text); background: var(--bg-soft); }
+
+.listen__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 18px;
+  font-size: .74rem;
+  color: var(--text-3);
+}
+.listen__src { display: inline-flex; align-items: center; gap: 7px; }
+.listen__more {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--text-2);
+  transition: color var(--t-fast) var(--ease);
+}
+.listen__more .icon { width: 13px; height: 13px; }
+.listen__more:hover { color: var(--text); }
+
+/* 同步成功的绿点：静态就好，不做呼吸动画（Q1 已经够多动效了） */
+.live-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  flex: none;
+}
+
+/* ============================================================ Q4 · 维修 */
+.section__head--tight { margin-bottom: clamp(22px, 3vw, 34px); }
+
+.repair {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, .95fr);
+  gap: clamp(22px, 3vw, 40px);
+  align-items: start;
+}
+.repair__left { display: flex; flex-direction: column; min-width: 0; }
+
+/* ---------------------------------------------------------------- 报价表 */
+.quote { margin-top: 18px; padding-top: 15px; border-top: 1px solid var(--line); }
+
+.quote__title {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: .88rem;
+  font-weight: 600;
+  letter-spacing: -.01em;
+}
+.quote__title .icon { width: 15px; height: 15px; color: var(--text-2); }
+
+.quote__groups {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px clamp(18px, 2.6vw, 32px);
+  margin-top: 10px;
+}
+
+.quote__gname {
+  margin-bottom: 4px;
+  font-family: var(--font-mono);
+  font-size: .64rem;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+.quote__row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 4px 0;
+  border-bottom: 1px dashed var(--line);
+}
+.quote__row:last-child { border-bottom: 0; }
+
+.quote__item { flex: 1; min-width: 0; font-size: .8rem; line-height: 1.4; }
+.quote__hint {
+  display: block;
+  font-size: .64rem;
+  color: var(--text-3);
+  line-height: 1.35;
+}
+.quote__price {
+  flex: none;
+  font-family: var(--font-mono);
+  font-size: .78rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.quote__note {
+  margin-top: 10px;
+  font-size: .7rem;
+  line-height: 1.6;
+  color: var(--text-3);
+  text-wrap: pretty;
+}
+
+/* -------------------------------------------------------------- 估价器 */
+.calc {
+  padding: clamp(16px, 2.2vw, 22px);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--bg-elev);
+}
+
+.calc__head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.calc__title {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: .92rem;
+  font-weight: 600;
+  letter-spacing: -.01em;
+}
+.calc__title .icon { width: 16px; height: 16px; color: var(--text-2); }
+.calc__hint { font-size: .7rem; color: var(--text-3); }
+
+.calc__step { margin-top: 14px; }
+
+/* 材料 + 加项并排：这两组选项都很短，并排省一半高度 */
+.calc__pair {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 14px;
+}
+
+.calc__label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 7px;
+  font-size: .7rem;
+  letter-spacing: .02em;
+  color: var(--text-3);
+}
+.calc__label b {
+  display: grid;
+  place-items: center;
+  width: 17px;
+  height: 17px;
+  flex: none;
+  border-radius: var(--r-xs);
+  background: var(--bg-soft);
+  font-family: var(--font-mono);
+  font-size: .62rem;
+  font-weight: 600;
+  color: var(--text-2);
+}
+.calc__label i { margin-left: auto; font-style: normal; font-size: .66rem; color: var(--text-3); }
+
+.calc__opts { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.calc__opt {
+  padding: 6px 11px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-xs);
+  font-size: .79rem;
+  line-height: 1.4;
+  color: var(--text-2);
+  transition: border-color var(--t-fast) var(--ease), background-color var(--t-fast) var(--ease),
+              color var(--t-fast) var(--ease);
+}
+.calc__opt:hover:not(:disabled) { border-color: var(--line-strong); color: var(--text); }
+.calc__opt[aria-pressed="true"] {
+  border-color: var(--text);
+  background: var(--text);
+  color: var(--bg);
+}
+.calc__opt:disabled { opacity: .3; cursor: not-allowed; }
+
+/* 结果区：数字要大，因为这是整块的目的 */
+.calc__result {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+.calc__price {
+  font-family: var(--font-mono);
+  font-size: clamp(1.35rem, 2.8vw, 1.75rem);
+  font-weight: 600;
+  letter-spacing: -.02em;
+  line-height: 1.2;
+}
+.calc__price small {
+  margin-right: 2px;
+  font-size: .6em;
+  font-weight: 500;
+  color: var(--text-3);
+}
+.calc__detail {
+  margin-top: 5px;
+  font-size: .72rem;
+  line-height: 1.6;
+  color: var(--text-3);
+  text-wrap: pretty;
+}
+.calc__foot { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
+.calc__reset {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: .72rem;
+  color: var(--text-3);
+  transition: color var(--t-fast) var(--ease);
+}
+.calc__reset .icon { width: 12px; height: 12px; }
+.calc__reset:hover { color: var(--text); }
+
+/* 无 JS 时的降级：计算器位置显示一句说明，报价表照常可读 */
+.calc__fallback { font-size: .8rem; color: var(--text-3); line-height: 1.7; }
+
+/* ============================================================ Q6 · 邮箱 */
+/* 这一屏只有一件事，所以让它有落款感：留白给足、邮箱字号拉大。 */
+.mailbox {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: clamp(34px, 5vw, 60px) clamp(26px, 4vw, 48px);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--bg-elev);
+}
+.mailbox__hint { font-size: .92rem; color: var(--text-2); }
+.mailbox__mail {
+  margin-top: 14px;
+  font-family: var(--font-mono);
+  font-size: clamp(1.35rem, 4vw, 2.4rem);
+  font-weight: 500;
+  letter-spacing: -.03em;
+  line-height: 1.2;
+  word-break: break-all;
+  transition: color var(--t-fast) var(--ease);
+}
+.mailbox__mail:hover { color: var(--accent); }
+.mailbox__actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: clamp(22px, 3vw, 32px); }
+
+/* ================================================================ 响应式 */
+/* 平板及以下：维修屏从左右并排改成上下堆叠，
+   并且**把计算器提到闲鱼卡+报价表前面** —— 访客最想看的是"我这台多少钱"，
+   报价表是补充信息，排在后面才符合阅读顺序。 */
+@media (max-width: 1024px) {
+  .repair { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+  .repair__left { order: 2; }
+  .calc { order: 1; }
+}
+
+/* 手机横屏/窄平板：曲目列表改单列 */
+@media (max-width: 860px) {
+  .track-list { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* ---------------------------------------------------------------- 手机
+   这里是为「一屏装下」做的关键调整，实测数据：
+     390×844 下 Q4 单列堆叠高 1470px，超屏 626px —— 不处理的话
+     paged.js 只能一路降档到 micro，全站字号都被压小，
+     主流机型看起来像在做畸形适配。
+   处理思路不是"缩小一切"，而是**改形态**：
+     · 摘要卡从竖排块改成横条（128px → 64px，两张省 128px）
+     · 报价表两栏并排 + 隐掉备注（10 行 → 5 行，高 450 → 190）
+     · 计算器收紧内边距与字号（选项是短词，不需要那么大） */
+@media (max-width: 680px) {
+  .hero { min-height: auto; padding-top: clamp(40px, 8vh, 64px); }
+  .profile__name { font-size: clamp(1.9rem, 10vw, 2.6rem); }
+  .profile__intro { font-size: .86rem; line-height: 1.62; }
+  .chip__hint { display: none; }
+
+  /* 摘要卡：竖排 → 横条 */
+  .preview-grid { grid-template-columns: minmax(0, 1fr); gap: 8px; margin-top: 16px; }
+  .preview {
+    min-height: 0;
+    flex-direction: row;
+    align-items: center;
+    gap: 11px;
+    padding: 9px 12px;
+  }
+  .preview__body { flex: 1; min-width: 0; }
+  .preview__top { margin-bottom: 3px; }
+  .preview__cover { display: none; }     /* 手机上一律用文字卡，省 70px/张 */
+  .preview__meta { display: none; }
+  .preview__stats { margin-top: 0; padding-top: 4px; gap: 4px 12px; }
+  .preview__title { font-size: .9rem; }
+
+  /* ---------------- Q4 维修：这一屏内容最多，专门做紧凑处理 ----------------
+     实测  390×844 下原始高度 1074px（超屏 230px），逐项压到 844 以内：
+       · 隐掉 section__lead（说明文字在 Q4 是冗余的，标题已说明一切）  -53
+       · 摘要卡横条化                                               -18
+       · 计算器材料/加项并排 + 收紧                                  -93
+       · 报价表隐备注、两栏流式排版                                   -50
+       · 全局留白收紧                                                -22 */
+  #repair .section__lead { display: none; }
+  #repair .section__head { margin-bottom: 8px; }
+  #repair .eyebrow { margin-bottom: 4px; }
+  /* 闲鱼卡在 Q4 只需要「知道有个闲鱼小铺 + 能点过去」，
+     平台名那一行（图标 + 「闲鱼」+ 箭头）和标题说的是同一件事，去掉省 20px。
+     Q1 的两张卡不动 —— 那里「网易云 / 小黑盒」是区分两张卡的关键信息。 */
+  #repairPreview .preview__top { display: none; }
+  #repairPreview .preview__title { font-size: .86rem; }
+
+  /* 计算器：收紧内边距与字号 —— 选项都是短词，不需要大字号 */
+  .calc { padding: 12px 13px 13px; }
+  .calc__hint { display: none; }
+  .calc__step { margin-top: 7px; }
+  .calc__pair { gap: 0 10px; }
+  .calc__label { margin-bottom: 5px; font-size: .64rem; }
+  .calc__opts { gap: 5px; }
+  .calc__opt { padding: 4px 9px; font-size: .74rem; }
+  .calc__result { margin-top: 10px; padding-top: 9px; }
+  .calc__price { font-size: 1.22rem; }
+  /* 明细（换屏 ¥320 × 手机 1 × 原装 1）在手机上压成单行省略。
+     完整算式在窄屏会折成两三行，占掉 40px；而这个信息是「让报价可信」的
+     辅助说明，一行足够传达，想细看可以换到桌面或点开报价表。 */
+  .calc__detail {
+    margin-top: 3px;
+    font-size: .64rem;
+    line-height: 1.4;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .calc__foot { margin-top: 7px; }
+
+  .quote { margin-top: 10px; padding-top: 10px; }
+  .quote__title { font-size: .82rem; }
+  /* 用 CSS 多列而不是 grid：10 行会按 5+5 均匀分成两栏，
+     grid 两列则是一栏一个分组（6 行 vs 4 行），高度按高的那栏算，白浪费一行。 */
+  .quote__groups {
+    display: block;
+    columns: 2;
+    column-gap: 16px;
+    margin-top: 7px;
+  }
+  .quote__group { break-inside: avoid; margin-bottom: 8px; }
+  .quote__row { padding: 0; }
+  .quote__item { font-size: .72rem; line-height: 1.4; }
+  .quote__hint { display: none; }
+  .quote__price { font-size: .7rem; }
+  .quote__gname { margin-bottom: 2px; font-size: .6rem; }
+  .quote__note { margin-top: 5px; font-size: .58rem; line-height: 1.45; }
+
+  .mailbox { align-items: stretch; }
+  .mailbox__actions .btn { flex: 1 1 auto; justify-content: center; }
+}
+
+@media (max-width: 400px) {
+  .chips { gap: 8px; }
+  .chip { flex: 1 1 0; min-width: 0; }
+  .chip__value { font-size: .8rem; }
+}
