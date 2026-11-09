@@ -28,25 +28,27 @@ window.SITE_CONFIG = {
 
   /* ------------------------------------------------- 2. 模块开关与显示顺序 */
   // enabled: false 即可整块隐藏；order: 数字小的排前面；label: 导航栏文字
+  // 顺序：联系方式放最前（这是社交型主页，访客最想先找到人），
+  // 然后是个人简介、工作与业务，最后是喜好与游戏。
   sections: {
-    about:     { enabled: true, order: 1, label: "关于" },
-    interests: { enabled: true, order: 2, label: "喜好" },
-    gaming:    { enabled: true, order: 3, label: "游戏" },
-    services:  { enabled: true, order: 4, label: "业务" },
-    social:    { enabled: true, order: 5, label: "联系" }
+    social:    { enabled: true, order: 1, label: "联系" },
+    about:     { enabled: true, order: 2, label: "关于" },
+    services:  { enabled: true, order: 3, label: "业务" },
+    interests: { enabled: true, order: 4, label: "喜好" },
+    gaming:    { enabled: true, order: 5, label: "游戏" }
   },
 
   /* ------------------------------------------------------------ 3. 首页按钮 */
   // 主按钮指向「喜好」而不是「业务」：这是社交型主页，
   // 访客更想先认识人，而不是先看我接什么活。
   hero: {
-    primary:   { label: "看看我喜欢什么", target: "#interests" },
-    secondary: { label: "找到我",         target: "#social"    }
+    primary:   { label: "找到我",         target: "#social"  },
+    secondary: { label: "了解一下我",     target: "#about"   }
   },
 
   /* ------------------------------------------------------------ 4. 关于个人 */
   about: {
-    eyebrow: "01 / ABOUT",
+    eyebrow: "02 / ABOUT",
     title: "关于我",
     lead: "一点点自我介绍，和一点点做事的方式。",
     paragraphs: [
@@ -64,7 +66,7 @@ window.SITE_CONFIG = {
 
   /* ------------------------------------------------------------ 5. 业务范畴 */
   services: {
-    eyebrow: "04 / WHAT I DO",
+    eyebrow: "03 / WHAT I DO",
     title: "业务范畴",
     lead: "能帮上忙的几个方向，从想法到落地。",
     items: [
@@ -100,7 +102,7 @@ window.SITE_CONFIG = {
   // uidLabel 可自定义（博士ID / Riot ID / Steam ID …），stats 想写几个都行。
   // color 是卡片顶部的品牌色细条，留空则用主题主色。
   gaming: {
-    eyebrow: "03 / GAMES",
+    eyebrow: "05 / GAMES",
     title: "在游戏里",
     lead: "想一起玩的话，ID 都在这里，点一下就能复制。",
     items: [
@@ -199,7 +201,7 @@ window.SITE_CONFIG = {
 
   /* ------------------------------------------------------------ 7. 个人喜好 */
   interests: {
-    eyebrow: "02 / OFF WORK",
+    eyebrow: "04 / OFF WORK",
     title: "个人喜好",
     lead: "工作之外，时间都花在这些地方。",
     items: [
@@ -214,7 +216,7 @@ window.SITE_CONFIG = {
 
   /* ---------------------------------------------------------- 8. 社交平台 */
   social: {
-    eyebrow: "05 / FIND ME",
+    eyebrow: "01 / FIND ME",
     title: "在其他地方找到我",
     lead: "挑一个你顺手的方式，随时欢迎打招呼。",
     // url 换成你自己的主页地址；不用的平台直接删掉整行即可。
@@ -224,6 +226,7 @@ window.SITE_CONFIG = {
       { icon: "x",         label: "X",          handle: "@Zotrod",        url: "https://x.com/Zotrod" },
       { icon: "bilibili",  label: "哔哩哔哩",   handle: "偶尔更新",        url: "https://space.bilibili.com/" },
       { icon: "netease",   label: "网易云音乐", handle: "歌单与红心",      url: "https://music.163.com/" },
+      { icon: "qqmusic",   label: "QQ 音乐",    handle: "常听歌单",        url: "https://y.qq.com/" },
       { icon: "mail",      label: "邮箱",       handle: "hello@example.com", url: "mailto:hello@example.com" },
       { icon: "qq",        label: "QQ",         handle: "点一下复制号码",   copy: "100000000" },
       { icon: "wechat",    label: "微信",       handle: "点一下复制微信号", copy: "zotrod" }
