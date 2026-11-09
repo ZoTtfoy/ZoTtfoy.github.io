@@ -132,6 +132,7 @@ window.SITE_MOTION = (function () {
     if (persist) {
       try { localStorage.setItem(THEME_KEY, mode); } catch (e) {}
     }
+    if (window.SITE_RENDER && window.SITE_RENDER.applyAccent) window.SITE_RENDER.applyAccent();
     paintThemeButton();
     setTimeout(function () { document.documentElement.classList.remove("theme-switching"); }, 380);
   }

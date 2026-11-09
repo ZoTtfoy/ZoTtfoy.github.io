@@ -103,6 +103,7 @@ const documentStub = {
   documentElement: Object.assign(new El('html'), {
     dataset: { theme: 'light' },
     scrollHeight: 4000,
+    style: { setProperty() {}, removeProperty() {}, getPropertyValue: () => '' },
     classList: { add(){}, remove(){}, contains(){ return false; } }
   }),
   body: new El('body'),

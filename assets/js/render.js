@@ -22,6 +22,28 @@ window.SITE_RENDER = (function () {
   function arr(v) { return Array.isArray(v) ? v : []; }
   function delay(i, step) { return '--reveal-delay:' + (i * (step || 70)) + 'ms;'; }
 
+  /* ---------- 自定义主题色（在 config.js 的 ui.accent / ui.accentDark 里设置） ---------- */
+  function hexToRgba(hex, alpha) {
+    var h = String(hex).replace("#", "");
+    if (h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
+    if (!/^[0-9a-fA-F]{6}$/.test(h)) return null;
+    var n = parseInt(h, 16);
+    return "rgba(" + ((n >> 16) & 255) + "," + ((n >> 8) & 255) + "," + (n & 255) + "," + alpha + ")";
+  }
+
+  function applyAccent() {
+    var ui = C.ui || {};
+    var light = ui.accent, dark = ui.accentDark || ui.accent;
+    if (!light && !dark) return;
+    var root = document.documentElement;
+    var isDark = root.dataset.theme === "dark";
+    var color = isDark ? dark : light;
+    if (!color) return;
+    root.style.setProperty("--accent", color);
+    var soft = hexToRgba(color, isDark ? 0.13 : 0.09);
+    if (soft) root.style.setProperty("--accent-soft", soft);
+  }
+
   /* ---------- 文档信息 ---------- */
   function renderMeta() {
     var s = C.site || {};
@@ -222,6 +244,7 @@ window.SITE_RENDER = (function () {
   }
 
   function init() {
+    applyAccent();
     renderMeta();
     renderBrand();
     renderHero();
@@ -233,5 +256,5 @@ window.SITE_RENDER = (function () {
     renderControls();
   }
 
-  return { init: init, esc: esc, icon: icon };
+  return { init: init, esc: esc, icon: icon, applyAccent: applyAccent };
 })();

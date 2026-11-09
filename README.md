@@ -25,6 +25,7 @@
 ```
 zotrod-homepage/
 ├── index.html                    # 页面骨架（结构 / 语义标签 / 区块容器）
+├── admin.html                    # ★ 内容编辑器（带口令保护，不对外链接）
 ├── .nojekyll                     # 让 GitHub Pages 不跳过下划线目录
 ├── .github/workflows/deploy.yml  # 推送后自动部署，一般不用动
 ├── assets/
@@ -32,25 +33,56 @@ zotrod-homepage/
 │   │   ├── tokens.css            # ★ 配色、字体、圆角、间距等设计变量
 │   │   ├── layout.css            # 布局、栅格、响应式断点
 │   │   ├── components.css        # 按钮、卡片、标签等组件外观
-│   │   └── motion.css            # 入场动画、悬停反馈、背景动效
+│   │   ├── motion.css            # 入场动画、悬停反馈、背景动效
+│   │   └── admin.css             # 编辑器专用样式
 │   └── js/
-│       ├── config.js             # ★★ 所有文案、链接、模块开关（日常只改这个）
+│       ├── config.js             # ★★ 所有文案、链接、模块开关（内容都在这里）
 │       ├── icons.js              # 内联 SVG 图标库，可自行增删
 │       ├── render.js             # 把 config 的数据填进页面
 │       ├── motion.js             # 滚动、主题、菜单、复制等交互
-│       └── main.js               # 启动入口
+│       ├── main.js               # 启动入口
+│       └── admin.js              # ★ 编辑器逻辑 + 访问凭据（哈希）
 ├── tools/
-│   └── verify.js                 # 自检脚本：node tools/verify.js
+│   ├── verify.js                 # 站点自检：node tools/verify.js
+│   └── verify-admin.js           # 编辑器自检：node tools/verify-admin.js
 └── README.md
 ```
 
-> **日常改内容 → 只动 `assets/js/config.js`。**
+> **改内容两条路，任选：**
+> 1. **图形化**：打开 `/admin.html`，登录后点选修改 → 发布（推荐，手机也能用）。
+> 2. **改文件**：直接编辑 `assets/js/config.js`。
+>
 > **想换整体气质（配色 / 圆角 / 字体）→ 动 `assets/css/tokens.css`。**
 > 其余文件除非要改结构或交互，一般不需要碰。
 
 ---
 
-## 三、改内容（config.js 字段速查）
+## 三、内容编辑器（admin.html）
+
+访问 `https://你的域名/admin.html`（或本地打开 `admin.html`）。
+
+- **默认账户**：`zotrod`　**默认口令**：`paper-stone-8677`
+- 登录后可改：站点信息、合作状态、首页按钮、四个模块的标题与开关顺序、关于我（段落 / 信息表 / 标签）、业务卡片、喜好卡片、社交链接、主题色与动效开关。
+- 卡片类内容支持**添加 / 删除 / 上下移动**。
+- 改动先存在本机浏览器（草稿），点「发布」时生成新的 `config.js`，三种上线方式：网页里粘贴到 GitHub、下载后本地提交、或填一个 GitHub 令牌一键推送。
+
+### 凭据是怎么存的
+
+源码里**没有口令明文**，只存 `salt + SHA-256` 的摘要（`assets/js/admin.js` 顶部）。校验在本机完成。
+
+需要说清楚的是它的边界：这是**入口锁**，挡的是顺手点开乱改，不是密码学意义上的安全防护——有能力读源码的人可以绕过它。真正决定谁能改线上内容的，是你的 **GitHub 账号**：没有仓库写权限，改什么都传不上去。所以这层锁的定位是「防误碰 + 防好奇」，不是「防攻击」。
+
+### 改账户或口令
+
+1. 进编辑器 → 发布抽屉 → 底部「更改管理账户 / 口令」→ 填新账户与口令 → 生成。
+2. 把生成的三行替换到 `assets/js/admin.js` 顶部的 `ADMIN` 区块。
+3. commit 一次，所有设备同步生效（只在编辑器里填、不提交则仅本机有效，因为本地覆盖存在浏览器里）。
+
+> 新建 GitHub 令牌时，建议用 *Fine-grained token*，只授权这一个仓库的 **Contents: Read and write**，用完可随时撤销。令牌只存在本机浏览器，不会随代码上传。
+
+---
+
+## 四、改内容（config.js 字段速查）
 
 | 位置 | 字段 | 作用 |
 | --- | --- | --- |
@@ -81,7 +113,7 @@ zotrod-homepage/
 - **QQ / 微信号**：写成 `{ icon: "qq", label: "QQ", handle: "点一下复制", copy: "你的号码" }`，卡片会变成可点击复制，不会出现打不开的链接。
 - **换图标**：把 `icon` 改成 `icons.js` 顶部注释里列出的任意名字；找不到会自动回退成 ✦ 图标。
 - **隐藏整个模块**：`sections.xxx.enabled = false`。
-- **换主题色**：改 `tokens.css` 里的 `--accent`（浅色 / 深色各一处）。
+- **换主题色**：优先在编辑器「外观」里改（会写进 config 的 `ui.accent` / `ui.accentDark`）；想连背景灰阶一起调，改 `tokens.css`。
 - **自定义域名**：在根目录新建 `CNAME` 文件，内容写一行你的域名，DNS 加一条 CNAME 指向 `<用户名>.github.io`，再去仓库 Settings → Pages 填 Custom domain。
 
 > `config.js` 里目前带「示例」性质的文案（业务、爱好、邮箱、社交链接）都是占位内容，记得换成你自己的。
@@ -89,14 +121,31 @@ zotrod-homepage/
 ### 改完自检一下
 
 ```bash
-node tools/verify.js
+node tools/verify.js          # 站点：渲染 / 图标 / 资源 / 降级
+node tools/verify-admin.js    # 编辑器：口令哈希 / 序列化无损 / 资源引用
 ```
 
-不需要安装任何依赖。它会在模拟浏览器环境里真实执行一遍页面脚本，检查：图标名有没有拼错、卡片 / 导航数量是否与配置一致、模块开关与排序是否生效、引用的 CSS / JS 是否齐全、旧浏览器降级是否正常。全部通过会输出 `全部通过`。
+不需要安装任何依赖。`verify.js` 会在模拟浏览器环境里真实执行一遍页面脚本，检查：图标名有没有拼错、卡片 / 导航数量是否与配置一致、模块开关与排序是否生效、引用的 CSS / JS 是否齐全、旧浏览器降级是否正常。`verify-admin.js` 会核对 SHA-256 实现与 Node 原生结果逐位一致、编辑器生成的 `config.js` 与源数据深比较无损。全部通过会输出 `全部通过`。
 
 ---
 
-## 四、部署到 GitHub Pages
+## 五、模块结构约定
+
+四个模块都是「标题三件套 + 内容」，在 `index.html` 里各有独立 `<section data-section="xxx">`：
+
+```
+标题三件套   eyebrow（01 / ABOUT 这类小标签） + title + lead
+关于个人     paragraphs 段落 · facts 信息表 · tags 关键词
+业务范畴     items[] 卡片：icon / title / desc / tags
+个人喜好     items[] 卡片：icon / title / desc / meta
+社交平台     items[] 卡片：icon / label / handle / url（或 copy） + contactHint
+```
+
+要新增一个模块：复制一个 `<section>` 骨架 → 在 `config.js` 的 `sections` 里加一项 → 在 `render.js` 加一个渲染函数。导航、开关、排序会自动跟上。
+
+---
+
+## 六、部署到 GitHub Pages
 
 ### 1. 创建仓库并推送
 
@@ -140,7 +189,7 @@ git push
 
 ---
 
-## 五、适配与细节
+## 七、适配与细节
 
 | 断点 | 布局 |
 | --- | --- |
@@ -161,7 +210,7 @@ git push
 
 ---
 
-## 六、常见问题
+## 八、常见问题
 
 **改了 config.js 但页面没变？**
 先强制刷新（Ctrl/Cmd + Shift + R）。线上请确认 `git push` 成功、Actions 显示绿色对勾，再等 1–2 分钟。

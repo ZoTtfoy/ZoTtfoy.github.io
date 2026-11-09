@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="light dark">
+  <meta name="robots" content="noindex, nofollow">
+  <title>内容管理 · Zotrod</title>
+
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%2316181a'/%3E%3Ctext x='32' y='44' font-size='34' font-family='Arial' font-weight='700' text-anchor='middle' fill='%23fff'%3E%E2%9C%8E%3C/text%3E%3C/svg%3E">
+
+  <link rel="stylesheet" href="assets/css/tokens.css">
+  <link rel="stylesheet" href="assets/css/components.css">
+  <link rel="stylesheet" href="assets/css/admin.css">
+</head>
+
+<body class="admin">
+  <script src="assets/js/config.js"></script>
+
+  <!-- ===================== 登录门 ===================== -->
+  <section class="gate" id="gate">
+    <form class="gate__card" id="gateForm" autocomplete="off">
+      <span class="gate__mark">Z</span>
+      <h1 class="gate__title">内容管理</h1>
+      <p class="gate__sub">这里是 Zotrod 主页的内容编辑器。<br>修改只保存在本机浏览器，确认后再发布上线。</p>
+
+      <label class="field">
+        <span class="field__label">账户</span>
+        <input class="input" id="gateUser" type="text" autocomplete="username" required>
+      </label>
+      <label class="field">
+        <span class="field__label">口令</span>
+        <input class="input" id="gatePass" type="password" autocomplete="current-password" required>
+      </label>
+
+      <p class="gate__msg" id="gateMsg" role="alert"></p>
+      <button class="btn btn--primary gate__btn" type="submit">进入</button>
+
+      <p class="gate__note">
+        账户与口令均以加盐 SHA-256 哈希校验，源码中不含明文。<br>
+        这是本机内容的入口锁，真正的发布权限由你的 GitHub 账号掌控。
+      </p>
+      <a class="gate__back" href="./">← 返回主页</a>
+    </form>
+  </section>
+
+  <!-- ===================== 编辑器 ===================== -->
+  <div class="app" id="app" hidden>
+    <header class="app__bar">
+      <div class="app__brand">
+        <span class="app__mark">Z</span>
+        <div>
+          <strong>内容管理</strong>
+          <span class="app__draft" id="draftState"></span>
+        </div>
+      </div>
+      <div class="app__actions">
+        <a class="btn btn--quiet btn--sm" id="previewBtn" href="./" target="_blank" rel="noopener">预览</a>
+        <button class="btn btn--quiet btn--sm" id="resetBtn" type="button">还原</button>
+        <button class="btn btn--primary btn--sm" id="publishBtn" type="button">发布</button>
+      </div>
+    </header>
+
+    <nav class="tabs" id="tabs" aria-label="编辑分区"></nav>
+    <main class="app__body">
+      <div class="panel" id="panel"></div>
+    </main>
+  </div>
+
+  <!-- ===================== 发布抽屉 ===================== -->
+  <div class="sheet" id="publishSheet" hidden>
+    <div class="sheet__mask" data-close></div>
+    <div class="sheet__panel" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+      <header class="sheet__head">
+        <h2 id="sheetTitle">发布到线上</h2>
+        <button class="icon-btn" type="button" data-close aria-label="关闭">✕</button>
+      </header>
+
+      <p class="sheet__hint">
+        站点是纯静态的，内容存在 <code>assets/js/config.js</code> 里。
+        下面三种方式任选——<strong>都已把改动写在这份文件里</strong>。
+      </p>
+
+      <ol class="steps">
+        <li>
+          <h3>方式一 · 直接在网页里改（最省事，手机也行）</h3>
+          <p>打开 GitHub 的在线编辑页，全选删除后粘贴下面的内容，点 Commit 即自动上线。</p>
+          <div class="row">
+            <button class="btn btn--quiet btn--sm" type="button" id="copyCfg">复制 config.js</button>
+            <a class="btn btn--quiet btn--sm" id="editOnGithub" target="_blank" rel="noopener">打开 GitHub 编辑页</a>
+          </div>
+        </li>
+
+        <li>
+          <h3>方式二 · 下载后本地提交</h3>
+          <p>下载替换 <code>assets/js/config.js</code>，然后 <code>git commit &amp;&amp; git push</code>。</p>
+          <div class="row">
+            <button class="btn btn--quiet btn--sm" type="button" id="downloadCfg">下载 config.js</button>
+          </div>
+        </li>
+
+        <li>
+          <h3>方式三 · 一键推送（需要 GitHub 令牌）</h3>
+          <p class="warn">
+            令牌只存在这台设备的浏览器里，不会上传。建议新建一个 <em>Fine-grained token</em>，
+            仅授权这一个仓库的 <em>Contents: Read and write</em>，随时可撤销。
+          </p>
+          <label class="field">
+            <span class="field__label">GitHub Token（ghp_ 或 github_pat_ 开头）</span>
+            <input class="input" id="tokenInput" type="password" placeholder="只保存在本机 localStorage" autocomplete="off">
+          </label>
+          <div class="row">
+            <button class="btn btn--primary btn--sm" type="button" id="pushBtn">提交到 GitHub</button>
+            <button class="btn btn--quiet btn--sm" type="button" id="forgetToken">清除已保存的令牌</button>
+          </div>
+          <p class="sheet__msg" id="pushMsg" role="status"></p>
+        </li>
+      </ol>
+
+      <details class="adv">
+        <summary>更改管理账户 / 口令</summary>
+        <p class="sheet__hint">
+          输入新账户和口令，会生成一行哈希配置。把这行贴进 <code>assets/js/admin.js</code>
+          顶部的 <code>ADMIN.salt / userHash / passHash</code> 三个位置并提交，新凭据才会对所有设备生效
+          （仅在本机填写则只对本机有效）。
+        </p>
+        <div class="row">
+          <input class="input" id="newUser" type="text" placeholder="新账户">
+          <input class="input" id="newPass" type="password" placeholder="新口令（建议 12 位以上）">
+          <button class="btn btn--quiet btn--sm" type="button" id="genHash">生成</button>
+        </div>
+        <pre class="code" id="hashOut" hidden></pre>
+      </details>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="assets/js/icons.js"></script>
+  <script src="assets/js/admin.js"></script>
+</body>
+</html>
