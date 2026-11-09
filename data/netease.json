@@ -1,0 +1,6 @@
+{
+  "_comment": "由 .github/workflows/sync.yml 自动生成，请勿手动编辑。这份占位文件的存在只是为了让页面不必等到第一次同步才正常 —— tracks 为空时前端会自动退回 config.js 里的 fallback。",
+  "updated": null,
+  "uid": "",
+  "tracks": []
+}
