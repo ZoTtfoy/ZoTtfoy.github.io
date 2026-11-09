@@ -357,6 +357,117 @@
 }
 .toast.is-visible { opacity: 1; transform: translate(-50%, 0); }
 
+/* ------------------------------------------------------- 发布抽屉：路线切换 */
+.tabs--inline {
+  position: static;
+  margin-top: 16px;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--bg-soft);
+  overflow: visible;
+}
+.tabs--inline .tab {
+  flex: 1;
+  text-align: center;
+  border-radius: calc(var(--r-sm) - 3px);
+}
+.tabs--inline .tab.is-active {
+  background: var(--bg-elev);
+  color: var(--text);
+  box-shadow: var(--shadow-sm);
+}
+
+.pub-pane { margin-top: 16px; }
+
+.pub-note {
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--r-sm);
+  background: var(--accent-soft);
+  font-size: .78rem;
+  line-height: 1.75;
+  color: var(--text-2);
+}
+.pub-note strong { color: var(--text); }
+
+/* 步骤序号 */
+.step-no {
+  display: inline-grid;
+  place-items: center;
+  width: 19px;
+  height: 19px;
+  margin-right: 7px;
+  border-radius: 50%;
+  background: var(--text);
+  color: var(--bg);
+  font-family: var(--font-mono);
+  font-size: .66rem;
+  font-weight: 700;
+  vertical-align: 1px;
+}
+.steps kbd {
+  padding: 1px 5px;
+  border: 1px solid var(--line-strong);
+  border-radius: 4px;
+  background: var(--bg-soft);
+  font-family: var(--font-mono);
+  font-size: .72em;
+}
+
+/* ---------------------------------------------------------------- 诊断清单 */
+.diag {
+  margin-top: 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--bg);
+  overflow: hidden;
+}
+.diag__row {
+  display: flex;
+  gap: 10px;
+  padding: 10px 13px;
+  font-size: .78rem;
+  line-height: 1.65;
+}
+.diag__row + .diag__row { border-top: 1px solid var(--line); }
+
+.diag__icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 17px;
+  height: 17px;
+  margin-top: 1px;
+  border-radius: 50%;
+  font-size: .68rem;
+  font-weight: 700;
+  line-height: 1;
+}
+.diag__row.is-ok .diag__icon { background: var(--accent); color: var(--accent-fg); }
+.diag__row.is-bad .diag__icon { background: #c0392b; color: #fff; }
+.diag__row.is-info .diag__icon { background: var(--line-strong); color: var(--text-2); }
+
+.diag__text { min-width: 0; }
+.diag__text strong { display: block; font-weight: 600; color: var(--text); }
+.diag__text small {
+  display: block;
+  margin-top: 2px;
+  font-size: .74rem;
+  line-height: 1.7;
+  color: var(--text-2);
+  word-break: break-word;
+}
+.diag__text code {
+  padding: 1px 4px;
+  border-radius: 3px;
+  background: var(--bg-soft);
+  font-family: var(--font-mono);
+  font-size: .92em;
+}
+.diag__text b { font-weight: 600; color: var(--text); }
+
 /* 平板起，抽屉改成右侧面板 */
 @media (min-width: 720px) {
   .sheet__panel {
