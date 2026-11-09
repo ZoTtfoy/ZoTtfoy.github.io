@@ -280,8 +280,13 @@ ok(ctx4.document.documentElement.dataset.effects === 'off', 'ui.lightEffects=fal
 
 /* -------------------------------------------------------- 4. CSS 断言 */
 // 吸附与高个页
-ok(/scroll-snap-type:\s*y proximity/.test(pagedCss), '用 proximity 而不是 mandatory（避免卡住高个页）');
-ok(/scroll-snap-stop:\s*always/.test(pagedCss), '设置了 scroll-snap-stop 保证一页一页翻');
+/* 翻页契约变了：不再用 CSS scroll-snap，改由 JS 独占（见 paged.js「滚动所有权」）。
+   早先 CSS 强制吸附 + JS 劫持滚轮，两边抢 scrollTop，桌面端表现为
+   「单格滚轮要滚 3 次才翻页」。所以现在断言的是「CSS 吸附已关闭」。 */
+ok(/html\[data-paged="on"\][\s\S]{0,400}scroll-snap-type:\s*none/.test(pagedCss),
+   'CSS 吸附已关闭（翻页交给 JS）');
+ok(/WHEEL_STEP|WHEEL_THRESHOLD/.test(pagedSrc), '有滚轮翻页的阈值逻辑');
+ok(/snapToNearest/.test(pagedSrc), '自由滚动后有归位逻辑');
 ok(/data-tall="1"/.test(pagedCss) && /scroll-snap-align:\s*none/.test(pagedCss), '高个页放弃吸附');
 ok(/scroll-padding-top:\s*0/.test(pagedCss), '翻页模式清零 scroll-padding，避免差一个页头');
 ok(/min-height:\s*100svh/.test(pagedCss), '用 svh 处理手机地址栏');
