@@ -179,31 +179,28 @@
     <section class="hero" id="top" aria-labelledby="heroName">
       <div class="container hero__inner">
 
-        <!-- 身份区：头像 + 名字 + 副标题 + 简介 -->
+        <!-- 身份区：头像居中 + 名字居中（原来是左图右文，左右不平衡） -->
         <div class="profile">
-          <div class="profile__head">
-            <div class="profile__avatar" id="heroAvatar" data-reveal hidden></div>
-            <div class="profile__id">
-              <p class="profile__greet" id="heroGreet" data-reveal></p>
-              <h1 class="profile__name" id="heroName" data-reveal style="--reveal-delay:60ms"></h1>
-            </div>
-          </div>
+          <div class="profile__avatar" id="heroAvatar" data-reveal hidden></div>
 
+          <p class="profile__greet" id="heroGreet" data-reveal></p>
+          <h1 class="profile__name" id="heroName" data-reveal style="--reveal-delay:60ms"></h1>
           <p class="profile__tagline" id="heroTagline" data-reveal style="--reveal-delay:110ms"></p>
           <p class="profile__role" id="heroRole" data-reveal style="--reveal-delay:150ms"></p>
-          <p class="profile__intro" id="heroIntro" data-reveal style="--reveal-delay:200ms"></p>
 
-          <!-- QQ / 微信：点一下复制 -->
-          <div class="chips" id="heroContacts" data-reveal style="--reveal-delay:250ms"></div>
+          <!-- 第一行两列：左微信 / 右 QQ，点一下就复制 -->
+          <div class="contact-pair" id="heroContacts" data-reveal style="--reveal-delay:210ms"></div>
 
-          <div class="hero__actions" data-reveal style="--reveal-delay:290ms">
+          <!-- 第二行两列：左网易云 / 右小黑盒 -->
+          <div class="preview-pair" id="heroPreviews" data-reveal style="--reveal-delay:260ms"></div>
+
+          <p class="profile__intro" id="heroIntro" data-reveal style="--reveal-delay:300ms"></p>
+
+          <div class="hero__actions" data-reveal style="--reveal-delay:340ms">
             <a class="btn btn--primary" id="heroPrimary" href="#listen"></a>
             <a class="btn btn--quiet" id="heroSecondary" href="#gaming"></a>
           </div>
         </div>
-
-        <!-- 两个主页的摘要卡：有封面显示封面，没有就是纯文字信息卡 -->
-        <div class="preview-grid" id="heroPreviews" data-reveal style="--reveal-delay:330ms"></div>
 
         <!-- 一言 / 时钟 / 进度：默认关闭（见 config.js 的 live），留骨架方便随时打开 -->
         <p class="hero__quote" id="liveQuote" hidden></p>
@@ -237,9 +234,16 @@
             <p class="section__lead" data-field="lead"></p>
           </header>
 
-          <div class="listen">
-            <ul class="track-list" id="trackList" aria-label="最近在听"></ul>
-            <p class="listen__foot" id="listenFoot"></p>
+          <!-- 主卡片：黑胶唱片在底层缓慢转动，歌曲磁贴吸附其上 -->
+          <div class="listen-card" id="listenCard">
+            <span class="vinyl" aria-hidden="true">
+              <span class="vinyl__label"></span>
+            </span>
+
+            <div class="listen-card__body">
+              <ul class="track-list" id="trackList" aria-label="最近在听"></ul>
+              <p class="listen__foot" id="listenFoot"></p>
+            </div>
           </div>
         </div>
       </section>
