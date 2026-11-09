@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="auto">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="light dark">
+  <meta name="description" content="Zotrod 的个人主页 — 关于我、业务范畴、个人喜好与社交账号。">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Zotrod · 个人主页">
+  <meta property="og:description" content="Zotrod 的个人主页 — 关于我、业务范畴、个人喜好与社交账号。">
+  <meta name="theme-color" content="#fbfbf9">
+
+  <title>Zotrod · 个人主页</title>
+
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%2316181a'/%3E%3Ctext x='32' y='44' font-size='38' font-family='Arial,Helvetica,sans-serif' font-weight='700' text-anchor='middle' fill='%23ffffff'%3EZ%3C/text%3E%3C/svg%3E">
+
+  <!-- config.js 只定义数据，放最前面：既供下方主题初始化使用，也避免刷新闪白屏 -->
+  <script src="assets/js/config.js"></script>
+  <script>
+    (function () {
+      document.documentElement.classList.add('js');
+      try {
+        var saved = localStorage.getItem('zotrod-theme');
+        var fallback = (window.SITE_CONFIG && window.SITE_CONFIG.ui) ? window.SITE_CONFIG.ui.themeDefault : 'auto';
+        var mode = saved || fallback || 'auto';
+        var dark = mode === 'dark' || (mode === 'auto' && matchMedia('(prefers-color-scheme: dark)').matches);
+        document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+      } catch (e) {
+        document.documentElement.dataset.theme = 'light';
+      }
+    })();
+  </script>
+
+  <link rel="stylesheet" href="assets/css/tokens.css">
+  <link rel="stylesheet" href="assets/css/layout.css">
+  <link rel="stylesheet" href="assets/css/components.css">
+  <link rel="stylesheet" href="assets/css/motion.css">
+</head>
+
+<body>
+  <a class="skip-link" href="#main">跳到主要内容</a>
+
+  <div class="scroll-progress" aria-hidden="true"><span id="scrollProgressBar"></span></div>
+
+  <!-- 柔和的动态背景光晕：纯装饰，不影响交互 -->
+  <div class="ambient" aria-hidden="true">
+    <span class="ambient__orb ambient__orb--a"></span>
+    <span class="ambient__orb ambient__orb--b"></span>
+    <span class="ambient__grain"></span>
+  </div>
+
+  <header class="site-header" id="siteHeader">
+    <div class="container header__inner">
+      <a class="brand" href="#top" aria-label="返回顶部">
+        <span class="brand__mark" id="brandMark">Z</span>
+        <span class="brand__name" id="brandName">Zotrod</span>
+      </a>
+
+      <nav class="nav" aria-label="主导航">
+        <ul id="navList" class="nav__list"></ul>
+      </nav>
+
+      <div class="header__actions">
+        <button class="icon-btn" id="themeToggle" type="button" aria-label="切换深浅主题" title="切换深浅主题"></button>
+        <button class="icon-btn menu-toggle" id="menuToggle" type="button"
+                aria-label="打开菜单" aria-expanded="false" aria-controls="mobileNav"></button>
+      </div>
+    </div>
+  </header>
+
+  <nav class="mobile-nav" id="mobileNav" aria-label="移动端导航" hidden>
+    <ul id="mobileNavList" class="mobile-nav__list"></ul>
+    <p class="mobile-nav__foot" id="mobileNavFoot"></p>
+  </nav>
+
+  <main id="main">
+    <!-- ============ Hero ============ -->
+    <section class="hero" id="top" aria-labelledby="heroTitle">
+      <div class="container hero__inner">
+        <p class="hero__status" id="heroStatus" data-reveal></p>
+        <h1 class="hero__title" id="heroTitle" data-reveal style="--reveal-delay:80ms"></h1>
+        <p class="hero__role" id="heroRole" data-reveal style="--reveal-delay:160ms"></p>
+        <p class="hero__desc" id="heroDesc" data-reveal style="--reveal-delay:230ms"></p>
+        <div class="hero__actions" data-reveal style="--reveal-delay:300ms">
+          <a class="btn btn--primary" id="heroPrimary" href="#services"></a>
+          <a class="btn btn--quiet" id="heroSecondary" href="#social"></a>
+        </div>
+      </div>
+      <div class="hero__scroll" aria-hidden="true" data-reveal style="--reveal-delay:420ms">
+        <span>向下滚动</span><span class="hero__scroll-line"></span>
+      </div>
+    </section>
+
+    <div class="sections" id="sections">
+
+      <!-- ============ 关于个人 ============ -->
+      <section class="section" id="about" data-section="about" aria-labelledby="aboutTitle">
+        <div class="container">
+          <header class="section__head" data-reveal>
+            <p class="eyebrow" data-field="eyebrow"></p>
+            <h2 class="section__title" id="aboutTitle" data-field="title"></h2>
+            <p class="section__lead" data-field="lead"></p>
+          </header>
+          <div class="about__grid">
+            <div class="about__body" id="aboutBody" data-reveal></div>
+            <aside class="about__side" data-reveal style="--reveal-delay:120ms">
+              <dl class="facts" id="aboutFacts"></dl>
+              <ul class="tags" id="aboutTags" aria-label="关键词"></ul>
+            </aside>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ 业务范畴 ============ -->
+      <section class="section" id="services" data-section="services" aria-labelledby="servicesTitle">
+        <div class="container">
+          <header class="section__head" data-reveal>
+            <p class="eyebrow" data-field="eyebrow"></p>
+            <h2 class="section__title" id="servicesTitle" data-field="title"></h2>
+            <p class="section__lead" data-field="lead"></p>
+          </header>
+          <div class="card-grid" id="serviceGrid"></div>
+        </div>
+      </section>
+
+      <!-- ============ 个人喜好 ============ -->
+      <section class="section" id="interests" data-section="interests" aria-labelledby="interestsTitle">
+        <div class="container">
+          <header class="section__head" data-reveal>
+            <p class="eyebrow" data-field="eyebrow"></p>
+            <h2 class="section__title" id="interestsTitle" data-field="title"></h2>
+            <p class="section__lead" data-field="lead"></p>
+          </header>
+          <div class="interest-grid" id="interestGrid"></div>
+        </div>
+      </section>
+
+      <!-- ============ 社交平台 ============ -->
+      <section class="section" id="social" data-section="social" aria-labelledby="socialTitle">
+        <div class="container">
+          <header class="section__head" data-reveal>
+            <p class="eyebrow" data-field="eyebrow"></p>
+            <h2 class="section__title" id="socialTitle" data-field="title"></h2>
+            <p class="section__lead" data-field="lead"></p>
+          </header>
+          <div class="social-grid" id="socialGrid"></div>
+          <div class="contact" id="contactBlock" data-reveal></div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer__inner">
+      <div class="footer__brand">
+        <span class="brand__mark brand__mark--sm" id="footerMark">Z</span>
+        <span id="footerName">Zotrod</span>
+      </div>
+      <p class="footer__copy" id="footerCopy"></p>
+      <p class="footer__note" id="footerNote"></p>
+    </div>
+  </footer>
+
+  <button class="to-top" id="toTop" type="button" aria-label="回到顶部" title="回到顶部"></button>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <!-- 无构建、无依赖：按顺序加载即可；本地双击 index.html 也能直接看 -->
+  <script src="assets/js/icons.js"></script>
+  <script src="assets/js/render.js"></script>
+  <script src="assets/js/motion.js"></script>
+  <script src="assets/js/main.js"></script>
+</body>
+</html>
