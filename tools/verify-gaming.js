@@ -54,24 +54,25 @@ games.forEach(g => {
   ok(games.some(g => g.name.indexOf(name) >= 0), '配置含「' + name + '」');
 });
 
-/* 顺序：游戏排在喜好之后、业务之前。
-   注意这条断言跟着「配置里的 order」走 —— 章节顺序是用户可改的内容，
-   不是硬编码规则。断言意图（游戏夹在喜好与业务之间）比断言具体序列更稳。 */
+/* 顺序：现在是 联系 → 关于 → 业务 → 喜好 → 游戏。
+   章节顺序属于内容配置，会变；这里只断言「游戏确实排在喜好之后」。 */
 const order = Object.keys(C.sections)
   .filter(k => C.sections[k].enabled !== false)
   .sort((a, b) => C.sections[a].order - C.sections[b].order);
-ok(order.indexOf('gaming') === order.indexOf('interests') + 1 &&
-   order.indexOf('gaming') === order.indexOf('services') - 1,
-   '章节顺序为 喜好 → 游戏 → 业务（' + order.join(' → ') + '）');
+ok(order.indexOf('gaming') > order.indexOf('interests'),
+   '游戏排在喜好之后（' + order.join(' → ') + '）');
 
 /* ------------------------------------------------ 2. CSS 关键约束 */
-ok(/\.game-rail\s*\{[\s\S]{0,320}scroll-snap-type:\s*x mandatory/.test(gameCss),
-   '轨道用横向吸附');
-ok(/overscroll-behavior-x:\s*contain/.test(gameCss),
-   '设了 overscroll-behavior-x，横滑不会触发浏览器后退');
-ok(/\.game-rail > \.game\s*\{[\s\S]{0,120}flex:\s*0 0/.test(gameCss),
-   '卡片定宽（不会因内容撑高）');
-ok(/is-static/.test(gameCss), '少于 2 张时退回普通栅格');
+/* 游戏卡从「横向滑动轨道」改成了「网格」，断言随之反转：
+   必须是 grid、不能有横向滚动容器。 */
+ok(/\.game-rail\s*\{[\s\S]{0,320}display:\s*grid/.test(gameCss),
+   '游戏卡用网格布局');
+ok(!/scroll-snap-type:\s*x mandatory/.test(gameCss),
+   '不再使用横向滑动轨道');
+/* 只在「声明」里找 overflow-x，注释里出现这个词不算 */
+const gameCssDecl = gameCss.replace(/\/\*[\s\S]*?\*\//g, '');
+ok(!/overflow-x:\s*auto/.test(gameCssDecl), '没有横向滚动容器');
+ok(/repeat\(auto-fit, minmax/.test(gameCss), '列数随宽度自适应');
 ok(/@supports not \(background: color-mix/.test(gameCss),
    'color-mix 不支持时有退回方案');
 
@@ -247,6 +248,7 @@ async function browserChecks() {
         railFlex: getComputedStyle(cards[0]).flex,
         railOverflow: getComputedStyle(rail).overflowX,
         railSnap: getComputedStyle(rail).scrollSnapType,
+        cols: getComputedStyle(rail).gridTemplateColumns.split(' ').length,
         scrollable: rail.scrollWidth > rail.clientWidth + 4,
         cardW: Math.round(cards[0].getBoundingClientRect().width),
         railH: Math.round(rail.getBoundingClientRect().height),
@@ -258,26 +260,31 @@ async function browserChecks() {
     ok(layout.tall.length === 0, tag + '没有页面被迫放弃吸附' + (layout.tall.length ? '（' + layout.tall + '）' : ''));
     ok(layout.allFit, tag + '每页都在一屏内');
     ok(layout.gamingFit, tag + '游戏页在一屏内');
-    ok(layout.railOverflow === 'auto', tag + '游戏轨道可横滑');
-    ok(/x mandatory/.test(layout.railSnap), tag + '游戏轨道横向吸附（' + layout.railSnap + '）');
-    ok(layout.scrollable, tag + '6 张卡片确实超出可视宽度');
+    ok(layout.railOverflow !== 'auto' || !layout.scrollable,
+       tag + '游戏卡不做横向滚动（overflowX=' + layout.railOverflow + '）');
+    ok(!/x mandatory/.test(layout.railSnap), tag + '未启用横向吸附');
+    ok(layout.cols >= 2, tag + '游戏卡为多列网格（' + layout.cols + ' 列）');
     ok(layout.slack > 0, tag + '游戏页仍有余量（' + layout.slack + 'px）');
-    ok(layout.cardW >= 200, tag + '卡片宽度可用（' + layout.cardW + 'px）');
+    /* 手机两列网格下每张约 171px —— 这是设计值，不是缺陷 */
+    ok(layout.cardW >= 150, tag + '卡片宽度可用（' + layout.cardW + 'px）');
 
-    /* 跳到游戏页 */
-    await page.evaluate(() => {
-      const dots = [...document.querySelectorAll('.pager__dot')];
-      dots[3].click();
+    /* 跳到游戏页（按 DOM 实际位置找，不写死索引） */
+    const gameIdx = await page.evaluate(() => {
+      const pages = [...document.querySelectorAll('.hero, .section')];
+      return pages.findIndex(p => p.id === 'gaming');
     });
+    await page.evaluate(i => {
+      document.querySelectorAll('.pager__dot')[i].click();
+    }, gameIdx);
     await page.waitForTimeout(1500);
 
     const onGame = await page.evaluate(() => {
       const dots = [...document.querySelectorAll('.pager__dot')];
       const i = dots.findIndex(d => d.classList.contains('is-current'));
       const pages = [...document.querySelectorAll('.hero, .section')];
-      return { i, id: pages[i] && pages[i].id, label: dots[3].getAttribute('aria-label') };
+      return { i, id: pages[i] && pages[i].id, label: dots[i] && dots[i].getAttribute('aria-label') };
     });
-    ok(onGame.id === 'gaming', tag + '点第 4 个页码到达游戏页（' + onGame.id + '）');
+    ok(onGame.id === 'gaming', tag + '点对应页码能到游戏页（' + onGame.id + '）');
     ok(/游戏/.test(onGame.label || ''), tag + '页码标签是「游戏」（' + onGame.label + '）');
 
     /* 复制 ID */
@@ -293,7 +300,14 @@ async function browserChecks() {
     ok(copied.want === copied.got, tag + '点 ID 复制到剪贴板（' + copied.got + '）');
     ok(copied.toast, tag + '复制后出现提示');
 
-    /* 横滑不改变竖向页码 */
+    /* 网格没有横向滚动，所以不可能"误触发" */
+    const noHScroll = await page.evaluate(() => {
+      const rail = document.getElementById('gameRail');
+      return { sw: rail.scrollWidth, cw: rail.clientWidth,
+               overflowX: getComputedStyle(rail).overflowX };
+    });
+    ok(noHScroll.sw <= noHScroll.cw + 2,
+       tag + '网格内容不超出宽度（' + noHScroll.sw + ' vs ' + noHScroll.cw + '）');
     const beforeIdx = await page.evaluate(() =>
       [...document.querySelectorAll('.pager__dot')].findIndex(d => d.classList.contains('is-current')));
     const railMoved = await page.evaluate(() => {
@@ -305,14 +319,19 @@ async function browserChecks() {
     await page.waitForTimeout(600);
     const afterIdx = await page.evaluate(() =>
       [...document.querySelectorAll('.pager__dot')].findIndex(d => d.classList.contains('is-current')));
-    ok(railMoved.after > railMoved.before, tag + '横滑确实移动了轨道（' + Math.round(railMoved.before) + '→' + Math.round(railMoved.after) + '）');
-    ok(beforeIdx === afterIdx, tag + '横滑没有误触发竖向翻页（页码 ' + beforeIdx + ' 保持不变）');
+    /* 网格没有横向滚动，scrollLeft 不会变；断言这一点即证明"不存在误翻页的入口" */
+    ok(railMoved.after === railMoved.before,
+       tag + '网格没有横向位移（scrollLeft 恒为 ' + Math.round(railMoved.after) + '）');
+    ok(beforeIdx === afterIdx, tag + '页码未受干扰（' + beforeIdx + ' 保持不变）');
 
-    /* 章节入场：只一页、且会清理 */
+    /* 章节入场：只一页、且会清理。
+       注意用「最后一页的前一页」而非最后一页 —— 最后一页再往下会滚到页脚，
+       落点不是页顶，视口守卫可能判定它不在视口内，那样测的就不是入场动画了。 */
     await page.evaluate(() => {
       const pages = [...document.querySelectorAll('.hero, .section')];
       pages.forEach(p => p.classList.remove('is-entering'));
-      document.querySelectorAll('.pager__dot')[5].click();
+      const dots = document.querySelectorAll('.pager__dot');
+      dots[Math.max(1, dots.length - 2)].click();
     });
     /* 平滑滚动 + 停稳判定需要时间，轮询等入场标记出现（最多 1.6s） */
     await page.waitForFunction(() => {

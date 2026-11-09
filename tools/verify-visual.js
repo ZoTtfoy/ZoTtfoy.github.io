@@ -199,15 +199,19 @@ function contrast(a, b) {
           snap: cs.scrollSnapType,
           scrollable: g.scrollWidth > g.clientWidth + 4,
           childFlex: getComputedStyle(g.firstElementChild).flexBasis,
+          cols: cs.gridTemplateColumns.split(' ').length,
           childCount: g.children.length
         };
       });
+      /* 现在不用横向滑动轨道了：窄屏改为两列网格。
+         所以断言反过来 —— 必须是 grid、不能有横向滚动。 */
       if (rail) {
-        ok(rail.display === 'flex', tag + '喜好卡片变为横向排列');
-        ok(rail.overflowX === 'auto', tag + '喜好卡片可横向滑动');
-        ok(/x mandatory/.test(rail.snap), tag + '横向吸附已开启（' + rail.snap + '）');
-        ok(rail.scrollable, tag + '内容确实超出可横向滚动');
+        ok(rail.display === 'grid', tag + '喜好卡片为网格布局（' + rail.display + '）');
+        ok(rail.overflowX !== 'auto' || !rail.scrollable,
+           tag + '没有横向滑动（overflowX=' + rail.overflowX + '）');
+        ok(!/x mandatory/.test(rail.snap), tag + '未启用横向吸附');
         ok(rail.childCount === 6, tag + '6 张喜好卡片都在');
+        ok(rail.cols >= 2, tag + '窄屏为多列（' + rail.cols + ' 列）');
       }
     }
 
@@ -216,10 +220,12 @@ function contrast(a, b) {
       document.documentElement.scrollWidth > document.documentElement.clientWidth + 1);
     ok(!hOver, tag + '没有横向溢出');
 
-    /* ---------- 6. 翻页吸附生效 ---------- */
-    const snaps = await page.evaluate(() =>
-      [...document.querySelectorAll('.hero, .section')].map(p => getComputedStyle(p).scrollSnapAlign));
-    ok(snaps.every(s => s === 'start'), tag + '每页都参与吸附（' + snaps.length + ' 页）');
+    /* ---------- 6. 翻页由 JS 接管（CSS 吸附必须关闭） ---------- */
+    /* 早先是 CSS 强制吸附 + JS 劫持滚轮，两者抢 scrollTop，
+       导致桌面"单格滚轮要滚 3 次才翻页"。现在只保留 JS 一套。 */
+    const snapType = await page.evaluate(() =>
+      getComputedStyle(document.documentElement).scrollSnapType);
+    ok(snapType === 'none', tag + 'CSS 吸附已关闭，翻页交给 JS（' + snapType + '）');
 
     /* ---------- 7. 键盘翻页真的会动 ---------- */
     await page.evaluate(() => window.scrollTo(0, 0));

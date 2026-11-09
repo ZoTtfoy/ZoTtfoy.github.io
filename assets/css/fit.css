@@ -286,3 +286,141 @@ html[data-paged="on"][data-fit="micro"] .hero__status { margin-bottom: 10px; pad
 html[data-paged="on"][data-fit="micro"] .hero__title { line-height: 1.1; }
 html[data-paged="on"][data-fit="micro"] .hero__actions { margin-top: 12px; }
 html[data-paged="on"][data-fit="micro"] .hero__actions .btn { min-height: 38px; padding: 8px 16px; font-size: .82rem; }
+
+/* ==================================================== 卡片网格：手机端两列
+   去掉横向滑动轨道之后，卡片必须竖向排开。单列排 6 张会远超一屏，
+   所以窄屏统一改成**两列网格** —— 高度直接砍一半，且一眼看全。
+   宽度不够时靠收紧内边距和隐藏次要信息（标签、备注）来让文字不换行太多。 */
+@media (max-width: 900px) {
+  html[data-paged="on"] .card-grid,
+  html[data-paged="on"] .interest-grid,
+  html[data-paged="on"] .social-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 9px;
+  }
+
+  /* 业务卡：图标块缩小，标签只留前两个（完整信息在桌面端仍可见） */
+  html[data-paged="on"] .card { padding: 13px; min-height: 0; }
+  html[data-paged="on"] .card__icon { width: 30px; height: 30px; margin-bottom: 8px; border-radius: 9px; }
+  html[data-paged="on"] .card__icon .icon { width: 16px; height: 16px; }
+  html[data-paged="on"] .card__index { display: none; }
+  html[data-paged="on"] .card__title { font-size: .92rem; line-height: 1.35; }
+  html[data-paged="on"] .card__desc { font-size: .74rem; line-height: 1.55; margin-top: 5px; }
+  html[data-paged="on"] .card__tags { padding-top: 8px; gap: 4px; }
+  html[data-paged="on"] .card__tags .pill:nth-child(n+3) { display: none; }
+
+  /* 喜好卡：去掉右上角的 meta 小字，描述压到两行 */
+  html[data-paged="on"] .interest { padding: 13px; min-height: 0; }
+  html[data-paged="on"] .interest__icon { width: 28px; height: 28px; margin-bottom: 8px; border-radius: 9px; }
+  html[data-paged="on"] .interest__icon .icon { width: 15px; height: 15px; }
+  html[data-paged="on"] .interest__text h3 { font-size: .88rem; }
+  html[data-paged="on"] .interest__text p { font-size: .72rem; line-height: 1.5; margin-top: 3px; }
+  html[data-paged="on"] .interest__meta { display: none; }
+
+  /* 社交卡：缩小图标与字号 */
+  html[data-paged="on"] .social { padding: 9px 10px; gap: 9px; }
+  html[data-paged="on"] .social__icon { width: 28px; height: 28px; border-radius: 9px; }
+  html[data-paged="on"] .social__icon .icon { width: 15px; height: 15px; }
+  html[data-paged="on"] .social__label { font-size: .82rem; }
+  html[data-paged="on"] .social__handle { font-size: .64rem; }
+  html[data-paged="on"] .social__arrow { width: 13px; height: 13px; }
+  /* 游戏卡：这是窄屏最容易撑高的一类。
+     实测 170px 宽时单张卡能到 366px —— 因为统计区 repeat(auto-fit, minmax(78px))
+     在 142px 内只能排 1 列，3 项竖着叠；加上备注和标题换行就更夸张。
+     修法：统计强制 3 列、备注隐藏、标题限一行。卡高降到 150 左右。 */
+  html[data-paged="on"] .game { padding: 11px 12px; }
+  html[data-paged="on"] .game__head { gap: 8px; margin-bottom: 7px; }
+  html[data-paged="on"] .game__icon { width: 24px; height: 24px; border-radius: 7px; }
+  html[data-paged="on"] .game__icon .icon { width: 14px; height: 14px; }
+  html[data-paged="on"] .game__title h3 {
+    font-size: .82rem; line-height: 1.3;
+    display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden;
+  }
+  html[data-paged="on"] .game__title p { font-size: .58rem; }
+  html[data-paged="on"] .game__uid { margin-bottom: 7px; padding: 4px 7px; gap: 5px; }
+  html[data-paged="on"] .game__uid-label { font-size: .5rem; }
+  html[data-paged="on"] .game__uid-value { font-size: .66rem; }
+  html[data-paged="on"] .game__uid-copy { width: 16px; height: 16px; }
+  html[data-paged="on"] .game__stats {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 4px;
+    margin-bottom: 0;
+  }
+  html[data-paged="on"] .game__stat { padding: 4px 5px; border-radius: 6px; }
+  html[data-paged="on"] .game__stat dt { font-size: .54rem; }
+  html[data-paged="on"] .game__stat dd { font-size: .7rem; }
+  html[data-paged="on"] .game__note { display: none; }
+}
+
+/* 极矮屏（snug / micro）：再砍一档，正文只留一行 */
+html[data-fit="snug"] .card__desc,
+html[data-fit="micro"] .card__desc {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+html[data-fit="micro"] .card__tags { display: none; }
+html[data-fit="micro"] .interest__text p { display: none; }
+
+/* ============================== 超小屏（≤380px 宽）：卡片只留核心信息
+   320×568 这类屏幕，两列网格 + 完整卡片信息仍然装不下（实测差 100px）。
+   这里把卡片降级成「名字 + ID」：统计与备注隐藏。
+   注意这只有 ≤380px 宽才会触发，390 的主流机型不受影响。 */
+@media (max-width: 380px) {
+  html[data-paged="on"] .game__stats { display: none; }
+  html[data-paged="on"] .game { padding: 9px 10px; }
+  html[data-paged="on"] .social { padding: 7px 8px; gap: 7px; }
+  html[data-paged="on"] .social__icon { width: 24px; height: 24px; border-radius: 7px; }
+  html[data-paged="on"] .social__icon .icon { width: 13px; height: 13px; }
+  html[data-paged="on"] .contact { margin-top: 10px; padding: 12px; }
+  html[data-paged="on"] .contact__hint { font-size: .9rem; }
+  html[data-paged="on"] .contact__actions { margin-top: 8px; gap: 7px; }
+  html[data-paged="on"] .contact__mail { display: none; }
+  /* 两个按钮并排：竖着叠会白占 48px，超小屏上这 48px 就是超屏与否的分界 */
+  html[data-paged="on"] .contact__actions .btn { flex: 1 1 0; min-height: 40px; padding: 8px 10px; font-size: .8rem; }
+  html[data-paged="on"] .contact__hint { line-height: 1.5; }
+  html[data-paged="on"] .social-grid { gap: 7px; }
+  html[data-paged="on"] .section__head { margin-bottom: 6px; }
+  html[data-paged="on"] .contact { margin-top: 8px; }
+  html[data-paged="on"] .contact__actions { margin-top: 5px; }
+  html[data-paged="on"] .social-grid { row-gap: 6px; }
+  html[data-paged="on"] .social { padding: 6px 8px; }
+}
+
+/* ============================== 横屏手机（高度 ≤560）：横向铺开
+   横屏宽度充足（844px）但高度只有 390，两列网格会撑成 4 行。
+   改成 4 列：服务 4 张一排、喜好/游戏 6 张两排、社交 7 张两排。 */
+@media (max-height: 560px) and (orientation: landscape) {
+  html[data-paged="on"] .card-grid,
+  html[data-paged="on"] .interest-grid,
+  html[data-paged="on"] .social-grid,
+  html[data-paged="on"] .game-rail {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 8px;
+  }
+  html[data-paged="on"] .section__lead { display: none; }
+  html[data-paged="on"] .section__head { margin-bottom: 8px; }
+  html[data-paged="on"] .contact { margin-top: 10px; padding: 12px 14px; }
+  html[data-paged="on"] .contact__hint { font-size: .95rem; }
+  html[data-paged="on"] .contact__actions { margin-top: 8px; }
+  html[data-paged="on"] .contact__mail { display: none; }
+  html[data-paged="on"] .card__desc { -webkit-line-clamp: 2; }
+  html[data-paged="on"] .interest__text p { -webkit-line-clamp: 1; }
+
+  /* 横屏 4 列时游戏卡只有 ~196px 宽，统计区 auto-fit 会退化成 2 列并占用两行。
+     强制 3 列后卡片矮 30px，6 张两行就装得下了。 */
+  /* 游戏卡单独用 3 列：4 列时每张只有 163px 宽，标题和 ID 都要换行，
+     卡高反而比 3 列更高（153 vs ~120）。3 列两行 = 6 张刚好。 */
+  html[data-paged="on"] .game-rail { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  html[data-paged="on"] .game { padding: 8px 10px; }
+  html[data-paged="on"] .game__head { margin-bottom: 6px; }
+  /* 横屏 390px 高塞不下「6 张卡 × 完整统计」——实测需要 449px，差 59px。
+     这里做取舍：横屏只留游戏名、区服段位、ID（加好友最需要的三项），
+     隐藏「可展现资产」。竖屏与桌面端仍然完整显示，一条不少。 */
+  html[data-paged="on"] .game__stats { display: none; }
+  html[data-paged="on"] .game__stat { padding: 3px 4px; }
+  html[data-paged="on"] .game__stat dt { font-size: .5rem; }
+  html[data-paged="on"] .game__stat dd { font-size: .66rem; }
+  html[data-paged="on"] .game__uid { margin-bottom: 6px; padding: 3px 6px; }
+}
