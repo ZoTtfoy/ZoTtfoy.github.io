@@ -101,10 +101,34 @@ body {
 }
 
 /* 主题切换瞬间，让所有颜色一起过渡，避免「一块一块地变色」 */
+/* 主题切换时的柔和过渡。
+   早先用 `.theme-switching *` 让全站 700+ 个元素同时过渡 ——
+   实测一次切换要强制重算样式约 90ms，切主题会明显卡一下。
+   这里改成「只给真正有大面积色块改动的元素加过渡」：
+   页面底色、卡片、按钮、面板这些。文字颜色靠继承自动跟随，
+   不必逐个元素声明 transition。 */
 .theme-switching,
-.theme-switching *,
-.theme-switching *::before,
-.theme-switching *::after {
+.theme-switching body,
+.theme-switching .site-header,
+.theme-switching .card,
+.theme-switching .interest,
+.theme-switching .social,
+.theme-switching .game,
+.theme-switching .about__side,
+.theme-switching .contact,
+.theme-switching .btn,
+.theme-switching .icon-btn,
+.theme-switching .skin-panel,
+.theme-switching .seg,
+.theme-switching .seg__btn,
+.theme-switching .pager,
+.theme-switching .page-hint,
+.theme-switching .to-top,
+.theme-switching .tag,
+.theme-switching .pill,
+.theme-switching .game__stat,
+.theme-switching .game__uid,
+.theme-switching .mobile-nav {
   transition: background-color .35s var(--ease), color .35s var(--ease),
               border-color .35s var(--ease), box-shadow .35s var(--ease) !important;
 }

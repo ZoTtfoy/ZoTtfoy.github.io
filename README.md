@@ -67,6 +67,7 @@ zotrod-homepage/
 │   ├── verify-gaming.js          # 游戏模块 + 章节衔接动画
 │   ├── verify-backdrop.js        # 背景分层 + 7 主题可读性
 │   ├── verify-backdrop-admin.js  # 编辑器背景面板
+│   ├── verify-perf.js            # 性能回归（帧耗时 / 合成层 / 布局读取）
 │   ├── verify-visual.js          # 可选：Chromium 真机式布局验证
 │   ├── verify-dom.js             # 可选：jsdom 真实 DOM 深度验证
 │   ├── verify-push.js            # 发布：状态码翻译 / 真实 API 探测
@@ -603,6 +604,7 @@ node tools/verify-paged.js    # 翻页与光效的逻辑接线
 node tools/verify-live.js     # 载入动画 / 时钟 / 进度条 / 一言 / 音乐浮窗
 node tools/verify-gaming.js   # 游戏模块 / 章节衔接 / 横滑不误翻 / 编辑器填资产
 node tools/verify-backdrop.js # 背景分层 / 7 主题 × 2 明暗的图片可读性
+node tools/verify-perf.js     # 性能：帧耗时 / 合成层 / 布局读取 / 传输体积
 
 # 可选：真实浏览器验证布局（需 npm install playwright-core --no-save && npx playwright install chromium）
 node tools/verify-visual.js   # 一屏一页 / 页码不压内容 / 吸附落位 / 光效 / 触屏
@@ -672,6 +674,63 @@ git push
 ```
 
 推完等一会儿刷新即可，不用手动重新部署。
+
+---
+
+## 十之二、性能
+
+性能问题不会报错，只会"感觉有点卡"。所以做了两件事：**先测量，再优化**，并把指标固化成了回归测试。
+
+### 优化前后
+
+| 指标 | 优化前 | 优化后 |
+| --- | --- | --- |
+| 滚动平均帧耗时 | **109.1ms（≈9 FPS）** | **18.4ms（≈55 FPS）** |
+| 常驻合成层（will-change） | 61 个 | 6 个 |
+| 滚动期间强制布局读取 | 181 次 | 1 次 |
+| 单次主题切换 | 约 106ms | 约 50ms |
+| 脚本加载 | 9 个串行 | defer 并行 |
+
+### 四个真实的问题
+
+**1. 光晕的 `filter: blur(90px)` 是最大元凶**
+
+我给 900px 的光晕加了 90px 高斯模糊，又让它做缩放动画。缩放会让浏览器**每帧重新栅格化那次大面积模糊**，滚动直接掉到 9 FPS。
+
+修法：把模糊"画"进渐变里（用多段 `radial-gradient` 模拟景深），只用 transform 做动画。同时把尺寸从 1080px 收到 640px —— 实测**尺寸比动画方式重要得多**（1080→640 省 8ms，换动画类型只省 1~2ms）。
+
+**2. 61 个元素常驻 `will-change`**
+
+`will-change` 会让浏览器为每个元素预留合成层。我给所有 `[data-reveal]` 和每个 `.container` 都写了它，等于把几十个整屏大小的图层塞进显存。
+
+实际上浏览器在动画期间会自动提升图层，不需要常驻声明。删掉后 61 → 6。
+
+**3. 两套 scrollspy 各读一遍布局**
+
+`motion.js` 和 `paged.js` 各自算「当前在哪一页」，每帧对 6 个区块各调一次 `getBoundingClientRect`，滚动一次 181 次强制布局。
+
+修法：`paged.js` 算一次，通过 `site:pagechange` 事件广播；`motion.js` 在翻页模式下直接复用，不再自己遍历。配合位置缓存 + `ResizeObserver`，**181 次降到 1 次**。
+
+**4. 主题切换给全站 740 个元素加过渡**
+
+`.theme-switching *` 让每个元素都声明 `transition`，一次切换要强制重算整个文档的样式。
+
+修法：只给真正有大面积色块变化的元素加过渡（卡片、按钮、面板等约 20 类）。文字颜色本来就靠继承，不必逐个声明。
+
+### 另外两处小优化
+
+- **顶栏毛玻璃滚动时临时关闭**：`sticky + backdrop-filter` 每帧都要重新模糊顶栏覆盖区域，占 5.5ms。滚动期间切换成实色背景，停手 160ms 后恢复，肉眼察觉不到。
+- **微粒动画改用 `transform`**：原来动画 `background-position`，每帧重绘一整屏；改成平移一层纹理走合成层。
+
+### 复核
+
+```bash
+node tools/verify-perf.js
+```
+
+16 项断言，会把上面这些指标重新量一遍，任何一项回退都会失败。阈值留了余量（无头环境是软件渲染，真机有 GPU 更快）。
+
+> 一个说明：**微粒（stars）仍是可选项里最耗的**，开启后滚动约 24ms（≈42 FPS）。它默认关闭，需要氛围感时再开。我没有为了它牺牲默认体验。
 
 ---
 

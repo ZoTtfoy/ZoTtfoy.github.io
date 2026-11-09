@@ -112,11 +112,21 @@ window.SITE_SKIN = (function () {
 
   function syncPanelState() {
     var skin = currentSkin(), raw = currentModeRaw();
-    Array.prototype.forEach.call(document.querySelectorAll("[data-skin]"), function (el) {
-      var on = el.getAttribute("data-skin") === skin;
-      el.classList.toggle("is-active", on);
-      el.setAttribute("aria-pressed", on ? "true" : "false");
-    });
+
+    /* 注意：必须限定在 #skinList 内查询。
+       主题名会写到 <html data-skin="…"> 上，若用全局选择器，
+       <html> 也会被当成一个"风格项"命中 —— 它会被错误加上 .is-active，
+       并且下面点击处理里的 closest() 也会永远先命中 <html>，
+       导致模式按钮的整个分支永远不执行。 */
+    var list = $("skinList");
+    if (list) {
+      Array.prototype.forEach.call(list.querySelectorAll("[data-skin]"), function (el) {
+        var on = el.getAttribute("data-skin") === skin;
+        el.classList.toggle("is-active", on);
+        el.setAttribute("aria-pressed", on ? "true" : "false");
+      });
+    }
+
     Array.prototype.forEach.call(document.querySelectorAll("[data-mode]"), function (el) {
       var on = el.getAttribute("data-mode") === raw;
       el.classList.toggle("is-active", on);
@@ -158,10 +168,15 @@ window.SITE_SKIN = (function () {
     });
 
     p.addEventListener("click", function (e) {
-      var item = e.target.closest("[data-skin]");
-      if (item) {
-        apply(item.getAttribute("data-skin"), currentModeRaw(), true);
-        // 让「减少动态效果」之外的场景也有过渡
+      /* 先判模式：模式按钮不在 .skin-item 里，但 <html data-skin> 会让
+         任何 closest("[data-skin]") 都命中根元素，所以这里必须用
+         .skin-item 限定的选择器，并且把模式判断放在前面。 */
+      var modeBtn = e.target.closest("[data-mode]");
+      if (modeBtn) {
+        apply(currentSkin(), modeBtn.getAttribute("data-mode"), true);
+        if (window.SITE_MOTION && window.SITE_MOTION.syncThemeButton) {
+          window.SITE_MOTION.syncThemeButton();
+        }
         document.documentElement.classList.add("theme-switching");
         setTimeout(function () {
           document.documentElement.classList.remove("theme-switching");
@@ -169,12 +184,9 @@ window.SITE_SKIN = (function () {
         return;
       }
 
-      var modeBtn = e.target.closest("[data-mode]");
-      if (modeBtn) {
-        apply(currentSkin(), modeBtn.getAttribute("data-mode"), true);
-        if (window.SITE_MOTION && window.SITE_MOTION.syncThemeButton) {
-          window.SITE_MOTION.syncThemeButton();
-        }
+      var item = e.target.closest(".skin-item[data-skin]");
+      if (item) {
+        apply(item.getAttribute("data-skin"), currentModeRaw(), true);
         document.documentElement.classList.add("theme-switching");
         setTimeout(function () {
           document.documentElement.classList.remove("theme-switching");

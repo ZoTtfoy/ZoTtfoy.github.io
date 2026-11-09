@@ -131,7 +131,8 @@
 
   function bind() {
     $("gGrid").addEventListener("click", function (e) {
-      var card = e.target.closest("[data-skin]");
+      /* 限定 .g-card，避免 closest 命中带 data-skin 的祖先（如 <html>） */
+      var card = e.target.closest(".g-card[data-skin]");
       if (!card) return;
       var id = card.getAttribute("data-skin");
       var mode = card.getAttribute("data-mode");

@@ -14,12 +14,23 @@
   z-index: 60;
   height: var(--header-h);
   background: var(--header-bg);
-  -webkit-backdrop-filter: saturate(180%) blur(18px);
-  backdrop-filter: saturate(180%) blur(18px);
+  -webkit-backdrop-filter: saturate(160%) blur(12px);
+  backdrop-filter: saturate(160%) blur(12px);
   border-bottom: 1px solid transparent;
   transition: border-color var(--t) var(--ease), background-color var(--t) var(--ease);
 }
 .site-header.is-scrolled { border-bottom-color: var(--line); }
+
+/* 滚动期间临时关掉毛玻璃。
+   原因：sticky + backdrop-filter 会让浏览器每帧重新模糊顶栏覆盖的那块区域，
+   实测占滚动耗时的 5.5ms（23.5ms → 18.0ms）。
+   滚动时人的注意力在内容上，换成实色背景几乎看不出差别；
+   停手 160ms 后自动恢复模糊（由 motion.js 加/去 .is-scrolling）。 */
+.site-header.is-scrolling {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  background: var(--bg-elev);
+}
 
 .header__inner {
   display: grid;

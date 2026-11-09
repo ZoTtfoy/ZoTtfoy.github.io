@@ -60,14 +60,40 @@ window.SITE_MOTION = (function () {
       });
     }
 
+    /* 滚动期间关掉顶栏毛玻璃：sticky + backdrop-filter 每帧都要重新模糊，
+       实测占滚动耗时 5.5ms。停手 160ms 后恢复，肉眼几乎察觉不到。 */
+    var glassTimer = null;
+    function markScrolling() {
+      if (!header) return;
+      header.classList.add("is-scrolling");
+      clearTimeout(glassTimer);
+      glassTimer = setTimeout(function () {
+        header.classList.remove("is-scrolling");
+      }, 160);
+    }
+
+    /* 缓存的文档高度：scrollHeight 会强制重新布局，不适合每帧读 */
+    var docHeight = 0;
+    var lastInner = 0;
+    function refreshHeight() {
+      docHeight = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
+      lastInner = window.innerHeight;
+    }
+
     function update() {
       ticking = false;
       var y = window.scrollY || window.pageYOffset || 0;
-      var max = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
 
       if (header) header.classList.toggle("is-scrolled", y > 12);
-      if (bar) bar.style.transform = "scaleX(" + Math.min(1, y / max).toFixed(4) + ")";
+      if (bar) {
+        if (!docHeight || Math.abs(lastInner - window.innerHeight) > 1) refreshHeight();
+        bar.style.transform = "scaleX(" + Math.min(1, y / docHeight).toFixed(4) + ")";
+      }
       if (toTop) toTop.classList.toggle("is-visible", y > 560 && UI.showBackToTop !== false);
+
+      /* 翻页模式下导航高亮由 paged.js 通过 site:pagechange 广播，
+         这里不再重复遍历 section 读布局（那是每帧 6 次强制布局）。 */
+      if (document.documentElement.dataset.paged === "on") return;
 
       var probe = y + headerHeight() + 110;
       var current = "";
@@ -77,14 +103,22 @@ window.SITE_MOTION = (function () {
       setActive(current);
     }
 
+    /* 接收 paged.js 的翻页广播，复用它算好的当前页，避免两套 scrollspy */
+    document.addEventListener("site:pagechange", function (e) {
+      if (document.documentElement.dataset.paged !== "on") return;
+      var id = e && e.detail ? e.detail.id : "";
+      setActive(id === "top" ? "" : id);
+    });
+
     function onScroll() {
+      markScrolling();
       if (ticking) return;
       ticking = true;
       requestAnimationFrame(update);
     }
 
     window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("resize", onScroll, { passive: true });
+    window.addEventListener("resize", function () { docHeight = 0; onScroll(); }, { passive: true });
     window.addEventListener("load", onScroll);
     update();
 

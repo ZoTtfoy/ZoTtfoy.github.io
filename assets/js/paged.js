@@ -83,6 +83,9 @@ window.SITE_PAGED = (function () {
        全部装得下 → mandatory，任何滚动都停在页边界，最像翻页；
        有一页装不下 → proximity，让用户能把那页看完，不至于被弹走。 */
     document.documentElement.dataset.snap = anyTall ? "proximity" : "mandatory";
+
+    // 高度变了，位置缓存立刻失效
+    measureTops();
   }
 
   /* ----------------------------------------------------------- 页码构建 */
@@ -197,6 +200,15 @@ window.SITE_PAGED = (function () {
     segs.forEach(function (s, k) {
       s.classList.toggle("is-current", k === i);
     });
+
+    /* 广播当前页，让导航高亮等其它模块复用同一份判断。
+       早先 motion.js 自己另做了一套 scrollspy，每帧对 6 个 section
+       各读一次 getBoundingClientRect —— 既浪费又可能与这里得出不同结果。 */
+    try {
+      document.dispatchEvent(new CustomEvent("site:pagechange", {
+        detail: { index: i, id: pages[i] ? pages[i].id : "" }
+      }));
+    } catch (e) { /* 老浏览器忽略 */ }
   }
 
   function sweep() {
@@ -208,25 +220,61 @@ window.SITE_PAGED = (function () {
   }
 
   /* --------------------------------------------------------- 滚动位置判定 */
+  /* -------------------------------------------- 位置缓存（性能关键）
+     早先每一帧都对 6 个页面各调一次 getBoundingClientRect，
+     一次滚动下来 180+ 次布局读取，浏览器无法把布局推迟到最后一刻。
+     现在把每页的文档坐标和高度缓存起来，只在尺寸真的变了才重算：
+       · ResizeObserver 监听页面本身和 document
+       · 窗口 resize / 字体加载完成 / 显式 refresh()
+     滚动过程中零布局读取。 */
+  var pageTops = [];
+  var pageHeights = [];
+  var measureQueued = false;
+
+  function measureTops() {
+    measureQueued = false;
+    var y = window.scrollY || window.pageYOffset || 0;
+    pageTops = [];
+    pageHeights = [];
+    for (var i = 0; i < pages.length; i++) {
+      var r = pages[i].getBoundingClientRect();
+      pageTops.push(Math.round(r.top + y));
+      pageHeights.push(pages[i].offsetHeight);
+    }
+  }
+
+  function queueMeasure() {
+    if (measureQueued) return;
+    measureQueued = true;
+    requestAnimationFrame(measureTops);
+  }
+
+  function observeSizes() {
+    if (typeof ResizeObserver !== "function") return;
+    var ro = new ResizeObserver(queueMeasure);
+    pages.forEach(function (p) { ro.observe(p); });
+  }
+
   function updateActive() {
     if (!pages.length) return;
+    if (!pageTops.length) measureTops();
+
     var y = window.scrollY || window.pageYOffset || 0;
     var vh = window.innerHeight;
     var line = y + vh * 0.42;         // 视线落点：略高于中线
 
     var idx = -1;
-    for (var i = 0; i < pages.length; i++) {
-      var top = pages[i].getBoundingClientRect().top + y;
-      var h = pages[i].offsetHeight;
+    for (var i = 0; i < pageTops.length; i++) {
+      var top = pageTops[i];
+      var h = pageHeights[i];
       if (top <= line && top + h > line) { idx = i; break; }
     }
 
     // 落在页与页的缝隙里（或到顶 / 到底），取最近的一页
     if (idx === -1) {
       var min = Infinity;
-      for (var j = 0; j < pages.length; j++) {
-        var t = pages[j].getBoundingClientRect().top + y;
-        var d = Math.abs(t - line);
+      for (var j = 0; j < pageTops.length; j++) {
+        var d = Math.abs(pageTops[j] - line);
         if (d < min) { min = d; idx = j; }
       }
     }
@@ -378,7 +426,7 @@ window.SITE_PAGED = (function () {
   function onResize() {
     clearTimeout(resizeTimer);
     resizeTimer = setTimeout(function () {
-      markTall();
+      markTall();          // 内部会刷新位置缓存
       updateActive();
     }, 180);
   }
@@ -454,6 +502,9 @@ window.SITE_PAGED = (function () {
       markTall();
       updateActive();
     });
+
+    // 页面尺寸或内容变化时重算位置缓存
+    observeSizes();
 
     initKeys();
     initWheel();
