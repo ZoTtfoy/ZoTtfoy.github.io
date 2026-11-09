@@ -37,7 +37,26 @@ window.SITE_EFFECTS = (function () {
 
     var first = true;
 
+    /* 滚动期间停止跟随。
+       追光是一个 460px 的半透明渐变层，每帧移动它都要合成器重新混合覆盖区域；
+       滚动时合成器本来就在忙（内容位移 + 光晕层），两者叠加就掉帧
+       （实测关掉追光掉帧 17 → 6）。
+       滚动时人眼在追随内容，光斑停在原地完全看不出来；停手 180ms 后恢复跟随。 */
+    var idleUntil = 0;
+    function markBusy() {
+      idleUntil = performance.now() + 180;
+    }
+    window.addEventListener("wheel", markBusy, { passive: true });
+    window.addEventListener("touchmove", markBusy, { passive: true });
+    window.addEventListener("scroll", markBusy, { passive: true });
+
     function loop() {
+      // 滚动中：只更新目标值，不动 DOM，等停手后再一次性跟上去
+      if (performance.now() < idleUntil) {
+        rafId = requestAnimationFrame(loop);
+        return;
+      }
+
       cx += (tx - cx) * 0.14;
       cy += (ty - cy) * 0.14;
       spotlight.style.transform =
@@ -98,6 +117,16 @@ window.SITE_EFFECTS = (function () {
   function initCardGlow() {
     if (!finePointer.matches) return;
 
+    /* 缓存每个卡片的矩形，避免 pointermove 里做布局读取。
+       另外一处关键优化：指针在卡片内移动时，矩形的变化只可能来自
+       滚动或尺寸变化，纯水平/垂直移动不会改变它 —— 所以只在
+       换了卡片、或滚动/尺寸变化后才重新测量。 */
+    var rectCache = new WeakMap();
+    var dirty = true;
+
+    window.addEventListener("scroll", function () { dirty = true; }, { passive: true });
+    window.addEventListener("resize", function () { dirty = true; }, { passive: true });
+
     document.addEventListener("pointermove", function (e) {
       if (!on()) return;
       if (e.pointerType && e.pointerType !== "mouse") return;
@@ -105,7 +134,12 @@ window.SITE_EFFECTS = (function () {
       var el = e.target.closest ? e.target.closest(GLOW_TARGETS) : null;
       if (!el) return;
 
-      var rect = el.getBoundingClientRect();
+      var rect = rectCache.get(el);
+      if (!rect || dirty) {
+        rect = el.getBoundingClientRect();
+        rectCache.set(el, rect);
+        dirty = false;
+      }
       pendingGlow = { el: el, x: e.clientX, y: e.clientY, rect: rect };
       if (!glowRaf) glowRaf = requestAnimationFrame(applyGlow);
     }, { passive: true });
