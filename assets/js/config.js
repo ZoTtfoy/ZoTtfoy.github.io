@@ -30,16 +30,18 @@ window.SITE_CONFIG = {
   // enabled: false 即可整块隐藏；order: 数字小的排前面；label: 导航栏文字
   sections: {
     about:     { enabled: true, order: 1, label: "关于" },
-    services:  { enabled: true, order: 2, label: "业务" },
+    interests: { enabled: true, order: 2, label: "喜好" },
     gaming:    { enabled: true, order: 3, label: "游戏" },
-    interests: { enabled: true, order: 4, label: "喜好" },
+    services:  { enabled: true, order: 4, label: "业务" },
     social:    { enabled: true, order: 5, label: "联系" }
   },
 
   /* ------------------------------------------------------------ 3. 首页按钮 */
+  // 主按钮指向「喜好」而不是「业务」：这是社交型主页，
+  // 访客更想先认识人，而不是先看我接什么活。
   hero: {
-    primary:   { label: "看看我做什么", target: "#services" },
-    secondary: { label: "找到我",       target: "#social"   }
+    primary:   { label: "看看我喜欢什么", target: "#interests" },
+    secondary: { label: "找到我",         target: "#social"    }
   },
 
   /* ------------------------------------------------------------ 4. 关于个人 */
@@ -62,7 +64,7 @@ window.SITE_CONFIG = {
 
   /* ------------------------------------------------------------ 5. 业务范畴 */
   services: {
-    eyebrow: "02 / WHAT I DO",
+    eyebrow: "04 / WHAT I DO",
     title: "业务范畴",
     lead: "能帮上忙的几个方向，从想法到落地。",
     items: [
@@ -197,7 +199,7 @@ window.SITE_CONFIG = {
 
   /* ------------------------------------------------------------ 7. 个人喜好 */
   interests: {
-    eyebrow: "04 / OFF WORK",
+    eyebrow: "02 / OFF WORK",
     title: "个人喜好",
     lead: "工作之外，时间都花在这些地方。",
     items: [
