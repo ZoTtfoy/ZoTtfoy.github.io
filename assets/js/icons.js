@@ -7,7 +7,7 @@
  *    camera, coffee, gamepad, plane, book, film, headphones, compass, leaf,
  *    bicycle, pen, grid, shield, zap, bulb, quote, rss, globe, mail, link,
  *    external, map-pin, clock, heart, send, sun, moon, menu, close, copy,
- *    check, arrow-up, arrow-down, arrow-up-right, netease, qq, weibo,
+ *    check, arrow-up, arrow-down, arrow-up-right, netease, qqmusic, qq, weibo,
  *    bilibili, zhihu, wechat, juejin, instagram
  *  品牌实心图标：github, x, linkedin, youtube, telegram, discord
  *
@@ -70,13 +70,53 @@ window.SITE_ICONS = {
   "arrow-down":     '<line x1="12" y1="4" x2="12" y2="20"/><polyline points="6 14 12 20 18 14"/>',
   "arrow-up-right": '<path d="M7 17 17 7"/><polyline points="8 7 17 7 17 16"/>',
 
-  /* ---- 中文平台 ---- */
-  netease:   '<circle cx="12" cy="12" r="9"/><path d="M15.2 7.9v6.6"/><circle cx="12.5" cy="14.9" r="2.7"/><path d="M15.2 7.9c.9.3 1.6 1 1.9 1.9"/>',
-  qq:        '<ellipse cx="12" cy="12.6" rx="6.6" ry="7.4"/><circle cx="9.6" cy="10.2" r="1" fill="currentColor" stroke="none"/><circle cx="14.4" cy="10.2" r="1" fill="currentColor" stroke="none"/><path d="M10 15.4c.7.6 3.3.6 4 0M6.6 18.9c-.6 1-.3 1.9.5 1.9.7 0 1.3-.6 1.7-1.4M17.4 18.9c.6 1 .3 1.9-.5 1.9-.7 0-1.3-.6-1.7-1.4"/>',
+  /* ---- 中文平台 ----
+     这几个重画过。原则：轮廓形状本身就是识别点（圆 vs 圆角方框），
+     内部只放最少的信息（一个音符 / 两只眼睛），缩到 18px 也认得出来。
+     早先的版本内部元素太多、笔画互相挤，小尺寸下糊成一团。 */
+
+  /* 网易云音乐：圆形轮廓 + 单音符（区别于 QQ 音乐的方框） */
+  netease:   '<circle cx="12" cy="12" r="9"/>' +
+             '<path d="M14.4 7.6v6.8"/>' +
+             '<circle cx="11.7" cy="14.9" r="2.5"/>' +
+             '<path d="M14.4 7.6c1.3.2 2.2.9 2.4 2"/>',
+
+  /* QQ 音乐：圆角方框 + 带符尾的音符 */
+  qqmusic:   '<rect x="3" y="3" width="18" height="18" rx="5"/>' +
+             '<path d="M13.4 7.4v6.9"/>' +
+             '<circle cx="10.8" cy="14.7" r="2.4"/>' +
+             '<path d="M13.4 7.4c1.5.2 2.4 1 2.6 2.3"/>',
+
+  /* QQ：企鹅头像 —— 圆脸 + 两撮耳羽（弧形，不是直棍）+ 两只眼 + 三角喙 */
+  qq:        '<circle cx="12" cy="13.2" r="7.3"/>' +
+             '<path d="M8.3 7.4C7.9 5.9 7.1 4.7 6.1 4"/>' +
+             '<path d="M15.7 7.4c.4-1.5 1.2-2.7 2.2-3.4"/>' +
+             '<circle cx="9.5" cy="11.4" r=".95" fill="currentColor" stroke="none"/>' +
+             '<circle cx="14.5" cy="11.4" r=".95" fill="currentColor" stroke="none"/>' +
+             '<path d="M10.5 14.4h3l-1.5 2z" fill="currentColor" stroke="none"/>',
+
+  /* 微信：两个完整的圆角矩形气泡 + 各自的尾巴 + 两点眼。
+     ⚠️ 早先我用「弧线 + 尾巴」拼气泡，轮廓没闭合，
+     两个气泡的线在重叠处互相穿插，缩到 18px 就是一团乱线。
+     现在每个气泡都是闭合的 rect，只用 0.4px 的角部重叠制造层次。 */
+  wechat:    '<rect x="2.4" y="3" width="10.2" height="7.8" rx="3.9"/>' +
+             '<path d="M5.2 10.4 4 13l3.2-1.7z"/>' +
+             '<rect x="11.6" y="12" width="9.2" height="7.2" rx="3.4"/>' +
+             '<path d="M17.6 18.8l.8 2.2-3-1.7z"/>' +
+             '<circle cx="5.8" cy="6.8" r=".75" fill="currentColor" stroke="none"/>' +
+             '<circle cx="9.1" cy="6.8" r=".75" fill="currentColor" stroke="none"/>' +
+             '<circle cx="14.7" cy="15.4" r=".6" fill="currentColor" stroke="none"/>' +
+             '<circle cx="17.6" cy="15.4" r=".6" fill="currentColor" stroke="none"/>',
+
+  /* 哔哩哔哩：电视轮廓 + 天线 + 两只竖眼 + 微笑 */
+  bilibili:  '<rect x="2.6" y="6.6" width="18.8" height="13" rx="3.6"/>' +
+             '<path d="M7.2 6.6 9.4 3.6M16.8 6.6l-2.2-3"/>' +
+             '<path d="M8.7 11.3v2.4M15.3 11.3v2.4"/>' +
+             '<path d="M9.5 16.3c1.5.9 3.5.9 5 0"/>',
+
   weibo:     '<path d="M4.5 13.5c0 3.6 3.8 6.5 8.5 6.5s8.5-2.9 8.5-6.5-3.8-6.5-8.5-6.5-8.5 2.9-8.5 6.5z"/><path d="M9 12.5a2.5 2.5 0 1 1 5 0 2.5 2.5 0 0 1-5 0z"/><path d="M16 5.5a5 5 0 0 1 3.5 4.5M17.5 3a8 8 0 0 1 4 6.5"/>',
-  bilibili:  '<rect x="3" y="6" width="18" height="14" rx="3"/><path d="M7 6 9 3M17 6l-2-3"/><path d="M8.5 11.5v2.5M15.5 11.5v2.5"/><path d="M10 16.5c1.2.8 2.8.8 4 0"/>',
   zhihu:     '<path d="M20 11.5a8 8 0 0 1-8 8H5l-2 2v-10a8 8 0 0 1 8-8h1a8 8 0 0 1 8 8z"/><path d="M8.5 9h7M8.5 13h4"/>',
-  wechat:    '<path d="M9 4C5.1 4 2 6.6 2 9.7c0 1.8 1 3.4 2.6 4.4L4 17l2.7-1.4c.7.2 1.5.3 2.3.3h.6"/><circle cx="6.5" cy="9" r=".7" fill="currentColor" stroke="none"/><circle cx="11" cy="9" r=".7" fill="currentColor" stroke="none"/><path d="M22 15.2c0-2.6-2.6-4.8-5.8-4.8s-5.8 2.2-5.8 4.8 2.6 4.8 5.8 4.8c.7 0 1.4-.1 2-.3L20 21l-.5-2.2c1.5-.9 2.5-2.1 2.5-3.4z"/><circle cx="14.5" cy="14.5" r=".6" fill="currentColor" stroke="none"/><circle cx="18" cy="14.5" r=".6" fill="currentColor" stroke="none"/>',
+
   juejin:    '<path d="M12 3 3 7.5 12 12l9-4.5L12 3z"/><path d="M3 12.5 12 17l9-4.5M3 17 12 21.5 21 17"/>',
   instagram: '<rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r=".9" fill="currentColor" stroke="none"/>',
 
