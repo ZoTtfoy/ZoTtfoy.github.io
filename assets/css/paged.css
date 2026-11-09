@@ -418,17 +418,25 @@ html[data-paged="on"] .pager { display: flex; }
 }
 
 /* 横屏矮屏：一屏放不下时内容会更长，别硬撑 */
+/* 横屏矮屏：这里早先写了 min-height: 0，导致每页高度只有 280~380px、
+   填不满一屏（用户要求"正好填充满一屏"）。
+   现在保留 min-height: 100svh，只把内容改成顶对齐 ——
+   内容少时多余空间落到底部，内容多时按 fit.css 的 micro 档压缩。
+   具体留白由 fit.css 的 micro 档接管，这里不再覆盖 padding。 */
 @media (max-height: 560px) and (orientation: landscape) {
   html[data-paged="on"] .hero,
   html[data-paged="on"] .section {
-    min-height: 0;
-    padding-top: calc(var(--header-h) + 28px);
-    padding-bottom: 40px;
+    align-items: flex-start;
   }
 }
 
 /* ---------------------------------------------------------- 减少动态效果 */
 @media (prefers-reduced-motion: reduce) {
+  /* ⚠️ 必须写成 [data-snap] 而不是只有 [data-paged="on"]。
+     强制吸附用的是 html[data-paged="on"][data-snap="mandatory"]，
+     两个属性选择器 (0,2,1)；若这里只写一个属性 (0,1,1)，
+     特异性就输了 —— 减少动效时吸附不会被关掉。这是踩过的坑。 */
+  html[data-paged="on"][data-snap],
   html[data-paged="on"] { scroll-snap-type: none; }
   html[data-paged="on"] .section > .container {
     transition: none !important;
@@ -452,6 +460,7 @@ html[data-paged="off"] .pager { display: none; }
 
 /* 打印：不要吸附 */
 @media print {
+  html[data-paged="on"][data-snap],
   html[data-paged="on"] { scroll-snap-type: none; }
   html[data-paged="on"] .section { min-height: 0; padding: 24px 0; }
 }

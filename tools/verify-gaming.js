@@ -77,9 +77,9 @@ ok(/@keyframes chapter-item/.test(pagedCss), '有章节入场关键帧');
 ok(/\.section\.is-entering > \.container > \*/.test(pagedCss), '入场作用在页面直接子元素');
 ok(/nth-child\(2\)/.test(pagedCss) && /nth-child\(3\)/.test(pagedCss), '子元素有错开延迟');
 ok(/\.page-hint/.test(pagedCss), '有首次翻页提示样式');
-ok(/prefers-reduced-motion[\s\S]{0,400}\.section\.is-entering/.test(pagedCss) ||
-   /prefers-reduced-motion:\s*reduce[\s\S]{0,600}chapter-item/.test(pagedCss),
-   '减少动效时章节动画被关掉（或不被触发）');
+const rmBlock2 = pagedCss.slice(pagedCss.indexOf('prefers-reduced-motion: reduce'));
+ok(/\.section\.is-entering/.test(rmBlock2) && /animation:\s*none/.test(rmBlock2),
+   '减少动效时章节动画被关掉');
 
 /* ------------------------------------------- 3. 动画调度的逻辑（假 DOM） */
 /* 关键：验证「停稳后才播」「只作用于当前页」「会清理」 */

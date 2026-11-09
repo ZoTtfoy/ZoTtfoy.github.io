@@ -1,0 +1,288 @@
+/* ==========================================================================
+ *  fit.css —— 手机多比例适配：让每一章正好填满一屏
+ * --------------------------------------------------------------------------
+ *  手机屏幕比例跨度极大：16:9 的老机型（375×667）、19.5:9（390×844）、
+ *  20:9（360×780），还有折叠屏外屏（344×882）和横屏（844×390）。
+ *  同一套留白在这上面表现差得很远 —— 实测 15 种机型里 6 种会超屏。
+ *
+ *  这里按「可用高度」分四档（档位由 paged.js 写入 html[data-fit]）：
+ *
+ *    roomy  ≥ 700px   主流手机与平板，保持设计稿的宽松留白
+ *    tight  580~700   小屏手机（iPhone SE / 8 Plus），收紧留白
+ *    snug   460~580   极矮屏与折叠屏外屏，进一步压缩
+ *    micro  < 460     横屏手机，横向空间充足，改用横向布局
+ *
+ *  为什么不用 @media (max-height)：
+ *    手机地址栏滚动时会收缩/展开，视口高度在 640~740 之间反复跳，
+ *    媒体查询会跟着反复重排、内容闪动。所以高度档位由 JS 只在跨档时更新。
+ *
+ *  设计原则：
+ *    · 只压缩留白与行高，不动内容结构（信息一条都不删）
+ *    · 字号有下限，不为了塞进一屏把字缩到看不清
+ *    · 极矮屏优先改布局（横向铺开），而不是无限缩小
+ * ========================================================================== */
+
+/* ============================================================ tight 档
+   可用高度 580~700：iPhone SE / 8 Plus 这类。
+   实测「关于」章要压掉 200px 左右，主要来自页头留白、段落行高、
+   信息表行高与标签区。 */
+html[data-paged="on"][data-fit="tight"] .hero,
+html[data-paged="on"][data-fit="tight"] .section {
+  padding-top: calc(var(--header-h) + 10px);
+  padding-bottom: 26px;
+}
+
+html[data-paged="on"][data-fit="tight"] .section__head { margin-bottom: 14px; }
+html[data-paged="on"][data-fit="tight"] .eyebrow { margin-bottom: 8px; }
+html[data-paged="on"][data-fit="tight"] .section__lead { margin-top: 6px; font-size: .92rem; }
+
+/* 首页 */
+html[data-paged="on"][data-fit="tight"] .hero__status { margin-bottom: 18px; padding: 5px 12px 5px 10px; }
+html[data-paged="on"][data-fit="tight"] .hero__title { font-size: clamp(1.95rem, 9vw, 2.6rem); line-height: 1.12; }
+html[data-paged="on"][data-fit="tight"] .hero__role { margin-top: 10px; font-size: .74rem; }
+html[data-paged="on"][data-fit="tight"] .hero__desc { margin-top: 10px; font-size: .88rem; }
+html[data-paged="on"][data-fit="tight"] .hero__actions { margin-top: 18px; gap: 10px; }
+html[data-paged="on"][data-fit="tight"] .hero__actions .btn { min-height: 42px; padding: 9px 18px; }
+html[data-paged="on"][data-fit="tight"] .hero__quote { margin-top: 12px; font-size: .84rem; }
+html[data-paged="on"][data-fit="tight"] .hero__meta { margin-top: 10px; font-size: .7rem; }
+html[data-paged="on"][data-fit="tight"] .hero__progress { margin-top: 7px; }
+html[data-paged="on"][data-fit="tight"] .hero__avatar { margin-bottom: 14px; }
+html[data-paged="on"][data-fit="tight"] .hero__avatar img { width: 56px; height: 56px; }
+
+/* 关于：正文行高、信息表行高、标签是三大块 */
+html[data-paged="on"][data-fit="tight"] .about__body p { font-size: .9rem; line-height: 1.72; }
+html[data-paged="on"][data-fit="tight"] .about__body p + p { margin-top: .7em; }
+html[data-paged="on"][data-fit="tight"] .about__grid { gap: 18px; }
+html[data-paged="on"][data-fit="tight"] .about__side { padding: 14px; }
+html[data-paged="on"][data-fit="tight"] .facts__row { padding: 6px 0; }
+html[data-paged="on"][data-fit="tight"] .facts__row dt { font-size: .74rem; }
+html[data-paged="on"][data-fit="tight"] .facts__row dd { font-size: .84rem; }
+html[data-paged="on"][data-fit="tight"] .tags { margin-top: 10px; gap: 5px; }
+html[data-paged="on"][data-fit="tight"] .tag { padding: 3px 8px; font-size: .68rem; }
+
+/* 卡片类：缩内边距与图标块 */
+html[data-paged="on"][data-fit="tight"] .card { padding: 16px; }
+html[data-paged="on"][data-fit="tight"] .card__icon { width: 38px; height: 38px; margin-bottom: 12px; border-radius: 11px; }
+html[data-paged="on"][data-fit="tight"] .card__icon .icon { width: 19px; height: 19px; }
+html[data-paged="on"][data-fit="tight"] .card__title { font-size: 1.06rem; }
+html[data-paged="on"][data-fit="tight"] .card__desc { font-size: .84rem; line-height: 1.65; margin-top: 6px; }
+html[data-paged="on"][data-fit="tight"] .card__tags { padding-top: 12px; }
+
+html[data-paged="on"][data-fit="tight"] .game { padding: 14px; }
+html[data-paged="on"][data-fit="tight"] .game__icon { width: 30px; height: 30px; border-radius: 9px; }
+html[data-paged="on"][data-fit="tight"] .game__icon .icon { width: 16px; height: 16px; }
+html[data-paged="on"][data-fit="tight"] .game__head { margin-bottom: 10px; }
+html[data-paged="on"][data-fit="tight"] .game__uid { margin-bottom: 10px; padding: 6px 9px; }
+html[data-paged="on"][data-fit="tight"] .game__stats { gap: 6px; margin-bottom: 8px; }
+html[data-paged="on"][data-fit="tight"] .game__stat { padding: 6px 8px; }
+
+html[data-paged="on"][data-fit="tight"] .interest { padding: 16px; min-height: 0; }
+html[data-paged="on"][data-fit="tight"] .interest__icon { width: 34px; height: 34px; margin-bottom: 12px; }
+html[data-paged="on"][data-fit="tight"] .interest__meta { padding-top: 10px; }
+
+html[data-paged="on"][data-fit="tight"] .social { padding: 12px; }
+html[data-paged="on"][data-fit="tight"] .social__icon { width: 38px; height: 38px; }
+
+html[data-paged="on"][data-fit="tight"] .contact { margin-top: 16px; padding: 20px 16px; }
+html[data-paged="on"][data-fit="tight"] .contact__hint { font-size: 1.1rem; }
+html[data-paged="on"][data-fit="tight"] .contact__actions { margin-top: 14px; }
+html[data-paged="on"][data-fit="tight"] .contact__mail { margin-top: 10px; }
+
+/* ============================================================= snug 档
+   可用高度 460~580：极矮屏、折叠屏外屏。
+   在 tight 基础上继续收，并把「关于」的信息表转为两列横向铺开 ——
+   这一章的最大开销就是 4 行竖排信息表 + 5 个标签。 */
+html[data-paged="on"][data-fit="snug"] .hero,
+html[data-paged="on"][data-fit="snug"] .section {
+  padding-top: calc(var(--header-h) + 6px);
+  padding-bottom: 20px;
+}
+
+html[data-paged="on"][data-fit="snug"] .section__head { margin-bottom: 10px; }
+html[data-paged="on"][data-fit="snug"] .section__title { font-size: 1.6rem; }
+html[data-paged="on"][data-fit="snug"] .section__lead { font-size: .86rem; }
+
+html[data-paged="on"][data-fit="snug"] .hero__title { font-size: 1.85rem; }
+html[data-paged="on"][data-fit="snug"] .hero__status { margin-bottom: 12px; }
+html[data-paged="on"][data-fit="snug"] .hero__desc { font-size: .84rem; line-height: 1.65; }
+html[data-paged="on"][data-fit="snug"] .hero__quote { font-size: .8rem; }
+
+/* 关于：信息表两列（横向利用宽度，纵向省一半） */
+html[data-paged="on"][data-fit="snug"] .about__body p { font-size: .86rem; line-height: 1.65; }
+html[data-paged="on"][data-fit="snug"] .about__side { padding: 12px; }
+html[data-paged="on"][data-fit="snug"] .facts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 14px;
+}
+html[data-paged="on"][data-fit="snug"] .facts__row {
+  padding: 5px 0;
+  border-bottom: 1px dashed var(--line);
+}
+html[data-paged="on"][data-fit="snug"] .facts__row:nth-last-child(-n+2) { border-bottom: 0; }
+html[data-paged="on"][data-fit="snug"] .facts__row dd { font-size: .8rem; }
+
+html[data-paged="on"][data-fit="snug"] .card { padding: 14px; }
+html[data-paged="on"][data-fit="snug"] .card__desc { font-size: .8rem; }
+html[data-paged="on"][data-fit="snug"] .game__note { display: none; }
+html[data-paged="on"][data-fit="snug"] .interest__text p { font-size: .78rem; }
+html[data-paged="on"][data-fit="snug"] .contact { margin-top: 12px; padding: 16px 14px; }
+
+/* ============================================================ micro 档
+   可用高度 < 460：横屏手机。
+   此时宽度充足（844px），高度只有 300 多。
+   策略换成「横向铺开」：关于页的正文与侧栏并排，卡片轨道更矮。 */
+html[data-paged="on"][data-fit="micro"] .hero,
+html[data-paged="on"][data-fit="micro"] .section {
+  padding-top: calc(var(--header-h) + 4px);
+  padding-bottom: 14px;
+  align-items: flex-start;
+}
+
+html[data-paged="on"][data-fit="micro"] .section__head { margin-bottom: 8px; }
+html[data-paged="on"][data-fit="micro"] .eyebrow { display: none; }
+html[data-paged="on"][data-fit="micro"] .section__title { font-size: 1.35rem; }
+html[data-paged="on"][data-fit="micro"] .section__lead { margin-top: 3px; font-size: .8rem; }
+
+/* ⚠️ 双列布局只给「矮但宽」的横屏用。
+   竖屏窄屏（320×568）也落在 micro 档，但它宽度只有 320，
+   分两列会各挤成 140px 的细柱、文字大量换行，反而比单列更高 ——
+   实测单列 504px 能装下，双列要 585px。 */
+@media (orientation: landscape) {
+  html[data-paged="on"][data-fit="micro"] .hero__inner {
+    display: grid;
+    grid-template-columns: 1.15fr 1fr;
+    gap: 8px 26px;
+    align-items: start;
+  }
+  html[data-paged="on"][data-fit="micro"] .hero__avatar,
+  html[data-paged="on"][data-fit="micro"] .hero__status { grid-column: 1; }
+  html[data-paged="on"][data-fit="micro"] .hero__title { grid-column: 1; font-size: 1.7rem; }
+  html[data-paged="on"][data-fit="micro"] .hero__role { grid-column: 1; margin-top: 6px; }
+  html[data-paged="on"][data-fit="micro"] .hero__desc {
+    grid-column: 2; grid-row: 1 / span 3;
+    margin-top: 0; font-size: .82rem; line-height: 1.6;
+  }
+  html[data-paged="on"][data-fit="micro"] .hero__actions { grid-column: 1 / -1; margin-top: 12px; }
+  html[data-paged="on"][data-fit="micro"] .hero__quote { grid-column: 1 / -1; margin-top: 8px; font-size: .78rem; }
+  html[data-paged="on"][data-fit="micro"] .hero__meta { grid-column: 1 / -1; margin-top: 6px; }
+  html[data-paged="on"][data-fit="micro"] .hero__progress { grid-column: 1 / -1; margin-top: 4px; max-width: 240px; }
+}
+
+/* 关于页的双列同理：只在横屏用 */
+@media (orientation: portrait) {
+  html[data-paged="on"][data-fit="micro"] .about__grid { grid-template-columns: 1fr; gap: 14px; }
+}
+
+/* 关于：正文与侧栏并排（仅横屏，理由同上） */
+@media (orientation: landscape) {
+  html[data-paged="on"][data-fit="micro"] .about__grid {
+    grid-template-columns: 1.3fr 1fr;
+    gap: 24px;
+    align-items: start;
+  }
+}
+html[data-paged="on"][data-fit="micro"] .about__body p { font-size: .82rem; line-height: 1.6; }
+html[data-paged="on"][data-fit="micro"] .about__side { padding: 12px; }
+html[data-paged="on"][data-fit="micro"] .facts__row { padding: 4px 0; }
+html[data-paged="on"][data-fit="micro"] .tags { margin-top: 8px; }
+html[data-paged="on"][data-fit="micro"] .tag { padding: 2px 7px; font-size: .66rem; }
+
+/* 卡片：横屏下轨道更矮，去掉次要信息 */
+html[data-paged="on"][data-fit="micro"] .card { padding: 14px; min-height: 0; }
+html[data-paged="on"][data-fit="micro"] .card__icon { width: 30px; height: 30px; margin-bottom: 8px; }
+html[data-paged="on"][data-fit="micro"] .card__desc { font-size: .78rem; line-height: 1.55; }
+html[data-paged="on"][data-fit="micro"] .card__tags { display: none; }
+
+/* 横屏时游戏轨道是最高的一块（实测 276px），要压到 200 以内才装得下 */
+html[data-paged="on"][data-fit="micro"] .game { padding: 10px 12px; }
+html[data-paged="on"][data-fit="micro"] .game__note { display: none; }
+html[data-paged="on"][data-fit="micro"] .game__head { margin-bottom: 8px; }
+html[data-paged="on"][data-fit="micro"] .game__icon { width: 26px; height: 26px; border-radius: 8px; }
+html[data-paged="on"][data-fit="micro"] .game__title h3 { font-size: .9rem; }
+html[data-paged="on"][data-fit="micro"] .game__title p { font-size: .6rem; }
+html[data-paged="on"][data-fit="micro"] .game__uid { margin-bottom: 8px; padding: 5px 8px; }
+html[data-paged="on"][data-fit="micro"] .game__uid-value { font-size: .72rem; }
+html[data-paged="on"][data-fit="micro"] .game__stats {
+  margin-bottom: 0;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 5px;
+}
+html[data-paged="on"][data-fit="micro"] .game__stat { padding: 5px 6px; }
+html[data-paged="on"][data-fit="micro"] .game__stat dt { font-size: .58rem; }
+html[data-paged="on"][data-fit="micro"] .game__stat dd { font-size: .74rem; }
+html[data-paged="on"][data-fit="micro"] .game-rail { padding-block: 2px 8px; }
+
+html[data-paged="on"][data-fit="micro"] .interest { padding: 12px; }
+html[data-paged="on"][data-fit="micro"] .interest__meta { display: none; }
+html[data-paged="on"][data-fit="micro"] .interest__text p { display: none; }
+
+html[data-paged="on"][data-fit="micro"] .social { padding: 10px 12px; }
+html[data-paged="on"][data-fit="micro"] .contact { margin-top: 10px; padding: 14px; }
+html[data-paged="on"][data-fit="micro"] .contact__hint { font-size: 1rem; }
+html[data-paged="on"][data-fit="micro"] .contact__mail { display: none; }
+
+/* 横屏时页码在底部会挡住内容，改到右侧竖排（沿用桌面样式） */
+html[data-fit="micro"] .pager {
+  top: 50%;
+  right: 8px;
+  bottom: auto;
+  left: auto;
+  transform: translateY(-50%);
+  padding: 6px 4px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-full);
+  background: var(--bg-elev);
+  box-shadow: var(--shadow-sm);
+  pointer-events: auto;
+}
+html[data-fit="micro"] .pager__list { display: flex; }
+html[data-fit="micro"] .pager__track { display: none; }
+html[data-fit="micro"] .pager__dot { height: 18px; padding: 0 4px; }
+html[data-fit="micro"] .pager__dot::before { width: 4px; height: 4px; }
+html[data-fit="micro"] .pager__label { display: none; }
+
+/* ======================================================= 安全区补偿
+   带刘海 / 灵动岛的机型，底部有 home indicator。
+   翻页模式下每章要有足够的下留白，否则最后一行会贴到指示条上。 */
+html[data-paged="on"] .hero,
+html[data-paged="on"] .section {
+  padding-bottom: max(clamp(26px, 4vh, 40px), env(safe-area-inset-bottom));
+}
+
+/* 横屏时左右也可能有安全区（刘海在侧边） */
+@media (orientation: landscape) {
+  html[data-paged="on"] .hero,
+  html[data-paged="on"] .section {
+    padding-left: max(var(--gutter), env(safe-area-inset-left));
+    padding-right: max(var(--gutter), env(safe-area-inset-right));
+  }
+}
+
+/* ==================================== micro 档的「信息优先级」裁剪
+   到了这一档说明屏幕真的放不下了（320×568 竖屏、或横屏 390 高）。
+   首页有 8 个信息块，实测加起来 496px + 留白就是装不进 568。
+   这时按「对访客的重要性」删减，而不是继续缩小字号：
+     保留  标题 / 身份 / 简介 / 两个按钮   ← 访客真正要看的
+     保留  时钟日期                       ← 至少知道现在几点
+     舍弃  一言                           ← 装饰性，删掉不损失信息
+     合并  今年进度条并进时钟那一行        ← 一行能表达的就别占两行
+   注意：这只是「极矮屏」的降级，390×844 这类主流机型完整显示。 */
+html[data-paged="on"][data-fit="micro"] .hero__quote { display: none; }
+
+html[data-paged="on"][data-fit="micro"] .hero__meta { margin-top: 8px; }
+
+/* 进度条与时钟并排：省掉一整行 */
+html[data-paged="on"][data-fit="micro"] .hero__progress {
+  margin-top: 6px;
+  max-width: none;
+  gap: 8px;
+}
+html[data-paged="on"][data-fit="micro"] .hero__progress__track { flex: 0 1 90px; }
+html[data-paged="on"][data-fit="micro"] .hero__progress__label { font-size: .6rem; }
+
+/* 首页留白再收一档 */
+html[data-paged="on"][data-fit="micro"] .hero__status { margin-bottom: 10px; padding: 4px 10px 4px 9px; font-size: .7rem; }
+html[data-paged="on"][data-fit="micro"] .hero__title { line-height: 1.1; }
+html[data-paged="on"][data-fit="micro"] .hero__actions { margin-top: 12px; }
+html[data-paged="on"][data-fit="micro"] .hero__actions .btn { min-height: 38px; padding: 8px 16px; font-size: .82rem; }

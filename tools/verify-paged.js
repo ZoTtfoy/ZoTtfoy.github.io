@@ -287,8 +287,11 @@ ok(/scroll-padding-top:\s*0/.test(pagedCss), '翻页模式清零 scroll-padding�
 ok(/min-height:\s*100svh/.test(pagedCss), '用 svh 处理手机地址栏');
 ok(/overflow-x:\s*hidden/.test(pagedCss), '横向裁切放到 html（否则 body 抢滚动容器）');
 // 无障碍
-ok(/prefers-reduced-motion:\s*reduce[\s\S]{0,220}scroll-snap-type:\s*none/.test(pagedCss),
-   '减少动态效果时关闭吸附');
+/* 在 reduced-motion 块内搜索，不限制字符距离（中间允许有注释） */
+const rmSnap = pagedCss.slice(pagedCss.indexOf('prefers-reduced-motion: reduce'));
+ok(/scroll-snap-type:\s*none/.test(rmSnap), '减少动态效果时关闭吸附');
+ok(/\[data-snap\]/.test(rmSnap),
+   '关闭吸附的选择器权重足够（否则会被强制吸附规则覆盖）');
 ok(/prefers-reduced-motion:\s*reduce[\s\S]{0,260}\.spotlight\s*\{\s*display:\s*none/.test(effectsCss),
    '减少动态效果时关闭追光');
 ok(/@media \(hover: none\), \(pointer: coarse\)/.test(effectsCss), '触屏设备不渲染追光');
