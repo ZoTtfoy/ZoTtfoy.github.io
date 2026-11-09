@@ -286,40 +286,7 @@
               background-color var(--t-fast) var(--ease);
 }
 
-/* -------------------------------------------------------------- 动态背景 */
-.ambient {
-  position: fixed;
-  inset: -24px;              /* 比视口略大，给鼠标视差留出余量 */
-  z-index: 0;
-  overflow: hidden;
-  pointer-events: none;
-  will-change: transform;
-}
-.ambient__orb {
-  position: absolute;
-  width: min(72vw, 900px);
-  aspect-ratio: 1;
-  border-radius: 50%;
-  filter: blur(90px);
-  will-change: transform;
-}
-.ambient__orb--a {
-  top: -32%;
-  left: -18%;
-  background: radial-gradient(circle, var(--glow-a) 0%, transparent 68%);
-}
-.ambient__orb--b {
-  right: -22%;
-  bottom: -38%;
-  background: radial-gradient(circle, var(--glow-b) 0%, transparent 68%);
-}
-.ambient__grain {
-  position: absolute;
-  inset: 0;
-  opacity: var(--grain-opacity);
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.45'/%3E%3C/svg%3E");
-}
-body > main, .site-footer { position: relative; z-index: 1; }
+/* 动态背景已迁移到 backdrop.css（图片 / 遮罩 / 光晕 / 网格 / 微粒 / 噪点） */
 
 /* -------------------------------------------------------------- 滚动进度 */
 .scroll-progress {

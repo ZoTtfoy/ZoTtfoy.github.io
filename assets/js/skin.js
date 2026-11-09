@@ -69,6 +69,11 @@ window.SITE_SKIN = (function () {
     if (window.SITE_RENDER && window.SITE_RENDER.applyAccent) {
       window.SITE_RENDER.applyAccent();
     }
+    /* 换主题后背景层要重算：小字保护色依赖 --text-3 / --text，
+       遮罩色靠 --bg 自动跟随但需要重新评估一次。 */
+    if (window.SITE_BACKDROP && window.SITE_BACKDROP.refresh) {
+      window.SITE_BACKDROP.refresh();
+    }
 
     if (persist) {
       store(KEY_SKIN, skin.id);

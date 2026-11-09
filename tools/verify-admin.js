@@ -133,6 +133,32 @@ check(d.length === 0, '序列化后内容完全一致（深比较）' + (d.lengt
 const again = ctx.ADMIN_SERIALIZE(ctx2.SITE_CONFIG);
 check(again === source, '序列化幂等（两次输出完全一致）');
 
+/* ---------- 4.5 旧草稿兼容：缺新字段时要能补全 ---------- */
+check(typeof ctx.ADMIN_MERGE === 'function', '暴露了 mergeDefaults（旧草稿补全）');
+if (typeof ctx.ADMIN_MERGE === 'function') {
+  const full = JSON.parse(JSON.stringify(ctx.SITE_CONFIG));
+  // 模拟老版本草稿：没有 backdrop / gaming，about 也缺字段
+  const oldDraft = {
+    site: { name: '老名字' },
+    sections: { about: { enabled: false, order: 1, label: '关于' } },
+    about: { title: '旧标题' },
+    services: { items: [] },
+    ui: { skin: 'paper' }
+  };
+  const merged = ctx.ADMIN_MERGE(full, oldDraft);
+
+  check(merged.site.name === '老名字', '草稿里的值优先保留');
+  check(!!merged.backdrop && !!merged.backdrop.motion, '缺失的 backdrop 被补全');
+  check(!!merged.gaming && Array.isArray(merged.gaming.items), '缺失的 gaming 被补全');
+  check(merged.about.title === '旧标题', '深层字段保留草稿值');
+  check(!!merged.about.paragraphs, 'about 里缺失的字段被补上');
+  check(merged.sections.about.enabled === false, '布尔值 false 不会被默认值覆盖');
+  check(merged.ui.skin === 'paper', '草稿里改过的主题保留');
+  check(Array.isArray(merged.services.items) && merged.services.items.length === 0,
+    '数组以草稿为准（用户可能删过卡片）');
+  check(!!merged.live && !!merged.quotes && !!merged.music, '其余新模块也补齐');
+}
+
 /* ---------- 5. 生成的文件能被站点渲染层正常使用 ---------- */
 const renderSrc = fs.readFileSync(path.join(ROOT, 'assets/js/render.js'), 'utf8');
 const htmlSrc = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');

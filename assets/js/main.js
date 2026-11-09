@@ -14,6 +14,8 @@
       }
       window.SITE_RENDER.init();
       if (window.SITE_SKIN) window.SITE_SKIN.init();
+      // 背景要在翻页测量之前就位（图片 kenBurns / 视差会改变观感但不改高度）
+      if (window.SITE_BACKDROP) window.SITE_BACKDROP.init();
       // live 要先于 paged：时钟/一言/进度条会改变首页高度，
       // 必须在测量「这一页装不装得下」之前就位，否则会误判。
       if (window.SITE_LIVE) window.SITE_LIVE.init();

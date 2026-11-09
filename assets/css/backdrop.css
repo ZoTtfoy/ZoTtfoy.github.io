@@ -1,0 +1,194 @@
+/* ==========================================================================
+ *  backdrop.css —— 背景系统
+ * --------------------------------------------------------------------------
+ *  层次从下到上（都在内容之下，z-index 0，全部 pointer-events: none）：
+ *
+ *    1. 页面底色        body 的 --bg
+ *    2. 背景图片        .ambient__image     可调不透明度 / 模糊 / 缓慢缩放
+ *    3. 遮罩            .ambient__scrim     保证图片上的文字仍然可读 ← 最关键
+ *    4. 光晕            .ambient__orb ×2    与明暗无关的缓慢漂移
+ *    5. 网格            .ambient__grid      极淡的参照线
+ *    6. 微粒            .ambient__stars     缓慢上浮的星点
+ *    7. 噪点            .ambient__grain     让大面积纯色不"死板"
+ *
+ *  为什么遮罩是必需的：
+ *    背景图一旦压上文字，对比度就不可控了 —— 亮部会让浅色文字读不清，
+ *    暗部会让深色文字糊成一片。所以图片层之上必须有一层取自 --bg 的遮罩，
+ *    强度可调但永不归零。自检会用 WCAG 公式实测，不达标直接失败。
+ *
+ *  性能原则：
+ *    · 全部是 CSS 渐变 + transform，没有 canvas、没有逐帧 JS 计算
+ *    · 动画只碰 transform / opacity（走合成层），不碰 layout
+ *    · 系统开启「减少动态效果」时，所有位移与缩放全部静止
+ * ========================================================================== */
+
+.ambient {
+  position: fixed;
+  inset: -24px;              /* 比视口略大，给视差留出余量 */
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  will-change: transform;
+}
+.ambient > * {
+  position: absolute;
+  inset: 0;
+  display: block;
+}
+
+/* ============================================================ 1. 背景图片 */
+.ambient__image {
+  inset: -6%;                 /* 略放大，避免 Ken Burns 缩放时露出边缘 */
+  opacity: 0;
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
+  transition: opacity .8s var(--ease);
+  will-change: transform, opacity;
+}
+/* 只有真的设了图才淡入，避免空白层占位 */
+html[data-backdrop-image="on"] .ambient__image {
+  opacity: var(--bd-image-opacity, .35);
+}
+/* 模糊：用 filter，但注意它会创建新的合成层，所以只在开启时加 */
+html[data-backdrop-blur="on"] .ambient__image {
+  filter: blur(var(--bd-image-blur, 0px)) saturate(1.05);
+}
+
+/* Ken Burns：极慢的推近，让静态图"活着"。48 秒一个来回，几乎察觉不到起点 */
+@keyframes ken-burns {
+  0%   { transform: scale(1.02) translate3d(0, 0, 0); }
+  50%  { transform: scale(1.09) translate3d(-1.2%, -1.4%, 0); }
+  100% { transform: scale(1.02) translate3d(0, 0, 0); }
+}
+html[data-ken-burns="on"] .ambient__image {
+  animation: ken-burns 48s var(--ease) infinite;
+}
+
+/* ============================================================== 2. 遮罩 */
+/* 用 --bg 取色，切换浅色 / 深色主题时自动跟着变，不用写两套规则 */
+.ambient__scrim {
+  opacity: 0;
+  background: var(--bg);
+  transition: opacity var(--t-slow) var(--ease);
+}
+html[data-backdrop-image="on"] .ambient__scrim {
+  opacity: var(--bd-scrim, .65);
+}
+
+/* ============================================================ 3. 光晕 */
+.ambient__orb {
+  position: absolute;
+  inset: auto;
+  width: min(72vw, 900px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  filter: blur(90px);
+  will-change: transform;
+  display: none;
+}
+html[data-bd-aurora="on"] .ambient__orb { display: block; }
+
+.ambient__orb--a {
+  top: -32%;
+  left: -18%;
+  background: radial-gradient(circle, var(--glow-a) 0%, transparent 68%);
+}
+.ambient__orb--b {
+  right: -22%;
+  bottom: -38%;
+  background: radial-gradient(circle, var(--glow-b) 0%, transparent 68%);
+}
+
+@keyframes drift-a {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50%      { transform: translate3d(5%, 7%, 0) scale(1.09); }
+}
+@keyframes drift-b {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1.04); }
+  50%      { transform: translate3d(-6%, -6%, 0) scale(.94); }
+}
+html[data-motion="on"][data-bd-aurora="on"] .ambient__orb--a { animation: drift-a 24s ease-in-out infinite; }
+html[data-motion="on"][data-bd-aurora="on"] .ambient__orb--b { animation: drift-b 30s ease-in-out infinite; }
+
+/* ============================================================== 4. 网格 */
+/* 用两条 repeating-linear-gradient 画 1px 线，透明度压到很低 */
+.ambient__grid {
+  display: none;
+  opacity: .55;
+  background-image:
+    repeating-linear-gradient(0deg,
+      var(--line) 0 1px, transparent 1px var(--bd-grid-size, 64px)),
+    repeating-linear-gradient(90deg,
+      var(--line) 0 1px, transparent 1px var(--bd-grid-size, 64px));
+  /* 上淡下更淡，避免网格在标题区抢注意力 */
+  mask-image: linear-gradient(to bottom, transparent, #000 18%, #000 78%, transparent);
+  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 18%, #000 78%, transparent);
+}
+html[data-bd-grid="on"] .ambient__grid { display: block; }
+
+/* ============================================================ 5. 微粒 */
+/* 三组不同大小、不同速度的星点，叠起来才有层次感（单一速度会很假） */
+.ambient__stars {
+  display: none;
+  opacity: 0;
+  transition: opacity 1.2s var(--ease);
+  background-repeat: repeat;
+  background-image:
+    radial-gradient(1.6px 1.6px at 20px 30px, var(--accent) 50%, transparent 51%),
+    radial-gradient(1.2px 1.2px at 120px 90px, var(--text-2) 50%, transparent 51%),
+    radial-gradient(1.8px 1.8px at 200px 160px, var(--accent) 50%, transparent 51%),
+    radial-gradient(1px 1px at 80px 200px, var(--text-3) 50%, transparent 51%);
+  background-size: 260px 260px, 260px 260px, 260px 260px, 260px 260px;
+}
+html[data-bd-stars="on"] .ambient__stars {
+  display: block;
+  opacity: var(--bd-stars-opacity, .5);
+}
+
+@keyframes stars-rise {
+  from { background-position: 0 0, 0 0, 0 0, 0 0; }
+  to   { background-position: 0 -260px, 0 -260px, 0 -260px, 0 -260px; }
+}
+@keyframes stars-drift {
+  from { background-position: 0 0, 0 0, 0 0, 0 0; }
+  to   { background-position: 120px -130px, -90px -110px, 60px -140px, -40px -120px; }
+}
+/* 两层用不同速度与方向，视觉上就不像"一整块在平移" */
+html[data-motion="on"][data-bd-stars="on"] .ambient__stars {
+  animation: stars-rise 90s linear infinite, stars-drift 140s linear infinite;
+}
+
+/* ============================================================== 6. 噪点 */
+.ambient__grain {
+  display: none;
+  opacity: var(--grain-opacity);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.45'/%3E%3C/svg%3E");
+}
+html[data-bd-grain="on"] .ambient__grain { display: block; }
+
+/* ====================================================== 内容层要在背景之上 */
+body > main, .site-footer { position: relative; z-index: 1; }
+
+/* ================================== 图片模式下：直接压在背景上的强调文字
+   只挑「没有实底色、直接暴露在背景图上」的两处：
+   eyebrow 小标签、首页身份行。它们在卡片外，必须换用更实的强调色。
+   卡片里的文字都有 --bg-elev 底，不受影响，主题原色保留。 */
+html[data-backdrop-image="on"] .eyebrow,
+html[data-backdrop-image="on"] .hero__role {
+  color: var(--accent-bd, var(--accent));
+}
+
+/* ============================================================== 降级处理
+   减少动态效果：所有背景位移 / 缩放 / 漂移都静止，只保留静态纹理。 */
+@media (prefers-reduced-motion: reduce) {
+  html[data-ken-burns="on"] .ambient__image { animation: none; }
+  html[data-motion="on"] .ambient__orb--a,
+  html[data-motion="on"] .ambient__orb--b { animation: none; }
+  html[data-motion="on"] .ambient__stars { animation: none; }
+}
+
+/* 打印：背景一律去掉，省墨也更清楚 */
+@media print {
+  .ambient { display: none !important; }
+}

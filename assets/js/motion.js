@@ -257,7 +257,10 @@ window.SITE_MOTION = (function () {
     });
   }
 
-  /* ------------------------------------------------- 背景光晕：缓慢流动 + 鼠标视差 */
+  /* ------------------------------------------------- 背景动效总开关
+     这里只负责「该不该动」这一个开关（data-motion），
+     具体的分层、视差、图片都在 backdrop.js 里。
+     早先视差也写在这里，会和 backdrop.js 抢同一个 transform，故已移交。 */
   function initAmbient() {
     var ambient = document.querySelector(".ambient");
     if (!ambient) return;
@@ -269,27 +272,6 @@ window.SITE_MOTION = (function () {
     syncFlag();
     if (reduceQuery.addEventListener) reduceQuery.addEventListener("change", syncFlag);
     else if (reduceQuery.addListener) reduceQuery.addListener(syncFlag);
-
-    if (reduced() || UI.ambientMotion === false) return;
-    if (!window.matchMedia("(hover: hover) and (pointer: fine)").matches) return;
-
-    var tx = 0, ty = 0, cx = 0, cy = 0, raf = null;
-    function loop() {
-      cx += (tx - cx) * .055;
-      cy += (ty - cy) * .055;
-      ambient.style.transform = "translate3d(" + cx.toFixed(2) + "px," + cy.toFixed(2) + "px,0)";
-      if (Math.abs(tx - cx) > .05 || Math.abs(ty - cy) > .05) {
-        raf = requestAnimationFrame(loop);
-      } else {
-        raf = null;
-      }
-    }
-    window.addEventListener("pointermove", function (e) {
-      if (e.pointerType && e.pointerType !== "mouse") return;
-      tx = (e.clientX / window.innerWidth - .5) * 30;
-      ty = (e.clientY / window.innerHeight - .5) * 30;
-      if (!raf) raf = requestAnimationFrame(loop);
-    }, { passive: true });
   }
 
   function init() {

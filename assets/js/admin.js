@@ -139,6 +139,34 @@ window.ADMIN = {
     } catch (e) { return null; }
   }
 
+  /* 用当前配置补全旧草稿。
+     为什么必须有这一步：草稿存在用户浏览器里，而配置结构会随版本新增
+     （比如后来加的 backdrop / gaming）。老草稿缺这些键时，
+     界面上那些字段的写操作会静默失败——用户点了没反应，也没有报错。
+     合并规则：对象递归补全，数组整体以草稿为准（用户可能删过卡片）。 */
+  function mergeDefaults(base, override) {
+    var out = JSON.parse(JSON.stringify(base));
+    (function walk(target, src) {
+      if (!src || typeof src !== "object") return;
+      Object.keys(src).forEach(function (k) {
+        var v = src[k];
+        if (Array.isArray(v)) {
+          target[k] = JSON.parse(JSON.stringify(v));
+        } else if (v && typeof v === "object") {
+          if (!target[k] || typeof target[k] !== "object" || Array.isArray(target[k])) {
+            target[k] = {};
+          }
+          walk(target[k], v);
+        } else {
+          target[k] = v;
+        }
+      });
+    })(out, override);
+    return out;
+  }
+
+  window.ADMIN_MERGE = mergeDefaults;
+
   function setPath(obj, path, value) {
     var cur = obj;
     for (var i = 0; i < path.length - 1; i++) cur = cur[path[i]];
@@ -183,15 +211,32 @@ window.ADMIN = {
   /* 想加一个可编辑项？往 groups 里加一行 { path:[...], label:"..." } */
   function scalarFields(list) {
     return list.map(function (f) {
+      var path = f.path.join(".");
+
+      /* range：用于遮罩强度这类「必须边调边看」的参数，
+         数值实时显示在标签右侧，避免瞎猜。 */
+      if (f.type === "range") {
+        return '<label class="field field--full">' +
+          '<span class="field__label">' + esc(f.label) +
+            '<b class="range-out" data-out-for="' + path + '">' + esc(f.value) + '</b>' +
+          '</span>' +
+          '<input class="range" type="range" min="' + (f.min != null ? f.min : 0) +
+            '" max="' + (f.max != null ? f.max : 1) +
+            '" step="' + (f.step != null ? f.step : 0.05) +
+            '" data-path="' + path + '" data-range="1" value="' + esc(f.value) + '">' +
+          (f.hint ? '<span class="field__hint">' + esc(f.hint) + '</span>' : '') +
+          '</label>';
+      }
+
       return '<label class="field' + (f.full ? ' field--full' : '') + '">' +
         '<span class="field__label">' + esc(f.label) + '</span>' +
         (f.type === "area"
-          ? '<textarea class="area" data-path="' + f.path.join(".") + '">' + esc(f.value) + '</textarea>'
+          ? '<textarea class="area" data-path="' + path + '">' + esc(f.value) + '</textarea>'
           : f.type === "bool"
-            ? '<label class="switch"><input type="checkbox" data-path="' + f.path.join(".") + '"' +
+            ? '<label class="switch"><input type="checkbox" data-path="' + path + '"' +
               (f.value ? ' checked' : '') + '><span class="switch__track"></span></label>'
             : '<input class="input' + (f.mono ? ' input--mono' : '') + '" type="text" data-path="' +
-              f.path.join(".") + '" value="' + esc(f.value) + '">') +
+              path + '" value="' + esc(f.value) + '">') +
         '</label>';
     }).join("");
   }
@@ -203,6 +248,7 @@ window.ADMIN = {
     { id: "gaming", label: "游戏" },
     { id: "interests", label: "喜好" },
     { id: "social", label: "社交" },
+    { id: "backdrop", label: "背景" },
     { id: "theme", label: "外观" }
   ];
 
@@ -452,6 +498,83 @@ window.ADMIN = {
       body += renderList("interests");
     }
 
+    if (activeTab === "backdrop") {
+      var bd = draft.backdrop || {};
+      var bm = bd.motion || {};
+
+      body += group("动效元素", "可以任意叠加，互不冲突", scalarFields([
+        { path: ["backdrop", "motion", "aurora"], label: "光晕（两团缓慢漂移，跟着主题色走）", value: bm.aurora, type: "bool" },
+        { path: ["backdrop", "motion", "grain"], label: "噪点（让大面积纯色不呆板）", value: bm.grain, type: "bool" },
+        { path: ["backdrop", "motion", "grid"], label: "网格线（偏工程感）", value: bm.grid, type: "bool" },
+        { path: ["backdrop", "motion", "stars"], label: "微粒（缓慢上浮，偏夜色感）", value: bm.stars, type: "bool" }
+      ]) +
+      '<div class="row">' +
+        '<label class="field" style="flex:1 1 140px"><span class="field__label">网格间距 px</span>' +
+          '<input class="input" type="number" min="24" max="200" step="4" data-path="backdrop.gridSize" value="' +
+          esc(bd.gridSize == null ? 64 : bd.gridSize) + '"></label>' +
+        '<label class="field" style="flex:1 1 140px"><span class="field__label">微粒浓度</span>' +
+          '<input class="input" type="number" min="0.05" max="1" step="0.05" data-path="backdrop.starsOpacity" value="' +
+          esc(bd.starsOpacity == null ? 0.5 : bd.starsOpacity) + '"></label>' +
+      '</div>' +
+      '<p class="sheet__hint">这两个数值只在对应动效开启时才起作用。' +
+      '系统开启「减少动态效果」时，光晕与微粒会自动静止。</p>');
+
+      /* 内置背景：都是本地小 SVG（单个不到 1KB），不依赖任何外部图床 */
+      var PRESETS = [
+        { id: "", label: "不用图", url: "" },
+        { id: "mesh", label: "柔光", url: "assets/backdrop/mesh.svg" },
+        { id: "dunes", label: "沙丘", url: "assets/backdrop/dunes.svg" },
+        { id: "horizon", label: "地平线", url: "assets/backdrop/horizon.svg" },
+        { id: "lines", label: "线格", url: "assets/backdrop/lines.svg" }
+      ];
+      var cur = (bd.image || "").trim();
+
+      var presetHtml = PRESETS.map(function (pr) {
+        var on = pr.url === cur;
+        return '<button class="bd-pick' + (on ? ' is-active' : '') + '" type="button" ' +
+          'data-bd-url="' + esc(pr.url) + '" title="' + esc(pr.label) + '">' +
+          '<span class="bd-pick__thumb" style="' +
+            (pr.url ? 'background-image:url(\'' + esc(pr.url) + '\')' : '') + '">' +
+            (pr.url ? '' : '<span class="bd-pick__none">无</span>') +
+          '</span>' +
+          '<span class="bd-pick__label">' + esc(pr.label) + '</span>' +
+        '</button>';
+      }).join("");
+
+      body += group("背景图片", "选一张内置的，或上传自己的", 
+        '<div class="bd-grid">' + presetHtml + '</div>' +
+        '<div class="row">' +
+          '<button class="btn btn--quiet btn--sm" type="button" data-bd-upload>上传图片</button>' +
+          '<button class="btn btn--quiet btn--sm" type="button" data-bd-clear>清除</button>' +
+          '<input type="file" accept="image/*" data-bd-file hidden>' +
+        '</div>' +
+        scalarFields([
+          { path: ["backdrop", "image"], label: "图片地址（也可直接填外部链接）", value: bd.image || "", full: true, mono: true }
+        ]));
+
+      /* 实时预览：遮罩强度这种参数，不看图根本判断不了 */
+      body += group("图片参数", "改完下面几项，上面的预览会立刻跟着变",
+        '<div class="bd-preview" id="bdPreview">' +
+          '<div class="bd-preview__img" data-bd-img></div>' +
+          '<div class="bd-preview__scrim" data-bd-scrim></div>' +
+          '<div class="bd-preview__text">' +
+            '<b>把复杂的东西，</b>' +
+            '<span>做得简单一点。</span>' +
+            '<em>15:32 · 周六 · 今年已过 86%</em>' +
+          '</div>' +
+        '</div>' +
+        scalarFields([
+          { path: ["backdrop", "imageOpacity"], label: "图片不透明度", value: bd.imageOpacity == null ? 0.35 : bd.imageOpacity,
+            type: "range", min: 0.05, max: 1, step: 0.05, hint: "越大图片越明显" },
+          { path: ["backdrop", "imageBlur"], label: "模糊", value: bd.imageBlur == null ? 0 : bd.imageBlur,
+            type: "range", min: 0, max: 40, step: 1, hint: "想弱化图片细节就调大" },
+          { path: ["backdrop", "scrim"], label: "遮罩强度", value: bd.scrim == null ? 0.65 : bd.scrim,
+            type: "range", min: 0.15, max: 0.95, step: 0.05, hint: "★ 这个直接决定文字能不能读清，不建议低于 0.5" },
+          { path: ["backdrop", "kenBurns"], label: "图片缓慢推近拉远（Ken Burns）", value: bd.kenBurns, type: "bool" },
+          { path: ["backdrop", "parallax"], label: "背景随鼠标 / 滚动轻微位移", value: bd.parallax, type: "bool" }
+        ]));
+    }
+
     if (activeTab === "social") {
       body += group("标题文案", "", scalarFields([
         { path: ["social", "eyebrow"], label: "小标签", value: getPath(draft, ["social", "eyebrow"]) },
@@ -536,6 +659,7 @@ window.ADMIN = {
     }
 
     $("#panel").innerHTML = body;
+    if (activeTab === "backdrop") syncBackdropPreview();
   }
 
   /* ============================================================ 交互 */
@@ -572,6 +696,39 @@ window.ADMIN = {
     reader.readAsDataURL(file);
   }
 
+  /* 背景图压缩：比头像宽松得多（1920 宽、质量 0.82），
+     因为背景要铺满屏幕，太小会糊。仍然限宽限质，避免 config.js 变成几 MB。 */
+  function compressBackdrop(file, done) {
+    if (!file || !/^image\//.test(file.type)) { toast("请选择图片文件"); return; }
+    var reader = new FileReader();
+    reader.onerror = function () { toast("文件读取失败"); };
+    reader.onload = function () {
+      var img = new Image();
+      img.onerror = function () { toast("图片无法解析，换一张试试"); };
+      img.onload = function () {
+        var MAX_W = 1920;
+        var scale = Math.min(1, MAX_W / img.width);
+        var w = Math.round(img.width * scale);
+        var h = Math.round(img.height * scale);
+
+        var canvas = document.createElement("canvas");
+        canvas.width = w;
+        canvas.height = h;
+        var g = canvas.getContext("2d");
+        if (g.imageSmoothingQuality) g.imageSmoothingQuality = "high";
+        g.drawImage(img, 0, 0, w, h);
+
+        var out = canvas.toDataURL("image/webp", 0.82);
+        if (out.indexOf("data:image/webp") !== 0) out = canvas.toDataURL("image/jpeg", 0.85);
+        done(out);
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  window.ADMIN_COMPRESS_BD = compressBackdrop;
+
   /* 估算 data URL 的实际体积（KB） */
   function dataUrlKb(dataUrl) {
     var b64 = String(dataUrl).split(",")[1] || "";
@@ -581,6 +738,35 @@ window.ADMIN = {
   window.ADMIN_COMPRESS = compressImage;
   window.ADMIN_KB = dataUrlKb;
 
+  /* 背景预览：把图片、模糊、不透明度、遮罩按真实参数合成出来，
+     让人一眼看出「遮罩调低文字就糊了」。 */
+  function syncBackdropPreview() {
+    var box = $("#bdPreview");
+    if (!box) return;
+    var bd = draft.backdrop || {};
+
+    var img = box.querySelector("[data-bd-img]");
+    var scrim = box.querySelector("[data-bd-scrim]");
+    var url = (bd.image || "").trim();
+
+    if (img) {
+      img.style.backgroundImage = url ? 'url("' + url.replace(/"/g, '\\"') + '")' : "none";
+      img.style.opacity = String(bd.imageOpacity == null ? 0.35 : bd.imageOpacity);
+      img.style.filter = (Number(bd.imageBlur) || 0) > 0
+        ? "blur(" + (Number(bd.imageBlur) || 0) + "px)" : "none";
+    }
+    if (scrim) scrim.style.opacity = String(bd.scrim == null ? 0.65 : bd.scrim);
+
+    // 预设按钮高亮跟随当前地址
+    Array.prototype.forEach.call(document.querySelectorAll("[data-bd-url]"), function (btn) {
+      btn.classList.toggle("is-active", (btn.getAttribute("data-bd-url") || "") === url);
+    });
+
+    // 同步「图片地址」输入框（从预设点进来时）
+    var field = document.querySelector('[data-path="backdrop.image"]');
+    if (field && field.value.trim() !== url) field.value = url;
+  }
+
   function bindEditor() {
     $("#tabs").addEventListener("click", function (e) {
       var t = e.target.closest("[data-tab]");
@@ -588,6 +774,7 @@ window.ADMIN = {
       activeTab = t.getAttribute("data-tab");
       renderTabs();
       renderPanel();
+      if (activeTab === "backdrop") syncBackdropPreview();
     });
 
     var panel = $("#panel");
@@ -638,6 +825,27 @@ window.ADMIN = {
           return;
         }
 
+        /* 背景图片地址：同步预览块与预设高亮 */
+        if (el.dataset.path === "backdrop.image") {
+          draft.backdrop.image = el.value.trim();
+          mark();
+          syncBackdropPreview();
+          return;
+        }
+
+        /* 背景数值（不透明度 / 模糊 / 遮罩） */
+        if (el.dataset.range || el.type === "number") {
+          var rp = el.dataset.path.split(".");
+          var rv = Number(el.value);
+          if (!isNaN(rv)) {
+            setPath(draft, rp, rv);
+            var out = document.querySelector('[data-out-for="' + el.dataset.path + '"]');
+            if (out) out.textContent = String(Math.round(rv * 100) / 100);
+            syncBackdropPreview();
+          }
+          return;
+        }
+
         var val = el.type === "checkbox" ? el.checked : el.value;
         if (last === "order") val = Number(val) || 0;
         setPath(draft, path, val);
@@ -667,7 +875,26 @@ window.ADMIN = {
 
     panel.addEventListener("change", function (e) {
       var el = e.target;
-      if (!el.hasAttribute || !el.hasAttribute("data-avatar-file")) return;
+      if (!el.hasAttribute) return;
+
+      /* ---- 背景图上传：尺寸比头像大得多，单独走一套压缩 ---- */
+      if (el.hasAttribute("data-bd-file")) {
+        var bfile = el.files && el.files[0];
+        if (bfile) {
+          compressBackdrop(bfile, function (dataUrl) {
+            draft.backdrop.image = dataUrl;
+            mark();
+            syncBackdropPreview();
+            var kb = dataUrlKb(dataUrl);
+            toast("背景已就绪（约 " + kb + " KB）" +
+                  (kb > 400 ? "，偏大，建议换尺寸小一点的图" : ""));
+          });
+        }
+        el.value = "";
+        return;
+      }
+
+      if (!el.hasAttribute("data-avatar-file")) return;
       var file = el.files && el.files[0];
       if (!file) return;
 
@@ -698,6 +925,27 @@ window.ADMIN = {
         var label = $("[data-skin-label]");
         if (label && t) label.textContent = t.name;
         toast("默认风格已设为「" + (t ? t.name : b.dataset.pickSkin) + "」");
+        return;
+      }
+
+      /* ---- 背景：选内置图 / 上传 / 清除 ---- */
+      if (b.hasAttribute("data-bd-url")) {
+        draft.backdrop.image = b.getAttribute("data-bd-url") || "";
+        mark();
+        syncBackdropPreview();
+        toast(draft.backdrop.image ? "已选择背景图" : "已改为不用背景图");
+        return;
+      }
+      if (b.hasAttribute("data-bd-upload")) {
+        var bf = $("[data-bd-file]");
+        if (bf) bf.click();
+        return;
+      }
+      if (b.hasAttribute("data-bd-clear")) {
+        draft.backdrop.image = "";
+        mark();
+        syncBackdropPreview();
+        toast("已清除背景图");
         return;
       }
 
@@ -1149,7 +1397,8 @@ window.ADMIN = {
 
   function enter() {
     var restored = loadDraft();
-    draft = restored || JSON.parse(JSON.stringify(window.SITE_CONFIG));
+    draft = restored ? mergeDefaults(window.SITE_CONFIG, restored)
+                     : JSON.parse(JSON.stringify(window.SITE_CONFIG));
     $("#gate").hidden = true;
     $("#app").hidden = false;
     renderTabs();
