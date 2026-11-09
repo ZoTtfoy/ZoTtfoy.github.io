@@ -484,6 +484,119 @@ window.SITE_PAGED = (function () {
     }, { passive: false });
   }
 
+  /* ============================================================ 触摸翻页
+     需求原话：「上滑不管距离全部视为一次上滑，两次间隔可以适量缩短但绝不为 0」。
+
+     所以触摸和滚轮是**两套语义**：
+       · 滚轮要攒够 40px 才算一格 —— 因为鼠标一格约 100，触控板会碎成小块
+       · 触摸是「一次手势 = 一次翻页」，位移只用来判方向，不参与阈值
+
+     但有四种情况必须排除，否则会误伤：
+       1. 点击（位移 < 8px）—— 不然点「复制微信号」会连带翻走一页
+       2. 横向手势（|dx| > |dy|）—— 留给以后可能出现的横滑组件
+       3. 多指（双指缩放 / 三指）—— 那不是翻页
+       4. 有高个页时（snap = proximity）—— 那页本来就该让用户自由滚
+
+     锁间隔 SWIPE_LOCK = 300ms，**绝不为 0**。原因不是手感，是正确性：
+       smooth 滚动有 400~500ms 动画期，期间 scrollTop 一直在变，
+       而 activeIndex 要等滚动停稳（updateActive）才更新。若无锁：
+         第一下 goTo(1) → 动画还在跑；
+         第二下读到的 activeIndex 仍是 0 → 又 goTo(1)，看起来「滑了没反应」；
+       更糟的情况是 activeIndex 已更新到 1，第二下就跳到 2 —— 第 1 页被整个跳过。
+       所以锁的下限必须 >= 一次滚动动画的时长。
+
+     为什么是 300 而不是 460（滚轮的锁）：手指抬起后人会立刻准备下一次滑动，
+     比鼠标滚轮的节奏快得多。300ms 是「跟手」和「不跳页」的平衡点。
+     reduced-motion 下滚动是瞬时的（smooth() 返回 auto），锁收到 160ms。 */
+  var SWIPE_LOCK = 300;
+  var swipeLockedUntil = 0;
+  var swipeEnabled = true;      // 由 init 按 config 设置
+
+  /* 面板打开时不接管触摸，否则用户在面板里滑不动 */
+  function panelOpen() {
+    var panels = ["skinPanel", "mobileNav", "publishSheet"];
+    for (var i = 0; i < panels.length; i++) {
+      var el = $(panels[i]);
+      if (el && !el.hidden) return true;
+    }
+    return false;
+  }
+
+  function swipeAllowed() {
+    if (!enabled || !swipeEnabled) return false;
+    // 有高个页 / 自由滚动模式：让位给浏览器原生滚动
+    if (document.documentElement.dataset.snap !== "mandatory") return false;
+    if (panelOpen()) return false;
+    return true;
+  }
+
+  function initSwipe() {
+    var startX = 0, startY = 0;
+    var tracking = false;    // 这一轮手势是否归我们管
+    var decided = false;     // 是否已判定为竖向手势
+
+    window.addEventListener("touchstart", function (e) {
+      // 多指：直接放弃这一轮
+      if (e.touches.length !== 1) { tracking = false; return; }
+      if (!swipeAllowed()) { tracking = false; return; }
+      var t = e.touches[0];
+      startX = t.clientX;
+      startY = t.clientY;
+      tracking = true;
+      decided = false;
+    }, { passive: true });
+
+    window.addEventListener("touchmove", function (e) {
+      if (!tracking) return;
+      if (e.touches.length !== 1) { tracking = false; return; }
+
+      var t = e.touches[0];
+      var dx = t.clientX - startX;
+      var dy = t.clientY - startY;
+
+      if (!decided) {
+        // 位移还太小，方向未定：先不动，继续观察
+        if (Math.abs(dx) < 5 && Math.abs(dy) < 5) return;
+        // 横向为主：交回浏览器（不 preventDefault，不翻页）
+        if (Math.abs(dx) > Math.abs(dy)) { tracking = false; return; }
+        decided = true;
+      }
+
+      /* 竖向手势：从第一次判定起就完全接管。
+         必须在这里 preventDefault，而不是等 touchend 再纠正 ——
+         一旦让浏览器先滚几像素再拉回来，会看到明显的「抖一下」。 */
+      if (e.cancelable) e.preventDefault();
+    }, { passive: false });
+
+    function finish(e) {
+      if (!tracking) return;
+      tracking = false;
+      if (!decided) return;      // 从没判定成竖向（点击 / 横向）
+
+      var t = e.changedTouches && e.changedTouches[0];
+      if (!t) return;
+
+      var dx = t.clientX - startX;
+      var dy = t.clientY - startY;
+
+      // 位移过小视为点击，不翻页（否则点复制按钮会连带翻走）
+      if (Math.abs(dy) < 8) return;
+      if (Math.abs(dx) > Math.abs(dy)) return;
+
+      var now = Date.now();
+      if (now < swipeLockedUntil) return;
+
+      swipeLockedUntil = now + (reduced() ? 160 : SWIPE_LOCK);
+      // 上滑（dy < 0）→ 下一页；下滑 → 上一页
+      goBy(dy < 0 ? 1 : -1);
+    }
+
+    window.addEventListener("touchend", finish, { passive: true });
+    window.addEventListener("touchcancel", function () {
+      tracking = false;
+    }, { passive: true });
+  }
+
   /* -------------------------------------------------------------- 键盘 */  function initKeys() {
     document.addEventListener("keydown", function (e) {
       if (!enabled) return;
@@ -619,8 +732,10 @@ window.SITE_PAGED = (function () {
     // 页面尺寸或内容变化时重算位置缓存
     observeSizes();
 
+    swipeEnabled = UI.swipePaging !== false;
     initKeys();
     initWheel();
+    initSwipe();
     initHint();
   }
 
@@ -631,6 +746,8 @@ window.SITE_PAGED = (function () {
     snapNow: function () { snapToNearest(); },
     pages: function () { return pages.slice(); },
     activeIndex: function () { return activeIndex; },
-    refresh: function () { markTall(); updateActive(); }
+    refresh: function () { markTall(); updateActive(); },
+    /* 自检用：读触摸翻页的锁状态，验证「间隔绝不为 0」 */
+    swipeLock: function () { return { ms: reduced() ? 160 : SWIPE_LOCK, until: swipeLockedUntil }; }
   };
 })();
