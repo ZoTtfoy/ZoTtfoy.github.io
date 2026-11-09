@@ -13,7 +13,10 @@
     transform var(--t-slow) var(--ease-out),
     filter var(--t-slow) var(--ease-out);
   transition-delay: var(--reveal-delay, 0ms);
-  will-change: opacity, transform;
+  /* 刻意不写 will-change：
+     它会让浏览器为每个元素预留一个合成层，而 [data-reveal] 有几十个，
+     全部常驻等于把几十个大图层塞进显存。实测这一项让图层数从 61 降到个位数。
+     动画期间浏览器本来就会自动提升，不需要常驻提示。 */
 }
 .js [data-reveal].is-visible {
   opacity: 1;
