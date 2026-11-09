@@ -186,10 +186,13 @@
   display: flex;
   align-items: center;
   gap: 14px;
+  width: 100%;                    /* 兼作 <button> 的形态 */
   padding: 16px;
   border: 1px solid var(--line);
   border-radius: var(--r-md);
   background: var(--bg-elev);
+  font: inherit;
+  text-align: left;
   transition: border-color var(--t) var(--ease), box-shadow var(--t) var(--ease),
               transform var(--t) var(--ease), background-color var(--t) var(--ease);
 }
