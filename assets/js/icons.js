@@ -7,8 +7,8 @@
  *    camera, coffee, gamepad, plane, book, film, headphones, compass, leaf,
  *    bicycle, pen, grid, shield, zap, bulb, quote, rss, globe, mail, link,
  *    external, map-pin, clock, heart, send, sun, moon, menu, close, copy,
- *    check, arrow-up, arrow-down, arrow-up-right, weibo, bilibili, zhihu,
- *    wechat, juejin, instagram
+ *    check, arrow-up, arrow-down, arrow-up-right, netease, qq, weibo,
+ *    bilibili, zhihu, wechat, juejin, instagram
  *  品牌实心图标：github, x, linkedin, youtube, telegram, discord
  *
  *  想加新图标：照着下面格式加一行 'name': '<path ... />' 即可。
@@ -63,6 +63,8 @@ window.SITE_ICONS = {
   "arrow-up-right": '<path d="M7 17 17 7"/><polyline points="8 7 17 7 17 16"/>',
 
   /* ---- 中文平台 ---- */
+  netease:   '<circle cx="12" cy="12" r="9"/><path d="M15.2 7.9v6.6"/><circle cx="12.5" cy="14.9" r="2.7"/><path d="M15.2 7.9c.9.3 1.6 1 1.9 1.9"/>',
+  qq:        '<ellipse cx="12" cy="12.6" rx="6.6" ry="7.4"/><circle cx="9.6" cy="10.2" r="1" fill="currentColor" stroke="none"/><circle cx="14.4" cy="10.2" r="1" fill="currentColor" stroke="none"/><path d="M10 15.4c.7.6 3.3.6 4 0M6.6 18.9c-.6 1-.3 1.9.5 1.9.7 0 1.3-.6 1.7-1.4M17.4 18.9c.6 1 .3 1.9-.5 1.9-.7 0-1.3-.6-1.7-1.4"/>',
   weibo:     '<path d="M4.5 13.5c0 3.6 3.8 6.5 8.5 6.5s8.5-2.9 8.5-6.5-3.8-6.5-8.5-6.5-8.5 2.9-8.5 6.5z"/><path d="M9 12.5a2.5 2.5 0 1 1 5 0 2.5 2.5 0 0 1-5 0z"/><path d="M16 5.5a5 5 0 0 1 3.5 4.5M17.5 3a8 8 0 0 1 4 6.5"/>',
   bilibili:  '<rect x="3" y="6" width="18" height="14" rx="3"/><path d="M7 6 9 3M17 6l-2-3"/><path d="M8.5 11.5v2.5M15.5 11.5v2.5"/><path d="M10 16.5c1.2.8 2.8.8 4 0"/>',
   zhihu:     '<path d="M20 11.5a8 8 0 0 1-8 8H5l-2 2v-10a8 8 0 0 1 8-8h1a8 8 0 0 1 8 8z"/><path d="M8.5 9h7M8.5 13h4"/>',
