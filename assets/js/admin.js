@@ -167,6 +167,21 @@ window.ADMIN = {
 
   window.ADMIN_MERGE = mergeDefaults;
 
+  /* 6 屏重构后被删掉的顶层字段。
+     老用户浏览器里存着旧草稿，mergeDefaults 会把整个 about / services 对象
+     原样搬回来，然后又被序列化进新的 config.js —— 页面不读它们，
+     但它们会一直占着文件、让人以为还有用。这里直接丢掉。 */
+  var DROPPED_KEYS = ["about", "services", "interests", "social"];
+  var DROPPED_SITE = ["tagline", "available", "availableText"];
+
+  function pruneDraft(d) {
+    if (!d || typeof d !== "object") return d;
+    DROPPED_KEYS.forEach(function (k) { delete d[k]; });
+    if (d.site) DROPPED_SITE.forEach(function (k) { delete d.site[k]; });
+    return d;
+  }
+  window.ADMIN_PRUNE = pruneDraft;
+
   function setPath(obj, path, value) {
     var cur = obj;
     for (var i = 0; i < path.length - 1; i++) cur = cur[path[i]];
@@ -243,39 +258,97 @@ window.ADMIN = {
 
   var TABS = [
     { id: "basic", label: "基础" },
-    { id: "about", label: "关于" },
-    { id: "services", label: "业务" },
+    { id: "profile", label: "我" },
+    { id: "listen", label: "在听" },
     { id: "gaming", label: "游戏" },
-    { id: "interests", label: "喜好" },
-    { id: "social", label: "社交" },
+    { id: "repair", label: "维修" },
+    { id: "links", label: "其他" },
+    { id: "contact", label: "邮箱" },
     { id: "backdrop", label: "背景" },
     { id: "theme", label: "外观" }
   ];
 
   /* 列表型内容（可增删排序）的字段定义 */
+  /* 列表型内容（可增删排序）的字段定义。
+     每一项都是「一层数组」，嵌套结构（比如旧版的 groups[].rows[]）
+     在编辑器里没法好好编辑，所以 config.js 里也相应改成了扁平结构。 */
   var LISTS = {
-    services: {
-      path: ["services", "items"], title: "业务卡片", desc: "首屏下方「业务范畴」的卡片",
-      make: function () { return { icon: "sparkles", title: "新业务", desc: "", tags: [] }; },
+    contacts: {
+      path: ["profile", "contacts"], title: "直接联系方式",
+      desc: "QQ / 微信这类，点一下就复制，访客不用手动输入",
+      make: function () { return { icon: "qq", label: "新联系方式", value: "", hint: "点击复制" }; },
       fields: [
-        { k: "icon",  label: "图标名", hint: "icons.js 里的名字，如 code / palette" },
-        { k: "title", label: "标题" },
-        { k: "desc",  label: "说明", type: "area", full: true },
-        { k: "tags",  label: "标签（逗号分隔）", type: "csv", full: true }
+        { k: "icon",  label: "图标名（qq / wechat / mail / phone …）" },
+        { k: "label", label: "名称（QQ / 微信）" },
+        { k: "value", label: "账号（点击复制的内容）" },
+        { k: "hint",  label: "右侧小字（可留空）" }
       ]
     },
-    interests: {
-      path: ["interests", "items"], title: "喜好卡片", desc: "「个人喜好」区",
-      make: function () { return { icon: "heart", title: "新喜好", desc: "", meta: "" }; },
+
+    previews: {
+      path: ["profile", "previews"], title: "主页摘要卡",
+      desc: "网易云 / 小黑盒这类主页入口。填 cover 就是缩略图卡，留空就是纯文字卡",
+      make: function () {
+        return {
+          id: "custom-" + Date.now(), icon: "link", platform: "新平台",
+          url: "https://", title: "", meta: "", cover: "", stats: [], accent: ""
+        };
+      },
       fields: [
-        { k: "icon",  label: "图标名" },
-        { k: "title", label: "标题" },
-        { k: "desc",  label: "说明", type: "area", full: true },
-        { k: "meta",  label: "右下角小字", full: true }
+        { k: "icon",     label: "图标名（netease / box / shop …）" },
+        { k: "platform", label: "平台名" },
+        { k: "title",    label: "标题" },
+        { k: "meta",     label: "副标题 / 一句说明", full: true },
+        { k: "url",      label: "主页链接", full: true, mono: true },
+        { k: "cover",    label: "封面图地址（留空则为纯文字卡）", full: true, mono: true,
+          hint: "把截图放进 assets/img/，这里填 assets/img/netease.jpg" },
+        { k: "accent",   label: "平台主色（如 #c20c0c，留空用默认灰）" }
       ]
     },
-    social: {
-      path: ["social", "items"], title: "社交链接", desc: "填 url 会跳转；填 copy 则点一下复制（适合 QQ / 微信）",
+
+    tracks: {
+      path: ["listen", "fallback"], title: "兜底曲目",
+      desc: "只在自动同步没拿到数据时显示。想换成真实歌单，去配 NETEASE_COOKIE（见 README）",
+      make: function () { return { title: "新曲目", artist: "", album: "" }; },
+      fields: [
+        { k: "title",  label: "曲名" },
+        { k: "artist", label: "歌手" },
+        { k: "album",  label: "专辑" }
+      ]
+    },
+
+    gaming: {
+      path: ["gaming", "items"], title: "游戏卡片",
+      desc: "只有 图标 + 名称 + ID。想加游戏就加一项，布局会自动排",
+      make: function () {
+        return { icon: "gamepad", iconImage: "", name: "新游戏", uidLabel: "ID", uid: "", color: "", link: "" };
+      },
+      fields: [
+        { k: "icon",      label: "图标名（tower / crosshair / target / note / disc / music）" },
+        { k: "iconImage", label: "或：自定义图标图片地址", hint: "填了就用图片，忽略上面的图标名" },
+        { k: "name",      label: "游戏名" },
+        { k: "uidLabel",  label: "ID 标签（博士 ID / Riot ID …）" },
+        { k: "uid",       label: "ID（点卡片复制）" },
+        { k: "color",     label: "品牌色（如 #ff4655）" },
+        { k: "link",      label: "主页链接（可留空）", full: true, mono: true }
+      ]
+    },
+
+    quoteRows: {
+      path: ["repair", "quote", "rows"], title: "报价表",
+      desc: "同一个「分组」名会自动排到同一栏；改分组名就能重新分栏",
+      make: function () { return { group: "手机", item: "新项目", price: "", note: "" }; },
+      fields: [
+        { k: "group", label: "分组（手机 / 电脑 …）" },
+        { k: "item",  label: "项目" },
+        { k: "price", label: "价格（可写区间：120 – 260）" },
+        { k: "note",  label: "备注（可留空）", full: true }
+      ]
+    },
+
+    links: {
+      path: ["links", "items"], title: "其他平台",
+      desc: "填 url 会跳转；填 copy 则点一下复制账号",
       make: function () { return { icon: "link", label: "新平台", handle: "", url: "https://" }; },
       fields: [
         { k: "icon",   label: "图标名" },
@@ -283,36 +356,6 @@ window.ADMIN = {
         { k: "handle", label: "显示的小字" },
         { k: "url",    label: "链接（可留空）", full: true },
         { k: "copy",   label: "或：点击复制的账号", full: true }
-      ]
-    },
-    facts: {
-      path: ["about", "facts"], title: "信息表", desc: "「关于」右侧的几行小资料",
-      make: function () { return { label: "新项目", value: "" }; },
-      fields: [
-        { k: "label", label: "名称" },
-        { k: "value", label: "内容" }
-      ]
-    },
-    gaming: {
-      path: ["gaming", "items"], title: "游戏卡片", desc: "ID 点一下即可复制；「可展现资产」每行写一个「名称: 内容」",
-      make: function () {
-        return {
-          icon: "gamepad", name: "新游戏", uidLabel: "ID", uid: "",
-          server: "", rank: "", color: "", stats: [], note: "", link: ""
-        };
-      },
-      fields: [
-        { k: "icon",     label: "图标名（tower / crosshair / target / note / disc / music）" },
-        { k: "name",     label: "游戏名" },
-        { k: "uidLabel", label: "ID 的标签（博士 ID / Riot ID …）" },
-        { k: "uid",      label: "ID（点卡片可复制）" },
-        { k: "server",   label: "区服" },
-        { k: "rank",     label: "等级 / 段位" },
-        { k: "color",    label: "品牌色（如 #ff4655，留空用主题色）", full: true },
-        { k: "stats",    label: "可展现资产", type: "pairs", full: true,
-          hint: "每行一个：六星干员: 88" },
-        { k: "note",     label: "一句备注", type: "area", full: true },
-        { k: "link",     label: "外部主页链接（可留空）", full: true }
       ]
     }
   };
@@ -388,17 +431,18 @@ window.ADMIN = {
 
     if (activeTab === "basic") {
       var s = draft.site || {};
-      body += group("站点信息", "名字、身份、首页大标题", scalarFields([
+      body += group("站点信息", "名字、身份、页面摘要、页脚", scalarFields([
         { path: ["site", "name"], label: "名字", value: s.name },
         { path: ["site", "initials"], label: "头像字母（1-2 个）", value: s.initials },
         { path: ["site", "role"], label: "身份一行字", value: s.role },
-        { path: ["site", "tagline"], label: "首页大标题（换行用 \\n）", value: s.tagline, type: "area", full: true },
-        { path: ["site", "description"], label: "首页简介 / 搜索摘要", value: s.description, type: "area", full: true },
+        { path: ["site", "description"], label: "页面摘要（搜索结果 / 分享卡片里显示）", value: s.description, type: "area", full: true },
         { path: ["site", "location"], label: "坐标", value: s.location },
-        { path: ["site", "email"], label: "联系邮箱", value: s.email }
+        { path: ["site", "email"], label: "邮箱", value: s.email, mono: true },
+        { path: ["site", "copyright"], label: "版权行", value: s.copyright },
+        { path: ["site", "footerNote"], label: "页脚小字", value: s.footerNote }
       ]));
 
-      body += group("头像", "可以在页头、页脚和首页顶部显示",
+      body += group("头像", "显示在页头、页脚和 Q1 首屏",
         '<div class="avatar-row">' +
           '<span class="avatar-preview" data-avatar-preview>' + avatarPreviewHtml() + '</span>' +
           '<div class="avatar-actions">' +
@@ -417,85 +461,146 @@ window.ADMIN = {
           { path: ["site", "avatar"], label: "头像图片地址（留空则显示字母）", value: s.avatar || "", full: true, mono: true }
         ]));
 
-      body += group("合作状态与页脚", "", scalarFields([
-        { path: ["site", "available"], label: "显示「开放合作」标记", value: s.available, type: "bool" },
-        { path: ["site", "availableText"], label: "标记文字", value: s.availableText },
-        { path: ["site", "copyright"], label: "版权行", value: s.copyright },
-        { path: ["site", "footerNote"], label: "页脚小字", value: s.footerNote }
-      ]));
-
-      body += group("首页按钮与模块开关", "关掉某个模块，导航栏会自动去掉它",
-        scalarFields([
-          { path: ["hero", "primary", "label"], label: "主按钮文字", value: getPath(draft, ["hero", "primary", "label"]) },
-          { path: ["hero", "primary", "target"], label: "主按钮跳转（#services）", value: getPath(draft, ["hero", "primary", "target"]), mono: true },
-          { path: ["hero", "secondary", "label"], label: "副按钮文字", value: getPath(draft, ["hero", "secondary", "label"]) },
-          { path: ["hero", "secondary", "target"], label: "副按钮跳转（#social）", value: getPath(draft, ["hero", "secondary", "target"]), mono: true }
-        ]) +
-        ["about", "services", "interests", "social"].map(function (k) {
+      body += group("模块开关", "关掉某一屏，导航栏会自动去掉它（Q1 首屏不受影响）",
+        ["listen", "gaming", "repair", "links", "contact"].map(function (k) {
           var sec = getPath(draft, ["sections", k]) || {};
           return '<div class="row" style="align-items:center">' +
             '<label class="switch"><input type="checkbox" data-path="sections.' + k + '.enabled"' +
             (sec.enabled !== false ? " checked" : "") + '><span class="switch__track"></span>' +
-            '<span>' + esc(sec.label || k) + ' 模块</span></label>' +
+            '<span>' + esc(sec.label || k) + ' 屏</span></label>' +
             '<input class="input" style="flex:0 0 90px" type="text" data-path="sections.' + k + '.order" value="' +
             esc(sec.order == null ? "" : sec.order) + '" aria-label="排序">' +
             '</div>';
         }).join(""));
     }
 
-    if (activeTab === "about") {
-      body += group("标题文案", "", scalarFields([
-        { path: ["about", "eyebrow"], label: "小标签（01 / ABOUT）", value: getPath(draft, ["about", "eyebrow"]) },
-        { path: ["about", "title"], label: "标题", value: getPath(draft, ["about", "title"]) },
-        { path: ["about", "lead"], label: "副标题", value: getPath(draft, ["about", "lead"]), full: true }
+    /* ------------------------------------------------------------ Q1 · 我 */
+    if (activeTab === "profile") {
+      body += group("首屏文案", "访客打开页面第一眼看到的东西", scalarFields([
+        { path: ["profile", "greet"], label: "名字上方的小字", value: getPath(draft, ["profile", "greet"]) },
+        { path: ["profile", "tagline"], label: "名字下方的副标题", value: getPath(draft, ["profile", "tagline"]), full: true },
+        { path: ["profile", "intro"], label: "简介（2~3 句就够，太长会把联系方式挤下去）",
+          value: getPath(draft, ["profile", "intro"]), type: "area", full: true }
       ]));
 
-      var paras = getPath(draft, ["about", "paragraphs"]) || [];
-      body += group("正文段落", "每个段落一个文本框", paras.map(function (p, i) {
-        return '<label class="field"><span class="field__label">第 ' + (i + 1) + ' 段</span>' +
-               '<textarea class="area" data-par="' + i + '">' + esc(p) + '</textarea></label>' +
-               '<div class="row"><button class="btn btn--quiet btn--sm" type="button" data-par-del="' + i +
-               '">删除这段</button></div>';
-      }).join("") + '<div class="row"><button class="btn btn--quiet btn--sm" type="button" data-par-add>' +
-        '+ 添加一段</button></div>');
-
-      body += renderList("facts");
-      body += group("关键词标签", "逗号分隔", 
-        '<label class="field"><span class="field__label">标签</span>' +
-        '<input class="input" type="text" data-csv="about.tags" value="' +
-        esc(((getPath(draft, ["about", "tags"]) || []).join(", "))) + '"></label>');
-    }
-
-    if (activeTab === "services") {
-      body += group("标题文案", "", scalarFields([
-        { path: ["services", "eyebrow"], label: "小标签", value: getPath(draft, ["services", "eyebrow"]) },
-        { path: ["services", "title"], label: "标题", value: getPath(draft, ["services", "title"]) },
-        { path: ["services", "lead"], label: "副标题", value: getPath(draft, ["services", "lead"]), full: true }
+      body += group("首屏按钮", "指向下面任意一屏", scalarFields([
+        { path: ["hero", "primary", "label"], label: "主按钮文字", value: getPath(draft, ["hero", "primary", "label"]) },
+        { path: ["hero", "primary", "target"], label: "主按钮跳转（#listen）", value: getPath(draft, ["hero", "primary", "target"]), mono: true },
+        { path: ["hero", "secondary", "label"], label: "副按钮文字", value: getPath(draft, ["hero", "secondary", "label"]) },
+        { path: ["hero", "secondary", "target"], label: "副按钮跳转（#gaming）", value: getPath(draft, ["hero", "secondary", "target"]), mono: true }
       ]));
-      body += renderList("services");
+
+      body += renderList("contacts");
+      body += renderList("previews");
     }
 
+    /* ---------------------------------------------------------- Q2 · 在听 */
+    if (activeTab === "listen") {
+      body += group("标题文案", "", scalarFields([
+        { path: ["listen", "eyebrow"], label: "小标签（02 / LISTENING）", value: getPath(draft, ["listen", "eyebrow"]) },
+        { path: ["listen", "title"], label: "标题", value: getPath(draft, ["listen", "title"]) },
+        { path: ["listen", "lead"], label: "副标题", value: getPath(draft, ["listen", "lead"]), full: true }
+      ]));
+
+      body += group("网易云账号", "",
+        '<p class="sheet__hint">' +
+          'UID 这样找：打开 music.163.com → 点自己头像进主页 → 地址栏 <code>id=</code> 后面那串数字。<br>' +
+          '填了 UID 之后，「最近在听」会由仓库的定时任务自动同步（每天一次）。' +
+          '同步需要在仓库里配一个 <code>NETEASE_COOKIE</code> Secret，具体见 README。' +
+          '<strong>没配也不影响页面</strong> —— 会一直显示下面的兜底曲目。' +
+        '</p>' +
+        scalarFields([
+          { path: ["listen", "neteaseUid"], label: "网易云数字 UID", value: getPath(draft, ["listen", "neteaseUid"]), mono: true },
+          { path: ["listen", "limit"], label: "最多显示几首", value: getPath(draft, ["listen", "limit"]) }
+        ]));
+
+      body += renderList("tracks");
+    }
+
+    /* ---------------------------------------------------------- Q3 · 游戏 */
     if (activeTab === "gaming") {
       body += group("标题文案", "", scalarFields([
         { path: ["gaming", "eyebrow"], label: "小标签", value: getPath(draft, ["gaming", "eyebrow"]) },
         { path: ["gaming", "title"], label: "标题", value: getPath(draft, ["gaming", "title"]) },
         { path: ["gaming", "lead"], label: "副标题", value: getPath(draft, ["gaming", "lead"]), full: true }
       ]));
+
       body += group("小提示", "",
-        '<p class="sheet__hint">ID 那一栏会做成「点一下复制」的按钮，' +
-        '对方在社交场合想加好友时直接一点就行。<br>' +
-        '「可展现资产」每行写一个 <code>名称: 内容</code>，' +
-        '例如 <code>六星干员: 88</code>；不写冒号也可以，会当成只有名称。</p>');
+        '<p class="sheet__hint">' +
+          '这一屏只放「图标 + 名称 + ID」，不写介绍 —— 它的用途是让对方抄 ID 加好友。<br>' +
+          '想用自己的游戏图标：把图片放进 <code>assets/img/</code>，' +
+          '在「自定义图标图片地址」里填 <code>assets/img/arknights.png</code> 即可。' +
+        '</p>');
       body += renderList("gaming");
     }
 
-    if (activeTab === "interests") {
+    /* ---------------------------------------------------------- Q4 · 维修 */
+    if (activeTab === "repair") {
       body += group("标题文案", "", scalarFields([
-        { path: ["interests", "eyebrow"], label: "小标签", value: getPath(draft, ["interests", "eyebrow"]) },
-        { path: ["interests", "title"], label: "标题", value: getPath(draft, ["interests", "title"]) },
-        { path: ["interests", "lead"], label: "副标题", value: getPath(draft, ["interests", "lead"]), full: true }
+        { path: ["repair", "eyebrow"], label: "小标签", value: getPath(draft, ["repair", "eyebrow"]) },
+        { path: ["repair", "title"], label: "标题", value: getPath(draft, ["repair", "title"]) },
+        { path: ["repair", "lead"], label: "副标题", value: getPath(draft, ["repair", "lead"]), full: true }
       ]));
-      body += renderList("interests");
+
+      body += group("闲鱼主页卡", "和 Q1 那两个摘要卡是同一个组件",
+        scalarFields([
+          { path: ["repair", "xianyu", "platform"], label: "平台名", value: getPath(draft, ["repair", "xianyu", "platform"]) },
+          { path: ["repair", "xianyu", "icon"], label: "图标名", value: getPath(draft, ["repair", "xianyu", "icon"]) },
+          { path: ["repair", "xianyu", "title"], label: "标题", value: getPath(draft, ["repair", "xianyu", "title"]) },
+          { path: ["repair", "xianyu", "meta"], label: "副标题", value: getPath(draft, ["repair", "xianyu", "meta"]), full: true },
+          { path: ["repair", "xianyu", "url"], label: "闲鱼主页链接", value: getPath(draft, ["repair", "xianyu", "url"]), full: true, mono: true },
+          { path: ["repair", "xianyu", "cover"], label: "封面图地址（留空则为纯文字卡）",
+            value: getPath(draft, ["repair", "xianyu", "cover"]), full: true, mono: true },
+          { path: ["repair", "xianyu", "accent"], label: "平台主色", value: getPath(draft, ["repair", "xianyu", "accent"]) }
+        ]));
+
+      body += group("报价表抬头", "", scalarFields([
+        { path: ["repair", "quote", "title"], label: "标题", value: getPath(draft, ["repair", "quote", "title"]) },
+        { path: ["repair", "quote", "note"], label: "底部说明", value: getPath(draft, ["repair", "quote", "note"]), type: "area", full: true }
+      ]));
+
+      body += renderList("quoteRows");
+
+      body += group("价格计算器", "",
+        '<p class="sheet__hint">' +
+          '计算器是「设备 → 项目 → 材料 → 加项」四步向导，价格公式：<br>' +
+          '<code>项目价 × 设备系数 × 材料系数 + 加项固定价</code>，再按 ±15% 展开成区间。<br>' +
+          '这四组选项的系数需要细调，请在 <code>config.js</code> 的 ' +
+          '<code>repair.calculator</code> 里改（编辑器不提供，避免误操作把公式弄乱）。' +
+        '</p>' +
+        scalarFields([
+          { path: ["repair", "calculator", "title"], label: "计算器标题", value: getPath(draft, ["repair", "calculator", "title"]) },
+          { path: ["repair", "calculator", "hint"], label: "计算器副标题", value: getPath(draft, ["repair", "calculator", "hint"]), full: true }
+        ]));
+    }
+
+    /* ---------------------------------------------------------- Q5 · 其他 */
+    if (activeTab === "links") {
+      body += group("标题文案", "", scalarFields([
+        { path: ["links", "eyebrow"], label: "小标签", value: getPath(draft, ["links", "eyebrow"]) },
+        { path: ["links", "title"], label: "标题", value: getPath(draft, ["links", "title"]) },
+        { path: ["links", "lead"], label: "副标题", value: getPath(draft, ["links", "lead"]), full: true }
+      ]));
+      body += group("小提示", "",
+        '<p class="sheet__hint" style="margin:0">' +
+          'Q1 已经放了 QQ / 微信 / 网易云 / 小黑盒，这里只放剩下的，别重复。' +
+        '</p>');
+      body += renderList("links");
+    }
+
+    /* ---------------------------------------------------------- Q6 · 邮箱 */
+    if (activeTab === "contact") {
+      body += group("标题文案", "", scalarFields([
+        { path: ["contact", "eyebrow"], label: "小标签", value: getPath(draft, ["contact", "eyebrow"]) },
+        { path: ["contact", "title"], label: "标题", value: getPath(draft, ["contact", "title"]) },
+        { path: ["contact", "lead"], label: "副标题", value: getPath(draft, ["contact", "lead"]), full: true },
+        { path: ["contact", "hint"], label: "邮箱上方那句话", value: getPath(draft, ["contact", "hint"]), full: true }
+      ]));
+      body += group("邮箱地址", "",
+        '<p class="sheet__hint">邮箱本身在「基础」页的站点信息里改，整站共用同一个。</p>' +
+        scalarFields([
+          { path: ["site", "email"], label: "邮箱", value: (draft.site || {}).email, mono: true, full: true }
+        ]));
     }
 
     if (activeTab === "backdrop") {
@@ -857,13 +962,6 @@ window.ADMIN = {
         return;
       }
 
-      // 段落
-      if (el.dataset.par != null) {
-        draft.about.paragraphs[+el.dataset.par] = el.value;
-        mark();
-        return;
-      }
-
       // 逗号列表
       if (el.dataset.csv) {
         var p2 = el.dataset.csv.split(".");
@@ -989,14 +1087,6 @@ window.ADMIN = {
         mark(); renderPanel(); return;
       }
 
-      if (b.dataset.parAdd != null) {
-        draft.about.paragraphs.push("");
-        mark(); renderPanel(); return;
-      }
-      if (b.dataset.parDel != null) {
-        draft.about.paragraphs.splice(+b.dataset.parDel, 1);
-        mark(); renderPanel(); return;
-      }
     });
   }
 
@@ -1397,8 +1487,8 @@ window.ADMIN = {
 
   function enter() {
     var restored = loadDraft();
-    draft = restored ? mergeDefaults(window.SITE_CONFIG, restored)
-                     : JSON.parse(JSON.stringify(window.SITE_CONFIG));
+    draft = pruneDraft(restored ? mergeDefaults(window.SITE_CONFIG, restored)
+                                : JSON.parse(JSON.stringify(window.SITE_CONFIG)));
     $("#gate").hidden = true;
     $("#app").hidden = false;
     renderTabs();
@@ -1413,7 +1503,7 @@ window.ADMIN = {
     }
     $("#resetBtn").addEventListener("click", function () {
       if (!confirm("放弃所有未发布的改动，回到线上版本？")) return;
-      draft = JSON.parse(JSON.stringify(window.SITE_CONFIG));
+      draft = pruneDraft(JSON.parse(JSON.stringify(window.SITE_CONFIG)));
       mark(false); renderPanel(); toast("已还原");
     });
     $("#previewBtn").href = "./";
@@ -1430,6 +1520,16 @@ window.ADMIN = {
     try { authed = sessionStorage.getItem("zotrod-admin") === "1"; } catch (e) {}
     if (authed) enter();
     else bindGate();
+
+    /* 本地调试入口：只在 localhost / 127.0.0.1 下挂载，线上域名不会暴露。
+       用途是让自检脚本（tools/verify-admin-ui.js）能跳过口令直接验证
+       表单是否渲染正确 —— 否则每次改字段都得手输一次密码。 */
+    try {
+      if (/^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname)) {
+        window.ADMIN_ENTER = enter;
+        window.ADMIN_RENDER = function () { renderTabs(); renderPanel(); };
+      }
+    } catch (e) { /* ignore */ }
   }
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
