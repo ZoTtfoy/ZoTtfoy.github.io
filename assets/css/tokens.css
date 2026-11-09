@@ -19,6 +19,15 @@
   --r-lg: 22px;
   --r-full: 999px;
 
+  /* 小圆角从 --r-sm 派生，而不是写死。
+     原因：7 套主题的圆角是**各自的性格**（paper 是 2/3/4px 很锐，
+     aurora 是 14/22/30px 很圆，terminal 直接 0px 纯方角）。
+     如果在这里写死一个 4px，主题切换时标签就不跟随了。
+     用 calc 派生后：ink→4px、paper→0.8px、terminal→0、clay→6.4px，
+     每套主题的标签都保持自己的语气。
+     CSS 变量是惰性求值的，所以 JS 改 --r-sm 后这里会自动重算。 */
+  --r-xs: calc(var(--r-sm) * .4);
+
   --tracking-title: -.035em;
   --border-w: 1px;
 
@@ -92,8 +101,15 @@ body {
   color: var(--text);
   font-family: var(--font-sans);
   font-size: 16px;
-  line-height: 1.75;
-  letter-spacing: .005em;
+  /* 行高 1.75 → 1.62。
+     1.75 是「文档站」的行高，读长文舒服，但整页看会散：中文方块字本身
+     就占满字身框，1.75 会让每一行之间空出一道明显的白带，段落失去整体感。
+     1.62 在 16px 下是 25.9px，仍是舒适区间，但段落会重新聚成「一块」。
+     实测各章节高度正好省下 3~5%，翻页模式下更容易一屏装下。 */
+  line-height: 1.62;
+  /* 去掉原来的 letter-spacing: .005em。
+     这个量级（16px 下 0.08px）在物理像素上根本落不到格点，
+     只会让浏览器多做一次亚像素合成，看不出效果。真要调字距就在标题上负值处理。 */
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;
