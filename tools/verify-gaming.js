@@ -54,12 +54,15 @@ games.forEach(g => {
   ok(games.some(g => g.name.indexOf(name) >= 0), '配置含「' + name + '」');
 });
 
-/* 顺序：游戏排在业务之后、喜好之前 */
+/* 顺序：游戏排在喜好之后、业务之前。
+   注意这条断言跟着「配置里的 order」走 —— 章节顺序是用户可改的内容，
+   不是硬编码规则。断言意图（游戏夹在喜好与业务之间）比断言具体序列更稳。 */
 const order = Object.keys(C.sections)
   .filter(k => C.sections[k].enabled !== false)
   .sort((a, b) => C.sections[a].order - C.sections[b].order);
-ok(order.indexOf('gaming') === order.indexOf('services') + 1,
-   '章节顺序为 业务 → 游戏 → 喜好（' + order.join(' → ') + '）');
+ok(order.indexOf('gaming') === order.indexOf('interests') + 1 &&
+   order.indexOf('gaming') === order.indexOf('services') - 1,
+   '章节顺序为 喜好 → 游戏 → 业务（' + order.join(' → ') + '）');
 
 /* ------------------------------------------------ 2. CSS 关键约束 */
 ok(/\.game-rail\s*\{[\s\S]{0,320}scroll-snap-type:\s*x mandatory/.test(gameCss),
