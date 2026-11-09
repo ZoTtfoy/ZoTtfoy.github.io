@@ -118,22 +118,23 @@ window.SITE_RENDER = (function () {
     set("heroIntro", text(p.intro || ""));
     if (!p.tagline) { var t = $("heroTagline"); if (t) t.hidden = true; }
 
-    // QQ / 微信：点击即复制。用 <button> 而不是 <a>，因为它不跳转。
+    // 微信 / QQ：显示平台名 + 账号，点一下复制。
+    // 用 <button> 而不是 <a>，因为它不跳转。
     set("heroContacts", arr(p.contacts).map(function (c, i) {
-      return '<button class="chip" type="button" ' +
+      return '<button class="ccard" type="button" ' +
              'data-copy="' + esc(c.value) + '" ' +
              'aria-label="复制' + esc(c.label) + '：' + esc(c.value) + '" ' +
-             'style="' + delay(i, 60) + '">' +
-               '<span class="chip__icon">' + icon(c.icon) + '</span>' +
-               '<span class="chip__text">' +
-                 '<span class="chip__label">' + esc(c.label) + '</span>' +
-                 '<span class="chip__value">' + esc(c.value) + '</span>' +
-               '</span>' +
-               '<span class="chip__hint">' + esc(c.hint || "复制") + '</span>' +
-             '</button>';
+             'style="' + delay(i, 70) + '">' +
+               '<span class="ccard__icon">' + icon(c.icon) + "</span>" +
+               '<span class="ccard__body">' +
+                 '<span class="ccard__label">' + esc(c.label) + "</span>" +
+                 '<span class="ccard__value">' + esc(c.value) + "</span>" +
+               "</span>" +
+               '<span class="ccard__act">' + icon("copy") + "</span>" +
+             "</button>";
     }).join(""));
 
-    // 两个主页的摘要卡
+    // 两个主页的摘要卡（左右各一张）
     paintPreviews("heroPreviews", p.previews);
 
     // 首屏按钮
@@ -194,6 +195,9 @@ window.SITE_RENDER = (function () {
   }
 
   /* ========================================================== Q2 · 在听 */
+  /* 一首歌 = 一块磁贴。磁贴吸附在主卡片的唱片底纹上：
+     序号、曲名、歌手、播放入口，四样都在一块里，不再是一行行的表格。
+     序号用等宽数字 —— 01~06 竖向对齐时，列表看起来才整齐。 */
   function trackHtml(t, i) {
     var meta = [t.artist, t.album].filter(Boolean).join(" · ");
     return '<li class="track" style="' + delay(i, 45) + '" data-reveal>' +
