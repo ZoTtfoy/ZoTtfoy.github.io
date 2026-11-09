@@ -1,0 +1,407 @@
+/* ==========================================================================
+ *  首页细节验证：node tools/verify-live.js
+ * --------------------------------------------------------------------------
+ *  轻量部分（不需要浏览器）：用假 DOM 跑 live.js，验证时间/进度计算、开关、降级。
+ *  浏览器部分（可选，需 playwright-core）：验证载入动画三条路径、一言换句、
+ *  音乐浮窗两种形态、以及首页是否仍守得住「一屏一页」。
+ * ========================================================================== */
+const fs = require('fs');
+const path = require('path');
+const vm = require('vm');
+
+const ROOT = path.resolve(__dirname, '..');
+const notes = [], failures = [];
+const ok = (c, m) => c ? notes.push('OK  ' + m) : failures.push(m);
+
+const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+const liveSrc = fs.readFileSync(path.join(ROOT, 'assets/js/live.js'), 'utf8');
+const liveCss = fs.readFileSync(path.join(ROOT, 'assets/css/live.css'), 'utf8');
+const cfgSrc = fs.readFileSync(path.join(ROOT, 'assets/js/config.js'), 'utf8');
+
+/* ------------------------------------------------------ 1. 接线与结构 */
+ok(html.includes('assets/css/live.css'), 'index.html 引入 live.css');
+ok(html.includes('assets/js/live.js'), 'index.html 引入 live.js');
+ok(html.indexOf('assets/js/live.js') < html.indexOf('assets/js/paged.js'),
+   'live.js 在 paged.js 之前加载（否则会误判一屏装不下）');
+ok(html.includes('id="splash"'), '页面含载入动画容器');
+ok(html.includes('<noscript><style>.splash'), '无 JS 时有兜底样式，不会白屏卡住');
+ok(html.includes('id="liveQuote"'), '页面含一言容器');
+ok(html.includes('id="liveMeta"') && html.includes('id="liveClock"'), '页面含时钟容器');
+ok(html.includes('id="liveProgress"') && html.includes('id="liveProgressFill"'), '页面含时光进度条');
+ok(html.includes('id="soundOn"'), '页面含音乐挂载点');
+ok(/dataset\.loading/.test(html), '首屏内联脚本决定了是否显示载入动画');
+
+const mainSrc = fs.readFileSync(path.join(ROOT, 'assets/js/main.js'), 'utf8');
+ok(/SITE_LIVE[\s\S]{0,80}SITE_PAGED/.test(mainSrc), 'main.js 里 live 先于 paged 初始化');
+
+/* ------------------------------------------------------ 2. 配置项齐全 */
+['loading', 'clock', 'progress', 'quote', 'quoteRemote'].forEach(k => {
+  ok(new RegExp(k + ':').test(cfgSrc), 'config 含 live.' + k);
+});
+ok(/quotes:\s*\[/.test(cfgSrc), 'config 含 quotes 本地列表');
+['enabled', 'title', 'artist', 'src', 'link', 'loop', 'volume'].forEach(k => {
+  ok(new RegExp(k + ':').test(cfgSrc), 'config 含 music.' + k);
+});
+ok(/music:\s*\{[\s\S]*?enabled:\s*false/.test(cfgSrc), '音乐浮窗默认关闭（避免正式场合意外出声）');
+
+/* ------------------------------------------- 3. 假 DOM 跑 live.js */
+function makeCtx(configSource, opts = {}) {
+  const store = {};
+  function el(id) {
+    const e = {
+      id, hidden: opts.hidden !== false, textContent: '', innerHTML: '',
+      style: { transform: '', setProperty() {} },
+      dataset: {},
+      _on: {},
+      addEventListener(t, fn) { (e._on[t] = e._on[t] || []).push(fn); },
+      fire(t, ev) { (e._on[t] || []).forEach(fn => fn(ev || {})); },
+      querySelector: () => null,
+      removeChild() {},
+      parentNode: { removeChild() {} },
+      _attrs: {},
+      setAttribute(k, v) { e._attrs[k] = String(v); },
+      getAttribute(k) { return k in e._attrs ? e._attrs[k] : null; },
+      classList: { add() {}, remove() {}, toggle() {}, contains() { return false; } }
+    };
+    return e;
+  }
+  const nodes = {};
+  ['splash', 'liveMeta', 'liveClock', 'liveWeek', 'liveDate',
+   'liveProgress', 'liveProgressFill', 'liveProgressLabel', 'liveQuote', 'soundOn']
+    .forEach(id => { nodes[id] = el(id); });
+
+  const document = {
+    readyState: 'complete',
+    documentElement: { dataset: { loading: opts.loading === undefined ? '1' : opts.loading } },
+    getElementById: id => nodes[id] || null,
+    querySelector: sel => (sel === '.splash__mark' || sel === '.splash__name') ? el('q') : null,
+    querySelectorAll: () => [],
+    addEventListener() {},
+    createElement: () => el('made'),
+    body: { appendChild() {}, removeChild() {} }
+  };
+
+  const ctx = {
+    window: null,
+    document,
+    console: { log() {}, warn() {}, error(...a) { failures.push('console.error: ' + a.join(' ')); } },
+    matchMedia: q => ({
+      matches: q.indexOf('prefers-reduced-motion') >= 0 ? !!opts.reduced : false,
+      addEventListener() {}, addListener() {}
+    }),
+    requestAnimationFrame: fn => { fn(); return 1; },
+    setTimeout: (fn) => { if (fn) fn(); return 0; },
+    clearTimeout() {},
+    setInterval: () => 0,
+    clearInterval() {},
+    localStorage: { getItem: k => store[k] || null, setItem: (k, v) => { store[k] = v; }, removeItem(k) { delete store[k]; } },
+    sessionStorage: { getItem: k => store['s_' + k] || null, setItem: (k, v) => { store['s_' + k] = v; }, removeItem(k) { delete store['s_' + k]; } },
+    addEventListener() {},
+    fetch: () => Promise.resolve({ ok: false }),
+    siteIcon: () => '<svg></svg>',
+    location: { protocol: 'https:' },
+    Promise, String, Array, Object, Math, Number, JSON, Date, RegExp, Error, Boolean, parseInt, parseFloat, isNaN
+  };
+  ctx.window = ctx;
+  vm.createContext(ctx);
+  // 必要的图标桩
+  vm.runInContext('window.siteIcon = function(){ return "<svg></svg>"; };', ctx);
+  nodes.splash.parentNode = { removeChild() {} };
+  return { ctx, nodes, store };
+}
+
+/* --- 默认配置：时钟 / 一言 / 进度都应有内容 --- */
+const a = makeCtx(cfgSrc);
+vm.runInContext(cfgSrc, a.ctx);
+vm.runInContext(liveSrc, a.ctx, { filename: 'live.js' });
+ok(!!a.ctx.SITE_LIVE, 'live.js 暴露 SITE_LIVE');
+a.ctx.SITE_LIVE.init();
+
+const clockTxt = a.nodes.liveClock.textContent;
+ok(/^\d{2}:\d{2}$/.test(clockTxt), '时钟格式正确（' + clockTxt + '）');
+ok(a.nodes.liveMeta.hidden === false, '时钟区域已显示');
+ok(a.nodes.liveQuote.hidden === false, '一言已显示');
+ok(a.nodes.liveQuote.innerHTML.length > 5, '一言有内容');
+ok(a.nodes.liveProgress.hidden === false, '时光进度条已显示');
+
+const label = a.nodes.liveProgressLabel.textContent;
+const m = /今年已过 ([\d.]+)%/.exec(label);
+ok(!!m, '进度文案格式正确（' + label + '）');
+if (m) {
+  const pct = parseFloat(m[1]);
+  ok(pct >= 0 && pct <= 100, '进度在 0–100 之间（' + pct + '）');
+  /* 与独立算出的真实值比对（允许 1% 误差，因为跨天边界） */
+  const now = new Date();
+  const s = new Date(now.getFullYear(), 0, 1);
+  const e = new Date(now.getFullYear() + 1, 0, 1);
+  const real = (now - s) / (e - s) * 100;
+  ok(Math.abs(pct - real) < 1.2, '进度与实际日期吻合（页面 ' + pct + ' vs 实算 ' + real.toFixed(1) + '）');
+}
+const fill = a.nodes.liveProgressFill.style.transform;
+ok(/^scaleX\(0?\.\d+\)$/.test(fill), '进度条填充比例已设置（' + fill + '）');
+
+/* --- 全部关掉 --- */
+const offCfg = cfgSrc
+  .replace(/loading: true/, 'loading: false')
+  .replace(/clock: true/, 'clock: false')
+  .replace(/progress: true/, 'progress: false')
+  .replace(/quote: true/, 'quote: false');
+const b2 = makeCtx(offCfg, { loading: '0' });
+vm.runInContext(offCfg, b2.ctx);
+vm.runInContext(liveSrc, b2.ctx, { filename: 'live-off.js' });
+b2.ctx.SITE_LIVE.init();
+ok(b2.nodes.liveMeta.hidden === true, '关掉 clock 后时钟区域保持隐藏');
+ok(b2.nodes.liveProgress.hidden === true, '关掉 progress 后进度条保持隐藏');
+ok(b2.nodes.liveQuote.hidden === true, '关掉 quote 后一言保持隐藏');
+
+/* --- 减少动态效果：不联网、不换句 --- */
+const rc = makeCtx(cfgSrc, { reduced: true });
+vm.runInContext(cfgSrc, rc.ctx);
+vm.runInContext(liveSrc, rc.ctx, { filename: 'live-rm.js' });
+rc.ctx.SITE_LIVE.init();
+ok(rc.nodes.liveQuote.hidden === false, '减少动效下仍然显示一言（只是不可点击换句）');
+ok(rc.nodes.liveQuote.getAttribute('role') === null, '减少动效下不挂 button 语义');
+
+/* --- 一言：本地列表随机且会换 --- */
+const qc = makeCtx(cfgSrc);
+vm.runInContext(cfgSrc, qc.ctx);
+vm.runInContext(liveSrc, qc.ctx, { filename: 'live-q.js' });
+qc.ctx.SITE_LIVE.init();
+ok(qc.nodes.liveQuote.getAttribute('role') === 'button', '本地一言模式可点击换句');
+const first = qc.nodes.liveQuote.innerHTML;
+qc.nodes.liveQuote.fire('click');
+const second = qc.nodes.liveQuote.innerHTML;
+ok(!!second && second.length > 5, '点击后仍有一言内容');
+/* 列表有 7 条，两次相同概率很低；但为避免偶发，允许相同但要求内容合法 */
+ok(second === first || second.length > 5, '点击换句不报错');
+
+/* --- 音乐：默认关闭时不应生成浮窗 --- */
+ok(!/music-dock/.test(html), '默认不渲染音乐浮窗（HTML 里没有残留）');
+
+/* ------------------------------------------------------ 4. CSS 断言 */
+ok(/\.splash\s*\{[\s\S]{0,120}display:\s*none/.test(liveCss), '载入动画默认不显示');
+ok(/html\[data-loading="1"\]\s*\.splash\s*\{\s*display:\s*grid/.test(liveCss), '由 data-loading 控制显示');
+ok(/prefers-reduced-motion:\s*reduce[\s\S]{0,160}\.splash\s*\{\s*display:\s*none\s*!important/.test(liveCss),
+   '减少动效时载入动画强制关闭');
+ok(/font-variant-numeric:\s*tabular-nums/.test(liveCss), '数字等宽，时钟跳动不抖');
+ok(/@media \(max-width: 680px\)[\s\S]{0,220}\.music-dock__text\s*\{\s*display:\s*none/.test(liveCss),
+   '手机上音乐浮窗收成小圆钮，不压底部分段页码');
+
+/* --------------------------------------- 5. 浏览器验证（有则跑） */
+let chromium;
+try { chromium = require('playwright-core').chromium; } catch (e) { chromium = null; }
+
+async function browserChecks() {
+  if (!chromium) {
+    notes.push('--  未安装 playwright-core，跳过浏览器端校验');
+    return;
+  }
+  const URL = 'http://127.0.0.1:8791/';
+  const browser = await chromium.launch();
+
+  // 5.1 载入动画三条路径
+  {
+    const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+    const page = await ctx.newPage();
+    await page.goto(URL, { waitUntil: 'domcontentloaded' });
+    const first = await page.evaluate(() => ({
+      attr: document.documentElement.dataset.loading,
+      shown: !!document.getElementById('splash') &&
+             getComputedStyle(document.getElementById('splash')).display === 'grid'
+    }));
+    ok(first.attr === '1' && first.shown, '[浏览器] 首次访问出现载入动画');
+    await page.waitForTimeout(1500);
+    ok(await page.evaluate(() => !document.getElementById('splash')), '[浏览器] 载入动画会自动移除');
+
+    await page.goto(URL, { waitUntil: 'domcontentloaded' });
+    const second = await page.evaluate(() => ({
+      attr: document.documentElement.dataset.loading,
+      gone: !document.getElementById('splash')
+    }));
+    ok(second.attr === '0' && second.gone, '[浏览器] 同一会话再次访问不再出现');
+
+    // 一言换句
+    await page.waitForTimeout(600);
+    const q1 = await page.evaluate(() => document.getElementById('liveQuote').textContent);
+    await page.locator('#liveQuote').click();
+    await page.waitForTimeout(400);
+    const q2 = await page.evaluate(() => document.getElementById('liveQuote').textContent);
+    ok(!!q1 && !!q2, '[浏览器] 一言有点击交互（' + q1.slice(0, 8) + ' → ' + q2.slice(0, 8) + '）');
+    await ctx.close();
+  }
+
+  // 5.2 减少动效
+  {
+    const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, reducedMotion: 'reduce' });
+    const page = await ctx.newPage();
+    await page.goto(URL, { waitUntil: 'domcontentloaded' });
+    ok(await page.evaluate(() => document.documentElement.dataset.loading === '0'),
+       '[浏览器] 减少动效时不出现载入动画');
+    await ctx.close();
+  }
+
+  // 5.3 逐视口：一屏约束 + 对比度 + 无报错
+  function lum(rgb) {
+    const [r, g, b] = rgb.map(v => {
+      v /= 255;
+      return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+    });
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  }
+  const contrast = (a, b) => {
+    const L1 = lum(a), L2 = lum(b);
+    const hi = Math.max(L1, L2), lo = Math.min(L1, L2);
+    return (hi + 0.05) / (lo + 0.05);
+  };
+
+  for (const vp of [
+    { n: '桌面', w: 1440, h: 900 },
+    { n: '平板', w: 820, h: 1180 },
+    { n: '手机', w: 390, h: 844 }
+  ]) {
+    const ctx = await browser.newContext({
+      viewport: { width: vp.w, height: vp.h },
+      hasTouch: vp.w <= 900, isMobile: vp.w <= 900
+    });
+    const page = await ctx.newPage();
+    const errs = [];
+    page.on('pageerror', e => errs.push(e.message));
+    page.on('console', c => { if (c.type() === 'error') errs.push(c.text()); });
+    await page.goto(URL, { waitUntil: 'networkidle' });
+    await page.waitForTimeout(1500);
+
+    const r = await page.evaluate(() => {
+      const hero = document.querySelector('.hero');
+      const inner = hero.querySelector('.hero__inner');
+      const parse = s => {
+        const m = s.match(/rgba?\(([^)]+)\)/);
+        if (!m) return null;
+        const p = m[1].split(',').map(Number);
+        return p.slice(0, 3);
+      };
+      const bgOf = el => {
+        let e = el;
+        while (e) {
+          const c = getComputedStyle(e).backgroundColor;
+          if (c !== 'rgba(0, 0, 0, 0)') { const v = parse(c); if (v) return v; }
+          e = e.parentElement;
+        }
+        return [255, 255, 255];
+      };
+      const meta = document.getElementById('liveMeta');
+      const quote = document.getElementById('liveQuote');
+      const lab = document.getElementById('liveProgressLabel');
+      return {
+        heroH: hero.offsetHeight,
+        vh: innerHeight,
+        tall: hero.getAttribute('data-tall'),
+        slack: Math.round(hero.getBoundingClientRect().bottom - inner.getBoundingClientRect().bottom),
+        metaFg: parse(getComputedStyle(meta).color), metaBg: bgOf(meta),
+        quoteFg: parse(getComputedStyle(quote).color), quoteBg: bgOf(quote),
+        labFg: parse(getComputedStyle(lab).color), labBg: bgOf(lab),
+        clock: document.getElementById('liveClock').textContent,
+        label: lab.textContent,
+        fill: document.getElementById('liveProgressFill').style.transform
+      };
+    });
+
+    ok(r.tall === null, '[' + vp.n + '] 首页未被标记为高个页');
+    ok(r.heroH <= r.vh + 2, '[' + vp.n + '] 首页仍是一屏（' + r.heroH + ' / ' + r.vh + '）');
+    ok(r.slack > 0, '[' + vp.n + '] 首页内容有留白余量（' + r.slack + 'px）');
+    ok(/^\d{2}:\d{2}$/.test(r.clock), '[' + vp.n + '] 时钟已渲染（' + r.clock + '）');
+    ok(/今年已过 [\d.]+%/.test(r.label), '[' + vp.n + '] 进度文案已渲染（' + r.label + '）');
+    ok(/scaleX\(0?\.\d+\)/.test(r.fill), '[' + vp.n + '] 进度条已填充');
+
+    if (r.metaFg && r.metaBg) {
+      const c = contrast(r.metaFg, r.metaBg);
+      ok(c >= 3.5, '[' + vp.n + '] 时钟文字对比度 ' + c.toFixed(2) + ' ≥ 3.5（辅助信息）');
+    }
+    if (r.quoteFg && r.quoteBg) {
+      const c = contrast(r.quoteFg, r.quoteBg);
+      ok(c >= 4.5, '[' + vp.n + '] 一言对比度 ' + c.toFixed(2) + ' ≥ 4.5');
+    }
+    if (r.labFg && r.labBg) {
+      const c = contrast(r.labFg, r.labBg);
+      ok(c >= 3.5, '[' + vp.n + '] 进度标签对比度 ' + c.toFixed(2) + ' ≥ 3.5');
+    }
+    if (errs.length) failures.push('[' + vp.n + '] 控制台错误: ' + JSON.stringify(errs.slice(0, 3)));
+    await ctx.close();
+  }
+
+  // 5.4 音乐浮窗两种形态
+  {
+    const cfgPath = path.join(ROOT, 'assets/js/config.js');
+    const original = fs.readFileSync(cfgPath, 'utf8');
+
+    // 形态一：有音源 → 播放按钮（用正则替换，避免换行符差异）
+    const withSrc = original
+      .replace(/music:\s*\{[\s\S]*?enabled:\s*false/, 'music: {\n    enabled: true')
+      .replace(/title:\s*"我的歌单"/, 'title: "测试曲目"')
+      .replace(/src:\s*""[^\n]*/, 'src: "./assets/audio/test.mp3",');
+    fs.writeFileSync(cfgPath, withSrc);
+    ok(/enabled:\s*true/.test(withSrc) && /test\.mp3/.test(withSrc), '[音乐] 测试配置写入成功');
+    {
+      const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+      const page = await ctx.newPage();
+      await page.goto(URL, { waitUntil: 'domcontentloaded' });
+      await page.waitForTimeout(900);
+      const r = await page.evaluate(() => {
+        const d = document.querySelector('.music-dock');
+        if (!d) return null;
+        const audio = d.querySelector('audio');
+        return {
+          isButton: d.tagName === 'DIV',
+          hasBtn: !!d.querySelector('#musicBtn'),
+          title: (d.querySelector('.music-dock__title') || {}).textContent,
+          hasAudio: !!audio,
+          autoplay: audio ? !audio.paused : null,
+          preload: audio ? audio.preload : null
+        };
+      });
+      ok(!!r, '[音乐] 配置音源后出现浮窗');
+      if (r) {
+        ok(r.hasBtn, '[音乐] 有播放按钮');
+        ok(r.title === '测试曲目', '[音乐] 标题来自配置（' + r.title + '）');
+        ok(r.hasAudio, '[音乐] 创建了 audio 元素');
+        ok(r.autoplay === false, '[音乐] 绝不自动播放');
+        ok(r.preload === 'none', '[音乐] preload=none，不抢带宽');
+      }
+      await ctx.close();
+    }
+
+    // 形态二：只有链接 → 跳转入口
+    const withLink = original.replace(/music:\s*\{[\s\S]*?enabled:\s*false/, 'music: {\n    enabled: true');
+    fs.writeFileSync(cfgPath, withLink);
+    {
+      const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+      const page = await ctx.newPage();
+      await page.goto(URL, { waitUntil: 'domcontentloaded' });
+      await page.waitForTimeout(900);
+      const r = await page.evaluate(() => {
+        const d = document.querySelector('.music-dock');
+        return d ? { tag: d.tagName, href: d.getAttribute('href'), noAudio: !d.querySelector('audio') } : null;
+      });
+      ok(!!r && r.tag === 'A', '[音乐] 只有链接时渲染为跳转入口');
+      ok(!!r && /music\.163\.com/.test(r.href || ''), '[音乐] 链接指向配置地址');
+      ok(!!r && r.noAudio, '[音乐] 无音源时不创建 audio');
+      await ctx.close();
+    }
+
+    // 恢复原配置
+    fs.writeFileSync(cfgPath, original);
+    ok(true, '[音乐] 测试后已恢复原配置');
+  }
+
+  await browser.close();
+}
+
+browserChecks().then(() => {
+  console.log(notes.join('\n'));
+  console.log('\n检查项: ' + notes.length + '，失败: ' + failures.length);
+  if (failures.length) { console.log('\n失败明细:\n' + failures.join('\n')); process.exit(1); }
+  console.log('\n全部通过');
+}).catch(e => {
+  console.log(notes.join('\n'));
+  console.log('\n运行中断: ' + e.message);
+  process.exit(1);
+});

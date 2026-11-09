@@ -14,7 +14,9 @@
       }
       window.SITE_RENDER.init();
       if (window.SITE_SKIN) window.SITE_SKIN.init();
-      // 翻页要在渲染之后（区块顺序已定），且早于 motion（锚点跳转要用到它）
+      // live 要先于 paged：时钟/一言/进度条会改变首页高度，
+      // 必须在测量「这一页装不装得下」之前就位，否则会误判。
+      if (window.SITE_LIVE) window.SITE_LIVE.init();
       if (window.SITE_PAGED) window.SITE_PAGED.init();
       window.SITE_MOTION.init();
       if (window.SITE_EFFECTS) window.SITE_EFFECTS.init();

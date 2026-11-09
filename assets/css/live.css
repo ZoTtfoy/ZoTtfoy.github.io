@@ -1,0 +1,261 @@
+/* ==========================================================================
+ *  live.css —— 首页的「活着的」细节
+ * --------------------------------------------------------------------------
+ *  载入动画 / 实时时钟 / 时光进度条 / 一言 / 音乐浮窗
+ *  共同原则：体积要小。首页必须守住「一屏一页」，所以这一层占的高度
+ *  按像素抠过——加起来桌面 ≤ 90px，手机 ≤ 70px。
+ * ========================================================================== */
+
+/* ============================================================ 1. 载入动画 */
+.splash {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 150;
+  place-items: center;
+  background: var(--bg);
+  opacity: 1;
+  transition: opacity .5s var(--ease);
+}
+/* 只在首屏内联脚本判定要显示时才出现，避免闪烁 */
+html[data-loading="1"] .splash { display: grid; }
+html[data-loading="0"] .splash { display: none; }
+.splash.is-done {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.splash__inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+}
+.splash__mark {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 13px;
+  background: var(--text);
+  color: var(--bg);
+  font-family: var(--font-mono);
+  font-size: 1.2rem;
+  font-weight: 700;
+  animation: splash-in .6s var(--ease-out) both;
+}
+.splash__name {
+  font-size: .82rem;
+  letter-spacing: .22em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  animation: splash-in .6s .08s var(--ease-out) both;
+}
+/* 一条 120px 的细线，走到头就结束——比百分比数字安静 */
+.splash__line {
+  position: relative;
+  width: 120px;
+  height: 1px;
+  overflow: hidden;
+  background: var(--line-strong);
+  animation: splash-in .6s .16s var(--ease-out) both;
+}
+.splash__line::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--accent);
+  transform-origin: 0 50%;
+  animation: splash-fill .78s var(--ease-out) both;
+}
+@keyframes splash-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes splash-fill {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+
+/* ============================================================ 2. 首页细节 */
+.hero__quote {
+  position: relative;
+  max-width: 46ch;
+  margin-top: clamp(18px, 2.6vh, 26px);
+  padding-left: 16px;
+  font-size: clamp(.88rem, 1.2vw, .96rem);
+  line-height: 1.75;
+  color: var(--text-2);
+  transition: opacity .3s var(--ease);
+}
+/* 左侧一道细竖线，代替引号的视觉重量 */
+.hero__quote::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: .32em;
+  bottom: .32em;
+  width: 2px;
+  border-radius: 1px;
+  background: var(--accent);
+  opacity: .55;
+}
+.hero__quote.is-swapping { opacity: 0; }
+.hero__quote__from {
+  margin-left: 8px;
+  font-size: .78em;
+  color: var(--text-3);
+}
+/* 作为按钮时不要按钮外观 */
+button.hero__quote {
+  display: block;
+  border: 0;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+button.hero__quote:hover { color: var(--text); }
+
+/* 时钟 / 日期 / 年进度：一行，等宽小字 */
+.hero__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 10px;
+  margin-top: clamp(16px, 2.4vh, 24px);
+  font-family: var(--font-mono);
+  font-size: .74rem;
+  letter-spacing: .04em;
+  color: var(--text-3);
+}
+.hero__meta b {
+  font-weight: 600;
+  color: var(--text-2);
+  font-variant-numeric: tabular-nums;   /* 数字等宽，跳动时不抖 */
+}
+.hero__meta__sep { opacity: .45; }
+
+/* 时光进度条：2px 发丝线，长度跟正文一致，不喧哗 */
+.hero__progress {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 320px;
+  margin-top: 10px;
+}
+.hero__progress__track {
+  position: relative;
+  flex: 1;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--line-strong);
+  overflow: hidden;
+}
+.hero__progress__fill {
+  position: absolute;
+  inset: 0;
+  border-radius: 1px;
+  background: var(--accent);
+  transform-origin: 0 50%;
+  transform: scaleX(0);
+  transition: transform 1.2s var(--ease-out);
+}
+.hero__progress__label {
+  flex: none;
+  font-family: var(--font-mono);
+  font-size: .66rem;
+  letter-spacing: .05em;
+  color: var(--text-3);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ============================================================ 3. 音乐浮窗 */
+.music-dock {
+  position: fixed;
+  left: max(20px, env(safe-area-inset-left));
+  bottom: max(20px, env(safe-area-inset-bottom));
+  z-index: 45;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: min(300px, calc(100vw - 96px));
+  padding: 7px 14px 7px 7px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-full);
+  background: var(--bg-elev);
+  box-shadow: var(--shadow-sm);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  text-align: left;
+  animation: dock-in .5s var(--ease-out) both;
+}
+@keyframes dock-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: none; }
+}
+
+.music-dock__btn {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--text);
+  color: var(--bg);
+  transition: transform var(--t-fast) var(--ease), background-color var(--t-fast) var(--ease);
+}
+.music-dock__btn .icon { width: 14px; height: 14px; }
+.music-dock__btn:hover { transform: scale(1.06); background: var(--accent); color: var(--accent-fg); }
+
+.music-dock__text { min-width: 0; display: flex; flex-direction: column; }
+.music-dock__title {
+  overflow: hidden;
+  font-size: .76rem;
+  font-weight: 500;
+  color: var(--text);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.music-dock__artist {
+  overflow: hidden;
+  font-family: var(--font-mono);
+  font-size: .64rem;
+  color: var(--text-3);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 播放时，图标旁边有一圈很轻的呼吸 */
+.music-dock.is-playing .music-dock__btn {
+  animation: music-pulse 2.4s var(--ease) infinite;
+}
+@keyframes music-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 var(--accent-soft); }
+  50%      { box-shadow: 0 0 0 6px transparent; }
+}
+
+/* 手机上收成小圆钮，只留一个音符，避免压住底部分段页码 */
+@media (max-width: 680px) {
+  .music-dock {
+    padding: 5px;
+    border-radius: 50%;
+    bottom: calc(26px + env(safe-area-inset-bottom));
+  }
+  .music-dock__text { display: none; }
+  .music-dock__btn { width: 34px; height: 34px; }
+}
+
+/* ============================================================ 4. 降级 */
+@media (prefers-reduced-motion: reduce) {
+  .splash { display: none !important; }
+  .splash__mark, .splash__name, .splash__line, .splash__line::after { animation: none; }
+  .splash__line::after { transform: scaleX(1); }
+  .music-dock { animation: none; }
+  .music-dock.is-playing .music-dock__btn { animation: none; }
+  .hero__progress__fill { transition: none; }
+}
+
+@media print {
+  .splash, .music-dock { display: none !important; }
+}

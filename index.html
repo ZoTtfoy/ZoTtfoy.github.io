@@ -42,6 +42,16 @@
         }
         d.dataset.theme = mode;
         d.dataset.modeRaw = modeRaw;
+
+        /* 载入动画：每次会话只出现一次；系统开了「减少动态效果」就跳过。
+           放在内联脚本里判断，首帧前就定好，避免内容先闪一下再盖住。 */
+        var live = (window.SITE_CONFIG || {}).live || {};
+        var wantSplash = live.loading !== false &&
+          !matchMedia('(prefers-reduced-motion: reduce)').matches;
+        var seen = false;
+        try { seen = sessionStorage.getItem('zotrod-splash') === '1'; } catch (err) {}
+        d.dataset.loading = (wantSplash && !seen) ? '1' : '0';
+        try { sessionStorage.setItem('zotrod-splash', '1'); } catch (err) {}
       } catch (e) {
         d.dataset.theme = 'light';
         d.dataset.skin = 'ink';
@@ -54,11 +64,22 @@
   <link rel="stylesheet" href="assets/css/components.css">
   <link rel="stylesheet" href="assets/css/skin.css">
   <link rel="stylesheet" href="assets/css/paged.css">
+  <link rel="stylesheet" href="assets/css/live.css">
   <link rel="stylesheet" href="assets/css/effects.css">
   <link rel="stylesheet" href="assets/css/motion.css">
 </head>
 
 <body>
+  <!-- 载入动画：只在首次进入时出现，最多 900ms，可点击跳过 -->
+  <div class="splash" id="splash" aria-hidden="true">
+    <div class="splash__inner">
+      <span class="splash__mark">Z</span>
+      <span class="splash__name">ZOTROD</span>
+      <span class="splash__line"></span>
+    </div>
+  </div>
+  <noscript><style>.splash { display: none !important; }</style></noscript>
+
   <a class="skip-link" href="#main">跳到主要内容</a>
 
   <div class="scroll-progress" aria-hidden="true"><span id="scrollProgressBar"></span></div>
@@ -139,6 +160,23 @@
           <a class="btn btn--primary" id="heroPrimary" href="#services"></a>
           <a class="btn btn--quiet" id="heroSecondary" href="#social"></a>
         </div>
+
+        <!-- 一言：默认本地精选，点一下换一句 -->
+        <p class="hero__quote" id="liveQuote" data-reveal style="--reveal-delay:360ms" hidden></p>
+
+        <!-- 实时时钟 + 日期 + 今年进度 -->
+        <div class="hero__meta" id="liveMeta" data-reveal style="--reveal-delay:410ms" hidden>
+          <b id="liveClock">--:--</b>
+          <span class="hero__meta__sep" aria-hidden="true">·</span>
+          <span id="liveWeek"></span>
+          <span id="liveDate"></span>
+        </div>
+        <div class="hero__progress" id="liveProgress" data-reveal style="--reveal-delay:450ms" hidden>
+          <span class="hero__progress__track" aria-hidden="true">
+            <span class="hero__progress__fill" id="liveProgressFill"></span>
+          </span>
+          <span class="hero__progress__label" id="liveProgressLabel"></span>
+        </div>
       </div>
       <div class="hero__scroll" aria-hidden="true" data-reveal style="--reveal-delay:420ms">
         <span>向下滚动</span><span class="hero__scroll-line"></span>
@@ -218,6 +256,9 @@
 
   <button class="to-top" id="toTop" type="button" aria-label="回到顶部" title="回到顶部"></button>
 
+  <!-- 音乐浮窗的挂载点（配置了音源或链接时才由 JS 生成内容） -->
+  <div id="soundOn" hidden></div>
+
   <!-- 右侧页码：翻页模式下显示，可点击跳转；手机上变成底部细分段 -->
   <nav class="pager" id="pager" aria-label="页面导航">
     <ol class="pager__list" id="pagerList"></ol>
@@ -230,6 +271,7 @@
   <script src="assets/js/icons.js"></script>
   <script src="assets/js/render.js"></script>
   <script src="assets/js/skin.js"></script>
+  <script src="assets/js/live.js"></script>
   <script src="assets/js/paged.js"></script>
   <script src="assets/js/effects.js"></script>
   <script src="assets/js/motion.js"></script>

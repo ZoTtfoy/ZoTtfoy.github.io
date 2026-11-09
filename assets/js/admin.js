@@ -438,6 +438,28 @@ window.ADMIN = {
         '<p class="sheet__hint">关掉「翻页式」会回到普通长页面（原来的滚动手感）。' +
         '光效在触屏设备上只保留点按涟漪；系统开启「减少动态效果」时会全部自动关闭。</p>');
 
+      body += group("首页细节", "载入动画 / 时钟 / 时光进度条 / 一言", 
+        scalarFields([
+          { path: ["live", "loading"], label: "载入动画（每次会话一次，最多 0.9 秒）", value: (draft.live || {}).loading, type: "bool" },
+          { path: ["live", "clock"], label: "实时时钟 + 日期", value: (draft.live || {}).clock, type: "bool" },
+          { path: ["live", "progress"], label: "时光进度条（今年已过 %）", value: (draft.live || {}).progress, type: "bool" },
+          { path: ["live", "quote"], label: "一言", value: (draft.live || {}).quote, type: "bool" },
+          { path: ["live", "quoteRemote"], label: "一言改为联网获取（内容随机，不推荐）", value: (draft.live || {}).quoteRemote, type: "bool" }
+        ]) +
+        '<p class="sheet__hint">一言列表在 config.js 的 <code>quotes</code> 里，' +
+        '写纯文字或 <code>{ text, from }</code> 都行，点首页那句话可以换一句。</p>');
+
+      body += group("音乐浮窗", "默认关闭，避免在正式场合意外出声", 
+        scalarFields([
+          { path: ["music", "enabled"], label: "显示音乐浮窗", value: (draft.music || {}).enabled, type: "bool" },
+          { path: ["music", "title"], label: "曲名 / 歌单名", value: (draft.music || {}).title },
+          { path: ["music", "artist"], label: "副标题", value: (draft.music || {}).artist },
+          { path: ["music", "src"], label: "音频直链（留空则只做跳转）", value: (draft.music || {}).src, full: true, mono: true },
+          { path: ["music", "link"], label: "点击后跳转的地址", value: (draft.music || {}).link, full: true, mono: true }
+        ]) +
+        '<p class="sheet__hint">填了音频直链会出现播放按钮（绝不自动播放）；' +
+        '只填链接则变成一个「去听歌」的入口。</p>');
+
       body += group("主题与动效", "", scalarFields([
         { path: ["ui", "themeDefault"], label: "默认明暗（auto / light / dark）", value: ui.themeDefault, mono: true },
         { path: ["ui", "accent"], label: "覆盖浅色主色（留空则用风格自带）", value: ui.accent || "", mono: true },

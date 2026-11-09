@@ -145,6 +145,8 @@ const ctx = {
   getComputedStyle: () => ({ getPropertyValue: () => '' }),
   requestAnimationFrame: (fn) => { fn(); return 1; },
   setTimeout: (fn) => 0,
+  setInterval: () => 0,
+  clearInterval() {},
   clearTimeout() {},
   IntersectionObserver: FakeIO,
   navigator: {},
@@ -163,7 +165,7 @@ vm.createContext(ctx);
 
 /* ---------- 依次执行站点脚本 ---------- */
 const scripts = ['assets/js/config.js','assets/js/themes.js','assets/js/icons.js','assets/js/render.js',
-                 'assets/js/skin.js','assets/js/paged.js','assets/js/effects.js',
+                 'assets/js/skin.js','assets/js/live.js','assets/js/paged.js','assets/js/effects.js',
                  'assets/js/motion.js','assets/js/main.js'];
 for (const rel of scripts) {
   const code = fs.readFileSync(path.join(ROOT, rel), 'utf8');
