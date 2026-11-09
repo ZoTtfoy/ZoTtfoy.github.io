@@ -198,6 +198,11 @@ check(H('contactBlock').includes('data-copy="' + ctx.SITE_RENDER.esc(C.site.emai
 check(H('contactBlock').includes('mailto:'), '发邮件链接渲染');
 check(H('socialGrid').includes('target="_blank"'), '外链安全属性');
 check(H('socialGrid').includes('rel="noopener noreferrer"'), '外链 noopener');
+// copy 模式（QQ / 微信这类没有公开主页的账号）
+const copyItems = (C.social?.items || []).filter(it => it.copy);
+check(count('socialGrid', /data-copy="/g) === copyItems.length, 'copy 类型社交卡片数量正确');
+check(copyItems.length === 0 || H('socialGrid').includes('<button class="social"'), 'copy 类型渲染为按钮');
+check(copyItems.every(it => !it.url), 'copy 类型不带无效链接');
 check(byId.get('about').querySelector('[data-field="title"]')?.innerHTML === (C.about?.title || ''), '区块标题填充');
 check(H('themeToggle').includes('<svg'), '主题按钮图标');
 check(H('toTop').includes('<svg'), '回到顶部图标');
