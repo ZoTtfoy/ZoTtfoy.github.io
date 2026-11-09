@@ -100,7 +100,11 @@ window.SITE_EFFECTS = (function () {
   }
 
   /* --------------------------------------------------------- 卡片跟随光斑 */
-  var GLOW_TARGETS = ".card, .interest, .social, .contact, .about__side";
+  /* 跟着 6 屏重构一起更新：旧结构里的 .card / .interest / .about__side / .contact
+     已经不存在了（业务、喜好、关于三屏被删），换成了新组件。
+     这里刻意**没有**加 .chip 和 .track —— 它们太小，光斑在 26px 的盒子里
+     移动会像一只乱窜的亮点，反而廉价。 */
+  var GLOW_TARGETS = ".social, .preview, .game, .calc, .mailbox";
   var glowRaf = null;
   var pendingGlow = null;
 
