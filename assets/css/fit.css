@@ -45,10 +45,11 @@ html[data-paged="on"][data-fit="tight"] .profile__name { font-size: 1.85rem; }
 html[data-paged="on"][data-fit="tight"] .profile__tagline { margin-top: 8px; font-size: .9rem; }
 html[data-paged="on"][data-fit="tight"] .profile__role { margin-top: 4px; font-size: .68rem; }
 html[data-paged="on"][data-fit="tight"] .profile__intro { margin-top: 8px; font-size: .84rem; line-height: 1.62; }
-html[data-paged="on"][data-fit="tight"] .chips { margin-top: 12px; gap: 8px; }
-html[data-paged="on"][data-fit="tight"] .chip { padding: 6px 10px 6px 8px; }
-html[data-paged="on"][data-fit="tight"] .chip__icon { width: 22px; height: 22px; }
-html[data-paged="on"][data-fit="tight"] .chip__icon .icon { width: 15px; height: 15px; }
+html[data-paged="on"][data-fit="tight"] .contact-pair,
+html[data-paged="on"][data-fit="tight"] .preview-pair { margin-top: 12px; }
+html[data-paged="on"][data-fit="tight"] .ccard { padding: 8px 10px; gap: 8px; }
+html[data-paged="on"][data-fit="tight"] .ccard__icon { width: 26px; height: 26px; }
+html[data-paged="on"][data-fit="tight"] .ccard__icon .icon { width: 17px; height: 17px; }
 html[data-paged="on"][data-fit="tight"] .hero__actions { margin-top: 12px; }
 
 /* 摘要卡 */
@@ -74,12 +75,17 @@ html[data-paged="on"][data-fit="tight"] .game__uid { margin-top: 6px; padding: 5
 
 /* Q4 维修 */
 html[data-paged="on"][data-fit="tight"] .repair { gap: 16px; }
-html[data-paged="on"][data-fit="tight"] .quote { margin-top: 12px; padding-top: 10px; }
+/* ⚠️ 这一组的值必须 <= blocks.css 里 @media (max-width: 680px) 的值。
+   早先写的是 padding: 2px 0 / .74rem / .72rem，而手机规则已经是 0 / .72 / .7 ——
+   于是 360×640 这类同时命中「窄屏 + tight 档」的机型，
+   fit.css 把手机规则的紧凑值又"放松"回去了，实测 tight 比 roomy 高 18px。
+   现在两处对齐，档位顺序恢复单调。 */
+html[data-paged="on"][data-fit="tight"] .quote { margin-top: 10px; padding-top: 10px; }
 html[data-paged="on"][data-fit="tight"] .quote__groups { margin-top: 6px; }
-html[data-paged="on"][data-fit="tight"] .quote__row { padding: 2px 0; }
-html[data-paged="on"][data-fit="tight"] .quote__item { font-size: .74rem; }
-html[data-paged="on"][data-fit="tight"] .quote__price { font-size: .72rem; }
-html[data-paged="on"][data-fit="tight"] .quote__note { margin-top: 6px; font-size: .64rem; }
+html[data-paged="on"][data-fit="tight"] .quote__row { padding: 0; }
+html[data-paged="on"][data-fit="tight"] .quote__item { font-size: .72rem; }
+html[data-paged="on"][data-fit="tight"] .quote__price { font-size: .7rem; }
+html[data-paged="on"][data-fit="tight"] .quote__note { margin-top: 5px; font-size: .58rem; }
 html[data-paged="on"][data-fit="tight"] .calc { padding: 12px; }
 html[data-paged="on"][data-fit="tight"] .calc__step { margin-top: 9px; }
 html[data-paged="on"][data-fit="tight"] .calc__label { margin-bottom: 5px; font-size: .64rem; }
@@ -115,9 +121,11 @@ html[data-paged="on"][data-fit="snug"] .profile__name { font-size: 1.6rem; }
 html[data-paged="on"][data-fit="snug"] .profile__tagline { margin-top: 6px; font-size: .84rem; }
 html[data-paged="on"][data-fit="snug"] .profile__role { display: none; }
 html[data-paged="on"][data-fit="snug"] .profile__intro { margin-top: 6px; font-size: .8rem; line-height: 1.55; }
-html[data-paged="on"][data-fit="snug"] .chips { margin-top: 9px; gap: 7px; }
-html[data-paged="on"][data-fit="snug"] .chip { padding: 5px 9px 5px 7px; }
-html[data-paged="on"][data-fit="snug"] .chip__hint { display: none; }
+html[data-paged="on"][data-fit="snug"] .contact-pair,
+html[data-paged="on"][data-fit="snug"] .preview-pair { margin-top: 9px; }
+html[data-paged="on"][data-fit="snug"] .ccard { padding: 7px 9px; gap: 7px; }
+html[data-paged="on"][data-fit="snug"] .ccard__icon { width: 22px; height: 22px; }
+html[data-paged="on"][data-fit="snug"] .ccard__icon .icon { width: 15px; height: 15px; }
 html[data-paged="on"][data-fit="snug"] .hero__actions { margin-top: 9px; }
 html[data-paged="on"][data-fit="snug"] .hero__actions .btn { min-height: 38px; padding: 7px 15px; font-size: .8rem; }
 
@@ -188,15 +196,17 @@ html[data-paged="on"][data-fit="micro"] .eyebrow { margin-bottom: 4px; font-size
 
 /* Q1 */
 html[data-paged="on"][data-fit="micro"] .profile__avatar img { width: 32px; height: 32px; }
-html[data-paged="on"][data-fit="micro"] .profile__head { gap: 10px; }
+/* .profile__head 已随 Q1 居中重排删除 */
 html[data-paged="on"][data-fit="micro"] .profile__name { font-size: 1.25rem; }
 html[data-paged="on"][data-fit="micro"] .profile__tagline { margin-top: 3px; font-size: .74rem; }
 html[data-paged="on"][data-fit="micro"] .profile__role { display: none; }
 html[data-paged="on"][data-fit="micro"] .profile__intro { margin-top: 3px; font-size: .7rem; line-height: 1.45; }
-html[data-paged="on"][data-fit="micro"] .chips { margin-top: 6px; gap: 6px; }
-html[data-paged="on"][data-fit="micro"] .chip { padding: 4px 8px 4px 6px; }
-html[data-paged="on"][data-fit="micro"] .chip__label,
-html[data-paged="on"][data-fit="micro"] .chip__hint { display: none; }
+html[data-paged="on"][data-fit="micro"] .contact-pair,
+html[data-paged="on"][data-fit="micro"] .preview-pair { margin-top: 6px; gap: 6px; }
+html[data-paged="on"][data-fit="micro"] .ccard { padding: 4px 7px; gap: 6px; }
+html[data-paged="on"][data-fit="micro"] .ccard__icon { width: 20px; height: 20px; }
+html[data-paged="on"][data-fit="micro"] .ccard__icon .icon { width: 14px; height: 14px; }
+html[data-paged="on"][data-fit="micro"] .ccard__label { display: none; }
 html[data-paged="on"][data-fit="micro"] .hero__actions { display: none; }
 
 html[data-paged="on"][data-fit="micro"] .preview-grid { margin-top: 6px; gap: 6px; }
@@ -277,15 +287,21 @@ html[data-paged="on"][data-fit="micro"] .mailbox__actions .btn { min-height: 32p
      把报价表的免责说明藏掉 —— 它在同一屏的计算器明细里已经表达过，
      而这个尺寸下多一行就是「能不能一屏装下」的分界。 */
   html[data-paged="on"] .quote__note { display: none; }
-  /* 计算器与报价表之间 16px 的间距在这里压到 6px。
-     Q4 是唯一「差几个像素就贴底」的屏，这一档没有余裕讲舒适度。 */
-  html[data-paged="on"] .repair { gap: 6px; }
+  /* ⚠️ 这里的 .repair gap 必须带 data-fit 限定。
+     早先写成 `html[data-paged="on"] .repair { gap: 6px }`（没有 data-fit），
+     结果它在 roomy 档也生效 —— 而 tight 档是 16px、snug 是 12px，
+     档位顺序于是变成 roomy(6) < snug(12) < tight(16)，
+     「越紧的档压缩越多」这条单调性被打破：实测 tight 比 roomy 还高 28px。
+     pickFit 从 roomy 往下逐档试，遇到"下一档反而更高"会白试一轮。
+     现在只在最紧的两档生效，顺序恢复单调。 */
+  html[data-paged="on"][data-fit="snug"] .repair,
+  html[data-paged="on"][data-fit="micro"] .repair { gap: 6px; }
   html[data-paged="on"] .game-rail { gap: 7px; }
   html[data-paged="on"] .game { padding: 10px; }
   html[data-paged="on"] .social { padding: 10px; gap: 9px; }
   html[data-paged="on"] .social__icon { width: 32px; height: 32px; }
-  html[data-paged="on"] .chip { flex: 1 1 0; }
-  html[data-paged="on"] .chip__value { font-size: .78rem; }
+  html[data-paged="on"] .ccard { padding: 8px 9px; }
+  html[data-paged="on"] .ccard__value { font-size: .74rem; }
   html[data-paged="on"] .quote__groups { grid-template-columns: minmax(0, 1fr); }
   html[data-paged="on"] .preview__stats { gap: 5px 12px; }
 }
