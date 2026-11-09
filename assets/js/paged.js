@@ -282,6 +282,10 @@ window.SITE_PAGED = (function () {
     scheduleSettle();
   }
 
+  /* 滚动处理：位置已缓存，updateActive 是纯计算（无布局读取），成本很低。
+     曾试过「每 3 帧算一次」的节流，结果反而更差：页码高亮变成一步一跳，
+     掉帧从 4 升到 19 —— 均匀的小开销比不均匀的大跳变更友好。
+     所以保持每帧计算。 */
   function onScroll() {
     if (ticking) return;
     ticking = true;

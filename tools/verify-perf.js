@@ -129,8 +129,15 @@ async function scrollFps(page) {
 
   ok(stats.gbcr <= 140, '滚动期间布局读取 ' + stats.gbcr + ' ≤ 140 次');
   ok(stats.longtasks === 0, '滚动期间长任务 ' + stats.longtasks + ' 个');
-  ok(fps.avg <= 24, '滚动平均帧耗时 ' + fps.avg + 'ms ≤ 24ms（60fps 为 16.7ms）');
-  ok(fps.janky <= 15, '卡顿帧 ' + fps.janky + ' ≤ 15');
+  /* 60fps 满帧是 16.67ms。允许 20ms 是因为无头环境用软件渲染，
+   真机有 GPU 会更接近 16.7。这个阈值比上一版（24ms）更严格。 */
+  ok(fps.avg <= 20, '滚动平均帧耗时 ' + fps.avg + 'ms ≤ 20ms（60fps 满帧 16.7ms）');
+  /* 3 秒滚动约 180 帧，掉帧率应低于 2% */
+  ok(fps.janky / Math.max(1, fps.janky + 170) <= 0.02 || fps.janky <= 4,
+     '卡顿帧 ' + fps.janky + ' 个（掉帧率应 < 2%）');
+  /* p95 贴近中位 = 没有周期性掉帧。这是"稳"比"快"更重要的指标。 */
+  ok(fps.p95 - fps.avg <= 20, 'p95 ' + fps.p95 + 'ms 与均值差 ' +
+     (fps.p95 - fps.avg).toFixed(1) + 'ms ≤ 20ms（无周期性掉帧）');
 
   /* ---------- 5. 主题切换 ---------- */
   const themeSwitch = await page.evaluate(async () => {
@@ -154,7 +161,7 @@ async function scrollFps(page) {
   const fpsAll = await scrollFps(page);
   console.log('\n=== 背景动效全开 ===');
   console.log('帧耗时 平均', fpsAll.avg + 'ms | 卡顿帧', fpsAll.janky);
-  ok(fpsAll.avg <= 34, '全开时滚动 ' + fpsAll.avg + 'ms ≤ 34ms（微粒是可选项，允许略高）');
+  ok(fpsAll.avg <= 30, '全开时滚动 ' + fpsAll.avg + 'ms ≤ 30ms（微粒是可选项，允许略高）');
 
   /* ---------- 7. 减少动效 ---------- */
   const ctx2 = await browser.newContext({ viewport: { width: 1440, height: 900 }, reducedMotion: 'reduce' });

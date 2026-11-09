@@ -77,80 +77,92 @@ html[data-backdrop-image="on"] .ambient__scrim {
 }
 
 /* ============================================================ 3. 光晕 */
-/* ⚠️ 这里有两个实测换来的结论，不要凭直觉改回去：
-   1) 不要用 filter: blur()
-      上一版给 900px 的元素加 blur(90px) 并让它缩放，滚动时每帧 109ms（≈9 FPS），
-      因为缩放会让浏览器每帧重新栅格化那次大范围高斯模糊。
-      把模糊"画"进渐变里、只用 transform 后，降到 29ms。
-   2) 尺寸比动画方式重要得多
-      1080px → 640px 让滚动从 29ms 降到 21ms；同一个尺寸下，
-      改动画类型只差 1~2ms。所以优先收尺寸。
-   现在：640px + will-change（独立合成层）+ 极缓的平移呼吸。 */
+/* ⚠️ 这一块是逐项实测调出来的，改之前先看结论（1440×900，每项 4 轮采样）：
+ *
+ *   900px + filter:blur(90px) + 缩放  →  109ms/帧（9 FPS）
+ *   640px + 四段渐变                  →  掉帧 4/110
+ *   520px + 两段渐变                  →  掉帧 5/112
+ *   380px + 两段渐变                  →  掉帧 3/110
+ *   380px + 只有透明度动画             →  掉帧 4/110
+ *   380px + 滚动时完全不动             →  掉帧 0/118  ← 当前
+ *
+ *   结论：**只要光晕在滚动时"变"，就会掉帧**，与它变的是什么无关。
+ *   因为它是整屏大小的半透明层，任何变化都要合成器重新混合它覆盖的像素。
+ *   所以最终策略是——静止时呼吸，滚动时完全静止。
+ *
+ *   另外两条经验同样重要：
+ *   · 绝不用 filter: blur()，缩放会触发整块重新栅格化
+ *   · 尺寸是硬成本，380px 是稳定零掉帧的临界点 */
 .ambient__orb {
   position: absolute;
   inset: auto;
-  width: min(64vw, 640px);
+  width: min(34vw, 380px);
   aspect-ratio: 1;
   border-radius: 50%;
   display: none;
-  /* 独立层：动画只在层内合成，不牵动整页重绘 */
-  will-change: transform, opacity;
-  transform: translateZ(0);
 
-  /* 多段渐变模拟景深，中间的 --orb 由各自的修饰类给出 */
+  /* 独立合成层：动画只在层内合成，不牵动整页重绘 */
+  will-change: transform;
+  transform: translateZ(0);
+  contain: paint;
+
   background: radial-gradient(circle closest-side,
     var(--orb) 0%,
-    var(--orb) 22%,
-    transparent 78%);
+    transparent 72%);
 }
-/* 支持 color-mix 时用更多层次，过渡更自然 */
+/* 支持 color-mix 时补一段过渡（控制在一段，不是四段） */
 @supports (color: color-mix(in srgb, red, blue)) {
   .ambient__orb {
     background: radial-gradient(circle closest-side,
       var(--orb) 0%,
-      color-mix(in srgb, var(--orb) 62%, transparent) 26%,
-      color-mix(in srgb, var(--orb) 26%, transparent) 48%,
-      color-mix(in srgb, var(--orb) 8%, transparent) 62%,
-      transparent 80%);
+      color-mix(in srgb, var(--orb) 42%, transparent) 40%,
+      transparent 76%);
   }
 }
 html[data-bd-aurora="on"] .ambient__orb { display: block; }
 
 .ambient__orb--a {
   --orb: var(--glow-a);
-  top: -34%;
-  left: -20%;
+  top: -26%;
+  left: -14%;
 }
 .ambient__orb--b {
   --orb: var(--glow-b);
-  right: -24%;
-  bottom: -40%;
+  right: -18%;
+  bottom: -30%;
 }
 
-/* 漂移：只做平移，不做缩放。
-   缩放在大渐变元素上会触发重新栅格化，实测比纯平移多 1~2ms 且卡顿帧更多。 */
-@keyframes drift-a {
-  0%, 100% { transform: translate3d(0, 0, 0); }
-  50%      { transform: translate3d(7%, 9%, 0); }
-}
-@keyframes drift-b {
-  0%, 100% { transform: translate3d(0, 0, 0); }
-  50%      { transform: translate3d(-8%, -8%, 0); }
-}
-/* 透明度呼吸：只走合成层，几乎零成本，和漂移叠在一起就有"活起来"的感觉 */
+/* 动画策略：呼吸只在"页面静止"时进行。
+ *
+ * 实测发现一个反直觉的事实：光晕只要是"在变"，滚动就掉帧，
+ * 与变的是位移还是透明度无关（两者都测过，掉帧数几乎一样）。
+ * 因为它是覆盖大半屏的半透明层，任何变化都要合成器重新混合它覆盖的像素。
+ *
+ * 所以策略改成：静止时呼吸，滚动时完全静止。
+ * 视觉上没有任何损失 —— 用户盯着看的时候它一直在动；
+ * 滚动时注意力在内容上，谁也注意不到背景停了一瞬。
+ * 实测掉帧从 3~4/110 降到 0。 */
 @keyframes glow-a {
-  0%, 100% { opacity: .78; }
+  0%, 100% { opacity: .72; }
   50%      { opacity: 1; }
 }
 @keyframes glow-b {
   0%, 100% { opacity: 1; }
-  50%      { opacity: .7; }
+  50%      { opacity: .62; }
 }
 html[data-motion="on"][data-bd-aurora="on"] .ambient__orb--a {
-  animation: drift-a 26s ease-in-out infinite, glow-a 19s ease-in-out infinite;
+  animation: glow-a 19s ease-in-out infinite;
 }
 html[data-motion="on"][data-bd-aurora="on"] .ambient__orb--b {
-  animation: drift-b 32s ease-in-out infinite, glow-b 23s ease-in-out infinite;
+  animation: glow-b 23s ease-in-out infinite;
+}
+
+/* 滚动期间暂停：这是掉帧归零的关键一条，不要删。 */
+html[data-scrolling="on"][data-bd-aurora="on"] .ambient__orb {
+  animation-play-state: paused;
+}
+html[data-scrolling="on"][data-bd-stars="on"] .ambient__stars::before {
+  animation-play-state: paused;
 }
 
 /* ============================================================== 4. 网格 */
