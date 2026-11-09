@@ -52,7 +52,7 @@ check(!!ctx.ADMIN_HASH, '已暴露哈希工具');
 check(!!ctx.ADMIN_SERIALIZE, '已暴露序列化函数');
 
 /* ---------- 1. SHA-256 与 Node 原生实现一致 ---------- */
-const samples = ['', 'a', 'abc', 'zotrod', 'paper-stone-8677',
+const samples = ['', 'a', 'abc', 'zotrod', 'admin-test-pass-1',
   '中文口令测试', 'x'.repeat(55), 'x'.repeat(56), 'x'.repeat(64), 'x'.repeat(1000)];
 let shaOk = true;
 for (const s of samples) {
@@ -62,13 +62,35 @@ for (const s of samples) {
 }
 check(shaOk, `SHA-256 实现与 Node 原生一致（${samples.length} 组，含中文与长文本）`);
 
-/* ---------- 2. 口令校验 ---------- */
-check(ctx.ADMIN_HASH.hash('zotrod') === A.userHash, '默认账户 zotrod 通过哈希校验');
-check(ctx.ADMIN_HASH.hash('paper-stone-8677') === A.passHash, '默认口令通过哈希校验');
-check(ctx.ADMIN_HASH.hash('zotrod ') !== A.userHash, '错误口令被拒绝（含尾随空格）');
-check(!/paper-stone-8677/.test(JSON.stringify({ s: A.salt, u: A.userHash, p: A.passHash })),
-  'ADMIN 配置中不含口令明文');
+/* ---------- 2. 凭据格式与拒绝行为 ---------- */
 check(/^[0-9a-f]{64}$/.test(A.userHash) && /^[0-9a-f]{64}$/.test(A.passHash), '存的是 SHA-256 十六进制摘要');
+check(ctx.ADMIN_HASH.hash('zotrod') === A.userHash, '账户哈希与配置一致（用户名为公开信息）');
+check(ctx.ADMIN_HASH.hash('zotrod ') !== A.userHash, '错误账户被拒绝（含尾随空格）');
+['', 'password', '123456', 'admin', 'zotrod', 'zotrod123'].forEach(function (wrong) {
+  check(ctx.ADMIN_HASH.hash(wrong) !== A.passHash, '弱口令 / 常见值被拒绝: ' + (wrong || '(空)'));
+});
+
+/* ADMIN 区块本身不得出现口令明文：只允许 salt + 两个 64 位摘要 */
+const adminSrc = fs.readFileSync(path.join(ROOT, 'assets/js/admin.js'), 'utf8');
+const block = adminSrc.slice(adminSrc.indexOf('window.ADMIN'), adminSrc.indexOf('repo:'));
+const literals = (block.match(/"[^"]{6,}"/g) || []).filter(function (s) {
+  return !/^"[0-9a-f]{16}"$/.test(s) && !/^"[0-9a-f]{64}"$/.test(s);
+});
+check(literals.length === 0, 'ADMIN 区块只含盐与摘要，无其他明文' +
+  (literals.length ? '（发现: ' + literals.join(', ') + '）' : ''));
+
+/* 若仓库外的凭据文件存在，校验其中的口令确实能通过 */
+const credPath = path.join(ROOT, '..', '管理凭据.txt');
+if (fs.existsSync(credPath)) {
+  const text = fs.readFileSync(credPath, 'utf8');
+  const m = /口令[:：]\s*(\S+)/.exec(text);
+  const u = /账户[:：]\s*(\S+)/.exec(text);
+  if (m) check(ctx.ADMIN_HASH.hash(m[1]) === A.passHash, '凭据文件中的口令可通过校验');
+  if (u) check(ctx.ADMIN_HASH.hash(u[1]) === A.userHash, '凭据文件中的账户可通过校验');
+  // 若口令已轮换，旧摘要必须失效（用当前的 passHash 与文件里的口令交叉验证即可）
+} else {
+  notes.push('--  未找到仓库外凭据文件，跳过口令实值校验');
+}
 
 /* ---------- 3. 序列化无损 ---------- */
 const original = JSON.parse(JSON.stringify(ctx.SITE_CONFIG));

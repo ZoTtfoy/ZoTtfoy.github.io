@@ -12,3 +12,7 @@ desktop.ini
 _site/
 *.log
 node_modules/
+
+# 仓库外的本地凭据（不要提交）
+管理凭据.txt
+.admin-credential.local.txt
