@@ -313,6 +313,10 @@ window.SITE_CONFIG = {
     accentDark: "",
 
     paged: true,            // 翻页式：一屏一章
+    /* 触摸翻页：上/下滑**不管距离**都算一次翻页（像刷短视频）。
+       位移只用来判断方向，不参与阈值；连翻有 300ms 下限，不会一滑好几页。
+       想回到「自由滚动 + 停手自动对齐」的老行为，把它设成 false。 */
+    swipePaging: true,
     showPager: true,
     showHint: true,
     lightEffects: true,
