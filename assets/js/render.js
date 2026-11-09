@@ -171,18 +171,25 @@ window.SITE_RENDER = (function () {
   function renderSocial() {
     var d = C.social || {}, s = C.site || {};
     set("socialGrid", arr(d.items).map(function (it, i) {
+      var inner =
+        '<span class="social__icon">' + icon(it.icon) + '</span>' +
+        '<span class="social__text">' +
+          '<span class="social__label">' + esc(it.label) + '</span>' +
+          '<span class="social__handle">' + esc(it.handle) + '</span>' +
+        '</span>';
+
+      // copy 模式：QQ 号 / 微信号这类没有公开主页的账号，点击即复制
+      if (it.copy) {
+        return '<button class="social" type="button" style="' + delay(i, 55) + '" data-reveal ' +
+               'data-copy="' + esc(it.copy) + '" aria-label="复制' + esc(it.label) + '：' + esc(it.copy) + '">' +
+               inner + icon("copy", "social__arrow") + '</button>';
+      }
+
       var external = it.url && it.url.charAt(0) !== "#" && it.url.indexOf("mailto:") !== 0;
-      return '' +
-        '<a class="social" style="' + delay(i, 55) + '" data-reveal ' +
-           'href="' + esc(it.url || "#") + '"' +
-           (external ? ' target="_blank" rel="noopener noreferrer"' : '') + '>' +
-          '<span class="social__icon">' + icon(it.icon) + '</span>' +
-          '<span class="social__text">' +
-            '<span class="social__label">' + esc(it.label) + '</span>' +
-            '<span class="social__handle">' + esc(it.handle) + '</span>' +
-          '</span>' +
-          icon("arrow-up-right", "social__arrow") +
-        '</a>';
+      return '<a class="social" style="' + delay(i, 55) + '" data-reveal ' +
+             'href="' + esc(it.url || "#") + '"' +
+             (external ? ' target="_blank" rel="noopener noreferrer"' : '') + '>' +
+             inner + icon("arrow-up-right", "social__arrow") + '</a>';
     }).join(""));
 
     var mail = s.email || "";
