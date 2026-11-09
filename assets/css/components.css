@@ -23,6 +23,31 @@
 .brand__mark--sm { width: 26px; height: 26px; border-radius: 8px; font-size: .75rem; }
 .brand__name { font-size: 1rem; }
 
+/* 图片头像：与字母方块同一尺寸，视觉上可以直接替换 */
+.brand__avatar {
+  display: block;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  object-fit: cover;
+  background: var(--bg-soft);
+  border: 1px solid var(--line);
+}
+.brand__avatar--sm { width: 26px; height: 26px; border-radius: 8px; }
+
+/* 首页头像：只在配置了图片时出现 */
+.hero__avatar { margin-bottom: clamp(22px, 3.4vh, 32px); }
+.hero__avatar img {
+  display: block;
+  width: clamp(64px, 8vw, 84px);
+  height: clamp(64px, 8vw, 84px);
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--bg-soft);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-sm);
+}
+
 /* ------------------------------------------------------------------ 按钮 */
 .btn {
   display: inline-flex;
@@ -130,7 +155,12 @@
   color: var(--accent);
 }
 .card__icon .icon { width: 23px; height: 23px; }
-.card__title { font-size: 1.24rem; font-weight: 600; letter-spacing: -.02em; }
+.card__title {
+  font-family: var(--font-display, var(--font-sans));
+  font-size: 1.24rem;
+  font-weight: 600;
+  letter-spacing: -.02em;
+}
 .card__desc { margin-top: 10px; font-size: .93rem; line-height: 1.85; color: var(--text-2); }
 .card__tags { display: flex; flex-wrap: wrap; gap: 7px; margin-top: auto; padding-top: 24px; }
 
@@ -169,7 +199,12 @@
   transition: background-color var(--t) var(--ease), border-color var(--t) var(--ease);
 }
 .interest__icon .icon { width: 20px; height: 20px; }
-.interest__text h3 { font-size: 1.02rem; font-weight: 600; letter-spacing: -.01em; }
+.interest__text h3 {
+  font-family: var(--font-display, var(--font-sans));
+  font-size: 1.02rem;
+  font-weight: 600;
+  letter-spacing: -.01em;
+}
 .interest__text p { margin-top: 7px; font-size: .85rem; line-height: 1.7; color: var(--text-2); }
 .interest__meta {
   margin-top: auto;

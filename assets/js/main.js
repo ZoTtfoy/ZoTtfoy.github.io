@@ -13,6 +13,7 @@
         return;
       }
       window.SITE_RENDER.init();
+      if (window.SITE_SKIN) window.SITE_SKIN.init();
       window.SITE_MOTION.init();
     } catch (err) {
       // 出错时至少保证内容可见，不要留一个空白页面

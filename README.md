@@ -26,38 +26,158 @@
 zotrod-homepage/
 ├── index.html                    # 页面骨架（结构 / 语义标签 / 区块容器）
 ├── admin.html                    # ★ 内容编辑器（带口令保护，不对外链接）
+├── themes.html                   # ★ 风格总览：14 种组合并排真实预览
 ├── .nojekyll                     # 让 GitHub Pages 不跳过下划线目录
 ├── .github/workflows/deploy.yml  # 推送后自动部署，一般不用动
 ├── assets/
 │   ├── css/
-│   │   ├── tokens.css            # ★ 配色、字体、圆角、间距等设计变量
+│   │   ├── tokens.css            # 兜底设计变量 + 重置 + 基础排版
 │   │   ├── layout.css            # 布局、栅格、响应式断点
 │   │   ├── components.css        # 按钮、卡片、标签等组件外观
+│   │   ├── skin.css              # 风格切换面板
+│   │   ├── gallery.css           # 风格总览页
 │   │   ├── motion.css            # 入场动画、悬停反馈、背景动效
 │   │   └── admin.css             # 编辑器专用样式
 │   └── js/
 │       ├── config.js             # ★★ 所有文案、链接、模块开关（内容都在这里）
+│       ├── themes.js             # ★★ 主题注册表：7 套风格的完整设计变量
+│       ├── skin.js               # 应用主题 + 切换面板逻辑
+│       ├── gallery.js            # 风格总览页
 │       ├── icons.js              # 内联 SVG 图标库，可自行增删
 │       ├── render.js             # 把 config 的数据填进页面
-│       ├── motion.js             # 滚动、主题、菜单、复制等交互
+│       ├── motion.js             # 滚动、明暗快切、菜单、复制等交互
 │       ├── main.js               # 启动入口
 │       └── admin.js              # ★ 编辑器逻辑 + 访问凭据（哈希）
 ├── tools/
-│   ├── verify.js                 # 站点自检：node tools/verify.js
-│   └── verify-admin.js           # 编辑器自检：node tools/verify-admin.js
+│   ├── verify.js                 # 站点自检
+│   ├── verify-admin.js           # 编辑器自检
+│   ├── verify-theme.js           # 主题自检（含对比度计算）
+│   └── verify-dom.js             # 可选：jsdom 真实 DOM 深度验证
 └── README.md
 ```
 
-> **改内容两条路，任选：**
+> **改内容三条路，任选：**
 > 1. **图形化**：打开 `/admin.html`，登录后点选修改 → 发布（推荐，手机也能用）。
 > 2. **改文件**：直接编辑 `assets/js/config.js`。
+> 3. **换风格**：主页右上角调色板按钮，或 `themes.html` 并排对比后点击应用。
 >
-> **想换整体气质（配色 / 圆角 / 字体）→ 动 `assets/css/tokens.css`。**
+> **想改某套风格的配色 / 圆角 / 字体 → 动 `assets/js/themes.js`。**
+> `tokens.css` 只放兜底值和重置，正常不会被覆盖。
 > 其余文件除非要改结构或交互，一般不需要碰。
 
 ---
 
-## 三、内容编辑器（admin.html）
+## 三、风格与主题系统
+
+风格（skin）和明暗（light / dark）是两个**互相独立**的维度，任意组合：**7 套风格 × 2 种明暗 = 14 种**。
+
+| id | 名称 | 气质 | 圆角 | 标题字体 |
+| --- | --- | --- | --- | --- |
+| `ink` | 墨 | 黑白灰配墨绿，中性克制（默认） | 中 | 无衬线 |
+| `paper` | 纸本 | 暖米纸色、棕褐点缀，印刷感 | 直角 | **宋体 / 衬线** |
+| `noir` | 夜幕 | 高对比黑白配暗红，杂志感 | 小 | 无衬线（收紧字距） |
+| `aurora` | 极光 | 青紫渐变光晕，未来感 | 大 | 无衬线 |
+| `terminal` | 终端 | 磷光绿字，**全站等宽** | 直角 | 等宽 |
+| `clay` | 陶土 | 暖灰 + 赭红 + 软阴影，有人情味 | 很大 | 无衬线 |
+| `mint` | 薄荷 | 清透冷白 + 薄荷绿，轻盈 | 大 | 无衬线 |
+
+### 三种切换方式
+
+1. **主页右上角调色板按钮** —— 弹出面板，列出全部风格 + 明暗三段开关（浅色 / 深色 / 跟随系统）。访客的选择会记在自己浏览器里。
+2. **`themes.html`** —— 14 种组合并排真实渲染（不是截图，是同一套变量注入到每张卡片里），点任意一格设为默认。
+3. **`admin.html` → 外观** —— 改 `ui.skin` 这个**默认值**，决定访客首次打开看到哪套。
+
+> 访客永远可以自己切，`ui.skin` 只是初始值。
+
+### 加一套新风格
+
+在 `assets/js/themes.js` 的 `list` 里复制一段改掉即可，**不需要动任何 CSS 或 HTML**：
+
+```js
+{
+  id: "sepia",                  // 小写、可含连字符，不能重复
+  name: "旧照",
+  desc: "一句话说清它的气质。",
+  swatch: ["#f2e8d5", "#2b2118", "#8a6b3f"],   // 面板上显示的三个色块
+  base: {                       // 与明暗无关：字体、圆角、字距
+    "font-sans": "...", "font-display": "...", "font-mono": "...",
+    "r-sm": "4px", "r-md": "8px", "r-lg": "12px",
+    "tracking-title": "-.02em", "border-w": "1px"
+  },
+  light: { /* 26 个颜色变量 */ },
+  dark:  { /* 同样 26 个，一个都不能少 */ }
+}
+```
+
+保存后刷新，主页面板、`themes.html`、编辑器外观页**三处都会自动出现**它。
+
+### 变量清单（每套主题必须写全）
+
+| 类别 | 变量 |
+| --- | --- |
+| 背景三层 | `bg` `bg-elev` `bg-soft` |
+| 文字三层 | `text` `text-2` `text-3` |
+| 线条 | `line` `line-strong` |
+| 主色 | `accent` `accent-fg` `accent-soft` |
+| 光晕 | `glow-a` `glow-b` |
+| 阴影 | `shadow-sm` `shadow-md` |
+| 头部 / 提示 | `header-bg` `toast-bg` `toast-fg` |
+| 颗粒 | `grain-opacity` |
+
+### 为什么"看着差不多"不够：自检会算对比度
+
+```bash
+node tools/verify-theme.js
+```
+
+696 项检查，其中最关键的是用 WCAG 公式算**真实对比度**，硬性阈值：
+
+| 组合 | 下限 | 含义 |
+| --- | --- | --- |
+| `text` / `bg` | 12 | 正文必须清楚 |
+| `text-2` / `bg` | 5.5 | 次级文字 |
+| `text-3` / `bg` | 3.5 | 辅助小字（页脚、元信息） |
+| `accent` / `bg` | 4.0 | 主色小标签要能读 |
+| `accent-fg` / `accent` | 4.5 | 按钮文字压在主色上 |
+
+还会检查：每套主题的变量键集合必须完全一致（漏一个就会串到别的主题的颜色）、圆角层级递增、阴影格式合法、`tokens.css` 的兜底值与默认主题逐项相同（否则 JS 没加载时会跳色）、风格页真的生成了 14 张带内联变量的卡片。
+
+> 写这套检查时确实抓出 4 处不达标：极光/薄荷的辅助灰太浅（2.76、2.86），薄荷主色上的白字只有 3.44。都已按计算结果替换为达标色值。
+
+### 接口
+
+`window.SITE_THEMES` 上可直接调用：
+
+```js
+SITE_THEMES.list                 // 全部主题原始定义
+SITE_THEMES.get('paper')         // 按 id 取一套
+SITE_THEMES.ids()                // ['ink','paper',...]
+SITE_THEMES.count()              // 14（风格 × 明暗）
+SITE_THEMES.baseVars('paper')    // 只取形态层（字体/圆角）
+SITE_THEMES.resolve('paper','dark')  // 合并后的完整变量表（键名不带 --）
+```
+
+`skin.js` 和 `gallery.js` 都调 `resolve()`，所以「实际生效的主题」和「预览页看到的」不可能分叉。
+
+---
+
+## 四、头像
+
+`config.js` 的 `site.avatar` 支持三种状态：
+
+| 值 | 效果 |
+| --- | --- |
+| `""`（默认） | 用字母方块（`site.initials`），页头、页脚显示 |
+| 图片网址 | 页头 34px 圆角方块、页脚 26px、首页顶部 64–84px 圆形 |
+| 内嵌图片（data URL） | 同上，图片直接存进 `config.js`，不依赖外部图床 |
+
+**推荐用编辑器上传**（基础 → 头像 → 选择图片）：会自动居中裁成正方形、缩到 256×256、压成 WebP（不支持则 JPEG），通常只有 20–40 KB。也支持直接填网址。
+
+> 只有配置了图片，首页顶部才会出现头像；否则保持原来的极简版式，避免和页头的字母块重复。
+
+---
+
+## 五、内容编辑器（admin.html）
 
 访问 `https://你的域名/admin.html`（或本地打开 `admin.html`）。
 
@@ -84,7 +204,7 @@ zotrod-homepage/
 
 ---
 
-## 三之二、编辑器自检
+## 六、编辑器自检
 
 ```bash
 node tools/verify-admin.js
@@ -94,11 +214,12 @@ node tools/verify-admin.js
 
 ---
 
-## 四、改内容（config.js 字段速查）
+## 七、改内容（config.js 字段速查）
 
 | 位置 | 字段 | 作用 |
 | --- | --- | --- |
-| `site` | `name` / `initials` / `role` | 名字、方块头像字母、身份一行字 |
+| `site` | `name` / `initials` / `role` | 名字、字母头像用的字符、身份一行字 |
+| | `avatar` | 头像图片（网址或内嵌图，留空用字母），详见「四、头像」 |
 | | `tagline` | 首页大标题，`\n` 表示换行 |
 | | `description` | 首页简介，同时也是搜索结果摘要 |
 | | `location` / `email` | 坐标（显示在移动端菜单底部）、联系邮箱 |
@@ -113,7 +234,10 @@ node tools/verify-admin.js
 | `interests` | `items[]` | 喜好卡片：`icon` / `title` / `desc` / `meta` |
 | `social` | `items[]` | 平台链接：`icon` / `label` / `handle` / `url`；没有公开主页的（QQ、微信）用 `copy` 代替 `url`，点一下即复制 |
 | | `contactHint` | 底部联系区那句提示语 |
-| `ui` | `themeDefault` | `auto` 跟随系统 / `light` / `dark` |
+| `ui` | `skin` | 默认风格 id（`ink` / `paper` / `noir` / `aurora` / `terminal` / `clay` / `mint`） |
+| | `themeDefault` | `auto` 跟随系统 / `light` / `dark` |
+| | `accent` / `accentDark` | 可选，在风格之上再覆盖主色；留空则用风格自带 |
+| | `showSkinPicker` | 右上角风格切换按钮 |
 | | `showProgress` / `showBackToTop` | 滚动进度条、回到顶部按钮 |
 | | `ambientMotion` | 背景光晕是否缓慢流动 |
 | | `showThemeToggle` | 右上角深浅主题切换按钮 |
@@ -125,7 +249,9 @@ node tools/verify-admin.js
 - **QQ / 微信号**：写成 `{ icon: "qq", label: "QQ", handle: "点一下复制", copy: "你的号码" }`，卡片会变成可点击复制，不会出现打不开的链接。
 - **换图标**：把 `icon` 改成 `icons.js` 顶部注释里列出的任意名字；找不到会自动回退成 ✦ 图标。
 - **隐藏整个模块**：`sections.xxx.enabled = false`。
-- **换主题色**：优先在编辑器「外观」里改（会写进 config 的 `ui.accent` / `ui.accentDark`）；想连背景灰阶一起调，改 `tokens.css`。
+- **换整体风格**：主页右上角调色板，或 `themes.html` 对比后点击；想改默认值用编辑器「外观」。
+- **改某套风格的配色**：动 `assets/js/themes.js` 里那一段，别改 `tokens.css`（它只是兜底）。
+- **只换主色、不换风格**：编辑器「外观」里的 `accent` / `accentDark`。
 - **自定义域名**：在根目录新建 `CNAME` 文件，内容写一行你的域名，DNS 加一条 CNAME 指向 `<用户名>.github.io`，再去仓库 Settings → Pages 填 Custom domain。
 
 > `config.js` 里目前带「示例」性质的文案（业务、爱好、邮箱、社交链接）都是占位内容，记得换成你自己的。
@@ -133,15 +259,19 @@ node tools/verify-admin.js
 ### 改完自检一下
 
 ```bash
-node tools/verify.js          # 站点：渲染 / 图标 / 资源 / 降级
+node tools/verify.js          # 站点：渲染 / 头像 / 图标 / 资源 / 降级
 node tools/verify-admin.js    # 编辑器：口令哈希 / 序列化无损 / 资源引用
+node tools/verify-theme.js    # 主题：变量完整性 / 对比度 / 兜底一致性
+
+# 可选：用真实 DOM 再验一遍（需先 npm install jsdom --no-save）
+node tools/verify-dom.js      # 主题注入 / 面板交互 / 头像 / 编辑器登录
 ```
 
 不需要安装任何依赖。`verify.js` 会在模拟浏览器环境里真实执行一遍页面脚本，检查：图标名有没有拼错、卡片 / 导航数量是否与配置一致、模块开关与排序是否生效、引用的 CSS / JS 是否齐全、旧浏览器降级是否正常。`verify-admin.js` 会核对 SHA-256 实现与 Node 原生结果逐位一致、编辑器生成的 `config.js` 与源数据深比较无损。全部通过会输出 `全部通过`。
 
 ---
 
-## 五、模块结构约定
+## 八、模块结构约定
 
 四个模块都是「标题三件套 + 内容」，在 `index.html` 里各有独立 `<section data-section="xxx">`：
 
@@ -157,7 +287,7 @@ node tools/verify-admin.js    # 编辑器：口令哈希 / 序列化无损 / 资
 
 ---
 
-## 六、部署到 GitHub Pages
+## 九、部署到 GitHub Pages
 
 ### 1. 创建仓库并推送
 
@@ -201,7 +331,7 @@ git push
 
 ---
 
-## 七、适配与细节
+## 十、适配与细节
 
 | 断点 | 布局 |
 | --- | --- |
@@ -213,7 +343,8 @@ git push
 
 其他已内置：
 
-- 浅色 / 深色主题，默认跟随系统，手动选择会记住；切换有平滑过渡且刷新不闪白屏。
+- 7 套风格 × 浅色 / 深色，默认跟随系统，风格与明暗分别记住；切换有平滑过渡，刷新不闪白屏。
+- 风格面板在手机上从底部滑出，桌面端锚在页头右侧；键盘 Esc 可关闭。
 - 尊重系统的「减少动态效果」设置：开启后所有动画自动关闭，内容直接显示。
 - 触控设备不启用悬停位移，改为按压反馈；hover 效果只在鼠标设备上生效。
 - 语义化标签、键盘焦点态、跳转主内容链接、ARIA 标签；`prefers-reduced-motion` 完整支持。
@@ -222,7 +353,7 @@ git push
 
 ---
 
-## 八、常见问题
+## 十一、常见问题
 
 **改了 config.js 但页面没变？**
 先强制刷新（Ctrl/Cmd + Shift + R）。线上请确认 `git push` 成功、Actions 显示绿色对勾，再等 1–2 分钟。

@@ -13,7 +13,8 @@ window.SITE_CONFIG = {
   /* ---------------------------------------------------------------- 1. 基础 */
   site: {
     name: "Zotrod",                          // 顶部名字 / 浏览器标签
-    initials: "Z",                           // 方形头像里的字母（1-2 个字符最佳）
+    initials: "Z",                           // 没有头像图片时，方块里显示的字母
+    avatar: "",                              // 头像图片：填图片地址（或用编辑器上传，自动转成内嵌图片）
     role: "独立开发者 / 设计爱好者",           // 名字下方的一行身份
     tagline: "把复杂的东西，\n做得简单一点。",   // 首页大标题；\n 表示换行
     description: "这里是 Zotrod 的个人主页。写一点关于我的事、我做的事情，以及一些不务正业的爱好。",
@@ -127,10 +128,14 @@ window.SITE_CONFIG = {
 
   /* -------------------------------------------------------------- 8. 偏好 */
   ui: {
+    skin: "ink",            // 默认风格：ink / paper / noir / aurora / terminal / clay / mint
     themeDefault: "auto",   // "auto" 跟随系统 | "light" 默认浅色 | "dark" 默认深色
+    accent: "",             // 可选：在风格之上再覆盖浅色主色，如 "#2f6b5b"；留空则用风格自带
+    accentDark: "",         // 可选：覆盖深色主色
+    showSkinPicker: true,   // 右上角风格切换按钮
     showProgress: true,     // 顶部滚动进度条
     showBackToTop: true,    // 右下角回到顶部
     ambientMotion: true,    // 背景光晕缓慢流动（系统开启「减少动态效果」时自动关闭）
-    showThemeToggle: true   // 右上角深浅主题切换按钮
+    showThemeToggle: true   // 右上角深浅快切按钮
   }
 };

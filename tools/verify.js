@@ -157,7 +157,8 @@ ctx.window = ctx;
 vm.createContext(ctx);
 
 /* ---------- 依次执行站点脚本 ---------- */
-const scripts = ['assets/js/config.js','assets/js/icons.js','assets/js/render.js','assets/js/motion.js','assets/js/main.js'];
+const scripts = ['assets/js/config.js','assets/js/themes.js','assets/js/icons.js','assets/js/render.js',
+                 'assets/js/skin.js','assets/js/motion.js','assets/js/main.js'];
 for (const rel of scripts) {
   const code = fs.readFileSync(path.join(ROOT, rel), 'utf8');
   try { vm.runInContext(code, ctx, { filename: rel }); }
@@ -223,11 +224,35 @@ for (const ref of new Set(refs)) {
 }
 
 // CSS / JS 括号平衡
-for (const rel of ['assets/css/tokens.css','assets/css/layout.css','assets/css/components.css','assets/css/motion.css']) {
+for (const rel of ['assets/css/tokens.css','assets/css/layout.css','assets/css/components.css',
+                   'assets/css/motion.css','assets/css/skin.css']) {
   const css = fs.readFileSync(path.join(ROOT, rel), 'utf8');
   const open = (css.match(/{/g) || []).length, close = (css.match(/}/g) || []).length;
   check(open === close, 'CSS 括号平衡: ' + rel + ' (' + open + '/' + close + ')');
 }
+
+/* ---------- 头像 ---------- */
+const setAvatar = (v) => { ctx.SITE_CONFIG.site.avatar = v; };
+check(typeof H('brandMark') === 'string', '品牌标记已渲染');
+const letterHtml = H('brandMark');
+check(letterHtml.includes('brand__mark') && !letterHtml.includes('<img'), '未设头像时用字母方块');
+setAvatar('https://example.com/a.png');
+try { ctx.SITE_RENDER.init(); } catch (e) { failures.push('设置头像后重渲染失败: ' + e.message); }
+check(H('brandMark').includes('<img class="brand__avatar"'), '设了头像后页头渲染为图片');
+check(H('brandMark').includes('https://example.com/a.png'), '头像地址写入正确');
+check(H('footerMark').includes('brand__avatar--sm'), '页脚头像使用小尺寸变体');
+check(byId.get('heroAvatar').hidden === false, '首页头像显示');
+check(H('heroAvatar').includes('<img'), '首页头像渲染为图片');
+setAvatar('');
+try { ctx.SITE_RENDER.init(); } catch (e) { failures.push('清空头像后重渲染失败: ' + e.message); }
+check(!H('brandMark').includes('<img'), '清空头像后回到字母方块');
+check(byId.get('heroAvatar').hidden === true, '清空头像后首页头像隐藏');
+
+/* ---------- 主题 ---------- */
+check(Array.isArray(ctx.SITE_THEMES && ctx.SITE_THEMES.list), 'themes.js 已加载');
+check(ctx.SITE_THEMES.list.length >= 5, '主题数量 ≥ 5');
+check(!!ctx.SITE_THEMES.get('ink'), '可按 id 取到主题');
+check(html.includes('assets/js/skin.js') && html.includes('assets/css/skin.css'), '页面引入主题脚本与样式');
 
 /* ---------- 第二遍：模拟不支持 IntersectionObserver 的环境，验证降级 ---------- */
 const before = failures.length;

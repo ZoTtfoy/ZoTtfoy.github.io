@@ -160,6 +160,25 @@ window.ADMIN = {
       .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
   }
 
+  /* 当前风格在某明暗下的主色，用于色板预览 */
+  function currentSkinAccent(mode) {
+    var T = window.SITE_THEMES;
+    if (!T) return mode === "dark" ? "#84cbb2" : "#2f6b5b";
+    var t = T.get((draft.ui || {}).skin || T.defaultSkin);
+    if (!t) return mode === "dark" ? "#84cbb2" : "#2f6b5b";
+    return (t[mode] || t.light).accent;
+  }
+
+  /* 头像预览：有图用图，没图用字母 */
+  function avatarPreviewHtml() {
+    var s = draft.site || {};
+    if (s.avatar) {
+      return '<img src="' + esc(s.avatar) + '" alt="头像预览">';
+    }
+    return '<span class="avatar-preview__letter">' +
+      esc(s.initials || (s.name || "Z").slice(0, 1)) + '</span>';
+  }
+
   /* ============================================================ 字段表 */
   /* 想加一个可编辑项？往 groups 里加一行 { path:[...], label:"..." } */
   function scalarFields(list) {
@@ -293,6 +312,25 @@ window.ADMIN = {
         { path: ["site", "email"], label: "联系邮箱", value: s.email }
       ]));
 
+      body += group("头像", "可以在页头、页脚和首页顶部显示",
+        '<div class="avatar-row">' +
+          '<span class="avatar-preview" data-avatar-preview>' + avatarPreviewHtml() + '</span>' +
+          '<div class="avatar-actions">' +
+            '<div class="row" style="margin-top:0">' +
+              '<button class="btn btn--quiet btn--sm" type="button" data-avatar-up>选择图片</button>' +
+              '<button class="btn btn--quiet btn--sm" type="button" data-avatar-clear>清除</button>' +
+            '</div>' +
+            '<p class="sheet__hint" style="margin-top:8px">' +
+              '会自动居中裁成正方形、缩到 256×256 并压缩，通常只有几十 KB。' +
+              '也可以直接在上面填一个图片网址。' +
+            '</p>' +
+          '</div>' +
+          '<input type="file" accept="image/*" data-avatar-file hidden>' +
+        '</div>' +
+        scalarFields([
+          { path: ["site", "avatar"], label: "头像图片地址（留空则显示字母）", value: s.avatar || "", full: true, mono: true }
+        ]));
+
       body += group("合作状态与页脚", "", scalarFields([
         { path: ["site", "available"], label: "显示「开放合作」标记", value: s.available, type: "bool" },
         { path: ["site", "availableText"], label: "标记文字", value: s.availableText },
@@ -372,27 +410,91 @@ window.ADMIN = {
 
     if (activeTab === "theme") {
       var ui = draft.ui || {};
+      body += group("风格", "选一套整体气质；下面还能单独调明暗与主色",
+        '<div class="skin-grid" id="skinPick">' +
+        (window.SITE_THEMES ? window.SITE_THEMES.list : []).map(function (t) {
+          var on = (ui.skin || "ink") === t.id;
+          return '<button class="skin-cell' + (on ? ' is-active' : '') + '" type="button" data-pick-skin="' + t.id + '">' +
+            '<span class="skin-cell__swatch">' +
+              t.swatch.map(function (c) { return '<i style="background:' + c + '"></i>'; }).join("") +
+            '</span>' +
+            '<strong>' + esc(t.name) + '</strong>' +
+            '<small>' + esc(t.desc) + '</small>' +
+          '</button>';
+        }).join("") + '</div>' +
+        '<p class="sheet__hint">当前默认风格：<code data-skin-label>' +
+        esc((window.SITE_THEMES && window.SITE_THEMES.get(ui.skin || "ink")
+          ? window.SITE_THEMES.get(ui.skin || "ink").name : ui.skin || "ink")) +
+        '</code>。访客仍可在页面上自己切换，这里只决定首次打开的默认值。</p>' +
+        '<p class="sheet__hint"><a href="themes.html" target="_blank" rel="noopener" ' +
+        'style="color:var(--accent)">把所有风格并排看一遍 →</a></p>');
+
       body += group("主题与动效", "", scalarFields([
-        { path: ["ui", "themeDefault"], label: "默认主题（auto / light / dark）", value: ui.themeDefault, mono: true },
-        { path: ["ui", "accent"], label: "浅色主题主色（如 #2f6b5b）", value: ui.accent || "", mono: true },
-        { path: ["ui", "accentDark"], label: "深色主题主色（如 #84cbb2）", value: ui.accentDark || "", mono: true },
+        { path: ["ui", "themeDefault"], label: "默认明暗（auto / light / dark）", value: ui.themeDefault, mono: true },
+        { path: ["ui", "accent"], label: "覆盖浅色主色（留空则用风格自带）", value: ui.accent || "", mono: true },
+        { path: ["ui", "accentDark"], label: "覆盖深色主色", value: ui.accentDark || "", mono: true },
+        { path: ["ui", "showSkinPicker"], label: "右上角风格切换按钮", value: ui.showSkinPicker, type: "bool" },
+        { path: ["ui", "showThemeToggle"], label: "右上角深浅快切按钮", value: ui.showThemeToggle, type: "bool" },
         { path: ["ui", "showProgress"], label: "顶部滚动进度条", value: ui.showProgress, type: "bool" },
         { path: ["ui", "showBackToTop"], label: "右下角回到顶部", value: ui.showBackToTop, type: "bool" },
-        { path: ["ui", "ambientMotion"], label: "背景光晕流动", value: ui.ambientMotion, type: "bool" },
-        { path: ["ui", "showThemeToggle"], label: "右上角主题切换按钮", value: ui.showThemeToggle, type: "bool" }
+        { path: ["ui", "ambientMotion"], label: "背景光晕流动", value: ui.ambientMotion, type: "bool" }
       ]));
-      body += group("色板预览", "改了主色后这里会跟着变",
+
+      body += group("主色预览", "改了上面的覆盖主色，这里跟着变",
         '<div class="row"><span data-swatch="accent" style="width:64px;height:64px;border-radius:14px;background:' +
-        esc(ui.accent || "#2f6b5b") + '"></span>' +
+        esc(ui.accent || currentSkinAccent("light")) + '"></span>' +
         '<span data-swatch="accentDark" style="width:64px;height:64px;border-radius:14px;background:' +
-        esc(ui.accentDark || "#84cbb2") + '"></span></div>' +
-        '<p class="sheet__hint">其余配色（背景、文字灰阶、圆角）在 <code>assets/css/tokens.css</code>，需要直接改文件。</p>');
+        esc(ui.accentDark || currentSkinAccent("dark")) + '"></span></div>' +
+        '<p class="sheet__hint">背景、文字灰阶、圆角、字体这些更细的项在 ' +
+        '<code>assets/js/themes.js</code> 里，每套风格都有独立的一段。</p>');
     }
 
     $("#panel").innerHTML = body;
   }
 
   /* ============================================================ 交互 */
+  /* 把图片居中裁成正方形、缩放并压缩，返回 data URL */
+  function compressImage(file, done) {
+    if (!file || !/^image\//.test(file.type)) { toast("请选择图片文件"); return; }
+    var reader = new FileReader();
+    reader.onerror = function () { toast("文件读取失败"); };
+    reader.onload = function () {
+      var img = new Image();
+      img.onerror = function () { toast("图片无法解析，换一张试试"); };
+      img.onload = function () {
+        var SIZE = 256;
+        var canvas = document.createElement("canvas");
+        canvas.width = canvas.height = SIZE;
+        var g = canvas.getContext("2d");
+        var side = Math.min(img.width, img.height);
+        var sx = (img.width - side) / 2;
+        var sy = (img.height - side) / 2;
+        if (g.imageSmoothingQuality) g.imageSmoothingQuality = "high";
+        // 先铺一层底色，避免透明 PNG 变黑
+        g.fillStyle = "#ffffff";
+        g.fillRect(0, 0, SIZE, SIZE);
+        g.drawImage(img, sx, sy, side, side, 0, 0, SIZE, SIZE);
+
+        var out = canvas.toDataURL("image/webp", 0.82);
+        if (out.indexOf("data:image/webp") !== 0) {
+          out = canvas.toDataURL("image/jpeg", 0.85);
+        }
+        done(out);
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  /* 估算 data URL 的实际体积（KB） */
+  function dataUrlKb(dataUrl) {
+    var b64 = String(dataUrl).split(",")[1] || "";
+    return Math.round(b64.length * 0.75 / 1024);
+  }
+
+  window.ADMIN_COMPRESS = compressImage;
+  window.ADMIN_KB = dataUrlKb;
+
   function bindEditor() {
     $("#tabs").addEventListener("click", function (e) {
       var t = e.target.closest("[data-tab]");
@@ -423,6 +525,16 @@ window.ADMIN = {
       if (el.dataset.path) {
         var path = el.dataset.path.split(".");
         var last = path[path.length - 1];
+
+        // 头像网址改动时同步预览
+        if (el.dataset.path === "site.avatar") {
+          draft.site.avatar = el.value.trim();
+          mark();
+          var pv = $("[data-avatar-preview]");
+          if (pv) pv.innerHTML = avatarPreviewHtml();
+          return;
+        }
+
         var val = el.type === "checkbox" ? el.checked : el.value;
         if (last === "order") val = Number(val) || 0;
         setPath(draft, path, val);
@@ -450,9 +562,58 @@ window.ADMIN = {
       }
     });
 
+    panel.addEventListener("change", function (e) {
+      var el = e.target;
+      if (!el.hasAttribute || !el.hasAttribute("data-avatar-file")) return;
+      var file = el.files && el.files[0];
+      if (!file) return;
+
+      compressImage(file, function (dataUrl) {
+        draft.site.avatar = dataUrl;
+        mark();
+        var pv = $("[data-avatar-preview]");
+        if (pv) pv.innerHTML = avatarPreviewHtml();
+        var field = $('[data-path="site.avatar"]');
+        if (field) field.value = dataUrl;
+        var kb = dataUrlKb(dataUrl);
+        toast("头像已就绪（约 " + kb + " KB）" + (kb > 120 ? "，偏大，建议换更简洁的图" : ""));
+      });
+      el.value = "";
+    });
+
     panel.addEventListener("click", function (e) {
       var b = e.target.closest("button");
       if (!b) return;
+
+      /* ---- 选择风格 ---- */
+      if (b.dataset.pickSkin) {
+        draft.ui = draft.ui || {};
+        draft.ui.skin = b.dataset.pickSkin;
+        mark();
+        renderPanel();
+        var t = window.SITE_THEMES && window.SITE_THEMES.get(b.dataset.pickSkin);
+        var label = $("[data-skin-label]");
+        if (label && t) label.textContent = t.name;
+        toast("默认风格已设为「" + (t ? t.name : b.dataset.pickSkin) + "」");
+        return;
+      }
+
+      /* ---- 头像上传 ---- */
+      if (b.hasAttribute("data-avatar-up")) {
+        var fileInput = $("[data-avatar-file]");
+        if (fileInput) fileInput.click();
+        return;
+      }
+      if (b.hasAttribute("data-avatar-clear")) {
+        draft.site.avatar = "";
+        mark();
+        var prev = $("[data-avatar-preview]");
+        if (prev) prev.innerHTML = avatarPreviewHtml();
+        var urlField = $('[data-path="site.avatar"]');
+        if (urlField) urlField.value = "";
+        toast("已清除头像");
+        return;
+      }
 
       if (b.dataset.add) {
         var key = b.dataset.add;

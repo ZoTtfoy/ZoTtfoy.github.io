@@ -46,6 +46,65 @@
 .gate__back { display: inline-block; margin-top: 14px; font-size: .8rem; color: var(--text-2); }
 .gate__back:hover { color: var(--accent); }
 
+/* ---------------------------------------------------------------- 头像 */
+.avatar-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 18px;
+  padding: 4px 0 8px;
+}
+.avatar-preview {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 76px;
+  height: 76px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: var(--bg-soft);
+}
+.avatar-preview img { width: 100%; height: 100%; object-fit: cover; }
+.avatar-preview__letter {
+  font-family: var(--font-mono);
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--text-2);
+}
+.avatar-actions { flex: 1; min-width: 0; }
+
+/* ------------------------------------------------------------ 风格选择器 */
+.skin-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(154px, 1fr));
+  gap: 10px;
+  margin-top: 4px;
+}
+.skin-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--bg);
+  text-align: left;
+  transition: border-color var(--t-fast) var(--ease), background-color var(--t-fast) var(--ease),
+              transform var(--t-fast) var(--ease);
+}
+.skin-cell:hover { border-color: var(--line-strong); transform: translateY(-1px); }
+.skin-cell.is-active { border-color: var(--accent); background: var(--accent-soft); }
+.skin-cell__swatch { display: flex; gap: 3px; }
+.skin-cell__swatch i {
+  display: block;
+  width: 100%;
+  height: 26px;
+  border-radius: 5px;
+  border: 1px solid var(--line);
+}
+.skin-cell strong { font-size: .82rem; font-weight: 600; }
+.skin-cell small { font-size: .68rem; line-height: 1.5; color: var(--text-3); }
+
 /* ---------------------------------------------------------------- 表单件 */
 .field { display: block; margin-top: 16px; }
 .field__label {

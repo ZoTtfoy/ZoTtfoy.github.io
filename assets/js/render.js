@@ -56,16 +56,54 @@ window.SITE_RENDER = (function () {
     if (ogD) ogD.setAttribute("content", s.description || "");
   }
 
+  /* ---------- 头像：优先用图片，没有就退回字母方块 ---------- */
+  function avatarUrl() {
+    var v = (C.site || {}).avatar;
+    return (typeof v === "string" && v.trim()) ? v.trim() : "";
+  }
+
+  function markHtml(size) {
+    var s = C.site || {};
+    var url = avatarUrl();
+    var letter = esc(s.initials || (s.name || "Z").slice(0, 1));
+    if (url) {
+      return '<img class="brand__avatar' + (size ? " brand__avatar--sm" : "") + '" src="' + esc(url) +
+             '" alt="' + esc(s.name || "头像") + '" loading="eager" decoding="async">';
+    }
+    return '<span class="brand__mark' + (size ? " brand__mark--sm" : "") + '">' + letter + '</span>';
+  }
+
+  function renderAvatar() {
+    var s = C.site || {};
+    var url = avatarUrl();
+
+    // 页头 / 页脚
+    set("brandMark", markHtml(false));
+    set("footerMark", markHtml(true));
+
+    // 首页大图：只有配置了图片才显示，避免和页头的字母块重复
+    var box = $("heroAvatar");
+    if (box) {
+      if (url) {
+        box.hidden = false;
+        box.innerHTML = '<img src="' + esc(url) + '" alt="' + esc(s.name || "头像") +
+                        '" loading="eager" decoding="async">';
+      } else {
+        box.hidden = true;
+        box.innerHTML = "";
+      }
+    }
+  }
+
   /* ---------- 品牌 / 页脚 ---------- */
   function renderBrand() {
     var s = C.site || {};
-    set("brandMark", esc(s.initials || (s.name || "Z").slice(0, 1)));
     set("brandName", esc(s.name));
-    set("footerMark", esc(s.initials || (s.name || "Z").slice(0, 1)));
     set("footerName", esc(s.name));
     set("footerCopy", esc(s.copyright));
     set("footerNote", esc(s.footerNote));
     set("mobileNavFoot", esc(s.location));
+    renderAvatar();
   }
 
   /* ---------- 首页 ---------- */
@@ -239,6 +277,14 @@ window.SITE_RENDER = (function () {
     }
     set("menuToggle", icon("menu"));
     set("toTop", icon("arrow-up"));
+
+    // 风格切换按钮
+    set("skinBtn", icon("palette"));
+    var sk = $("skinBtn");
+    if (sk && C.ui && C.ui.showSkinPicker === false) sk.hidden = true;
+    var cnt = $("skinCount");
+    if (cnt && window.SITE_THEMES) cnt.textContent = window.SITE_THEMES.list.length + " 套可选";
+
     var top = $("toTop");
     if (top && C.ui && C.ui.showBackToTop === false) top.hidden = true;
   }

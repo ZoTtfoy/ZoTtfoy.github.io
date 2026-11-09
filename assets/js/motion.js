@@ -119,20 +119,25 @@ window.SITE_MOTION = (function () {
     if (!btn) return;
     var dark = document.documentElement.dataset.theme === "dark";
     btn.innerHTML = window.siteIcon(dark ? "sun" : "moon");
-    var label = dark ? "切换到浅色主题" : "切换到深色主题";
+    var label = dark ? "切换到浅色" : "切换到深色";
     btn.setAttribute("aria-label", label);
     btn.setAttribute("title", label);
-    var meta = document.querySelector('meta[name="theme-color"]');
-    if (meta) meta.setAttribute("content", dark ? "#0e1011" : "#fbfbf9");
+    if (C.ui && C.ui.showThemeToggle === false) btn.hidden = true;
+    // theme-color 由 skin.js 依据当前主题底色写入，这里不再固定
   }
 
   function applyTheme(mode, persist) {
     document.documentElement.classList.add("theme-switching");
-    document.documentElement.dataset.theme = mode;
-    if (persist) {
-      try { localStorage.setItem(THEME_KEY, mode); } catch (e) {}
+    // 主题（风格 + 明暗）统一由 skin.js 负责注入，这里只转交
+    if (window.SITE_SKIN && window.SITE_SKIN.apply) {
+      window.SITE_SKIN.apply(window.SITE_SKIN.currentSkin(), mode, persist);
+    } else {
+      document.documentElement.dataset.theme = mode;
+      if (persist) {
+        try { localStorage.setItem(THEME_KEY, mode); } catch (e) {}
+      }
+      if (window.SITE_RENDER && window.SITE_RENDER.applyAccent) window.SITE_RENDER.applyAccent();
     }
-    if (window.SITE_RENDER && window.SITE_RENDER.applyAccent) window.SITE_RENDER.applyAccent();
     paintThemeButton();
     setTimeout(function () { document.documentElement.classList.remove("theme-switching"); }, 380);
   }
@@ -142,17 +147,12 @@ window.SITE_MOTION = (function () {
     var btn = $("themeToggle");
     if (btn) {
       btn.addEventListener("click", function () {
+        // 快速切换：在浅色 / 深色之间来回（若原本是「跟随系统」，点一下即转为手动）
         var next = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
         applyTheme(next, true);
       });
     }
-    var onSystemChange = function (e) {
-      var saved = null;
-      try { saved = localStorage.getItem(THEME_KEY); } catch (err) {}
-      if (!saved) applyTheme(e.matches ? "dark" : "light", false);
-    };
-    if (systemQuery.addEventListener) systemQuery.addEventListener("change", onSystemChange);
-    else if (systemQuery.addListener) systemQuery.addListener(onSystemChange);
+    // 系统偏好变化交给 skin.js 统一处理，这里不重复绑定
   }
 
   /* ------------------------------------------------------------ 移动端菜单 */
@@ -280,5 +280,5 @@ window.SITE_MOTION = (function () {
     initAmbient();
   }
 
-  return { init: init, toast: toast, closeMenu: closeMenu };
+  return { init: init, toast: toast, closeMenu: closeMenu, syncThemeButton: paintThemeButton };
 })();

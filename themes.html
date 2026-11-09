@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="light dark">
+  <meta name="robots" content="noindex, nofollow">
+  <title>风格总览 · Zotrod</title>
+
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%2316181a'/%3E%3Ctext x='32' y='44' font-size='34' font-family='Arial' font-weight='700' text-anchor='middle' fill='%23fff'%3E%E2%97%91%3C/text%3E%3C/svg%3E">
+
+  <link rel="stylesheet" href="assets/css/tokens.css">
+  <link rel="stylesheet" href="assets/css/gallery.css">
+</head>
+
+<body>
+  <header class="g-head">
+    <div class="g-head__inner">
+      <div>
+        <p class="g-eyebrow">THEME GALLERY</p>
+        <h1 class="g-title">风格总览</h1>
+        <p class="g-lead" id="gLead"></p>
+      </div>
+      <a class="g-back" href="./">← 返回主页</a>
+    </div>
+  </header>
+
+  <main class="g-body">
+    <div class="g-grid" id="gGrid"></div>
+  </main>
+
+  <footer class="g-foot">
+    <p>每格都是真实渲染：同一套 token 注入到该格内部，不是截图。</p>
+    <p>点任意一格可设为默认风格，访客打开主页时就会用它（仍可自行切换）。</p>
+  </footer>
+
+  <div class="g-toast" id="gToast" role="status" aria-live="polite"></div>
+
+  <script src="assets/js/config.js"></script>
+  <script src="assets/js/themes.js"></script>
+  <script src="assets/js/gallery.js"></script>
+</body>
+</html>

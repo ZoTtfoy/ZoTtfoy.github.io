@@ -6,6 +6,7 @@
 :root {
   --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
                "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", sans-serif;
+  --font-display: inherit;          /* 由主题覆盖；纸本主题会换成衬线 */
   --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
                "Liberation Mono", monospace;
 
@@ -18,6 +19,9 @@
   --r-lg: 22px;
   --r-full: 999px;
 
+  --tracking-title: -.035em;
+  --border-w: 1px;
+
   --ease: cubic-bezier(.22, .61, .36, 1);
   --ease-out: cubic-bezier(.16, 1, .3, 1);
   --t-fast: .22s;
@@ -25,7 +29,7 @@
   --t-slow: .8s;
 }
 
-/* ---------- 浅色主题（默认） ---------- */
+/* ---------- 浅色兜底（与 ink 主题一致，JS 未加载时也不会跳色） ---------- */
 :root,
 [data-theme="light"] {
   --bg: #fbfbf9;
@@ -33,7 +37,7 @@
   --bg-soft: #f2f2ee;
   --text: #17191b;
   --text-2: #565c61;
-  --text-3: #8c9297;
+  --text-3: #81868b;
   --line: rgba(23, 25, 27, .10);
   --line-strong: rgba(23, 25, 27, .18);
   --accent: #2f6b5b;

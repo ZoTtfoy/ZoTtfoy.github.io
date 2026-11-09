@@ -112,10 +112,11 @@
 
 .hero__title {
   max-width: 15ch;
+  font-family: var(--font-display, var(--font-sans));
   font-size: clamp(2.9rem, 8.2vw, 6.4rem);
   font-weight: 600;
   line-height: 1.08;
-  letter-spacing: -.035em;
+  letter-spacing: var(--tracking-title, -.035em);
 }
 
 .hero__role {
@@ -166,10 +167,11 @@
 }
 .section__head { max-width: 760px; margin-bottom: clamp(40px, 6vw, 72px); }
 .section__title {
+  font-family: var(--font-display, var(--font-sans));
   font-size: clamp(2rem, 4.8vw, 3.4rem);
   font-weight: 600;
   line-height: 1.18;
-  letter-spacing: -.035em;
+  letter-spacing: var(--tracking-title, -.035em);
 }
 .section__lead {
   margin-top: 16px;

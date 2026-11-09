@@ -1,0 +1,262 @@
+/* ==========================================================================
+ *  gallery.css —— 风格总览页
+ *  每张卡片自己就是一套主题作用域：变量注入到 .g-card 上，
+ *  卡片内部所有子元素都读这套变量，所以能在一屏里并存 14 种风格。
+ * ========================================================================== */
+
+body {
+  background: #f4f4f2;
+  color: #17191b;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+               "Microsoft YaHei", "Noto Sans SC", sans-serif;
+  padding: 0 24px 80px;
+}
+
+/* ------------------------------------------------------------------ 页头 */
+.g-head { padding: clamp(40px, 7vw, 78px) 0 clamp(28px, 4vw, 44px); }
+.g-head__inner {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 18px;
+  max-width: 1280px;
+  margin: 0 auto;
+}
+.g-eyebrow {
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: .7rem;
+  letter-spacing: .16em;
+  color: #8a8a86;
+}
+.g-title {
+  margin-top: 10px;
+  font-size: clamp(2rem, 4.4vw, 3rem);
+  font-weight: 600;
+  letter-spacing: -.035em;
+  line-height: 1.15;
+}
+.g-lead {
+  max-width: 46ch;
+  margin-top: 12px;
+  font-size: .94rem;
+  line-height: 1.8;
+  color: #5c5c58;
+}
+.g-back {
+  flex: none;
+  padding: 9px 16px;
+  border: 1px solid rgba(23, 25, 27, .14);
+  border-radius: 999px;
+  font-size: .82rem;
+  color: #3d3d3a;
+  transition: border-color .2s, background-color .2s;
+}
+.g-back:hover { border-color: rgba(23, 25, 27, .3); background: #fff; }
+
+/* ------------------------------------------------------------------ 网格 */
+.g-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
+  gap: 20px;
+  max-width: 1280px;
+  margin: 0 auto;
+}
+
+/* ---------------------------------------------------------------- 预览卡 */
+.g-card {
+  --card-radius: calc(var(--r-lg, 22px) + 4px);
+
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--card-radius);
+  background: var(--bg);
+  color: var(--text);
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  text-align: left;
+  transition: transform .38s cubic-bezier(.16, 1, .3, 1),
+              box-shadow .38s cubic-bezier(.16, 1, .3, 1);
+}
+.g-card:hover { transform: translateY(-5px); box-shadow: var(--shadow-md); }
+
+/* 卡片顶部：风格名 + 明暗标签 */
+.g-card__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 13px 16px;
+  border-bottom: 1px solid var(--line);
+}
+.g-card__name {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-family: var(--font-display, var(--font-sans));
+  font-size: .9rem;
+  font-weight: 600;
+}
+.g-card__id {
+  font-family: var(--font-mono);
+  font-size: .64rem;
+  letter-spacing: .05em;
+  color: var(--text-3);
+  text-transform: uppercase;
+}
+.g-card__mode {
+  flex: none;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--bg-soft);
+  font-family: var(--font-mono);
+  font-size: .6rem;
+  letter-spacing: .08em;
+  color: var(--text-3);
+  text-transform: uppercase;
+}
+
+/* 迷你首页：真实复刻 hero 的层级 */
+.g-mini {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 20px 18px 18px;
+}
+.g-mini__avatar {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: calc(var(--r-sm) * .7);
+  background: var(--text);
+  color: var(--bg);
+  font-family: var(--font-mono);
+  font-size: .76rem;
+  font-weight: 700;
+}
+.g-mini__title {
+  font-family: var(--font-display, var(--font-sans));
+  font-size: 1.32rem;
+  font-weight: 600;
+  line-height: 1.24;
+  letter-spacing: var(--tracking-title);
+}
+.g-mini__desc {
+  font-size: .74rem;
+  line-height: 1.7;
+  color: var(--text-2);
+}
+.g-mini__row { display: flex; gap: 7px; margin-top: 2px; }
+.g-mini__btn {
+  padding: 6px 13px;
+  border-radius: 999px;
+  font-size: .68rem;
+  font-weight: 500;
+}
+.g-mini__btn--solid { background: var(--text); color: var(--bg); }
+.g-mini__btn--ghost {
+  border: 1px solid var(--line-strong);
+  color: var(--text-2);
+}
+
+/* 底部：一小组 token 样本，方便看细节 */
+.g-specimens {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+  margin-top: 4px;
+}
+.g-chip {
+  padding: 8px 9px;
+  border: 1px solid var(--line);
+  border-radius: calc(var(--r-sm) * .8);
+  background: var(--bg-elev);
+}
+.g-chip__label {
+  font-family: var(--font-mono);
+  font-size: .56rem;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+.g-chip__value {
+  display: block;
+  margin-top: 3px;
+  overflow: hidden;
+  font-size: .66rem;
+  color: var(--text-2);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.g-chip__swatch {
+  display: block;
+  width: 100%;
+  height: 10px;
+  margin-top: 5px;
+  border-radius: 3px;
+  border: 1px solid var(--line);
+}
+
+/* 已应用标记 */
+.g-card__flag {
+  position: absolute;
+  top: 13px;
+  right: 16px;
+  display: none;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--accent-fg);
+  font-size: .6rem;
+  font-weight: 600;
+}
+.g-card.is-current .g-card__flag { display: inline-flex; }
+.g-card.is-current { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft), var(--shadow-md); }
+.g-card.is-current .g-card__mode { display: none; }
+
+/* ------------------------------------------------------------------ 页脚 */
+.g-foot {
+  max-width: 1280px;
+  margin: clamp(40px, 6vw, 68px) auto 0;
+  padding-top: 24px;
+  border-top: 1px solid rgba(23, 25, 27, .10);
+  font-size: .78rem;
+  line-height: 2;
+  color: #78786f;
+}
+
+/* ------------------------------------------------------------------ 提示 */
+.g-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 30px;
+  padding: 10px 20px;
+  border-radius: 999px;
+  background: #17191b;
+  color: #fff;
+  font-size: .82rem;
+  opacity: 0;
+  transform: translate(-50%, 12px);
+  pointer-events: none;
+  transition: opacity .3s, transform .3s;
+}
+.g-toast.is-visible { opacity: 1; transform: translate(-50%, 0); }
+
+/* ---------------------------------------------------------------- 小屏 */
+@media (max-width: 560px) {
+  body { padding: 0 16px 60px; }
+  .g-grid { grid-template-columns: 1fr; gap: 16px; }
+  .g-head__inner { flex-direction: column; align-items: flex-start; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .g-card { transition: none; }
+  .g-card:hover { transform: none; }
+}

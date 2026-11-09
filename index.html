@@ -16,17 +16,35 @@
 
   <!-- config.js 只定义数据，放最前面：既供下方主题初始化使用，也避免刷新闪白屏 -->
   <script src="assets/js/config.js"></script>
+  <script src="assets/js/themes.js"></script>
   <script>
+    /* 首屏立即套用主题，避免刷新时闪一下默认配色。
+       这里只做「注入变量」这一件事，完整逻辑在 assets/js/skin.js。 */
     (function () {
-      document.documentElement.classList.add('js');
+      var d = document.documentElement;
+      d.classList.add('js');
       try {
-        var saved = localStorage.getItem('zotrod-theme');
-        var fallback = (window.SITE_CONFIG && window.SITE_CONFIG.ui) ? window.SITE_CONFIG.ui.themeDefault : 'auto';
-        var mode = saved || fallback || 'auto';
-        var dark = mode === 'dark' || (mode === 'auto' && matchMedia('(prefers-color-scheme: dark)').matches);
-        document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+        var T = window.SITE_THEMES, UI = (window.SITE_CONFIG || {}).ui || {};
+        var skinId = localStorage.getItem('zotrod-skin') || UI.skin || (T && T.defaultSkin) || 'ink';
+        var skin = (T && T.get) ? T.get(skinId) : null;
+        if (!skin && T && T.list && T.list.length) skin = T.list[0];
+
+        var modeRaw = localStorage.getItem('zotrod-theme') || UI.themeDefault || 'auto';
+        var dark = modeRaw === 'dark' ||
+          (modeRaw === 'auto' && matchMedia('(prefers-color-scheme: dark)').matches);
+        var mode = dark ? 'dark' : 'light';
+
+        if (skin) {
+          var b = skin.base || {}, c = skin[mode] || skin.light || {}, k, name;
+          for (k in b) d.style.setProperty('--' + k, b[k]);
+          for (k in c) d.style.setProperty('--' + k, c[k]);
+          d.dataset.skin = skin.id;
+        }
+        d.dataset.theme = mode;
+        d.dataset.modeRaw = modeRaw;
       } catch (e) {
-        document.documentElement.dataset.theme = 'light';
+        d.dataset.theme = 'light';
+        d.dataset.skin = 'ink';
       }
     })();
   </script>
@@ -34,6 +52,7 @@
   <link rel="stylesheet" href="assets/css/tokens.css">
   <link rel="stylesheet" href="assets/css/layout.css">
   <link rel="stylesheet" href="assets/css/components.css">
+  <link rel="stylesheet" href="assets/css/skin.css">
   <link rel="stylesheet" href="assets/css/motion.css">
 </head>
 
@@ -61,9 +80,36 @@
       </nav>
 
       <div class="header__actions">
-        <button class="icon-btn" id="themeToggle" type="button" aria-label="切换深浅主题" title="切换深浅主题"></button>
+        <button class="icon-btn" id="skinBtn" type="button"
+                aria-label="更换风格" title="更换风格" aria-expanded="false" aria-controls="skinPanel"></button>
+        <button class="icon-btn" id="themeToggle" type="button" aria-label="切换深浅" title="切换深浅"></button>
         <button class="icon-btn menu-toggle" id="menuToggle" type="button"
                 aria-label="打开菜单" aria-expanded="false" aria-controls="mobileNav"></button>
+      </div>
+    </div>
+
+    <!-- 风格切换面板 -->
+    <div class="skin-panel" id="skinPanel" hidden>
+      <div class="skin-panel__head">
+        <div>
+          <strong>风格</strong>
+          <span class="skin-panel__count" id="skinCount"></span>
+        </div>
+        <button class="icon-btn icon-btn--xs" type="button" data-skin-close aria-label="关闭">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+               stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>
+        </button>
+      </div>
+
+      <div class="skin-panel__list" id="skinList" role="group" aria-label="可选风格"></div>
+
+      <div class="skin-panel__foot">
+        <span class="skin-panel__label">明暗</span>
+        <div class="seg" role="group" aria-label="明暗模式">
+          <button class="seg__btn" type="button" data-mode="light">浅色</button>
+          <button class="seg__btn" type="button" data-mode="dark">深色</button>
+          <button class="seg__btn" type="button" data-mode="auto">跟随系统</button>
+        </div>
       </div>
     </div>
   </header>
@@ -77,6 +123,7 @@
     <!-- ============ Hero ============ -->
     <section class="hero" id="top" aria-labelledby="heroTitle">
       <div class="container hero__inner">
+        <div class="hero__avatar" id="heroAvatar" data-reveal hidden></div>
         <p class="hero__status" id="heroStatus" data-reveal></p>
         <h1 class="hero__title" id="heroTitle" data-reveal style="--reveal-delay:80ms"></h1>
         <p class="hero__role" id="heroRole" data-reveal style="--reveal-delay:160ms"></p>
@@ -168,6 +215,7 @@
   <!-- 无构建、无依赖：按顺序加载即可；本地双击 index.html 也能直接看 -->
   <script src="assets/js/icons.js"></script>
   <script src="assets/js/render.js"></script>
+  <script src="assets/js/skin.js"></script>
   <script src="assets/js/motion.js"></script>
   <script src="assets/js/main.js"></script>
 </body>
