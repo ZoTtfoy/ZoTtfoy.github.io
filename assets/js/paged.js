@@ -94,8 +94,14 @@ window.SITE_PAGED = (function () {
     var over = 0;
     pages.forEach(function (p) {
       p.removeAttribute("data-tall");
-      // 留 2px 容差，避免亚像素把刚好一屏的页误判成溢出
-      if (naturalHeight(p) > vh + 2) {
+      /* 容差 2px → 1px。
+         2px 原本是想挡住亚像素把「刚好一屏」误判成溢出，但字体的
+         亚像素累积误差实际在 1px 以内，2px 就留得太宽了，
+         会让真正超 2px 的页蒙混过关。
+         实测案例：iPhone 8 Plus 414×736 下 gaming 章节是 738px，
+         判定式 738 > 736 + 2 为假 → 没降档 → 页面底部被切掉 2px。
+         收窄到 1px 后该页会正确降到下一档。 */
+      if (naturalHeight(p) > vh + 1) {
         p.setAttribute("data-tall", "1");
         over++;
       }
