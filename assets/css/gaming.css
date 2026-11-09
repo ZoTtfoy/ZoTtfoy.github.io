@@ -148,13 +148,12 @@
 .game__link:hover { color: var(--text); background: var(--bg-soft); }
 
 /* ---------------------------------------------------------- 悬停反馈 */
-/* 不做位移、不加阴影 —— 和业务卡/喜好卡保持同一套节制规则 */
+/* 不做位移、不加阴影 —— 和摘要素描卡保持同一套节制规则 */
 @media (hover: hover) and (pointer: fine) {
   .game:hover { border-color: var(--line-strong); }
 }
-@media (hover: none) {
-  .game:active { transform: scale(.99); transition-duration: .1s; }
-}
+/* 触屏按压反馈统一在 motion.css 里（那一处集中管理所有可点组件），
+   这里不要重复写 .game:active，否则会覆盖那边的数值。 */
 
 /* ------------------------------------------------------------ 小屏收紧 */
 @media (max-width: 680px) {
