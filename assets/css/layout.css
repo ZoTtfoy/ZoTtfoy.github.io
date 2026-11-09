@@ -219,9 +219,10 @@
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 14px;
 }
+/* 社交卡片数量可变，用 auto-fit 自适应列数，最后一行会自动铺满不留下空位 */
 .social-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(238px, 1fr));
   gap: 14px;
 }
 
@@ -271,7 +272,7 @@
 /* ================================================================ 响应式 */
 /* 平板横屏 / 小笔记本 */
 @media (max-width: 1024px) {
-  .interest-grid, .social-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .interest-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .about__grid { gap: 48px; }
 }
 
