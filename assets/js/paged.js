@@ -61,23 +61,70 @@ window.SITE_PAGED = (function () {
     return h;
   }
 
+  /* ------------------------------------------- 按「可用高度」分级（适配手机）
+     为什么不用 @media (max-height)：
+       手机浏览器地址栏会随滚动收缩 / 展开，视口高度在 640~740 之间反复跳。
+       用视口高度的媒体查询会让整页布局反复重排、内容闪动。
+       所以由 JS 算好、写成 html[data-fit]，只在**跨档**时更新。
+
+     四档（宽松 → 紧凑）：roomy → tight → snug → micro
+       roomy  主流手机、平板，保持设计稿留白
+       tight  小屏手机（iPhone SE / 8 Plus）
+       snug   极矮屏、折叠屏外屏
+       micro  横屏手机（改横向布局）
+
+     ⚠️ 关键：不能用「视口高度 > 阈值」来定档。
+       同样的高度，窄屏需要更多行、内容更高 —— 实测 360×780 与 390×844
+       可用高度接近，但 360 宽的「关于」章要高 122px。
+       所以改成「**从最宽松开始试，装不下就降一档、重新量**」，
+       直到某档能装下，或已到最紧。这样任何比例都能自己找到合适档位。 */
+  var FIT_STEPS = ["roomy", "tight", "snug", "micro"];
+  var fitNow = "";
+
+  function setFit(level) {
+    if (fitNow === level) return false;
+    fitNow = level;
+    document.documentElement.dataset.fit = level;
+    return true;
+  }
+
+  /* 量一遍所有页面，把超出的标上 data-tall，返回超出数量 */
+  function countOverflow() {
+    var vh = window.innerHeight;
+    var over = 0;
+    pages.forEach(function (p) {
+      p.removeAttribute("data-tall");
+      // 留 2px 容差，避免亚像素把刚好一屏的页误判成溢出
+      if (naturalHeight(p) > vh + 2) {
+        p.setAttribute("data-tall", "1");
+        over++;
+      }
+    });
+    return over;
+  }
+
+  /* 从最宽松逐级往下试，找到第一个「所有页都装得下」的档位 */
+  function pickFit() {
+    for (var i = 0; i < FIT_STEPS.length; i++) {
+      setFit(FIT_STEPS[i]);
+      if (countOverflow() === 0) return FIT_STEPS[i];
+    }
+    return FIT_STEPS[FIT_STEPS.length - 1];
+  }
+
   function markTall() {
     if (!enabled) return;
     var vh = window.innerHeight;
 
-    // 先全部当作「装得下」来量，避免上一轮的 data-tall 影响这一轮
-    pages.forEach(function (p) { p.removeAttribute("data-tall"); });
+    /* 每次都从最宽松档重新试 —— 这样屏幕变大（或竖屏转横屏再转回）
+       也能自动放宽，而不是一直卡在上一次的紧档。 */
+    setFit("roomy");
     void document.documentElement.offsetHeight;
 
-    var anyTall = false;
-    pages.forEach(function (p) {
-      var h = naturalHeight(p);
-      // 留 2px 容差，避免亚像素把刚好一屏的页误判成溢出
-      if (h > vh + 2) {
-        p.setAttribute("data-tall", "1");
-        anyTall = true;
-      }
-    });
+    pickFit();
+
+    // 逐级试完后可能仍有页装不下（已到最紧档），此时保留 data-tall 让吸附降级
+    var anyTall = countOverflow() > 0;
 
     /* 吸附力度自适应：
        全部装得下 → mandatory，任何滚动都停在页边界，最像翻页；
@@ -439,6 +486,11 @@ window.SITE_PAGED = (function () {
   function initHint() {
     var el = $("pageHint");
     if (!el || UI.showHint === false) return;
+
+    /* 减少动效时不提示：提示本身是"会动的引导"，
+       而且这条路径不该依赖 CSS 的 display:none 兜底 ——
+       类名加上去、只是看不见，会让状态和 DOM 不一致。 */
+    if (reduced()) return;
 
     var seen = false;
     try { seen = sessionStorage.getItem("zotrod-hint") === "1"; } catch (e) {}
