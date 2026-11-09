@@ -1,18 +1,16 @@
-# 系统文件
-.DS_Store
-Thumbs.db
-desktop.ini
-
-# 编辑器
-.idea/
-.vscode/
-*.swp
-
-# 本地产物 / 日志
-_site/
-*.log
-node_modules/
 
 # 仓库外的本地凭据（不要提交）
-管理凭据.txt
+# 本地产物 / 日志
+# 系统文件
+# 编辑器
+*.log
+*.swp
+.DS_Store
 .admin-credential.local.txt
+.idea/
+.vscode/
+Thumbs.db
+_site/
+desktop.ini
+node_modules/
+管理凭据.txt
