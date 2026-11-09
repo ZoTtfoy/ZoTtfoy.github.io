@@ -1,0 +1,141 @@
+/* ==========================================================================
+ *  motion.css —— 入场动画 / 悬停反馈 / 环境动效
+ *  所有动效都遵循系统「减少动态效果」设置，并只在支持悬停的设备上启用 hover。
+ * ========================================================================== */
+
+/* ------------------------------------------------------------ 滚动渐显 */
+.js [data-reveal] {
+  opacity: 0;
+  transform: translate3d(0, 22px, 0);
+  filter: blur(5px);
+  transition:
+    opacity var(--t-slow) var(--ease-out),
+    transform var(--t-slow) var(--ease-out),
+    filter var(--t-slow) var(--ease-out);
+  transition-delay: var(--reveal-delay, 0ms);
+  will-change: opacity, transform;
+}
+.js [data-reveal].is-visible {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+  filter: blur(0);
+}
+
+/* ------------------------------------------------------------ 导航下划线 */
+.nav__link::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 2px;
+  height: 1px;
+  background: var(--accent);
+  transform: scaleX(0);
+  transform-origin: 0 50%;
+  transition: transform var(--t) var(--ease-out);
+}
+.nav__link.is-active { color: var(--text); }
+.nav__link.is-active::after { transform: scaleX(1); }
+
+/* ------------------------------------------------------------ 环境光晕 */
+@keyframes drift-a {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50%      { transform: translate3d(5%, 7%, 0) scale(1.09); }
+}
+@keyframes drift-b {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1.04); }
+  50%      { transform: translate3d(-6%, -6%, 0) scale(.94); }
+}
+.ambient__orb--a { animation: drift-a 24s ease-in-out infinite; }
+.ambient__orb--b { animation: drift-b 30s ease-in-out infinite; }
+html[data-motion="off"] .ambient__orb { animation: none; }
+
+@keyframes pulse-ring {
+  0%        { transform: scale(.6); opacity: .6; }
+  70%, 100% { transform: scale(1.5); opacity: 0; }
+}
+
+/* 移动端下拉菜单 */
+@keyframes menu-in {
+  from { opacity: 0; transform: translateY(-12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.mobile-nav { animation: menu-in .3s var(--ease-out) both; }
+
+/* ------------------------------------------------------------ 悬停反馈 */
+@media (hover: hover) and (pointer: fine) {
+  .nav__link:hover { color: var(--text); }
+  .nav__link:hover::after { transform: scaleX(1); }
+
+  .brand:hover .brand__mark { transform: rotate(-6deg); }
+  .brand__mark { transition: transform var(--t) var(--ease-out); }
+
+  .btn--primary:hover {
+    background: var(--accent);
+    color: var(--accent-fg);
+    transform: translateY(-2px);
+    box-shadow: 0 10px 28px var(--accent-soft);
+  }
+  .btn--primary:hover .btn__icon { transform: translateY(3px); }
+  .btn--quiet:hover { border-color: var(--line-strong); transform: translateY(-2px); }
+  .btn--quiet:hover .btn__icon { transform: translate(2px, -2px); }
+
+  .icon-btn:hover {
+    color: var(--text);
+    background: var(--bg-soft);
+    border-color: var(--line-strong);
+    transform: translateY(-1px);
+  }
+
+  .card:hover {
+    transform: translateY(-5px);
+    border-color: var(--line-strong);
+    box-shadow: var(--shadow-md);
+  }
+  .card:hover::after { opacity: 1; }
+  .card:hover .card__icon { background: var(--accent); color: var(--accent-fg); }
+  .card__icon { transition: background-color var(--t) var(--ease), color var(--t) var(--ease); }
+
+  .interest:hover {
+    transform: translateY(-4px);
+    border-color: var(--line-strong);
+    box-shadow: var(--shadow-md);
+  }
+  .interest:hover .interest__icon { background: var(--accent-soft); border-color: transparent; }
+
+  .social:hover {
+    transform: translateY(-3px);
+    border-color: var(--line-strong);
+    box-shadow: var(--shadow-md);
+  }
+  .social:hover .social__icon { background: var(--accent); color: var(--accent-fg); }
+  .social:hover .social__arrow { transform: translate(2px, -2px); color: var(--accent); }
+
+  .tag:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+  .to-top:hover { color: var(--accent); border-color: var(--accent); transform: translateY(-2px); }
+}
+
+/* 触摸设备：给一个轻微的按压反馈 */
+@media (hover: none) {
+  .btn:active, .social:active, .card:active, .interest:active, .icon-btn:active {
+    transform: scale(.985);
+    transition-duration: .1s;
+  }
+}
+
+/* ------------------------------------------------------------ 减少动态效果 */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .js [data-reveal] { opacity: 1 !important; transform: none !important; filter: none !important; }
+}
+
+/* 小屏减少模糊，滚动更顺滑 */
+@media (max-width: 680px) {
+  .js [data-reveal] { filter: none; transform: translate3d(0, 14px, 0); }
+  .js [data-reveal].is-visible { transform: none; }
+}
