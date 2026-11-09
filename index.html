@@ -59,6 +59,18 @@
     })();
   </script>
 
+  <!-- defer：并行下载 + 顺序执行。config.js / themes.js 上面已同步加载，
+       因为它们要给首屏内联脚本用；其余都在解析完成后、DOMContentLoaded 之前执行。 -->
+  <script defer src="assets/js/icons.js"></script>
+  <script defer src="assets/js/render.js"></script>
+  <script defer src="assets/js/skin.js"></script>
+  <script defer src="assets/js/backdrop.js"></script>
+  <script defer src="assets/js/live.js"></script>
+  <script defer src="assets/js/paged.js"></script>
+  <script defer src="assets/js/effects.js"></script>
+  <script defer src="assets/js/motion.js"></script>
+  <script defer src="assets/js/main.js"></script>
+
   <link rel="stylesheet" href="assets/css/tokens.css">
   <link rel="stylesheet" href="assets/css/backdrop.css">
   <link rel="stylesheet" href="assets/css/layout.css">
@@ -291,15 +303,8 @@
     <span class="page-hint__key">↓</span>
   </div>
 
-  <!-- 无构建、无依赖：按顺序加载即可；本地双击 index.html 也能直接看 -->
-  <script src="assets/js/icons.js"></script>
-  <script src="assets/js/render.js"></script>
-  <script src="assets/js/skin.js"></script>
-  <script src="assets/js/backdrop.js"></script>
-  <script src="assets/js/live.js"></script>
-  <script src="assets/js/paged.js"></script>
-  <script src="assets/js/effects.js"></script>
-  <script src="assets/js/motion.js"></script>
-  <script src="assets/js/main.js"></script>
+  <!-- 无构建、无依赖：本地双击 index.html 也能直接看。
+       JS 统一放在 head 里用 defer：浏览器在解析 HTML 的同时就能并行下载，
+       执行顺序仍按下面的先后（defer 保证），不会打乱依赖。 -->
 </body>
 </html>
