@@ -89,7 +89,7 @@ window.SITE_CONFIG = {
       eyebrow: "02 / LISTENING",
       title: "最近在听",
       lead: "网易云最近播放，由仓库的定时任务自动同步。",
-      neteaseUid: "",
+      neteaseUid: "1695307327",
       dataFile: "data/netease.json",
       limit: 6,
       fallback: [
