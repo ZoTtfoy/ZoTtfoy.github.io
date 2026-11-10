@@ -161,6 +161,27 @@ if (typeof ctx.ADMIN_MERGE === 'function') {
     '数组缺失时回落到默认值');
   check(!!merged.live && !!merged.quotes && !!merged.music, '其余模块也补齐');
 
+  /* ⚠️ 已删字段不许复活。
+     真实事故：报价单从 quote.rows 改成 quote.items 之后，
+     浏览器里的老草稿仍带 rows，旧版 mergeDefaults 把它原样搬回去 ——
+     发布出来的 config 里 items 与 rows 并存，计算器的
+     methods/rushes 也被老草稿的 extras 顶掉，四步向导少了两步。
+     规则应该是「结构以代码为准，内容以草稿为准」。 */
+  const stale = JSON.parse(JSON.stringify(full));
+  delete stale.repair.quote.items;
+  stale.repair.quote.rows = [{ group: '手机', item: '换电池', price: '90' }];
+  stale.repair.calculator.extras = [{ id: 'onsite', name: '上门', add: 80 }];
+  const noRevive = ctx.ADMIN_MERGE(full, stale);
+  check(Array.isArray(noRevive.repair.quote.items),
+    '老草稿里没有的新字段（quote.items）保持默认值，不被清掉');
+  check(!('rows' in noRevive.repair.quote),
+    '老草稿里已删除的字段（quote.rows）不会复活');
+  check(!('extras' in noRevive.repair.calculator),
+    '老草稿里已改名的字段（calculator.extras）不会复活');
+  check(Array.isArray(noRevive.repair.calculator.methods) &&
+        Array.isArray(noRevive.repair.calculator.rushes),
+    '四步向导需要的方法/加急两层仍在');
+
   /* 废弃字段清理：老草稿里的 about / services 等不应被带进新 config */
   const pruned = ctx.ADMIN_PRUNE
     ? ctx.ADMIN_PRUNE(ctx.ADMIN_MERGE(full, { about: { title: 'x' }, services: { items: [] } }))

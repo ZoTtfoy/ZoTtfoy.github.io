@@ -143,12 +143,25 @@ window.ADMIN = {
      为什么必须有这一步：草稿存在用户浏览器里，而配置结构会随版本新增
      （比如后来加的 backdrop / gaming）。老草稿缺这些键时，
      界面上那些字段的写操作会静默失败——用户点了没反应，也没有报错。
-     合并规则：对象递归补全，数组整体以草稿为准（用户可能删过卡片）。 */
+     合并规则：对象递归补全，数组整体以草稿为准（用户可能删过卡片）。
+
+     ⚠️ 2026-11-11 补一条关键约束：**只合并 base 里已有的键**。
+     起因是一次真实的回退：报价单从 `quote.rows`（分组行）改成
+     `quote.items`（闲鱼在售）之后，浏览器里的老草稿仍带着 `rows`。
+     旧版这里会把 `rows` 原样搬回 out，于是发布出来的 config 里
+     `items` 和 `rows` 并存 —— 页面读的是 items，看起来没坏，
+     但文件里躺着一份没人用的旧数据；更糟的是计算器那边
+     `methods`/`rushes` 被老草稿的 `extras` 顶掉，四步向导直接少两步。
+     现在的规则：**结构以代码为准，内容以草稿为准**。
+     草稿里多出来的键（说明这个配置项已经被删掉/改名）直接忽略，
+     它不会因为"用户以前存过"而复活。 */
   function mergeDefaults(base, override) {
     var out = JSON.parse(JSON.stringify(base));
     (function walk(target, src) {
       if (!src || typeof src !== "object") return;
       Object.keys(src).forEach(function (k) {
+        /* 草稿有、base 没有 → 这一项已经不在配置结构里了，跳过 */
+        if (!(k in target)) return;
         var v = src[k];
         if (Array.isArray(v)) {
           target[k] = JSON.parse(JSON.stringify(v));
