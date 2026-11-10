@@ -76,9 +76,9 @@ window.SITE_CONFIG = {
               id: "xiaoheihe",
               icon: "box",
               platform: "小黑盒",
-              url: "https://www.xiaoheihe.cn/app/user/profile/000000",
-              title: "我的小黑盒",
-              meta: "游戏库 · 时长 · 战绩",
+              url: "https://www.xiaoheihe.cn/app/user/profile/54034751",
+              title: "小黑盒",
+              meta: "游戏库 · 时长 · 日常",
               cover: "",
               stats: [],
               accent: "#ff6b35"
