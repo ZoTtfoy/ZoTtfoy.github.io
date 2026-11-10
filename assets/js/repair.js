@@ -268,6 +268,28 @@
     if (!d) return;
     if (phoneMQ.matches) d.removeAttribute("open");
     else d.setAttribute("open", "");
+    watchQuote(d);
+  }
+
+  /* 展开/收起会让 Q4 的高度跨过一屏，必须让翻页引擎重算一次：
+     展开后它会把 Q4 标成 data-tall、吸附降级为 proximity，
+     用户才能滚着把价目表看完（否则一次滑动就直接翻页，下半截永远看不到）。
+     收起后重算会把状态还原。 */
+  function watchQuote(d) {
+    if (d.dataset.bound === "1") return;
+    d.dataset.bound = "1";
+    d.addEventListener("toggle", function () {
+      if (!window.SITE_PAGED) return;
+      /* 记下点击前的阅读位置。展开会让 Q4 突然高出 100~300px，
+         翻页引擎重算后可能把画面吸附到别的页边界上 ——
+         用户点了下表头却被甩到上一屏，属于明确的坏体验。
+         重算完把位置还原，读者停在原地往下滚就行。 */
+      var y = window.scrollY;
+      window.requestAnimationFrame(function () {
+        window.SITE_PAGED.refresh();
+        window.scrollTo(0, y);
+      });
+    });
   }
 
   var inited = false;

@@ -984,14 +984,19 @@ html[data-scrolling="on"] .vinyl::before { animation-play-state: paused; }
   .quote__summary { padding: 7px 0; margin: -7px 0; }
   .quote__title { font-size: .92rem; }
   .quote__count { font-size: .7rem; }
+  /* 展开后走**单列**：390px 下两栏每栏只有 160px，
+     「换外屏（只换玻璃）」这种条目会折成两行、和价格挤在一起。
+     单列后一行放「项目 …… 价格」，10 行约 380px，配合滚动看完。 */
   .quote__groups {
     display: block;
-    columns: 2;
-    column-gap: 16px;
+    columns: 1;
     margin-top: 8px;
   }
   .quote__group { break-inside: avoid; margin-bottom: 9px; }
-  .quote__row { padding: 2px 0; }
+  /* 右侧让出 36px：悬浮的「回到顶部」按钮固定在右下角，
+     而价格正好是每行最右边的元素 —— 展开后滚动时会被那颗按钮压住。
+     价目表单列后横向有余量，让出这点宽度不影响项目名。 */
+  .quote__row { padding: 2px 36px 2px 0; }
   .quote__item { font-size: .8rem; line-height: 1.45; }
   .quote__hint { display: none; }
   .quote__price { font-size: .8rem; }
