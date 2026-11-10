@@ -60,7 +60,19 @@ html[data-paged="on"] .section {
 
 html[data-paged="on"] .hero {
   justify-content: center;
-  padding-bottom: clamp(48px, 9vh, 100px);
+  /* Q1 的留白这样分：
+       上 = 页头高度（内容绝不能被浮动页头压住，这一条是硬的）
+       下 = 40~56px（呼吸够了就行，不需要和上面等值）
+
+     为什么不上下相等：Q1 的内容会随**宽度**放大（scale.js 按对角线缩放），
+     而视口高度不变。于是"又宽又高"的组合（1910×920、1920×1000 这类）
+     内容能涨到 779~810px，上下各留 72 就顶到 923 > 920，溢出 3~4px。
+     下留白收到 40 后同一尺寸是 891，稳定留出 29px 余量。
+
+     为什么不干脆把字缩小：一屏装不装得下是"留白"的职责，
+     字号的职责只有"读起来舒不舒服"（这条分工写在 scale.js 顶上）。 */
+  padding-top: var(--header-h);
+  padding-bottom: clamp(40px, 4vh, 56px);
 }
 
 html[data-paged="on"] .section > .container,

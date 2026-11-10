@@ -885,55 +885,8 @@ html[data-scrolling="on"] .vinyl::before { animation-play-state: paused; }
 /* ---------------------------------------------- 进度条（兼返回键）
    四格等宽：已答的格子直接显示答案（「手机」而不是「设备」），
    读者不用记自己选过什么。点任意一格回去改。 */
-.calc__trail {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 6px;
-  margin-top: 14px;
-  padding: 0;
-  list-style: none;
-}
-.calc__trail__li { display: flex; min-width: 0; }
-.calc__trail__item {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  width: 100%;
-  min-width: 0;
-  padding: 5px 7px;
-  border: 1px solid transparent;
-  border-radius: var(--r-xs);
-  background: var(--bg-soft);
-  font-size: .7rem;
-  line-height: 1.4;
-  color: var(--text-3);
-  text-align: left;
-  transition: border-color var(--t-fast) var(--ease), color var(--t-fast) var(--ease);
-}
-.calc__trail__n {
-  flex: none;
-  font-family: var(--font-mono);
-  /* 同 .nav__num：原来是 .62em，在父级 0.9rem 上叠乘后只剩 ~9px。改用 rem。 */
-  font-size: .7rem;
-  opacity: .85;
-}
-.calc__trail__t { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.calc__trail__item.is-done { color: var(--text-2); }
-.calc__trail__item.is-now {
-  border-color: var(--line-strong);
-  background: var(--bg-elev);
-  color: var(--text);
-  font-weight: 500;
-}
-.calc__trail__item:hover { color: var(--text); }
-/* 深色下 --bg-soft 比 --bg-elev 更亮（深色的"抬升"是变亮）。
-   照搬浅色会让"当前这一步"看起来比已答的更暗、更靠后，
-   所以深色里反过来：未答的只有一道描边，当前这一步填亮。 */
-[data-theme="dark"] .calc__trail__item { background: transparent; border-color: var(--line); }
-[data-theme="dark"] .calc__trail__item.is-now {
-  background: var(--bg-soft);
-  border-color: var(--line-strong);
-}
+/* 顶部进度条已移除：用户要的是「前一张选完，下一张才出现」，
+   常驻的四格进度属于额外噪音。取而代之的是 .calc__recap 那一行回执。 */
 
 /* ------------------------------------------------------------ 当前这一问 */
 .calc__stage { margin-top: 14px; outline: none; }
@@ -1336,8 +1289,6 @@ html[data-scrolling="on"] .vinyl::before { animation-play-state: paused; }
      留着它还有一个副作用 —— 360px 宽度下它会把标题行挤成两行，
      凭空多出 33px，正好是 360 机型降一档的差距。 */
   .calc__hint { display: none; }
-  .calc__trail { margin-top: 10px; gap: 5px; }
-  .calc__trail__item { padding: 4px 6px; font-size: .68rem; }
   .calc__stage { margin-top: 10px; }
   .calc__label { margin-bottom: 7px; font-size: .88rem; }
   .calc__label i { display: none; }        /* 「选完自动到下一步」在手机上只会把问题挤断行 */
@@ -1497,3 +1448,77 @@ html[data-scrolling="on"] .vinyl::before { animation-play-state: paused; }
 }
 .xy__more:hover { color: var(--text); }
 .xy__more .icon { width: 12px; height: 12px; }
+
+/* ============================================ 回执行（取代进度条）
+   去掉了顶部四格进度，改成"只显示紧邻的上一步答案"。
+   它不是导航，是一条确认回执 —— 所以做得极轻：
+   没有底色、没有边框，只有一段小字和一个左箭头。
+   整行可点（回退一格），但默认看起来不像按钮，
+   因为它的主要职责是"告诉你刚才选了什么"，而不是"让你点"。 */
+.calc__recap {
+  margin: 0 0 10px;
+  min-height: 18px;
+}
+.calc__recap__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 100%;
+  font-size: max(10.5px, .72rem);
+  color: var(--text-3);
+  border-radius: var(--r-xs);
+  transition: color var(--t-fast) var(--ease);
+}
+.calc__recap__btn:hover { color: var(--text); }
+.calc__recap__arrow { font-size: .82em; opacity: .8; }
+.calc__recap__label { flex: none; }
+.calc__recap__val {
+  overflow: hidden;
+  color: var(--text-2);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ======================================== 「复杂问题」的结果态
+   这一项没有数字可报。用一句判断代替价格，字号仍按价格级的视觉重量给，
+   否则整块会显得比别的结果"轻"，像是出错了。 */
+.calc__price--ask {
+  font-family: var(--font-sans);
+  font-size: 1.32rem;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+.calc__result--ask .calc__tone { border-bottom: none; padding-bottom: 0; }
+
+/* ================================= 台阶等高（选项数不同也不让卡片跳）
+   选项数在 3~5 之间波动：种类 3、项目 5、方式 2、加急 2。
+   两列布局下 5 个选项 = 3 行，2 个 = 1 行 —— 不锁高度的话每走一步
+   整张卡就换一个高度，下面的闲鱼列表跟着上下跳。
+   这里按"最多 5 个选项（3 行）"算基准高度，少选项时留白。
+   值用 min-height 而不是 height：万一将来某项文案换行变高，还能自然撑开。 */
+.calc__stage[data-opts] {
+  /* ⚠️ 这个地板值只该等于「最高的那一步」，多一个像素都是纯白费。
+     早先写的是 336 —— 那是按"5 个选项凑 3 行"估的，实际四步的自然高度是
+     186 / 236 / 186 / 186：地板比真实需求高出 100px 以上，
+     于是每个台阶都空着大半张卡，Q4 在 560px 高的窗口上直接超屏，
+     整站被迫降级成可滚动页 —— 相比卡片跳一下，那个代价大得多。
+
+     所以不再写死，而是「敢留白的程度跟着屏幕高度走」：
+       min-height = clamp(0, 视口高 - 400, 240)
+     400 是台阶之外那些东西的实测总高（区块标题 + 卡头 + 回执 + 说明 + 内边距）。
+     高屏取满 240 → 四步完全等高；矮屏自动收缩到刚好装得下。 */
+  min-height: clamp(0px, calc(100vh - 400px), 240px);
+  display: flex;
+  flex-direction: column;
+}
+/* 320 宽这类窄屏是另一回事：选项两列变单列，5 个选项要 5 行，
+   自然高度（237）本来就超过地板，留白也换不来等高 —— 直接交给内容决定。 */
+@media (max-width: 360px) {
+  .calc__stage[data-opts] { min-height: 0; }
+}
+/* 选项区吃掉剩余空间，说明行与回执贴底 —— 这样选项 2 个时不会挤在上半截 */
+.calc__stage[data-opts] .calc__opts { flex: 1; align-content: start; }
+.calc__stage[data-opts] .calc__note { margin-top: auto; }
+
+/* ← 手机与桌面共用同一个基准值：手机选项更高（46px）但两列变单列，
+   实际行数一样是 3 行，所以高度也接近。分开写反而更难对齐。 */

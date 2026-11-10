@@ -174,3 +174,133 @@
 @media (prefers-reduced-motion: reduce) {
   .game:hover { transform: none; }
 }
+
+/* ==========================================================================
+ *  Steam 封面拼贴背景（#gaming 专属）
+ * --------------------------------------------------------------------------
+ *  做法：一层 overflow:hidden 的容器，里面是一个旋转 -45° 的网格。
+ *  网格本身放大到 160%（width/height 都超出），这样旋转之后四角不会露白。
+ *
+ *  ⚠️ 三个必须记住的坑：
+ *    1. 旋转的是**网格**，不是容器。容器一转，overflow:hidden 的裁剪框
+ *       也跟着转，边缘会出现锯齿状的斜切缝。
+ *    2. 网格尺寸必须 > 视口的对角线（≈ 1.42×），否则旋转后角上会漏底。
+ *       这里给 170%，略大于对角线，多留一点余量。
+ *    3. 不要用 background-image 拼贴：12 张 460×215 的背景图无法懒加载，
+ *       首屏就会全部请求。用真实 <img loading="lazy"> 才省。
+ * ========================================================================== */
+.steamwall {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  /* 独立合成层：旋转 + translate 的图层单独提出来，避免每帧重绘整屏 */
+  will-change: transform;
+  contain: paint;
+  pointer-events: none;
+}
+.steamwall[hidden] { display: none; }
+
+/* 网格只负责两件事：摆位置、转 45°。
+   ⚠️ 位移**不在这里做** —— 每列要各自的移速，所以 transform 写在
+   .steamwall__col 上（见下面）。如果仍在网格上整体平移，
+   所有列就是同速，视觉上是一整块板子在动，没有纵深。 */
+.steamwall__grid {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  /* 170% 是"大于对角线（142%）且不至于离谱"的折中 */
+  width: 170%;
+  height: 170%;
+  display: grid;
+  grid-template-columns: repeat(var(--steamwall-cols, 7), minmax(0, 1fr));
+  gap: var(--steamwall-gap, 14px);
+  transform: translate(-50%, -50%) rotate(-45deg);
+  transform-origin: center;
+}
+
+/* 一列 = 一个纵向容器，自带移速。
+   gap 与网格的行距一致，视觉上仍然是一整片拼贴。 */
+.steamwall__col {
+  display: flex;
+  flex-direction: column;
+  gap: var(--steamwall-gap, 14px);
+  /* 初始不位移；JS 每帧按 --col-speed 写入 translateY */
+  will-change: transform;
+  /* 位移上限 28%，格子 + gap 的总高足够覆盖，不会露出边缘 */
+}
+
+.steamwall__tile {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--r-sm);
+  /* 每格按 --dim 压暗，让整面墙有明暗起伏而不是一片平 */
+  opacity: 0;
+  animation: steamwall-in .6s var(--ease-out) forwards;
+  animation-delay: var(--d, 0ms);
+  background: var(--bg-soft);
+}
+@keyframes steamwall-in {
+  from { opacity: 0; transform: scale(1.06); }
+  to   { opacity: var(--dim, .8); transform: scale(1); }
+}
+
+.steamwall__tile img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  /* 已经旋转 -45° 了，图本身不要再转，否则封面全歪 */
+  filter: saturate(.8) contrast(1.02);
+}
+
+/* 遮罩：把背景压到"能看出是游戏封面，但不干扰读字"的强度。
+   同 backdrop.js 的原则 —— 曝光有硬上限，宁可按得更暗，
+   也不让正文对比度掉下去。自检会用 WCAG 公式实测。 */
+.steamwall__scrim {
+  position: absolute;
+  inset: 0;
+  background:
+    /* 上下渐变：靠边更暗，让这一屏和前后两屏接得上 */
+    linear-gradient(to bottom,
+      var(--bg) 0%,
+      color-mix(in srgb, var(--bg) 62%, transparent) 18%,
+      color-mix(in srgb, var(--bg) 52%, transparent) 50%,
+      color-mix(in srgb, var(--bg) 66%, transparent) 82%,
+      var(--bg) 100%);
+}
+@supports not (background: color-mix(in srgb, red 50%, transparent)) {
+  /* 老浏览器：退回一个稳定的半透明黑/白层 */
+  .steamwall__scrim { background: var(--bg); opacity: .78; }
+}
+
+/* 内容要压在背景之上 */
+#gaming { position: relative; isolation: isolate; }
+#gaming > .container { position: relative; z-index: 1; }
+
+/* 关卡：这一屏的卡片在拼贴背景上要更实一点，否则图案会从卡片缝里抢注意力。
+   曾经用过 92% 半透明想留一点"若隐若现"，但遮罩本来就压到 78%，
+   那 8% 肉眼几乎看不出，代价却是白卡家族里出现两个底色值（verify-unify 会报）。
+   统一比这点效果值钱 —— 实底。 */
+#gaming .game {
+  background: var(--bg-elev);
+}
+
+/* 窄屏：列数少一点，格子变大，才不至于糊成一片噪点 */
+@media (max-width: 680px) {
+  .steamwall__grid {
+    width: 200%;
+    height: 200%;
+    gap: 8px;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-rows: repeat(6, minmax(0, 1fr));
+  }
+}
+
+/* 减少动效：拼贴还在，但完全不位移、不做入场动画 */
+@media (prefers-reduced-motion: reduce) {
+  .steamwall__grid { transition: none; transform: translate(-50%, -50%) rotate(-45deg); }
+  .steamwall__tile { animation: none; opacity: var(--dim, .8); }
+}
+
+/* 不支持 color-mix 时 game 卡也要有底 */

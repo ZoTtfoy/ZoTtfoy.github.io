@@ -278,7 +278,11 @@ check(typeof ctx.SITE_SYNC === 'object' && typeof ctx.SITE_SYNC.applyTracks === 
 
 /* ============================================================ Q3 · 游戏 */
 const games = (C.gaming?.items || []);
-check(count('gameRail', /class="game"/g) === games.length, 'Q3 游戏卡片数量正确');
+/* ⚠️ 匹配要精确到 class="game " 或 class="game" 开头，不能用 /class="game"/
+   —— Steam 卡带 game--steam 修饰类，宽匹配会把同一张卡数两次。 */
+check(count('gameRail', /class="game[ "]/g) === games.length,
+  'Q3 游戏卡片数量正确（配置 ' + games.length + '，渲染 ' +
+  count('gameRail', /class="game[ "]/g) + '）');
 check(count('gameRail', /data-copy="/g) === games.filter(g => g.uid || g.copy).length,
   '每张游戏卡都有可复制的 ID');
 check(!/game__stats|game__note/.test(H('gameRail')), 'Q3 卡片不含介绍性内容（只有图标/名称/ID）');

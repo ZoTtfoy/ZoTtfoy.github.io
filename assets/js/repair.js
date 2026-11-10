@@ -150,6 +150,17 @@
            || { id: "", name: "标准件", factor: 1 };
     if (!dev || !svc || !met || !rsh) return null;
 
+    /* quote 型项目（复杂问题）没有标价 —— 它要看了才知道。
+       这时不编一个价格出来，而是把 r.ask 置为 true，让结果页改说一句
+       "先聊一下"。这比给个 0 或者给个区间都诚实。 */
+    if (svc.quote) {
+      return {
+        ask: true,
+        lo: 0, hi: 0, base: 0, parts: 0, mid: 0,
+        dev: dev, svc: svc, mat: mat, met: met, rsh: rsh
+      };
+    }
+
     var base = (svc.price || 0) * (dev.factor || 1);
     var parts = base * (mat.factor || 1);
     var mid = parts + (met.add || 0) + (rsh.add || 0);
@@ -189,7 +200,15 @@
     var rsh = find(list(CFG.rushes), state.rush);
 
     if (!dev) problems.push("还没选维修种类");
-    if (!svc) problems.push("还没选维修项目");
+    /* ⚠️ 要区分"没选"和"选了但配置里没有这一项"。
+       只写一句"还没选维修项目"会把下面这个真实场景盖住：
+       编辑器里删掉了某个项目，而访客的 URL / 历史状态里还留着它的 id ——
+       这时他明明选了，界面却说他没选，既误导又无法自查。 */
+    if (!svc) {
+      problems.push(state.service
+        ? "「" + state.service + "」这一项已经不存在了（配置被改过），重新选一个吧"
+        : "还没选维修项目");
+    }
     if (!met) problems.push("还没选维修方式");
     if (!rsh) problems.push("还没选要不要加急");
 
@@ -203,6 +222,8 @@
       var r = compute();
       if (!r) {
         problems.push("选项不完整，算不出价格");
+      } else if (r.ask) {
+        /* quote 型：本来就没有价格，跳过数值校验 */
       } else if (!isFinite(r.lo) || !isFinite(r.hi) || !isFinite(r.mid)) {
         problems.push("价格算不出来（配置里有非数字）");
       } else if (r.lo < 0 || r.hi < 0 || r.mid < 0) {
@@ -251,25 +272,30 @@
   }
 
   /* --------------------------------------------------------------- 渲染 */
-  /* 顶部进度条：四格，各自是一个按钮。
-     已答的格子显示答案本身（「手机」而不是「设备」）——
-     读者不用记自己选过什么，扫一眼就知道。 */
-  function trailHtml() {
-    return '<ol class="calc__trail">' +
-      STEPS.map(function (s, i) {
-        var ans = nameOf(s.key, state[s.key]);
-        var cls = "calc__trail__item" +
-          (i === cursor ? " is-now" : "") +
-          (i !== cursor && ans ? " is-done" : "");
-        return '<li class="calc__trail__li">' +
-          '<button class="' + cls + '" type="button" data-goto="' + i + '"' +
-            (i === cursor ? ' aria-current="step"' : "") +
-            ' aria-label="第 ' + (i + 1) + " 步 · " + esc(s.label) +
-              (ans ? "，已选 " + esc(ans) : "，未选") + '">' +
-            '<span class="calc__trail__n">' + (i + 1) + "</span>" +
-            '<span class="calc__trail__t">' + esc(ans || s.label) + "</span>" +
-          "</button></li>";
-      }).join("") + "</ol>";
+  /* 一行极简回执：只显示"上一步选了什么"。
+     ------------------------------------------------------------------
+     为什么要它：去掉进度条之后，读者进入下一步时看不到前一步的痕迹，
+     容易忘了自己刚才选的是"旗舰鼠标"还是"鼠标"。
+     但不需要把四步都列出来（那就是进度条了），只留**紧邻的上一步**：
+
+       手机  ← 换屏        （点这行可退回上一格）
+
+     这样既确认了刚才的选择，又不会一直提醒"你还有几步没走"。 */
+  function recapHtml() {
+    /* 结果页不显示 —— 那时四项都答完了，再挂一行"上一步是加急"没有意义，
+       而且会显得结果块上方多了一条无关的小字。 */
+    if (cursor <= 0 || cursor >= STEPS.length) return "";
+    var prev = STEPS[cursor - 1];
+    var ans = nameOf(prev.key, state[prev.key]);
+    if (!ans) return "";
+    return '<p class="calc__recap">' +
+        '<button class="calc__recap__btn" type="button" data-calc-back ' +
+          'aria-label="回到上一步：' + esc(prev.label) + '，当前是 ' + esc(ans) + '">' +
+          '<span class="calc__recap__arrow" aria-hidden="true">←</span>' +
+          '<span class="calc__recap__label">' + esc(prev.label) + "</span>" +
+          '<span class="calc__recap__val">' + esc(ans) + "</span>" +
+        "</button>" +
+      "</p>";
   }
 
   /* 选项底下那行小字：把这个选项"贵在哪、便宜在哪"说清楚。
@@ -316,7 +342,11 @@
         "</div>";
     }
 
-    return '<div class="calc__stage" tabindex="-1">' +
+    /* data-opts 记录本步的选项数：样式层据此把卡片撑到统一的"最大台阶"高度。
+       为什么需要：选项数在 3~5 之间波动（种类 3、项目 5、方式 2、加急 2），
+       不锁高度的话每走一步整张卡就换个高度，下面的闲鱼列表跟着上下跳。
+       用 CSS 变量而不是内联 height —— 变量能被媒体查询按机型覆盖。 */
+    return '<div class="calc__stage" tabindex="-1" data-opts="' + items.length + '">' +
         '<p class="calc__label" id="calcQ"><b>' + (cursor + 1) + "</b>" + esc(q) +
           (cursor === 0 ? "<i>选中后自动到下一步</i>" : "") +
         "</p>" +
@@ -351,6 +381,25 @@
   }
 
   function resultHtml(r) {
+    /* 复杂问题：不给数字，给一句"得先看看"+ 联系方式引导。
+       硬报一个区间会让人以为这就是最终价，而这类单子拆开才可能更贵。 */
+    if (r.ask) {
+      return '<div class="calc__result calc__result--ask" tabindex="-1" aria-live="polite">' +
+          '<p class="calc__price calc__price--ask">需要先看一眼</p>' +
+          '<p class="calc__tone">' + esc(CFG.askText ||
+            "这类问题得先看一眼：拍张照发给我，或者约个时间当面看。") + "</p>" +
+          '<p class="calc__detail">' +
+            esc(r.dev.name) + " · " + esc(r.svc.name) + " · " + esc(r.met.name) +
+          "</p>" +
+          '<div class="calc__foot">' +
+            '<button class="calc__again" type="button" data-calc-reset>' +
+              window.siteIcon("refresh") + "重新估价</button>" +
+            '<button class="calc__back" type="button" data-calc-back>' +
+              "回去改一项</button>" +
+          "</div>" +
+        "</div>";
+    }
+
     return '<div class="calc__result" tabindex="-1" aria-live="polite">' +
         '<p class="calc__price"><small>' + esc(CUR) + "</small>" +
           r.lo + " – " + r.hi + "</p>" +
@@ -409,7 +458,12 @@
         (CFG.hint ? '<span class="calc__hint">' + esc(CFG.hint) + "</span>" : "") +
       "</div>" +
 
-      trailHtml() +
+      /* 不再有顶部进度条。
+         用户要的是"前一张选完，下一张才出现"，进度格属于额外的视觉噪音 ——
+         它一直在提示"还有三步"，而这一屏的节奏本来就是一张一张来的。
+         改成在问题上方留一行极简回执：只显示**上一步的答案**，
+         让人确认"刚才选的是这个"，想改就点它（回退一格）。 */
+      recapHtml() +
 
       (atEnd
         ? (problems.length

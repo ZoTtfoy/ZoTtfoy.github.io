@@ -397,12 +397,19 @@ window.SITE_RENDER = (function () {
           "</button>"
         : "";
 
-      return '<article class="game" data-reveal style="' + color + delay(i, 50) + '">' +
+      /* 外链：优先 g.link；Steam 卡没有 link，但有 steam.profileUrl ——
+         它本来就该能点进档案，否则"公开库存"这句话是死的。 */
+      var href = g.link || (g.steam && g.steam.profileUrl) || "";
+      var isSteam = !!(g.steam && g.steam.steamId);
+
+      return '<article class="game' + (isSteam ? " game--steam" : "") + '" data-reveal' +
+               ' style="' + color + delay(i, 50) + '"' +
+               (isSteam ? ' data-steam="' + esc(g.steam.steamId) + '"' : "") + ">" +
                '<span class="game__icon">' + glyph + "</span>" +
                '<h3 class="game__name">' + esc(g.name) + "</h3>" +
                uidBlock +
-               (g.link
-                 ? '<a class="game__link" href="' + esc(g.link) + '" target="_blank" rel="noopener noreferrer"' +
+               (href
+                 ? '<a class="game__link" href="' + esc(href) + '" target="_blank" rel="noopener noreferrer"' +
                    ' aria-label="打开 ' + esc(g.name) + ' 主页">' + icon("arrow-up-right") + "</a>"
                  : "") +
              "</article>";

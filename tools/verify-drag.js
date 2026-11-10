@@ -49,7 +49,14 @@ async function testMouse(browser) {
   /* 按下 */
   await p.mouse.move(500, 350);
   await p.mouse.down();
-  await p.waitForTimeout(280);
+  /* ⚠️ 淡入是一条 CSS 过渡，别用固定 280ms 去截中间态。
+     无头 chromium 没有 GPU 合成，实测 500ms 只跑到 9 帧（≈18fps），
+     280ms 时 opacity 还在 0.77 —— 看起来像"淡入坏了"，其实是没等够。
+     改成等条件成立，超时才算失败。 */
+  const fadedIn = await p.waitForFunction(
+    () => parseFloat(getComputedStyle(document.getElementById('dragGlow')).opacity) > 0.9,
+    null, { timeout: 4000 }
+  ).then(() => true).catch(() => false);
 
   const onDown = await p.evaluate(() => {
     const g = document.getElementById('dragGlow');
@@ -62,7 +69,7 @@ async function testMouse(browser) {
     };
   });
   ok(onDown.dragging, tag + '按下后进入拖拽态');
-  ok(parseFloat(onDown.opacity) > 0.9, tag + '光团已淡入（' + onDown.opacity + '）');
+  ok(fadedIn, tag + '光团已淡入（opacity=' + onDown.opacity + '）');
   ok(onDown.kind === 'mouse', tag + '识别为鼠标拖拽');
   ok(onDown.w <= 200, tag + '鼠标光团较小（' + onDown.w + 'px，指尖精确不需大光）');
   ok(onDown.spotlightHeld, tag + '按住时收起常驻追光，避免两光重叠');
@@ -72,7 +79,7 @@ async function testMouse(browser) {
     await p.mouse.move(500 + i * 42, 350 + i * 20);
     await p.waitForTimeout(40);
   }
-  const onMove = await p.evaluate(() => {
+  const readGlow = () => p.evaluate(() => {
     const g = document.getElementById('dragGlow');
     const r = g.getBoundingClientRect();
     const dots = [...document.querySelectorAll('.drag-trail__dot')];
@@ -83,14 +90,29 @@ async function testMouse(browser) {
       visible: dots.filter(d => parseFloat(getComputedStyle(d).opacity) > 0).length
     };
   });
-  ok(Math.abs(onMove.cx - 752) < 45 && Math.abs(onMove.cy - 470) < 55,
-    tag + '光团跟随指针（中心 ' + onMove.cx + ',' + onMove.cy + '，期望约 752,470）');
+
+  /* 拖尾是即时的，先读 —— 等光团收敛会拖到动画结束，点就"不活跃"了 */
+  const onMove = await readGlow();
   ok(onMove.live > 0, tag + '拖动产生拖尾点（' + onMove.live + ' 个活跃）');
   ok(onMove.visible > 0, tag + '拖尾点可见');
 
+  /* 光团跟随是插值（每帧向指针靠 14%），低帧率下要走十几帧才到位。
+     同样改成等条件成立：中心收敛到目标 12px 以内算跟随成功。 */
+  const followed = await p.waitForFunction(() => {
+    const g = document.getElementById('dragGlow');
+    const r = g.getBoundingClientRect();
+    return Math.abs(r.x + r.width / 2 - 752) < 12 && Math.abs(r.y + r.height / 2 - 470) < 12;
+  }, null, { timeout: 4000 }).then(() => true).catch(() => false);
+  const settled = await readGlow();
+  ok(followed, tag + '光团跟随指针（收敛到 ' + settled.cx + ',' + settled.cy + '，目标约 752,470）');
+
   /* 抬手 */
   await p.mouse.up();
-  await p.waitForTimeout(420);
+  /* 淡出同理：过渡时长是固定的，帧率却是环境决定的。等它真的收干净。 */
+  const fadedOut = await p.waitForFunction(
+    () => parseFloat(getComputedStyle(document.getElementById('dragGlow')).opacity) < 0.1,
+    null, { timeout: 4000 }
+  ).then(() => true).catch(() => false);
   const onUp = await p.evaluate(() => {
     const g = document.getElementById('dragGlow');
     return {
@@ -100,7 +122,7 @@ async function testMouse(browser) {
     };
   });
   ok(!onUp.dragging, tag + '抬手退出拖拽态');
-  ok(onUp.opacity < 0.1, tag + '光团已淡出（' + onUp.opacity + '）');
+  ok(fadedOut, tag + '光团已淡出（opacity=' + onUp.opacity + '）');
   ok(!onUp.held, tag + '常驻追光已恢复');
 
   /* 轻点：不应留拖尾 */

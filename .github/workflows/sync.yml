@@ -6,6 +6,9 @@ name: Sync external data
 # 首次使用需要配置两样东西（仓库 Settings → Secrets and variables → Actions）：
 #   Secret   NETEASE_COOKIE  浏览器里 music.163.com 的完整 Cookie
 #   Variable NETEASE_UID     你的数字 UID（或直接改 config.js 的 listen.neteaseUid）
+#   Variable STEAM_ID        17 位 SteamID64（不填则读 config.js 里那张 Steam 卡）
+#   注意：Steam 库存抓取需要本机浏览器（TLS 指纹），Actions 里跑不了，
+#        所以这里只校验/沿用已有的 data/steam.json，不联网抓取。
 #
 # 不配置也能跑：会跳过网易云，只尝试抓外链摘要。
 
@@ -38,6 +41,10 @@ jobs:
         env:
           NETEASE_UID: ${{ vars.NETEASE_UID }}
           NETEASE_COOKIE: ${{ secrets.NETEASE_COOKIE }}
+          # Steam：这里不联网抓（库存接口对裸 TLS 超时，必须用真实浏览器），
+          # 只沿用仓库里 data/steam.json 的抓取结果。抓取在本机跑：
+          #     node scripts/sync-steam.mjs
+          STEAM_ID: ${{ vars.STEAM_ID }}
         run: node scripts/sync.mjs
 
       - name: Commit if changed

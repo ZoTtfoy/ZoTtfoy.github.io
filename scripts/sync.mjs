@@ -362,6 +362,70 @@ async function syncPreviewStats(trackCount, source) {
   log("摘要：已为网易云卡片补上真实统计（" + stats.map((s) => s.label + "=" + s.value).join("，") + "）");
 }
 
+/* ============================================================ 2. Steam */
+/* 抓「我的游戏库」，用来铺游戏屏的封面拼贴背景。
+ *
+ * ---------------------------------------------------------------------------
+ *  两条路都试过了，这里记下结论，免得以后又走回头路：
+ *
+ *  ① API 路线（官方推荐）：
+ *       GET api.steampowered.com/IPlayerService/GetOwnedGames/v1/?key=...
+ *     · 不带 key → 401 "Required parameter 'key' is missing"
+ *     · 假 key   → 401 Unauthorized（直接拒绝，不是返回空）
+ *     key 免费但要手动申请、还得存进仓库 Secrets。
+ *
+ *  ② 公开库存路线（就是这次采用的，小黑盒同款思路）：
+ *       GET steamcommunity.com/inventory/{steamid}/753/6?l=schinese&count=2000
+ *     · 不需要 key，不需要登录，只要「库存」是公开的
+ *     · 返回的 descriptions[].market_hash_name 形如 "220-Gordon Freeman"，
+ *       前缀就是 appid —— 这正是游戏库的指纹
+ *     · 实测这个账号：280 件库存 → 提取出 74 个游戏 appid
+ *
+ *  ⚠️ 为什么 curl 抓不到、脚本却要"用浏览器"：
+ *     steamcommunity.com 对这个网络环境的裸 TLS 请求一律超时（直连和代理都试过），
+ *     但真实浏览器能拿到 200 —— 差异在 TLS 指纹，不在 IP。
+ *     所以这条抓取由 scripts/sync-steam.mjs 用 playwright 驱动真浏览器完成，
+ *     不在本文件里做（本文件只跑 fetch，没有浏览器能力）。
+ *
+ *  ⚠️ 另一个坑：profiles/{id}/games?tab=all **未登录会被重定向到登录页**。
+ *     那条路只有在「游戏详情」公开 + 已登录时才能用，脚本里没有登录态，
+ *     所以不要试图去爬那个页面。
+ * ---------------------------------------------------------------------------
+ *
+ *  拿不到就什么都不写，前端退回 config 里的 fallbackApps 快照 ——
+ *  背景永远有图，不会开天窗。
+ */
+async function syncSteam() {
+  const outPath = path.join(DATA_DIR, "steam.json");
+  const prev = await readJSON(outPath, { apps: [] });
+
+  /* steamId 优先取环境变量，其次从 config.js 里读那张 Steam 卡上的值 ——
+     改 ID 只需要在编辑器里改一处。 */
+  let steamId = (process.env.STEAM_ID || "").trim();
+  if (!steamId) {
+    try {
+      const cfg = await fs.readFile(path.join(ROOT, "assets/js/config.js"), "utf8");
+      const at = cfg.indexOf('steamId: "');
+      if (at >= 0) {
+        const hit = cfg.slice(at + 10, at + 40).match(/[0-9]{17}/);
+        if (hit) steamId = hit[0];
+      }
+    } catch { /* 忽略 */ }
+  }
+
+  if (!steamId) {
+    log("Steam：配置文件里找不到 steamId，跳过");
+    return 0;
+  }
+  if (Array.isArray(prev.apps) && prev.apps.length) {
+    log(`Steam：已有 ${prev.apps.length} 个 appid（由 sync-steam.mjs 抓取），保持不动`);
+  } else {
+    log("Steam：还没有数据，前端会用 config 里的 fallbackApps 快照");
+    log("Steam：要抓真实库存请跑 node scripts/sync-steam.mjs（需要本机浏览器）");
+  }
+  return prev.apps ? prev.apps.length : 0;
+}
+
 /* --------------------------------------------------------------- 入口 */
 async function main() {
   log("开始同步", new Date().toISOString());
@@ -383,6 +447,9 @@ async function main() {
 
   try { await syncPreviewStats(result.count, result.source); }
   catch (e) { log("摘要统计异常（已忽略）", e.message); }
+
+  try { await syncSteam(); }
+  catch (e) { log("Steam 同步异常（已忽略）", e.message); }
 
   log("完成");
 }

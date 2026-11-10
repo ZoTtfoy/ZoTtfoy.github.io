@@ -99,6 +99,7 @@
   <script defer src="assets/js/skin.js"></script>
   <script defer src="assets/js/backdrop.js"></script>
   <script defer src="assets/js/live.js"></script>
+  <script defer src="assets/js/steamwall.js"></script>
   <script defer src="assets/js/paged.js"></script>
   <script defer src="assets/js/readability.js"></script>
   <script defer src="assets/js/effects.js"></script>
@@ -291,6 +292,13 @@
 
       <!-- ====================================================== Q3 · 游戏 -->
       <section class="section section--games" id="gaming" data-section="gaming" aria-labelledby="gamingTitle">
+        <!-- Steam 封面拼贴背景（脚本填充图片）。
+             aria-hidden + 无交互：它只是装饰，读屏与键盘都不该碰到它。
+             放在 .container 之前，z-index 落在内容之下。 -->
+        <div class="steamwall" id="steamWall" aria-hidden="true">
+          <div class="steamwall__grid" id="steamWallGrid"></div>
+          <div class="steamwall__scrim"></div>
+        </div>
         <div class="container">
           <header class="section__head" data-reveal>
             <p class="eyebrow" data-field="eyebrow"></p>

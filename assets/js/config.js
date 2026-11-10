@@ -26,7 +26,7 @@ window.SITE_CONFIG = {
           order: 2,
           label: "游戏"
         },
-      repair: {
+  repair: {
           enabled: true,
           order: 3,
           label: "维修"
@@ -112,8 +112,14 @@ window.SITE_CONFIG = {
     },
   gaming: {
       eyebrow: "03 / GAMES",
-      title: "MY GAME‘S ",
+      title: "MY GAME'S",
       lead: "想一起玩的话，ID 都在这里，点一下就能复制。",
+      /* 2026-11-11：从 6 张卡收成 3 张。
+         原来 Apex / DJMAX / Phigros / 中二节奏各占一格，四张卡都在说
+         "我也玩这个"，信息密度很低 —— 而访客真正会做的是两件事：
+         加手游玩家的好友、翻我的 Steam。
+         所以后四个平台合并成一张 Steam 卡，指向公开档案。
+         steam 字段让渲染层给这张卡套用封面拼贴背景。 */
       items: [
           {
               icon: "tower",
@@ -121,23 +127,7 @@ window.SITE_CONFIG = {
               uidLabel: "博士 ID",
               uid: "Zotrod#0001",
               server: "官服",
-              rank: "Lv. 120",
-              color: "#4a90d9",
-              stats: [
-                  {
-                      label: "六星干员",
-                      value: "88"
-                    },
-                  {
-                      label: "主线进度",
-                      value: "全通"
-                    },
-                  {
-                      label: "合约危机",
-                      value: "19"
-                    }
-                ],
-              note: "每天上线收菜，顺便摸摸公开招募。"
+              color: "#4a90d9"
             },
           {
               icon: "crosshair",
@@ -145,119 +135,39 @@ window.SITE_CONFIG = {
               uidLabel: "Riot ID",
               uid: "Zotrod#0806",
               server: "亚服",
-              rank: "钻石 II",
-              color: "#ff4655",
-              stats: [
-                  {
-                      label: "主玩",
-                      value: "贤者"
-                    },
-                  {
-                      label: "最高段位",
-                      value: "超凡 I"
-                    },
-                  {
-                      label: "常用枪",
-                      value: "暴徒"
-                    }
-                ],
-              note: "喜欢打信息位，不太爱冲锋。"
+              color: "#ff4655"
             },
           {
-              icon: "target",
-              name: "Apex Legends",
-              uidLabel: "EA ID",
-              uid: "Zotrod_APEX",
-              server: "亚服",
-              rank: "大师",
-              color: "#da292a",
-              stats: [
-                  {
-                      label: "主玩传奇",
-                      value: "恶灵"
-                    },
-                  {
-                      label: "最高伤害",
-                      value: "4.2k"
-                    },
-                  {
-                      label: "生涯击杀",
-                      value: "8,600"
-                    }
-                ],
-              note: "三排最爱，单排随缘。"
-            },
-          {
-              icon: "note",
-              name: "DJMAX RESPECT V",
-              uidLabel: "Steam",
-              uid: "Zotrod",
-              server: "Steam",
-              rank: "Lv. 87",
-              color: "#7b61ff",
-              stats: [
-                  {
-                      label: "主要难度",
-                      value: "MX"
-                    },
-                  {
-                      label: "偏好键位",
-                      value: "6B"
-                    },
-                  {
-                      label: "最爱曲",
-                      value: "OBLIVION"
-                    }
-                ],
-              note: "手速不够，靠背谱补。"
-            },
-          {
-              icon: "disc",
-              name: "Phigros",
-              uidLabel: "游戏 ID",
-              uid: "Zotrod",
-              server: "国服",
-              rank: "RKS 15.24",
-              color: "#00c8b4",
-              stats: [
-                  {
-                      label: "最高难度",
-                      value: "AT 15"
-                    },
-                  {
-                      label: "全连曲数",
-                      value: "126"
-                    },
-                  {
-                      label: "本命谱",
-                      value: "Spasmodic"
-                    }
-                ],
-              note: "免费音游里最爱的一个。"
-            },
-          {
-              icon: "music",
-              name: "中二节奏",
-              uidLabel: "CHUNITHM ID",
-              uid: "Zotrod",
-              server: "国服",
-              rank: "评级 S",
-              color: "#f0a500",
-              stats: [
-                  {
-                      label: "段位",
-                      value: "白金"
-                    },
-                  {
-                      label: "擅长难度",
-                      value: "EXPERT"
-                    },
-                  {
-                      label: "出勤频率",
-                      value: "周更"
-                    }
-                ],
-              note: "机厅常驻，欢迎约架。"
+              icon: "steam",
+              name: "Steam",
+              uidLabel: "好友码",
+              uid: "76561199120970154",
+              server: "公开库存",
+              color: "#66c0f4",
+              steam: {
+                  steamId: "76561199120970154",
+                  profileUrl: "https://steamcommunity.com/profiles/76561199120970154/",
+                  libraryUrl: "https://steamcommunity.com/profiles/76561199120970154/games/?tab=all",
+                  /* 滚动时封面墙滑动的倍率：0 = 完全静止，1 = 默认，3 = 明显流动。
+                     也可以不动配置，在控制台 SITE_STEAMWALL.setSpeed(2) 现场试。 */
+                  scrollSpeed: 1,
+                  /* appid 列表由 scripts/sync.mjs 抓取写入 data/steam.json；
+                     抓不到就用下面这份快照，保证背景永远有图，不会开天窗。 */
+                  fallbackApps: [
+                      730,
+                      570,
+                      1091500,
+                      292030,
+                      1245620,
+                      1145360,
+                      367520,
+                      588650,
+                      632360,
+                      548430,
+                      322330,
+                      413150
+                    ]
+                }
             }
         ]
     },
@@ -315,96 +225,97 @@ window.SITE_CONFIG = {
         },
       calculator: {
           title: "估个价",
-          hint: "四步选完就有结果，不需要填任何信息。",
+          hint: "选完就有结果，不用填任何信息。",
           currency: "¥",
           range: [
               0.85,
               1.15
             ],
+          /* ============================================================
+             维修业务数据（2026-11-11 按实际业务重写）
+             ------------------------------------------------------------
+             实际情况：修的基本是鼠标，换的基本是微动和编码器，
+             偶尔有主板级/进水这类复杂问题需要单独聊。
+
+             这里刻意保留"种类 → 项目 → 方式 → 加急"的四层结构，
+             以后要加键盘、手柄、耳机，只需要往 devices 里加一条、
+             再给 services 里挂上对应的 devices 即可，代码一行不用改。
+
+             每层字段约定：
+               devices    id / name / factor（价格系数）/ note
+               services   id / name / price / devices（适用种类，空=全适用）
+               methods    id / name / add（附加费）/ note
+               rushes     id / name / add / note
+               materials  id / name / factor（不改问，走 materialDefault）
+             ============================================================ */
           devices: [
               {
-                  id: "phone",
-                  name: "手机",
+                  id: "mouse",
+                  name: "鼠标",
                   factor: 1,
                   note: "最常见的单"
                 },
               {
-                  id: "tablet",
-                  name: "平板",
-                  factor: 1.4,
-                  note: "屏幕更大更贵"
+                  id: "mouse_high",
+                  name: "旗舰鼠标",
+                  factor: 1.35,
+                  note: "多层板 / 无线款，拆装更费工"
                 },
               {
-                  id: "laptop",
-                  name: "笔记本",
-                  factor: 2.2,
-                  note: "拆装更费工"
-                },
-              {
-                  id: "console",
-                  name: "游戏机",
+                  id: "keyboard",
+                  name: "键盘",
                   factor: 1.6,
-                  note: "掌机 / 主机"
+                  note: "可换轴 / 可换底棉"
                 }
             ],
           services: [
               {
-                  id: "screen",
-                  name: "换屏",
-                  price: 320,
-                  devices: ["phone", "tablet", "laptop"]
+                  id: "switch",
+                  name: "换微动",
+                  price: 60,
+                  note: "左右键，含拆装与调试"
                 },
               {
-                  id: "battery",
-                  name: "换电池",
-                  price: 120,
-                  devices: ["phone", "tablet", "laptop", "console"]
+                  id: "encoder",
+                  name: "换编码器",
+                  price: 50,
+                  note: "滚轮刻度，含校准"
                 },
               {
-                  id: "port",
-                  name: "换尾插",
-                  price: 110,
-                  devices: ["phone", "tablet"]
+                  id: "both",
+                  name: "微动 + 编码器",
+                  price: 95,
+                  note: "一次拆装，比分开做省"
                 },
               {
-                  id: "camera",
-                  name: "换摄像头",
-                  price: 180,
-                  devices: ["phone", "tablet"]
+                  id: "feet",
+                  name: "换脚贴 / 清灰",
+                  price: 30,
+                  note: "顺手做，不单独收工费"
                 },
               {
-                  id: "clean",
-                  name: "清灰保养",
-                  price: 100,
-                  devices: ["laptop", "console"]
-                },
-              {
-                  id: "system",
-                  name: "重装系统",
-                  price: 80,
-                  devices: ["laptop"]
+                  id: "complex",
+                  name: "复杂问题",
+                  price: 0,
+                  note: "主板 / 进水 / 断线，需先聊",
+                  quote: true
                 }
             ],
           materials: [
               {
-                  id: "oem",
-                  name: "原装",
+                  id: "standard",
+                  name: "标准件",
                   factor: 1,
-                  note: "官方件，最稳"
+                  note: "口碑款微动 / 编码器"
                 },
               {
-                  id: "brand",
-                  name: "品牌",
-                  factor: 0.75,
-                  note: "一线副厂"
-                },
-              {
-                  id: "value",
-                  name: "国产",
-                  factor: 0.55,
-                  note: "够用，性价比高"
+                  id: "premium",
+                  name: "高端件",
+                  factor: 1.5,
+                  note: "静音 / 高寿命款"
                 }
             ],
+          materialDefault: "standard",
           methods: [
               {
                   id: "local",
@@ -415,7 +326,7 @@ window.SITE_CONFIG = {
               {
                   id: "express",
                   name: "快递寄修",
-                  add: 20,
+                  add: 15,
                   note: "含返程运费，2~3 天"
                 }
             ],
@@ -429,12 +340,13 @@ window.SITE_CONFIG = {
               {
                   id: "rush",
                   name: "加急",
-                  add: 60,
+                  add: 30,
                   note: "插单优先，当天处理"
                 }
             ],
-          rushAdd: 60,
-          materialDefault: "oem"
+          /* 「复杂问题」这一项没法自动报价 —— 它要看了才知道。
+             这里给它一句替代文案，结果页不显示价格区间，而是显示这句。 */
+          askText: "这类问题得先看一眼：拍张照发给我，或者约个时间当面看。下面是联系方式。"
         }
     },
   links: {

@@ -90,11 +90,34 @@ const probe = () => {
       z: amb.zIndex, pe: amb.pointerEvents, pos: amb.position
     };
   });
-  ok(def.aurora === 'on' && def.orbA === 'block', '默认开启光晕');
-  ok(def.grain === 'on' && def.grainD === 'block', '默认开启噪点');
-  ok(def.grid === 'off' && def.gridD === 'none', '默认关闭网格');
-  ok(def.stars === 'off' && def.starsD === 'none', '默认关闭微粒');
-  ok(def.image === 'off', '默认没有背景图');
+  /* ⚠️ 这五条原来写死「网格 / 微粒 / 背景图默认关」。
+     那是**出厂默认**，而这几个开关在编辑器里随时能改 ——
+     用户一打开，断言就变成对配置的复读机，红了也指不出任何代码问题。
+     改成「页面状态必须等于配置声明」，验的是接线，不是口味。 */
+  const cfg = await page.evaluate(() => {
+    const b = (window.SITE_CONFIG || {}).backdrop || {};
+    const m = b.motion || {};
+    return {
+      aurora: m.aurora !== false,
+      grain: m.grain !== false,
+      grid: m.grid === true,
+      stars: m.stars === true,
+      image: !!b.image
+    };
+  });
+  const onOff = v => v ? 'on' : 'off';
+  const blockNone = v => v ? 'block' : 'none';
+
+  ok(def.aurora === onOff(cfg.aurora) && def.orbA === blockNone(cfg.aurora),
+    '光晕显隐跟配置一致（配置 ' + (cfg.aurora ? '开' : '关') + '）');
+  ok(def.grain === onOff(cfg.grain) && def.grainD === blockNone(cfg.grain),
+    '噪点显隐跟配置一致（配置 ' + (cfg.grain ? '开' : '关') + '）');
+  ok(def.grid === onOff(cfg.grid) && def.gridD === blockNone(cfg.grid),
+    '网格显隐跟配置一致（配置 ' + (cfg.grid ? '开' : '关') + '）');
+  ok(def.stars === onOff(cfg.stars) && def.starsD === blockNone(cfg.stars),
+    '微粒显隐跟配置一致（配置 ' + (cfg.stars ? '开' : '关') + '）');
+  ok(def.image === onOff(cfg.image),
+    '背景图开关跟配置一致（配置 ' + (cfg.image ? '有图' : '无图') + '）');
   ok(def.z === '0', '背景层在 z-index 0（内容之下）');
   ok(def.pe === 'none', '背景层不拦截点击');
   ok(def.pos === 'fixed', '背景层固定，不随内容滚动');

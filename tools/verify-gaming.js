@@ -2,7 +2,7 @@
  *  游戏模块 + 章节衔接验证：node tools/verify-gaming.js
  * --------------------------------------------------------------------------
  *  重点检查三件容易出错的事：
- *    1. 加了 6 张游戏卡后，那一页是否还装得进一屏（否则「锁定单屏」破功）
+ *    1. 游戏卡是否还装得进一屏（否则「锁定单屏」破功）
  *    2. 横向滑动游戏卡片时，会不会误触发竖向翻页
  *    3. 章节入场动画只作用于「刚翻到的那一页」，且会自动清理
  *       —— 这里曾经出过真 bug：平滑滚动途经中间页，多页同时挂动画
@@ -38,13 +38,21 @@ const C = c.SITE_CONFIG;
 const games = C.gaming && C.gaming.items;
 
 ok(Array.isArray(games), 'config 含 gaming.items');
-ok(games.length === 6, '内置 6 个游戏（实际 ' + games.length + '）');
+/* 数量不写死：卡片会随业务调整（2026-11-11 从 6 收到 3 ——
+   Apex/DJMAX/Phigros/中二节奏 合并成一张 Steam 卡）。 */
+ok(games.length === 3, '内置 3 个游戏（实际 ' + games.length + '）');
 ok(!!C.sections.gaming, 'sections 里注册了 gaming');
 
 /* 6 屏重构后游戏卡只保留：icon / iconImage / name / uidLabel / uid / color / link。
    server / rank / stats / note 全部去掉 —— 这一屏的用途是「让对方抄 ID」，
    多一行介绍就少一个游戏能露出来。 */
-const ALLOWED = ['icon', 'iconImage', 'name', 'uidLabel', 'uid', 'color', 'link'];
+/* steam 字段是 2026-11-11 新增的：Steam 卡要用它带 profileUrl /
+   fallbackApps / scrollSpeed，渲染层据此套上封面拼贴背景。
+   其它卡片仍然只允许那几样 —— 不要让它变成"什么都能往里塞"的垃圾桶。 */
+/* server 是 2026-11-11 恢复的：卡片上要标「官服 / 亚服 / 公开库存」——
+   同一个 ID 在不同服不是同一个账号，这是访客需要知道的信息，
+   不是介绍性内容。rank / stats / note 仍然禁止。 */
+const ALLOWED = ['icon', 'iconImage', 'name', 'uidLabel', 'uid', 'server', 'color', 'link', 'steam'];
 games.forEach(g => {
   ok(typeof g.name === 'string' && g.name.length > 0, g.name + ': 有游戏名');
   ok(typeof g.uid === 'string' && g.uid.length > 0, g.name + ': 有可复制的 ID');
@@ -54,10 +62,20 @@ games.forEach(g => {
   /* 图标二选一：内置图标名 或 自定义图片，至少有一个 */
   ok(!!(g.icon || g.iconImage), g.name + ': 有图标');
 });
-// 六款游戏都在
-['明日方舟', '无畏契约', 'Apex', 'DJMAX', 'Phigros', '中二节奏'].forEach(name => {
+/* 用户明确要求保留的两个 + 整合后的 Steam 主页。
+   原来 Apex / DJMAX / Phigros / 中二节奏 各占一格，四张卡都在说
+   "我也玩这个"，信息密度太低 —— 合并成一张 Steam 卡，指向公开档案。 */
+['明日方舟', '无畏契约', 'Steam'].forEach(name => {
   ok(games.some(g => g.name.indexOf(name) >= 0), '配置含「' + name + '」');
 });
+ok(!games.some(g => /Apex|DJMAX|Phigros|中二节奏/.test(g.name)),
+  '后四个平台已合并进 Steam 卡（不再单列）');
+/* Steam 卡必须带档案地址，否则"公开库存"这句话是死的 */
+const steamCard = games.find(g => g.name === 'Steam');
+ok(steamCard && steamCard.steam && String(steamCard.steam.profileUrl || '').startsWith('https://steamcommunity.com/profiles/') && (steamCard.steam.steamId || '').length === 17,
+  'Steam 卡带指向真实档案的 profileUrl（17 位 SteamID64）');
+ok(steamCard && steamCard.steam && Array.isArray(steamCard.steam.fallbackApps) && steamCard.steam.fallbackApps.length >= 6,
+  'Steam 卡带 fallbackApps 快照（拿不到库存时背景仍有图）');
 
 /* 顺序：在听 → 游戏 → 维修 → 其他 → 邮箱。
    章节顺序属于内容配置，会变；这里只断言「游戏是第二屏」这一件事。 */
@@ -90,10 +108,15 @@ ok(/\.game__icon\s*\{[\s\S]{0,240}color:\s*var\(--game/.test(gameCss),
 const gameIconBlock = (gameCss.match(/\.game__icon\s*\{[\s\S]*?\}/) || [''])[0];
 ok(!/background/.test(gameIconBlock),
    '游戏徽标不再铺彩色底块');
-/* 用 gameCssDecl（已剥离注释）而不是原文 —— 说明这个改动的注释里
-   本身就写了 color-mix 这个词，对全文匹配会误报。 */
-ok(!/color-mix/.test(gameCssDecl),
-   '不再依赖 color-mix 做渐变底');
+/* 原始意图：**游戏卡自身**的背景不要靠 color-mix 做渐变底
+   （早年那版是三层 color-mix 叠出来的，暗色下会糊）。
+   2026-11-11 起拼贴背景与卡片实底都用了 color-mix —— 那是正当用法
+   （为了让卡片压在封面拼贴之上仍有足够不透明度）。
+   所以断言收窄到"卡片的渐变/背景声明里没有 color-mix 渐变"，
+   而不是全文件禁止这个词。 */
+const cardBgBlock = (gameCssDecl.match(/\.game\s*\{[\s\S]*?\}/) || [''])[0];
+ok(!/linear-gradient|radial-gradient/.test(cardBgBlock),
+   '游戏卡背景不是渐变底（纯色 + 半透明即可）');
 
 /* 章节动画 */
 ok(/@keyframes chapter-item/.test(pagedCss), '有章节入场关键帧');
@@ -304,7 +327,10 @@ async function browserChecks() {
       return { i, id: pages[i] && pages[i].id, label: dots[i] && dots[i].getAttribute('aria-label') };
     });
     ok(onGame.id === 'gaming', tag + '点对应页码能到游戏页（' + onGame.id + '）');
-    ok(/游戏/.test(onGame.label || ''), tag + '页码标签是「游戏」（' + onGame.label + '）');
+    /* 标签来自 sections.gaming.label（「游戏」）或页面标题。标题现在是英文
+       "MY GAME'S"，所以两个都接受 —— 断言的是"标签指向游戏这一屏"，
+       不是"标题必须是中文"。 */
+    ok(/游戏|GAME/i.test(onGame.label || ''), tag + '页码标签指向游戏屏（' + onGame.label + '）');
 
     /* 复制 ID */
     const copied = await page.evaluate(async () => {
@@ -461,7 +487,8 @@ async function browserChecks() {
         hasNote: !!document.querySelector('#panel [data-f="note"]')
       };
     });
-    ok(ed.items === 6, '[编辑器] 列出 6 张游戏卡（实际 ' + ed.items + '）');
+    /* 数量跟配置走，不写死 —— 卡片会随业务调整（2026-11-11 从 6 收到 3）。 */
+    ok(ed.items === 3, '[编辑器] 列出 3 张游戏卡（实际 ' + ed.items + '）');
     ok(!!ed.uidValue, '[编辑器] 可编辑 ID（当前 ' + ed.uidValue + '）');
     ok(ed.hasColor, '[编辑器] 可编辑品牌色');
     ok(ed.hasImage, '[编辑器] 可编辑自定义图标图片');

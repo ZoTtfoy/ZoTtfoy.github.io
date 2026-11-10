@@ -41,6 +41,9 @@
          前面 scale/density/档位都定下来之后才知道谁真的太小。 */
       if (window.SITE_READABLE) window.SITE_READABLE.init();
       window.SITE_MOTION.init();
+      /* 游戏屏的 Steam 拼贴背景：纯装饰，放最后初始化，
+         它挂了也不影响任何功能。 */
+      if (window.SITE_STEAMWALL) window.SITE_STEAMWALL.init();
       if (window.SITE_EFFECTS) window.SITE_EFFECTS.init();
     } catch (err) {
       // 出错时至少保证内容可见，不要留一个空白页面

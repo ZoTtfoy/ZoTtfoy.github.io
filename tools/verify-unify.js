@@ -84,20 +84,40 @@ const FAMILY = ['.ccard', '.game', '.social', '.calc'];
   for (const sel of hoverables) {
     const el = page.locator(sel).first();
     if (!(await el.count())) continue;
-    const before = await el.evaluate(e => {
+
+    /* ⚠️ 先翻到它所在的那一屏，等吸附停稳，再悬停。
+       直接 el.hover() 会让 Playwright 自己滚过去，而滚动会触发翻页吸附 ——
+       两股力互相拉扯，停稳后元素已经离开指针，:hover 丢失，
+       读到的描边自然「没变」。（实测 social：120ms 时已加深，700ms 被挤走又复原。） */
+    await page.evaluate((s) => {
+      const node = document.querySelector(s);
+      const sec = node && node.closest('section');
+      const P = window.SITE_PAGED;
+      if (!sec || !P || typeof P.pages !== 'function') return;
+      const i = P.pages().findIndex(e => e && e.id === sec.id);
+      if (i >= 0) P.goTo(i);
+    }, sel);
+    await page.waitForTimeout(1000);
+
+    const read = () => el.evaluate(e => {
       const c = getComputedStyle(e);
       return { bc: c.borderTopColor, sh: c.boxShadow, tf: c.transform };
     });
+    const before = await read();
     await el.hover();
-    await page.waitForTimeout(320);
-    const after = await el.evaluate(e => {
-      const c = getComputedStyle(e);
-      return { bc: c.borderTopColor, sh: c.boxShadow, tf: c.transform };
-    });
+
+    /* 过渡是 var(--t-fast)，但帧率由环境决定（无头下 ~18fps），
+       所以等条件成立而不是等固定时长。 */
+    let after = before;
+    for (let i = 0; i < 10; i++) {
+      await page.waitForTimeout(140);
+      after = await read();
+      if (after.bc !== before.bc) break;
+    }
     ok(after.bc !== before.bc, sel + ' 悬停时描边加深');
     ok(after.tf !== before.tf, sel + ' 悬停时上浮（transform 变化）');
     await page.mouse.move(5, 5);
-    await page.waitForTimeout(200);
+    await page.waitForTimeout(220);
   }
 
   /* -------------------------------- 3. 圆角只有设计 token 里的那几种 */

@@ -8,7 +8,13 @@
    5px 的失焦入场是 2024 年那批 AI 生成站点最爱的效果，动起来像投影仪对焦。
    收到 2px 后仍然有「浮现」的质感，但不会喧宾夺主。
    位移一起收，是因为两者叠加时总幅度太大，会让页面像在「飘」。 */
-.js [data-reveal] {
+/* ⚠️ 这里用 :where() 把权重压到 (0,1,0)。
+   早先写的是 `.js [data-reveal].is-visible`，权重 (0,3,0) ——
+   高过 unify.css 里的 `.social:hover`（0,2,0），后果是
+   「悬停上浮」对任何带 data-reveal 的卡片**永远不生效**：
+   元素被钉在 translate3d(0,0,0) 上，hover 改 transform 也压不过它。
+   渐显只是入场动画，不该赢过组件自己的状态规则。 */
+.js :where([data-reveal]) {
   opacity: 0;
   transform: translate3d(0, 14px, 0);
   filter: blur(2px);
@@ -22,7 +28,7 @@
      全部常驻等于把几十个大图层塞进显存。实测这一项让图层数从 61 降到个位数。
      动画期间浏览器本来就会自动提升，不需要常驻提示。 */
 }
-.js [data-reveal].is-visible {
+.js :where([data-reveal].is-visible) {
   opacity: 1;
   transform: translate3d(0, 0, 0);
   filter: blur(0);
@@ -148,11 +154,11 @@ html[data-motion="off"] .ambient__orb { animation: none; }
     transition-duration: .01ms !important;
     scroll-behavior: auto !important;
   }
-  .js [data-reveal] { opacity: 1 !important; transform: none !important; filter: none !important; }
+  .js :where([data-reveal]) { opacity: 1 !important; transform: none !important; filter: none !important; }
 }
 
 /* 小屏减少模糊，滚动更顺滑 */
 @media (max-width: 680px) {
-  .js [data-reveal] { filter: none; transform: translate3d(0, 14px, 0); }
-  .js [data-reveal].is-visible { transform: none; }
+  .js :where([data-reveal]) { filter: none; transform: translate3d(0, 14px, 0); }
+  .js :where([data-reveal].is-visible) { transform: none; }
 }
