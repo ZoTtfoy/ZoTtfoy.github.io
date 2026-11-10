@@ -12,6 +12,10 @@
  *  阈值留了余量：无头环境是软件渲染，真实设备有 GPU 会更快。
  * ========================================================================== */
 const { chromium } = require('playwright-core');
+const fs = require('fs');
+const path = require('path');
+const zlib = require('zlib');
+const ROOT = path.resolve(__dirname, '..');
 
 const SITE = 'http://127.0.0.1:8791/';
 const notes = [], fails = [];
@@ -51,6 +55,9 @@ async function scrollFps(page) {
     const h = r.headers();
     reqs.push({
       url: r.url().replace(SITE, '/'),
+      /* path 用于回读本地文件算 gzip 体积（url 已被抹成相对形式，两者相同，
+         但保留 path 这个名字读起来更清楚） */
+      path: r.url().startsWith(SITE) ? r.url().slice(SITE.length - 1) : null,
       type: r.request().resourceType(),
       len: Number(h['content-length'] || 0)
     });
@@ -65,13 +72,55 @@ async function scrollFps(page) {
   const cssReq = reqs.filter(r => r.type === 'stylesheet');
   const jsReq = reqs.filter(r => r.type === 'script');
   const totalKB = reqs.reduce((a, r) => a + r.len, 0) / 1024;
+
+  /* 本地 python http.server 不做压缩，但 GitHub Pages 会对文本资源做 gzip。
+     所以「未压缩体积」会明显高估真实首屏成本 —— 这里两个都算，
+     **预算按 gzip 后算**，因为那才是访客实际下载的量。
+     未压缩数字仍然打印出来，方便看是谁变胖了。 */
+  let gzKB = 0;
+  const missing = [];
+  const seen = new Set();        // 同一个文件被请求多次时不要重复计入体积
+  for (const u of reqs) {
+    if (u.path) { if (seen.has(u.path)) continue; seen.add(u.path); }
+    if (!u.path || !/^\/(assets|data)\//.test(u.path) && u.path !== '/' && u.path !== '/index.html') continue;
+    const rel = u.path === '/' ? 'index.html' : u.path.replace(/^\//, '');
+    const abs = path.join(ROOT, rel);
+    try {
+      const buf = fs.readFileSync(abs);
+      // 只压缩文本；图片本来就是压缩格式，gzip 几乎无效，按原大小计
+      gzKB += /\.(js|css|html|json|svg)$/i.test(rel)
+        ? zlib.gzipSync(buf, { level: 9 }).length / 1024
+        : buf.length / 1024;
+    } catch { missing.push(rel); }
+  }
+
   console.log('=== 资源 ===');
-  console.log('load 耗时:', loadMs, 'ms | 请求', reqs.length, '个 | 传输', totalKB.toFixed(1), 'KB');
+  console.log('load 耗时:', loadMs, 'ms | 请求', reqs.length, '个');
+  console.log('未压缩', totalKB.toFixed(1), 'KB | gzip 后约', gzKB.toFixed(1), 'KB');
   console.log('css', cssReq.length, '个 | js', jsReq.length, '个');
+  if (missing.length) console.log('（未能读取体积:', missing.join(', '), '）');
 
   ok(loadMs < 1200, 'load 事件 ' + loadMs + 'ms < 1200ms');
-  ok(reqs.length <= 26, '请求数 ' + reqs.length + ' ≤ 26');
-  ok(totalKB < 280, '总传输 ' + totalKB.toFixed(0) + 'KB < 280KB');
+  /* 6 屏重构新增了 blocks.css / sync.js / repair.js 三个文件，
+     请求数从 25 涨到 28。这是真实功能带来的，不是回归，
+     但仍然要卡住上限 —— 再加模块时应该考虑合并而不是无限增长。 */
+  ok(reqs.length <= 30, '请求数 ' + reqs.length + ' ≤ 30');
+
+  /* 预算按 gzip 后算，因为 GitHub Pages 会对文本资源压缩，
+     那才是访客真正下载的量。当前实测约 120KB，构成：
+       CSS 54KB（7 套主题 + 四档适配 + 6 屏模块，其中注释占 21%）
+       JS  50KB（主题表、图标库、翻页、光效、计算器）
+       HTML/JSON 16KB
+     这已经是「零依赖、零构建」的代价下限 —— 同等功能引一个框架起步 200KB+。
+
+     阈值定 135KB：留约 12% 余量，够加内容但不至于失控。
+     ⚠️ 如果哪天超了，先看是哪个文件涨的（脚本会打印未压缩总量），
+     而不是直接调大这个数。CSS 注释是有维护价值的，不该为了数字删掉；
+     真需要瘦身时优先考虑：把 admin.css / gallery.css 从首页依赖里彻底剥离
+     （目前已经不在 index.html 的 link 里了，所以没计入）。 */
+  const BUDGET_KB = 135;
+  ok(gzKB > 0 && gzKB < BUDGET_KB,
+     'gzip 后体积 ' + gzKB.toFixed(0) + 'KB < ' + BUDGET_KB + 'KB（未压缩 ' + totalKB.toFixed(0) + 'KB）');
 
   /* ---------- 2. DOM ---------- */
   const dom = await page.evaluate(() => ({

@@ -1,241 +1,264 @@
 /* ==========================================================================
  *  Zotrod · 个人主页  ——  唯一需要修改的文件
  * --------------------------------------------------------------------------
- *  ▸ 所有文案、链接、模块开关都集中在这里。
- *  ▸ 改完保存，刷新页面立即生效，不需要打包、不需要装任何东西。
- *  ▸ 引号 " " 里的内容随便改；true / false 是开关；数字越小排得越靠前。
- *  ▸ 下面带「示例」字样的文字都是占位内容，请替换成你自己的信息。
+ *  页面一共 6 屏，从上往下翻：
+ *
+ *    Q1  我          hero + profile    名字 / 头像 / QQ / 微信 / 网易云 + 小黑盒 摘要卡
+ *    Q2  在听        listen            网易云最近播放（由仓库的定时任务自动同步）
+ *    Q3  游戏        gaming            游戏卡片，只有 图标 + 名称 + ID
+ *    Q4  维修        repair            闲鱼摘要卡 + 报价表 + 价格计算器
+ *    Q5  其他        links             其余社交平台
+ *    Q6  邮箱        contact           邮箱
+ *
+ *  ▸ 改完保存、刷新即可，不需要打包，不需要装任何东西。
+ *  ▸ true / false 是开关；order 数字小的排前面。
+ *  ▸ 标了 ★ 的字段是占位示例，上线前请换成你自己的。
  *  ▸ 图标名可选列表见 assets/js/icons.js 顶部注释。
  * ========================================================================== */
 
 window.SITE_CONFIG = {
 
-  /* ---------------------------------------------------------------- 1. 基础 */
+  /* ================================================================ 基础 */
   site: {
-    name: "Zotrod",                          // 顶部名字 / 浏览器标签
+    name: "Zotrod",                          // ★ 你的名字（首屏大标题、页头、标签页）
     initials: "Z",                           // 没有头像图片时，方块里显示的字母
-    avatar: "",                              // 头像图片：填图片地址（或用编辑器上传，自动转成内嵌图片）
-    role: "独立开发者 / 设计爱好者",           // 名字下方的一行身份
-    tagline: "把复杂的东西，\n做得简单一点。",   // 首页大标题；\n 表示换行
-    description: "这里是 Zotrod 的个人主页。写一点关于我的事、我做的事情，以及一些不务正业的爱好。",
-    location: "中国 · 上海",                  // 示例：坐标
-    email: "hello@example.com",              // 示例：换成你的邮箱，页脚可一键复制
-    available: true,                         // 是否显示「开放合作」小绿点
-    availableText: "目前开放合作，欢迎聊聊",
-    copyright: "© 2026 Zotrod. All rights reserved.",
+    avatar: "",                              // ★ 头像：填图片地址（或用编辑器上传，自动压缩）
+    role: "独立开发者 / 维修师",               // ★ 名字下面那行身份
+    description: "Zotrod 的个人主页 —— 联系方式、最近在听、在玩的游戏，以及维修报价。",
+    location: "中国 · 上海",                  // ★ 坐标
+    email: "hello@example.com",              // ★ 邮箱（Q6 整屏都是它，页脚也可一键复制）
+    copyright: "© 2026 Zotrod",
     footerNote: "手写 HTML / CSS / JS · 托管于 GitHub Pages"
   },
 
-  /* ------------------------------------------------- 2. 模块开关与显示顺序 */
-  // enabled: false 即可整块隐藏；order: 数字小的排前面；label: 导航栏文字
-  // 顺序：联系方式放最前（这是社交型主页，访客最想先找到人），
-  // 然后是个人简介、工作与业务，最后是喜好与游戏。
+  /* ====================================================== 模块开关与顺序 */
+  // enabled: false 整块隐藏；order 小的排前面；label 是导航文字。
+  // 注意：Q1（首屏）不在这里，它是 hero，永远第一屏。
   sections: {
-    social:    { enabled: true, order: 1, label: "联系" },
-    about:     { enabled: true, order: 2, label: "关于" },
-    services:  { enabled: true, order: 3, label: "业务" },
-    interests: { enabled: true, order: 4, label: "喜好" },
-    gaming:    { enabled: true, order: 5, label: "游戏" }
+    listen:  { enabled: true, order: 1, label: "在听" },
+    gaming:  { enabled: true, order: 2, label: "游戏" },
+    repair:  { enabled: true, order: 3, label: "维修" },
+    links:   { enabled: true, order: 4, label: "其他" },
+    contact: { enabled: true, order: 5, label: "邮箱" }
   },
 
-  /* ------------------------------------------------------------ 3. 首页按钮 */
-  // 主按钮指向「喜好」而不是「业务」：这是社交型主页，
-  // 访客更想先认识人，而不是先看我接什么活。
-  hero: {
-    primary:   { label: "找到我",         target: "#social"  },
-    secondary: { label: "了解一下我",     target: "#about"   }
-  },
+  /* ============================================================ Q1 · 我 */
+  // 首屏只做一件事：让访客在 3 秒内知道「你是谁、怎么找到你、你的主页长什么样」。
+  profile: {
+    greet: "你好，我是",                      // 名字上方的小字
+    tagline: "把复杂的东西，做得简单一点。",    // 名字下面的一行副标题
+    // 简介：2~3 句就够。太长会把 QQ / 微信挤到屏幕外。
+    intro: "白天写代码，晚上拆机器。喜欢把模糊的想法变成能真正跑起来、也经得起细看的东西。这里放着我常待的地方、在听的歌，和一份还算透明的维修报价。",
 
-  /* ------------------------------------------------------------ 4. 关于个人 */
-  about: {
-    eyebrow: "02 / ABOUT",
-    title: "关于我",
-    lead: "一点点自我介绍，和一点点做事的方式。",
-    paragraphs: [
-      "你好，我是 Zotrod。喜欢把模糊的想法变成能真正跑起来、也经得起细看的东西。日常在代码、界面和文字之间来回切换，习惯先想清楚「为什么」，再动手解决「怎么做」。",
-      "我相信克制是一种能力：少一点装饰，多一点准确；少一点承诺，多一点交付。这里放着我目前在做的事、愿意聊的合作，以及一些和工作无关、但同样重要的爱好。"
+    // ---- 直接联系方式：点一下就复制 ----
+    contacts: [
+      { icon: "qq",     label: "QQ",   value: "100000000", hint: "点击复制" },   // ★
+      { icon: "wechat", label: "微信", value: "zotrod",    hint: "点击复制" }    // ★
     ],
-    facts: [
-      { label: "坐标",   value: "中国 · 上海" },
-      { label: "状态",   value: "开放合作中" },
-      { label: "时区",   value: "UTC+8" },
-      { label: "回复",   value: "通常 1–2 天" }
-    ],
-    tags: ["极简主义", "长期主义", "细节控", "一点点强迫症", "持续学习"]
-  },
 
-  /* ------------------------------------------------------------ 5. 业务范畴 */
-  services: {
-    eyebrow: "03 / WHAT I DO",
-    title: "业务范畴",
-    lead: "能帮上忙的几个方向，从想法到落地。",
-    items: [
+    // ---- 两个主页的摘要卡 ----
+    // 卡片上的文字会**自动**被 data/previews.json 覆盖（由 GitHub Actions 抓取）。
+    // 抓不到时就用下面填的兜底文案，所以这里先写清楚也能直接用。
+    //   cover 填了图片 → 显示成带封面的缩略图卡；留空 → 显示成纯文字信息卡。
+    previews: [
       {
-        icon: "code",
-        title: "网站与应用开发",
-        desc: "从静态页面到完整的前端应用，关注性能、可维护性与真实设备上的体验。",
-        tags: ["前端", "响应式", "工程化"]
+        id: "netease",                        // 与 data/previews.json 的键对应，别改
+        icon: "netease",
+        platform: "网易云音乐",
+        url: "https://music.163.com/#/user/home?id=000000000",   // ★ 你的网易云主页
+        title: "我的音乐主页",
+        meta: "歌单 · 红心 · 最近在听",
+        cover: "",                            // 可选：封面图地址
+        stats: [],
+        accent: "#c20c0c"
       },
       {
-        icon: "palette",
-        title: "界面与视觉设计",
-        desc: "清晰的层级、克制的配色、顺手的交互。让界面不需要说明书也能被看懂。",
-        tags: ["UI", "设计系统", "动效"]
-      },
-      {
-        icon: "layers",
-        title: "产品与体验梳理",
-        desc: "把散落的需求理成结构，明确主路径，减少不必要的功能与反复沟通。",
-        tags: ["信息架构", "原型", "评审"]
-      },
-      {
-        icon: "chart",
-        title: "咨询与技术支持",
-        desc: "代码审查、性能优化、技术方案选型，或者只是找个靠谱的人一起把问题想明白。",
-        tags: ["Code Review", "优化", "顾问"]
+        id: "xiaoheihe",
+        icon: "box",
+        platform: "小黑盒",
+        url: "https://www.xiaoheihe.cn/app/user/profile/000000",  // ★ 你的小黑盒主页
+        title: "我的小黑盒",
+        meta: "游戏库 · 时长 · 战绩",
+        cover: "",
+        stats: [],
+        accent: "#ff6b35"
       }
     ]
   },
 
-  /* ------------------------------------------------------------ 6. 游戏 */
-  // 每个游戏一张卡片：ID 点一下即可复制（方便对方加好友），下面的 stats 是「可展现资产」。
-  // uidLabel 可自定义（博士ID / Riot ID / Steam ID …），stats 想写几个都行。
-  // color 是卡片顶部的品牌色细条，留空则用主题主色。
+  /* ========================================================== Q2 · 在听 */
+  listen: {
+    eyebrow: "02 / LISTENING",
+    title: "最近在听",
+    lead: "网易云最近播放，由仓库的定时任务自动同步。",
+    // ★ 你的网易云数字 UID：打开 music.163.com → 点头像进主页 → 地址栏 id= 后面那串数字
+    //   这个 UID 同时也是同步脚本要用的，两边填一致。
+    neteaseUid: "000000000",
+    // 同步脚本的输出文件。抓不到就自动退回下面的 fallback，页面不会空着。
+    dataFile: "data/netease.json",
+    limit: 6,                                 // 最多显示几首
+    // 兜底曲目：只在同步数据缺失时出现，随手填几首你常听的即可。
+    fallback: [
+      { title: "示例曲目一", artist: "示例歌手", album: "示例专辑" },
+      { title: "示例曲目二", artist: "示例歌手", album: "示例专辑" },
+      { title: "示例曲目三", artist: "示例歌手", album: "示例专辑" }
+    ]
+  },
+
+  /* ========================================================== Q3 · 游戏 */
+  // 只列卡片，不写介绍。想加游戏直接往 items 里加一项。
   gaming: {
-    eyebrow: "05 / GAMES",
-    title: "在游戏里",
-    lead: "想一起玩的话，ID 都在这里，点一下就能复制。",
+    eyebrow: "03 / GAMES",
+    title: "在玩什么",
+    lead: "ID 都在下面，点一下就能复制。",
     items: [
       {
-        icon: "tower",
+        icon: "tower",                        // 内置图标名
+        iconImage: "",                        // ★ 想用自己的图：填图片地址，优先级高于 icon
         name: "明日方舟",
         uidLabel: "博士 ID",
         uid: "Zotrod#0001",
-        server: "官服",
-        rank: "Lv. 120",
-        color: "#4a90d9",
-        stats: [
-          { label: "六星干员", value: "88" },
-          { label: "主线进度", value: "全通" },
-          { label: "合约危机", value: "19" }
-        ],
-        note: "每天上线收菜，顺便摸摸公开招募。"
+        color: "#4a90d9",                     // 图标颜色（用图片图标时忽略）
+        link: ""                              // 可选：主页链接
       },
       {
-        icon: "crosshair",
-        name: "无畏契约",
-        uidLabel: "Riot ID",
-        uid: "Zotrod#0806",
-        server: "亚服",
-        rank: "钻石 II",
-        color: "#ff4655",
-        stats: [
-          { label: "主玩", value: "贤者" },
-          { label: "最高段位", value: "超凡 I" },
-          { label: "常用枪", value: "暴徒" }
-        ],
-        note: "喜欢打信息位，不太爱冲锋。"
+        icon: "crosshair", iconImage: "",
+        name: "无畏契约", uidLabel: "Riot ID", uid: "Zotrod#0806",
+        color: "#ff4655", link: ""
       },
       {
-        icon: "target",
-        name: "Apex Legends",
-        uidLabel: "EA ID",
-        uid: "Zotrod_APEX",
-        server: "亚服",
-        rank: "大师",
-        color: "#da292a",
-        stats: [
-          { label: "主玩传奇", value: "恶灵" },
-          { label: "最高伤害", value: "4.2k" },
-          { label: "生涯击杀", value: "8,600" }
-        ],
-        note: "三排最爱，单排随缘。"
+        icon: "target", iconImage: "",
+        name: "Apex Legends", uidLabel: "EA ID", uid: "Zotrod_APEX",
+        color: "#da292a", link: ""
       },
       {
-        icon: "note",
-        name: "DJMAX RESPECT V",
-        uidLabel: "Steam",
-        uid: "Zotrod",
-        server: "Steam",
-        rank: "Lv. 87",
-        color: "#7b61ff",
-        stats: [
-          { label: "主要难度", value: "MX" },
-          { label: "偏好键位", value: "6B" },
-          { label: "最爱曲", value: "OBLIVION" }
-        ],
-        note: "手速不够，靠背谱补。"
+        icon: "note", iconImage: "",
+        name: "DJMAX RESPECT V", uidLabel: "Steam", uid: "Zotrod",
+        color: "#7b61ff", link: ""
       },
       {
-        icon: "disc",
-        name: "Phigros",
-        uidLabel: "游戏 ID",
-        uid: "Zotrod",
-        server: "国服",
-        rank: "RKS 15.24",
-        color: "#00c8b4",
-        stats: [
-          { label: "最高难度", value: "AT 15" },
-          { label: "全连曲数", value: "126" },
-          { label: "本命谱", value: "Spasmodic" }
-        ],
-        note: "免费音游里最爱的一个。"
+        icon: "disc", iconImage: "",
+        name: "Phigros", uidLabel: "游戏 ID", uid: "Zotrod",
+        color: "#00c8b4", link: ""
       },
       {
-        icon: "music",
-        name: "中二节奏",
-        uidLabel: "CHUNITHM ID",
-        uid: "Zotrod",
-        server: "国服",
-        rank: "评级 S",
-        color: "#f0a500",
-        stats: [
-          { label: "段位", value: "白金" },
-          { label: "擅长难度", value: "EXPERT" },
-          { label: "出勤频率", value: "周更" }
-        ],
-        note: "机厅常驻，欢迎约架。"
+        icon: "music", iconImage: "",
+        name: "中二节奏", uidLabel: "CHUNITHM ID", uid: "Zotrod",
+        color: "#f0a500", link: ""
       }
     ]
   },
 
-  /* ------------------------------------------------------------ 7. 个人喜好 */
-  interests: {
-    eyebrow: "04 / OFF WORK",
-    title: "个人喜好",
-    lead: "工作之外，时间都花在这些地方。",
+  /* ========================================================== Q4 · 维修 */
+  repair: {
+    eyebrow: "04 / REPAIR",
+    title: "维修与报价",
+    lead: "价格写在明处。下面可以直接估个价，也可以看完整报价单。",
+
+    // ---- 闲鱼主页摘要卡（和 Q1 的两个卡是同一个组件） ----
+    xianyu: {
+      id: "xianyu",
+      icon: "shop",
+      platform: "闲鱼",
+      url: "https://www.goofish.com/",                     // ★ 你的闲鱼主页
+      title: "我的闲鱼小铺",
+      meta: "维修单 · 实拍 · 芝麻信用",
+      cover: "",
+      stats: [],
+      accent: "#ffe60f"
+    },
+
+    /* ---- 报价表 ----
+       扁平列表：每行自带 group 字段，页面会自动按 group 分栏。
+       之所以不做成嵌套的 groups[].rows[]，是因为编辑器里只能编辑一层数组，
+       扁平结构既好维护，也能随时插一个新分组进去（改 group 名即可）。 */
+    quote: {
+      title: "报价单",
+      note: "价格为参考区间，实际以拆机检测结果为准。进水机、主板级故障需另议。",
+      rows: [
+        { group: "手机", item: "换外屏（只换玻璃）", price: "120 – 260", note: "视机型与曲面难度" },
+        { group: "手机", item: "换总成（内外屏一体）", price: "280 – 680", note: "含原装/品牌两档" },
+        { group: "手机", item: "换电池", price: "90 – 200", note: "含电芯与工时" },
+        { group: "手机", item: "换尾插 / 充电口", price: "80 – 180", note: "" },
+        { group: "手机", item: "换后置摄像头", price: "120 – 320", note: "单摄/多摄不同" },
+        { group: "手机", item: "进水清理", price: "80 – 150", note: "不含后续元件更换" },
+        { group: "电脑 / 平板", item: "清灰换硅脂", price: "80 – 150", note: "笔记本" },
+        { group: "电脑 / 平板", item: "换硬盘 / 加内存", price: "50 – 120", note: "配件另计" },
+        { group: "电脑 / 平板", item: "重装系统 + 驱动", price: "60 – 100", note: "含常用软件" },
+        { group: "电脑 / 平板", item: "换屏", price: "300 – 900", note: "视尺寸与分辨率" }
+      ]
+    },
+
+    /* ---- 价格计算器（四步向导）----
+       算法：设备系数 × 项目基准价 × 材料系数 + 加项固定价
+       最后按 range 展开成一个区间，因为实际维修总有浮动。 */
+    calculator: {
+      title: "估个价",
+      hint: "四步选完就有结果，不需要填任何信息。",
+      currency: "¥",
+      range: [0.85, 1.15],                    // 输出区间：在估算值上下浮动 ±15%
+
+      devices: [
+        { id: "phone",   name: "手机",   factor: 1.0,  note: "最常见的单" },
+        { id: "tablet",  name: "平板",   factor: 1.4,  note: "屏幕更大更贵" },
+        { id: "laptop",  name: "笔记本", factor: 2.2,  note: "拆装更费工" },
+        { id: "console", name: "游戏机", factor: 1.6,  note: "掌机 / 主机" }
+      ],
+
+      // devices 留空表示所有设备都支持
+      services: [
+        { id: "screen", name: "换屏",     price: 320, devices: ["phone", "tablet", "laptop"] },
+        { id: "battery", name: "换电池",  price: 120, devices: ["phone", "tablet", "laptop", "console"] },
+        { id: "port",   name: "换尾插",   price: 110, devices: ["phone", "tablet"] },
+        { id: "camera", name: "换摄像头", price: 180, devices: ["phone", "tablet"] },
+        { id: "clean",  name: "清灰保养", price: 100, devices: ["laptop", "console"] },
+        { id: "system", name: "重装系统", price: 80,  devices: ["laptop"] }
+      ],
+
+      materials: [
+        { id: "oem",   name: "原装", factor: 1.0,  note: "官方件，最稳" },
+        { id: "brand", name: "品牌", factor: 0.75, note: "一线副厂" },
+        { id: "value", name: "国产", factor: 0.55, note: "够用，性价比高" }
+      ],
+
+      /* 名称尽量控制在 2~3 个字。
+         手机上加项组只有半行宽（约 155px），「加急当天」「数据备份」这种
+         4 字标签会让整组折成两行，白白多占 34px —— 而 Q4 是唯一
+         「一屏差几十像素装不下」的屏，这 34px 很关键。 */
+      extras: [
+        { id: "none",   name: "不需要", add: 0,  note: "" },
+        { id: "rush",   name: "加急",   add: 60, note: "插单优先，当天可取" },
+        { id: "onsite", name: "上门",   add: 80, note: "同城范围内" },
+        { id: "backup", name: "备份",   add: 40, note: "换屏 / 换板前建议做" }
+      ]
+    }
+  },
+
+  /* ========================================================== Q5 · 其他 */
+  // Q1 已经放了 QQ / 微信 / 网易云 / 小黑盒，这里只放剩下的，别重复。
+  links: {
+    eyebrow: "05 / ELSEWHERE",
+    title: "其他账号",
+    lead: "挑一个你顺手的方式。",
     items: [
-      { icon: "music",     title: "音乐",   desc: "耳机里常驻的歌单，从后摇到City Pop", meta: "每日必听" },
-      { icon: "camera",    title: "摄影",   desc: "拍街角的光、空椅子和没人的站台",     meta: "随手记录" },
-      { icon: "book",      title: "阅读",   desc: "科幻、设计、以及没用的冷知识",       meta: "纸质优先" },
-      { icon: "coffee",    title: "咖啡",   desc: "手冲，浅烘，接受一切不完美的萃取",   meta: "一天两杯" },
-      { icon: "plane",     title: "旅行",   desc: "不赶行程，喜欢在一座城市里乱走",     meta: "慢速移动" },
-      { icon: "gamepad",   title: "游戏",   desc: "偏爱有故事、有留白、能慢慢玩的作品", meta: "周末限定" }
+      { icon: "github",   label: "GitHub",     handle: "@ZoTtfoy",              url: "https://github.com/ZoTtfoy" },
+      { icon: "x",        label: "X",          handle: "@Zotrod",               url: "https://x.com/Zotrod" },
+      { icon: "bilibili", label: "哔哩哔哩",   handle: "偶尔更新",               url: "https://space.bilibili.com/" },
+      { icon: "qqmusic",  label: "QQ 音乐",    handle: "常听歌单",               url: "https://y.qq.com/" },
+      { icon: "juejin",   label: "掘金",       handle: "技术笔记",               url: "https://juejin.cn/" },
+      { icon: "mail",     label: "邮箱",       handle: "写信给我",               url: "mailto:hello@example.com" }
     ]
   },
 
-  /* ---------------------------------------------------------- 8. 社交平台 */
-  social: {
-    eyebrow: "01 / FIND ME",
-    title: "在其他地方找到我",
-    lead: "挑一个你顺手的方式，随时欢迎打招呼。",
-    // url 换成你自己的主页地址；不用的平台直接删掉整行即可。
-    // 想写「点一下就复制」的账号（比如 QQ 号、微信号），用 copy 代替 url。
-    items: [
-      { icon: "github",    label: "GitHub",     handle: "@Zotrod",        url: "https://github.com/Zotrod" },
-      { icon: "x",         label: "X",          handle: "@Zotrod",        url: "https://x.com/Zotrod" },
-      { icon: "bilibili",  label: "哔哩哔哩",   handle: "偶尔更新",        url: "https://space.bilibili.com/" },
-      { icon: "netease",   label: "网易云音乐", handle: "歌单与红心",      url: "https://music.163.com/" },
-      { icon: "qqmusic",   label: "QQ 音乐",    handle: "常听歌单",        url: "https://y.qq.com/" },
-      { icon: "mail",      label: "邮箱",       handle: "hello@example.com", url: "mailto:hello@example.com" },
-      { icon: "qq",        label: "QQ",         handle: "点一下复制号码",   copy: "100000000" },
-      { icon: "wechat",    label: "微信",       handle: "点一下复制微信号", copy: "zotrod" }
-    ],
-    contactHint: "有想法、有项目，或者只是想聊两句？"
+  /* ========================================================== Q6 · 邮箱 */
+  contact: {
+    eyebrow: "06 / MAIL",
+    title: "写信给我",
+    lead: "邮件是我最稳定的联系方式，通常 1–2 天内回。",
+    hint: "有项目、有问题，或者只是想聊两句？"
   },
 
-  /* --------------------------------------------------------- 9. 背景 */
-  // 动效元素可以任意叠加；图片可选。改这里不用动任何 CSS。
+  /* ============================================================== 背景 */
   backdrop: {
     motion: {
       aurora: true,     // 两团缓慢漂移的光晕（跟着主题色走）
@@ -243,69 +266,65 @@ window.SITE_CONFIG = {
       grid: false,      // 极淡的网格线，偏工程感
       stars: false      // 缓慢上浮的微粒，偏夜色感
     },
-    gridSize: 64,       // 网格间距（px），只在 grid 开启时有效
-    starsOpacity: 0.5,  // 微粒浓度
-
-    image: "",          // 背景图片：填图片地址，或用编辑器上传（自动压缩）
-    imageOpacity: 0.35, // 图片不透明度（越大越明显）
-    imageBlur: 0,       // 图片模糊（0–40px；想弱化图片细节就调大）
-    scrim: 0.65,        // ★ 图片上的遮罩强度（0.15–0.95）。越低图越清楚、字越难读
-    kenBurns: false,    // 图片极缓慢地推近拉远（48 秒一个来回）
-    parallax: true      // 背景随鼠标 / 滚动轻微位移，形成前后层次
+    gridSize: 64,
+    starsOpacity: 0.5,
+    image: "",
+    imageOpacity: 0.35,
+    imageBlur: 0,
+    scrim: 0.65,
+    kenBurns: false,
+    parallax: true
   },
 
-  /* --------------------------------------------------------- 10. 首页细节 */
-  // 每项都能单独关掉：true 开启 / false 关闭
+  /* ========================================================== 首屏细节 */
   live: {
-    loading: true,      // 载入动画（每次会话只出现一次，最多 0.9 秒，可点击跳过）
-    clock: true,        // 实时时钟 + 星期 + 日期
-    progress: true,     // 时光进度条：今年过了百分之多少
-    quote: true,        // 一言（点一下换一句）
-    quoteRemote: false  // false 用下面的本地列表；true 则联网取一言（内容随机，不推荐）
+    loading: true,      // 载入动画（每次会话一次，最多 0.9 秒，可点击跳过）
+    clock: false,       // 实时时钟 —— Q1 要塞 QQ/微信/摘要卡，关掉省地方
+    progress: false,    // 时光进度条
+    quote: false,       // 一言 —— 同上，首屏已经够满了
+    quoteRemote: false
   },
 
-  /* 一言：本地精选。可以放纯文字，也可以带出处 { text, from } */
+  /* 一言：如果哪天把 live.quote 打开，句子从这里取 */
   quotes: [
     "把复杂的东西，做得简单一点。",
     { text: "少一点装饰，多一点准确。", from: "自己" },
     "先让它跑起来，再让它好看。",
     { text: "简单不是少，而是刚好。", from: "自己" },
-    "慢慢来，比较快。",
-    { text: "与其解释，不如做出来给人看。", from: "自己" },
-    "细节自由，但边界要清楚。"
+    "慢慢来，比较快。"
   ],
 
-  /* 音乐浮窗：默认关闭，避免在正式场合意外出声。
-     打开方式：
-       1) 有音源：填 src（mp3 直链）→ 出现播放按钮，绝不自动播放
-       2) 只有歌单：填 link → 变成一个「去听歌」的入口
-     想让它出现，必须把 enabled 改成 true。 */
+  /* 音乐浮窗：默认关闭，避免在正式场合意外出声 */
   music: {
     enabled: false,
     title: "我的歌单",
     artist: "网易云音乐",
-    src: "",            // 示例："./assets/audio/loop.mp3"
+    src: "",
     link: "https://music.163.com/",
     loop: true,
     volume: 0.6
   },
 
-  /* -------------------------------------------------------------- 11. 偏好 */
+  /* ================================================================ 偏好 */
   ui: {
-    skin: "ink",            // 默认风格：ink / paper / noir / aurora / terminal / clay / mint
-    themeDefault: "auto",   // "auto" 跟随系统 | "light" 默认浅色 | "dark" 默认深色
-    accent: "",             // 可选：在风格之上再覆盖浅色主色，如 "#2f6b5b"；留空则用风格自带
-    accentDark: "",         // 可选：覆盖深色主色
+    skin: "ink",            // ink / paper / noir / aurora / terminal / clay / mint
+    themeDefault: "auto",   // "auto" 跟随系统 | "light" | "dark"
+    accent: "",
+    accentDark: "",
 
-    paged: true,            // ★ 翻页式：一屏一章，上下翻动时吸附（Apple 式章节）
-    showPager: true,        //   右侧页码指示器（手机上为底部分段）
-    showHint: true,         //   首次进入时提示「上下滑动翻页」，动一下即消失
-    lightEffects: true,     // ★ 指针追光 / 卡片光斑 / 触控涟漪
+    paged: true,            // 翻页式：一屏一章
+    /* 触摸翻页：上/下滑**不管距离**都算一次翻页（像刷短视频）。
+       位移只用来判断方向，不参与阈值；连翻有 300ms 下限，不会一滑好几页。
+       想回到「自由滚动 + 停手自动对齐」的老行为，把它设成 false。 */
+    swipePaging: true,
+    showPager: true,
+    showHint: true,
+    lightEffects: true,
 
-    showSkinPicker: true,   // 右上角风格切换按钮
-    showProgress: true,     // 顶部滚动进度条
-    showBackToTop: true,    // 右下角回到顶部
-    ambientMotion: true,    // 背景动效总开关（关了则光晕/微粒静止；系统「减少动态效果」也会自动关）
-    showThemeToggle: true   // 右上角深浅快切按钮
+    showSkinPicker: true,
+    showProgress: true,
+    showBackToTop: true,
+    ambientMotion: true,
+    showThemeToggle: true
   }
 };

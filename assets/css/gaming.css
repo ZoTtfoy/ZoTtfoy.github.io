@@ -1,33 +1,29 @@
 /* ==========================================================================
- *  gaming.css —— 游戏卡片
+ *  gaming.css —— 游戏卡片（Q3）
  * --------------------------------------------------------------------------
- *  早先是横向滑动轨道（overflow-x: auto + scroll-snap）。改回网格了，原因：
- *    1. 桌面鼠标用户没有"横滑"这个手势 —— 必须去拖滚动条或按住 shift 滚轮，
- *       实际几乎没人能发现卡片右边还有内容。
- *    2. 触屏虽然能划，但它和"上下翻页"是两套方向的手势，容易误触。
- *    3. 轨道容器会吞掉一部分滚轮事件，让桌面滚动感觉"卡"。
- *  现在用网格自动换行：所有内容一眼看全，高度靠 fit.css 的档位压缩控制。
+ *  这一屏的用途很单一：**在社交场合让对方抄 ID**。
+ *  所以卡片只保留三样东西：图标 / 名称 / 可点击复制的 ID。
  *
- *  每张卡片顶部有一条品牌色细条（--game），是唯一的彩色信息，
- *  其余仍走主题变量，所以 7 套风格下都不会打架。
+ *  砍掉的内容（原先是 note + stats 三格 + server/rank 元信息）：
+ *    一张卡有 6 行文字时，屏幕一屏只能放 4 个游戏，而且没人会读简介。
+ *    现在一张卡约 96px 高，6 个游戏两行就排完，剩下的空间留给呼吸感。
+ *
+ *  想加游戏：config.js → gaming.items 里加一项即可，布局会自动排。
+ *  想用自定义图标：填 iconImage（图片地址），优先级高于 icon（内置图标名）。
  * ========================================================================== */
 
-/* 网格：列数随宽度自适应，卡片等宽等高，行数自动增加。
-   桌面 3 列（6 张 = 2 行），平板 2~3 列，手机 2 列。
-   手机用 2 列而不是 1 列：6 张竖排会远超一屏，2 列能把高度压下来。 */
+/* 网格：桌面 3 列 → 6 个正好 2 行；平板 2 列；窄屏 2 列。
+   用固定列数而不是 auto-fit：auto-fit 在 1180px 下会算成 5 列，
+   6 个卡片就变成 "5 + 1"，最后一行孤零零一张，很难看。 */
 .game-rail {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(228px, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
   align-items: stretch;
 }
 
-/* 手机：固定两列，卡片更紧凑 */
-@media (max-width: 680px) {
-  .game-rail {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 9px;
-  }
+@media (max-width: 900px) {
+  .game-rail { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 /* ---------------------------------------------------------------- 卡片本体 */
@@ -35,16 +31,15 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  padding: 20px;
+  padding: 16px;
   border: 1px solid var(--line);
   border-radius: var(--r-md);
   background: var(--bg-elev);
   overflow: hidden;
-  transition: border-color var(--t) var(--ease), box-shadow var(--t) var(--ease),
-              transform var(--t) var(--ease);
+  transition: border-color var(--t) var(--ease);
 }
 
-/* 顶部品牌色细条 */
+/* 顶部品牌色细条：整张卡唯一的彩色信息，其余走主题变量 */
 .game::after {
   content: "";
   position: absolute;
@@ -54,64 +49,45 @@
   opacity: .85;
 }
 
-/* 品牌色的极淡底光，让卡片不至于一片灰 */
-.game::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  opacity: .05;
-  background: radial-gradient(120% 80% at 15% 0%, var(--game, var(--accent)) 0%, transparent 62%);
-}
-.game > * { position: relative; z-index: 1; }
-
-.game__head {
-  display: flex;
-  align-items: flex-start;
-  gap: 11px;
-  margin-bottom: 14px;
-}
+/* 徽标：内置图标走品牌色；自定义图片则按原样显示 */
 .game__icon {
   flex: none;
   display: grid;
   place-items: center;
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
-  background: color-mix(in srgb, var(--game, var(--accent)) 12%, transparent);
+  width: 32px;
+  height: 32px;
+  margin-bottom: 10px;
   color: var(--game, var(--accent));
-}
-/* 不支持 color-mix 的浏览器退回主题软色 */
-@supports not (background: color-mix(in srgb, red 10%, transparent)) {
-  .game__icon { background: var(--accent-soft); color: var(--accent); }
 }
 .game__icon .icon { width: 19px; height: 19px; }
 
-.game__title { min-width: 0; }
-.game__title h3 {
+.game__logo {
+  width: 100%;
+  height: 100%;
+  border-radius: calc(var(--r-sm) * .55);
+  object-fit: cover;
+  background: var(--bg-soft);
+}
+
+.game__name {
   font-family: var(--font-display, var(--font-sans));
-  font-size: 1rem;
+  font-size: .95rem;
   font-weight: 600;
   letter-spacing: -.01em;
   line-height: 1.35;
-}
-.game__title p {
-  margin-top: 2px;
-  font-family: var(--font-mono);
-  font-size: .66rem;
-  letter-spacing: .04em;
-  color: var(--text-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* ------------------------------------------------------------------ ID 行 */
 .game__uid {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 7px;
   width: 100%;
-  margin-bottom: 14px;
-  padding: 8px 10px;
+  margin-top: 9px;
+  padding: 7px 9px;
   border: 1px dashed var(--line-strong);
   border-radius: var(--r-sm);
   background: var(--bg-soft);
@@ -126,7 +102,7 @@
 .game__uid-label {
   flex: none;
   font-family: var(--font-mono);
-  font-size: .58rem;
+  font-size: .56rem;
   letter-spacing: .06em;
   text-transform: uppercase;
   color: var(--text-3);
@@ -136,7 +112,7 @@
   min-width: 0;
   overflow: hidden;
   font-family: var(--font-mono);
-  font-size: .78rem;
+  font-size: .76rem;
   font-weight: 600;
   color: var(--text);
   text-overflow: ellipsis;
@@ -146,84 +122,51 @@
   flex: none;
   display: grid;
   place-items: center;
-  width: 22px;
-  height: 22px;
-  border-radius: 6px;
+  width: 20px;
+  height: 20px;
+  border-radius: calc(var(--r-sm) * .55);
+  color: var(--text-3);
+  transition: color var(--t-fast) var(--ease);
+}
+.game__uid-copy .icon { width: 12px; height: 12px; }
+.game__uid:hover .game__uid-copy { color: var(--game, var(--accent)); }
+
+/* 主页链接（可选）：做成右上角的小箭头，不占纵向空间 */
+.game__link {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: calc(var(--r-sm) * .55);
   color: var(--text-3);
   transition: color var(--t-fast) var(--ease), background-color var(--t-fast) var(--ease);
 }
-.game__uid-copy .icon { width: 13px; height: 13px; }
-.game__uid:hover .game__uid-copy { color: var(--game, var(--accent)); background: var(--bg-soft); }
-
-/* -------------------------------------------------------------- 数据网格 */
-.game__stats {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(78px, 1fr));
-  gap: 8px;
-  margin: 0 0 12px;
-}
-.game__stat {
-  padding: 8px 9px;
-  border-radius: calc(var(--r-sm) * .8);
-  background: var(--bg-soft);
-}
-.game__stat dt {
-  font-size: .62rem;
-  line-height: 1.4;
-  color: var(--text-3);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.game__stat dd {
-  margin: 2px 0 0;
-  font-family: var(--font-mono);
-  font-size: .82rem;
-  font-weight: 600;
-  color: var(--text);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.game__note {
-  margin-top: auto;
-  padding-top: 4px;
-  font-size: .76rem;
-  line-height: 1.65;
-  color: var(--text-2);
-}
-
-.game__link {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  margin-top: 10px;
-  font-size: .74rem;
-  color: var(--game, var(--accent));
-}
 .game__link .icon { width: 13px; height: 13px; }
-.game__link:hover { text-decoration: underline; text-underline-offset: 3px; }
+.game__link:hover { color: var(--text); background: var(--bg-soft); }
 
 /* ---------------------------------------------------------- 悬停反馈 */
+/* 不做位移、不加阴影 —— 和摘要素描卡保持同一套节制规则 */
 @media (hover: hover) and (pointer: fine) {
-  .game:hover {
-    transform: translateY(-4px);
-    border-color: var(--line-strong);
-    box-shadow: var(--shadow-md);
-  }
+  .game:hover { border-color: var(--line-strong); }
 }
-@media (hover: none) {
-  .game:active { transform: scale(.99); transition-duration: .1s; }
-}
+/* 触屏按压反馈统一在 motion.css 里（那一处集中管理所有可点组件），
+   这里不要重复写 .game:active，否则会覆盖那边的数值。 */
 
-/* ------------------------------------------------------------ 小屏收紧 */
+/* ------------------------------------------------------------ 小屏
+   这里的下限与 blocks.css 手机端一致：正文 ≥ .86rem、辅助 ≥ .72rem。
+   早先压到 .88rem / .72rem 是为了两列并排时塞下长游戏名，
+   现在两列宽度足够（每格约 165px），字号可以回到正常尺度。 */
 @media (max-width: 680px) {
-  .game { padding: 16px; }
-  .game__stats { gap: 6px; }
-  .game__stat { padding: 7px 8px; }
-  .game__stat dd { font-size: .78rem; }
-  .game__note { font-size: .74rem; }
+  .game { padding: 14px; }
+  .game__icon { width: 28px; height: 28px; margin-bottom: 9px; }
+  .game__icon .icon { width: 18px; height: 18px; }
+  .game__name { font-size: .94rem; }
+  .game__uid { margin-top: 8px; padding: 6px 9px; }
+  .game__uid-label { display: none; }        /* 手机上标签让位给 ID 本身 */
+  .game__uid-value { font-size: .82rem; }
 }
 
 /* 减少动态效果：不做位移 */

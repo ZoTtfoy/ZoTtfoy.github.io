@@ -97,61 +97,22 @@
 }
 
 /* ------------------------------------------------------------------ 首页 */
+/* Q1 的具体排版（头像、名字、简介、QQ/微信、摘要卡）在 blocks.css 里，
+   这里只保留跨模块的基础骨架。 */
 .hero {
   position: relative;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  min-height: min(88svh, 860px);
-  padding: clamp(72px, 12vh, 130px) 0 clamp(96px, 14vh, 150px);
 }
 .hero__inner { position: relative; z-index: 1; }
 
-.hero__status {
-  display: inline-flex;
-  align-items: center;
-  gap: 9px;
-  margin-bottom: clamp(28px, 5vh, 48px);
-  padding: 7px 14px 7px 11px;
-  border: 1px solid var(--line);
-  border-radius: var(--r-full);
-  background: var(--bg-elev);
-  font-size: .78rem;
-  color: var(--text-2);
-  box-shadow: var(--shadow-sm);
-}
-
-.hero__title {
-  max-width: 15ch;
-  font-family: var(--font-display, var(--font-sans));
-  font-size: clamp(2.9rem, 8.2vw, 6.4rem);
-  font-weight: 600;
-  line-height: 1.08;
-  letter-spacing: var(--tracking-title, -.035em);
-}
-
-.hero__role {
-  margin-top: clamp(20px, 3vh, 30px);
-  font-family: var(--font-mono);
-  font-size: clamp(.82rem, 1.3vw, .95rem);
-  letter-spacing: .1em;
-  text-transform: uppercase;
-  color: var(--accent);
-}
-
-.hero__desc {
-  max-width: 50ch;
-  margin-top: 20px;
-  font-size: clamp(.98rem, 1.4vw, 1.08rem);
-  color: var(--text-2);
-}
-
-.hero__actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: clamp(32px, 5vh, 46px); }
+.hero__actions { display: flex; flex-wrap: wrap; gap: 10px; }
 
 .hero__scroll {
   position: absolute;
   left: 50%;
-  bottom: 38px;
+  bottom: 30px;
   transform: translateX(-50%);
   display: flex;
   flex-direction: column;
@@ -183,91 +144,56 @@
   font-weight: 600;
   line-height: 1.18;
   letter-spacing: var(--tracking-title, -.035em);
+  text-wrap: balance;
 }
 .section__lead {
-  margin-top: 16px;
-  font-size: clamp(1rem, 1.5vw, 1.12rem);
+  margin-top: 15px;
+  font-size: clamp(.98rem, 1.5vw, 1.08rem);
+  line-height: 1.7;
   color: var(--text-2);
+  /* pretty 只做一件事：避免最后一行只剩一两个字（孤字）。
+     中文里这类孤字特别刺眼，因为它是一个完整的方块。 */
+  text-wrap: pretty;
 }
+/* eyebrow：加一道前导细线。
+   这是编辑/杂志版式的常见手法（kicker line），一行小字前面挂一条 28px 的横线，
+   比单纯把「ABOUT」染成强调色更沉稳，也顺手替掉了原来那个 accent 彩色小标题。
+   用 ::before 而不是 border，是为了让线独立于文字对齐、并保持 8px 的间隙。 */
 .eyebrow {
-  margin-bottom: 18px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
   font-family: var(--font-mono);
-  font-size: .72rem;
+  font-size: .7rem;
   letter-spacing: .14em;
   text-transform: uppercase;
-  color: var(--accent);
-}
-
-/* -------------------------------------------------------------- 关于个人 */
-.about__grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1.35fr) minmax(0, .85fr);
-  gap: clamp(40px, 7vw, 100px);
-  align-items: start;
-}
-.about__body p {
-  font-size: clamp(1.02rem, 1.7vw, 1.18rem);
-  line-height: 1.95;
+  /* 用 --text-2 而不是 --text-3：eyebrow 只有 .7rem，小字必须过 4.5:1。
+     --text-3 实测只有 3.55:1，被 verify-visual 拦下来了。 */
   color: var(--text-2);
 }
-.about__body p + p { margin-top: 1.2em; }
-.about__body p:first-child::first-letter { color: var(--text); font-weight: 600; }
-
-.about__side {
-  padding: clamp(24px, 3vw, 34px);
-  border: 1px solid var(--line);
-  border-radius: var(--r-lg);
-  background: var(--bg-elev);
-  box-shadow: var(--shadow-sm);
+.eyebrow::before {
+  content: "";
+  width: 26px;
+  height: 1px;
+  flex: none;
+  background: var(--line-strong);
 }
 
 /* -------------------------------------------------------------- 卡片栅格 */
-.card-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 18px;
-}
-.interest-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 14px;
-}
-/* 社交卡片数量可变，用 auto-fit 自适应列数，最后一行会自动铺满不留下空位 */
+/* 只留 Q5 用的社交网格。业务卡（.card-grid）与喜好卡（.interest-grid）
+   随 Q1~Q6 重构一起删掉了 —— 那两屏的内容已经不在页面上。 */
+/* 社交卡片数量可变，用 auto-fit 自适应列数。
+   列宽从 238px 提到 300px：Q5 现在只有 6 张卡，238px 会排成 4 列 2 行，
+   每张 262px 宽，在一屏 820px 里显得零碎。300px 排成 3 列 2 行，
+   卡片更宽更舒展，整块也更稳。 */
 .social-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(238px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   gap: 14px;
 }
 
-/* ---------------------------------------------------------------- 联系块 */
-.contact {
-  margin-top: clamp(48px, 7vw, 86px);
-  padding: clamp(36px, 6vw, 72px) 24px;
-  border: 1px solid var(--line);
-  border-radius: var(--r-lg);
-  background:
-    radial-gradient(120% 140% at 50% 0%, var(--accent-soft), transparent 70%),
-    var(--bg-elev);
-  text-align: center;
-}
-.contact__hint {
-  font-size: clamp(1.25rem, 2.6vw, 1.8rem);
-  font-weight: 500;
-  letter-spacing: -.025em;
-}
-.contact__actions {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 12px;
-  margin-top: 28px;
-}
-.contact__mail {
-  margin-top: 20px;
-  font-family: var(--font-mono);
-  font-size: .8rem;
-  color: var(--text-3);
-}
+/* 联系块（.contact）随 Q6 改版换成了 .mailbox，见 blocks.css */
 
 /* ------------------------------------------------------------------ 页脚 */
 .site-footer { border-top: 1px solid var(--line); padding: 46px 0; }
@@ -283,51 +209,39 @@
 .footer__note { font-family: var(--font-mono); font-size: .72rem; letter-spacing: .03em; }
 
 /* ================================================================ 响应式 */
-/* 平板横屏 / 小笔记本 */
-@media (max-width: 1024px) {
-  .interest-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .about__grid { gap: 48px; }
-}
-
 /* 平板竖屏：收起桌面导航 */
 @media (max-width: 900px) {
   .nav { display: none; }
   .header__inner { grid-template-columns: 1fr auto; }
   .menu-toggle { display: inline-flex !important; }
-  .about__grid { grid-template-columns: 1fr; }
-  .about__side { max-width: 520px; }
 }
 
 /* 手机 */
 @media (max-width: 680px) {
   :root { --header-h: 62px; }
 
-  .hero {
-    min-height: auto;
-    padding: clamp(72px, 14vh, 110px) 0 110px;
-  }
-  .hero__title { max-width: 100%; font-size: clamp(2.5rem, 11vw, 3.8rem); }
-  .hero__desc { max-width: 100%; }
+  .hero { min-height: auto; }
   .hero__scroll { display: none; }
   .hero__actions .btn { flex: 1 1 auto; justify-content: center; }
 
-  .card-grid,
-  .interest-grid,
-  .social-grid { grid-template-columns: 1fr; }
+  /* 社交卡在手机上用两列 —— 单列 6 张要 526px，360×640 直接超屏 65px。
+     两列后每张 172px，配合下面缩小图标 + 隐掉箭头刚好放得下。 */
+  .social-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
+  .social { padding: 10px; gap: 9px; }
+  .social__icon { width: 32px; height: 32px; border-radius: var(--r-xs); }
+  .social__icon .icon { width: 16px; height: 16px; }
+  .social__label { font-size: .82rem; }
+  .social__handle { font-size: .64rem; }
+  .social__arrow { display: none; }
 
-  .section { padding: 76px 0; }
-  .section__head { margin-bottom: 38px; }
-
-  .contact { padding: 40px 20px; }
-  .contact__actions .btn { flex: 1 1 100%; }
+  .section { padding: 52px 0; }
+  .section__head { margin-bottom: 26px; }
 
   .footer__inner { flex-direction: column; align-items: flex-start; }
 }
 
 /* 小屏手机 */
 @media (max-width: 380px) {
-  .hero__title { font-size: 2.35rem; }
-  .hero__status { font-size: .72rem; }
   .section__title { font-size: 1.85rem; }
 }
 
@@ -336,9 +250,9 @@
   :root { --w: 1280px; }
 }
 
-/* 横屏矮屏幕：别让首页占满整屏 */
+/* 横屏矮屏幕 */
 @media (max-height: 620px) and (orientation: landscape) {
-  .hero { min-height: auto; padding-top: 70px; padding-bottom: 80px; }
+  .hero { min-height: auto; }
   .hero__scroll { display: none; }
 }
 

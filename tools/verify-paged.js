@@ -83,7 +83,8 @@ function makeEl(id, attrs = {}, opts = {}) {
 const pages = [];
 const hero = makeEl('top', {});
 hero.offsetHeight = 900;
-const secIds = ['about', 'services', 'interests', 'social'];
+/* 与 index.html 的 data-section 一一对应（6 屏结构） */
+const secIds = ['listen', 'gaming', 'repair', 'links', 'contact'];
 secIds.forEach((id, i) => {
   const s = makeEl(id, { 'data-section': id });
   s.offsetHeight = 900;
@@ -171,15 +172,16 @@ ctx.SITE_PAGED.init();
 ok(doc.documentElement.dataset.paged === 'on', '初始化为翻页模式');
 
 /* --- 页码生成 --- */
-ok(pagerList._children.length === 5, '生成 5 个页码项（首页 + 4 区块）');
+/* 6 屏结构：首屏 + listen / gaming / repair / links / contact = 6 个页码 */
+ok(pagerList._children.length === 6, '生成 6 个页码项（首页 + 5 区块）');
 const dotBtns = pagerList._children.map(li => li._children[0]);
 ok(dotBtns.every(b => b && b.className === 'pager__dot'), '每项都是一个页码按钮');
 ok(dotBtns[0].attrs['aria-label'].includes('首页'), '第一页标签是「首页」');
-ok(dotBtns[1].attrs['aria-label'].includes('关于'), '区块页标签取自 sections.label（中文名）');
+ok(dotBtns[1].attrs['aria-label'].includes('在听'), '区块页标签取自 sections.label（中文名）');
 ok(dotBtns.every(b => b.innerHTML.includes('pager__label')), '每个页码都带悬停标签');
 
 /* --- 高个页判定：把第 3 页撑到 1400px --- */
-pages[1].offsetHeight = 1400;   // interests（索引 1 在 pages 数组里）
+pages[1].offsetHeight = 1400;   // 索引 1 是第一个区块（listen）
 ctx.SITE_PAGED.refresh();
 ok(pages[1].attrs['data-tall'] === '1', '内容超出一屏的页被标记为高个页');
 ok(pages[0].attrs['data-tall'] === undefined, '刚好一屏的页不会被误标');
@@ -305,7 +307,39 @@ ok(/@media \(hover: hover\) and \(pointer: fine\)/.test(effectsCss), '卡片光�
 ok(/--mx/.test(effectsCss) && /--my/.test(effectsCss), '卡片光斑用 --mx/--my 定位');
 ok(/z-index:\s*1/.test(effectsCss), '追光在内容之下，不挡点击');
 
-/* ------------------------------------------------- 5. 站点自检的接线项 */
+/* ------------------------------------------- 5. 触摸翻页（静态可查的部分）
+   真实手势的验证在 tools/verify-swipe.js（需要 CDP 触摸序列），
+   这里只查「代码在场 + 参数合法」这类确定性的事。 */
+const pagedSrc2 = fs.readFileSync(path.join(ROOT, 'assets/js/paged.js'), 'utf8');
+ok(/function initSwipe\(\)/.test(pagedSrc2), '有触摸翻页初始化');
+ok(/initSwipe\(\);/.test(pagedSrc2), 'initSwipe 已在 init 中调用');
+ok(/SWIPE_LOCK\s*=\s*(\d+)/.test(pagedSrc2), '有连翻锁常量');
+
+/* 关键规则：锁必须 > 0 且 >= 一次滚动动画的量级。
+   用户原话「两次间隔可以适量缩短但绝不为 0」。
+   这里允许 150~500 的区间：太小会跳页（activeIndex 还没更新），
+   太大就不跟手了。 */
+const lockM = /SWIPE_LOCK\s*=\s*(\d+)/.exec(pagedSrc2);
+const lockMs = lockM ? Number(lockM[1]) : 0;
+ok(lockMs >= 150 && lockMs <= 500,
+   '连翻锁 ' + lockMs + 'ms 在合理区间（150~500，且绝不为 0）');
+ok(/reduced\(\)\s*\?\s*160\s*:\s*SWIPE_LOCK/.test(pagedSrc2),
+   '减少动效时锁缩短到 160ms（滚动是瞬时的，不需要等动画）');
+
+/* 手势判定：位移只用于判方向、不参与阈值；点击与横向必须排除 */
+ok(/Math\.abs\(dy\)\s*<\s*8/.test(pagedSrc2), '位移 < 8px 视为点击，不翻页');
+ok(/Math\.abs\(dx\)\s*>\s*Math\.abs\(dy\)/.test(pagedSrc2), '横向手势让位给浏览器');
+ok(/e\.touches\.length\s*!==\s*1/.test(pagedSrc2), '多指手势不触发翻页');
+ok(/dataset\.snap\s*!==\s*"mandatory"/.test(pagedSrc2),
+   '有高个页（snap=proximity）时让位给原生滚动');
+ok(/e\.cancelable\)\s*e\.preventDefault\(\)/.test(pagedSrc2),
+   '竖向手势在 touchmove 里就 preventDefault（避免先滚再纠正的抖动）');
+
+/* 配置开关 */
+const cfgSrc2 = fs.readFileSync(path.join(ROOT, 'assets/js/config.js'), 'utf8');
+ok(/swipePaging\s*:/.test(cfgSrc2), 'config 暴露 swipePaging 开关');
+
+/* ------------------------------------------------- 6. 站点自检的接线项 */
 const verifySrc = fs.readFileSync(path.join(ROOT, 'tools/verify.js'), 'utf8');
 ok(/paged\.js/.test(verifySrc), '站点自检已纳入 paged.js');
 

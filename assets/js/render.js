@@ -2,6 +2,8 @@
  *  渲染层：把 config.js 的数据填进 index.html 的骨架
  *  一般不需要改这个文件。新增内容优先改 config.js；
  *  新增模块则复制一个 <section> 骨架，再在这里补一段渲染函数。
+ *
+ *  页面 6 屏 → hero(Q1) / listen(Q2) / gaming(Q3) / repair(Q4) / links(Q5) / contact(Q6)
  * ========================================================================== */
 
 window.SITE_RENDER = (function () {
@@ -20,7 +22,7 @@ window.SITE_RENDER = (function () {
   function $(id) { return document.getElementById(id); }
   function set(id, html) { var el = $(id); if (el) el.innerHTML = html; }
   function arr(v) { return Array.isArray(v) ? v : []; }
-  function delay(i, step) { return '--reveal-delay:' + (i * (step || 70)) + 'ms;'; }
+  function delay(i, step) { return "--reveal-delay:" + (i * (step || 70)) + "ms;"; }
 
   /* ---------- 自定义主题色（在 config.js 的 ui.accent / ui.accentDark 里设置） ---------- */
   function hexToRgba(hex, alpha) {
@@ -77,11 +79,10 @@ window.SITE_RENDER = (function () {
     var s = C.site || {};
     var url = avatarUrl();
 
-    // 页头 / 页脚
     set("brandMark", markHtml(false));
     set("footerMark", markHtml(true));
 
-    // 首页大图：只有配置了图片才显示，避免和页头的字母块重复
+    // 首屏大头像：只有配置了图片才显示，否则靠名字本身撑起识别度
     var box = $("heroAvatar");
     if (box) {
       if (url) {
@@ -106,32 +107,286 @@ window.SITE_RENDER = (function () {
     renderAvatar();
   }
 
-  /* ---------- 首页 ---------- */
-  function renderHero() {
-    var s = C.site || {}, h = C.hero || {};
-    set("heroStatus", s.available
-      ? '<span class="status-dot" aria-hidden="true"></span>' + esc(s.availableText || "开放合作")
-      : esc(s.availableText || ""));
-    if (!s.availableText) { var st = $("heroStatus"); if (st) st.hidden = true; }
+  /* ============================================================ Q1 · 我 */
+  function renderProfile() {
+    var s = C.site || {}, p = C.profile || {}, h = C.hero || {};
 
-    set("heroTitle", text(s.tagline));
-    set("heroRole", esc(s.role));
-    set("heroDesc", esc(s.description));
+    set("heroGreet", esc(p.greet || "你好，我是"));
+    set("heroName", esc(s.name || "Zotrod"));
+    set("heroTagline", esc(p.tagline || ""));
+    set("heroRole", esc(s.role || ""));
+    set("heroIntro", text(p.intro || ""));
+    if (!p.tagline) { var t = $("heroTagline"); if (t) t.hidden = true; }
 
-    var p = h.primary || {}, q = h.secondary || {};
-    var a = $("heroPrimary");
+    // 微信 / QQ：显示平台名 + 账号，点一下复制。
+    // 用 <button> 而不是 <a>，因为它不跳转。
+    set("heroContacts", arr(p.contacts).map(function (c, i) {
+      return '<button class="ccard" type="button" ' +
+             'data-copy="' + esc(c.value) + '" ' +
+             'aria-label="复制' + esc(c.label) + '：' + esc(c.value) + '" ' +
+             'style="' + delay(i, 70) + '">' +
+               '<span class="ccard__icon">' + icon(c.icon) + "</span>" +
+               '<span class="ccard__body">' +
+                 '<span class="ccard__label">' + esc(c.label) + "</span>" +
+                 '<span class="ccard__value">' + esc(c.value) + "</span>" +
+               "</span>" +
+               '<span class="ccard__act">' + icon("copy") + "</span>" +
+             "</button>";
+    }).join(""));
+
+    // 两个主页的摘要卡（左右各一张）
+    paintPreviews("heroPreviews", p.previews);
+
+    // 首屏按钮
+    var a = $("heroPrimary"), b = $("heroSecondary");
+    var pri = h.primary || { label: "看看我在听", target: "#listen" };
+    var sec = h.secondary || { label: "游戏 ID", target: "#gaming" };
     if (a) {
-      a.innerHTML = '<span>' + esc(p.label || "了解更多") + '</span>' + icon("arrow-down", "btn__icon");
-      if (p.target) a.setAttribute("href", p.target);
+      a.innerHTML = "<span>" + esc(pri.label) + "</span>" + icon("arrow-down", "btn__icon");
+      if (pri.target) a.setAttribute("href", pri.target);
     }
-    var b = $("heroSecondary");
     if (b) {
-      b.innerHTML = '<span>' + esc(q.label || "联系我") + '</span>' + icon("arrow-up-right", "btn__icon");
-      if (q.target) b.setAttribute("href", q.target);
-      if (q.target && q.target.charAt(0) !== "#") {
-        b.setAttribute("target", "_blank"); b.setAttribute("rel", "noopener noreferrer");
-      }
+      b.innerHTML = "<span>" + esc(sec.label) + "</span>" + icon("arrow-up-right", "btn__icon");
+      if (sec.target) b.setAttribute("href", sec.target);
     }
+  }
+
+  /* ---------- 外链摘要卡（Q1 两个 + Q4 闲鱼一个） ----------
+     一个组件两种形态：
+       有 cover → 上方封面 + 下方文字，像一张缩略图卡
+       无 cover → 纯文字信息卡，左边一块平台图标
+     sync.js 拿到 data/previews.json 后，会按 [data-preview-id] 回填
+     标题 / 副标题 / 数据 / 封面 —— 优先用抓到的真实信息。 */
+  function previewCard(p, i) {
+    var cover = String(p.cover || "").trim();
+    var stats = arr(p.stats).filter(function (s) { return s && s.value != null; });
+    var statsHtml = stats.map(function (s) {
+      return '<span class="preview__stat"><b>' + esc(s.value) + "</b>" + esc(s.label || "") + "</span>";
+    }).join("");
+
+    var style = (p.accent ? "--pc:" + esc(p.accent) + ";" : "") + delay(i, 80);
+
+    return '<a class="preview' + (cover ? " preview--cover" : "") + '"' +
+             ' href="' + esc(p.url || "#") + '" target="_blank" rel="noopener noreferrer"' +
+             ' data-preview-id="' + esc(p.id || "") + '"' +
+             ' style="' + style + '" data-reveal>' +
+             (cover
+               ? '<span class="preview__cover"><img src="' + esc(cover) +
+                 '" alt="" loading="lazy" decoding="async"></span>'
+               : "") +
+             '<span class="preview__body">' +
+               '<span class="preview__top">' +
+                 '<span class="preview__icon">' + icon(p.icon) + "</span>" +
+                 '<span class="preview__platform">' + esc(p.platform || "") + "</span>" +
+                 icon("arrow-up-right", "preview__go") +
+               "</span>" +
+               '<span class="preview__title" data-preview-title>' + esc(p.title || "") + "</span>" +
+               '<span class="preview__meta" data-preview-meta>' + esc(p.meta || "") + "</span>" +
+               '<span class="preview__stats" data-preview-stats' +
+                 (statsHtml ? "" : " hidden") + ">" + statsHtml + "</span>" +
+             "</span>" +
+           "</a>";
+  }
+
+  function paintPreviews(mountId, list) {
+    var el = $(mountId);
+    if (!el) return;
+    el.innerHTML = arr(list).map(previewCard).join("");
+  }
+
+  /* ========================================================== Q2 · 在听 */
+  /* 一首歌 = 一块磁贴。磁贴吸附在主卡片的唱片底纹上：
+     序号、曲名、歌手、播放入口，四样都在一块里，不再是一行行的表格。
+     序号用等宽数字 —— 01~06 竖向对齐时，列表看起来才整齐。 */
+  function trackHtml(t, i) {
+    var meta = [t.artist, t.album].filter(Boolean).join(" · ");
+    return '<li class="track" style="' + delay(i, 45) + '" data-reveal>' +
+             '<span class="track__idx">' + String(i + 1).padStart(2, "0") + "</span>" +
+             '<span class="track__main">' +
+               '<span class="track__title">' + esc(t.title || "") + "</span>" +
+               (meta ? '<span class="track__meta">' + esc(meta) + "</span>" : "") +
+             "</span>" +
+             (t.url
+               ? '<a class="track__go" href="' + esc(t.url) + '" target="_blank" rel="noopener noreferrer"' +
+                 ' aria-label="在网易云打开 ' + esc(t.title || "") + '">' + icon("play") + "</a>"
+               : "") +
+           "</li>";
+  }
+
+  /* 把"最近在听"画出来。sync.js 抓到真实数据后也会调用它。 */
+  function setTracks(list, source) {
+    var d = C.listen || {};
+    var ul = $("trackList");
+    if (!ul) return;
+    var items = arr(list).slice(0, d.limit || 6);
+    ul.innerHTML = items.map(trackHtml).join("");
+    ul.setAttribute("data-count", String(items.length));
+
+    var foot = $("listenFoot");
+    if (foot) {
+      var uid = d.neteaseUid || "";
+      var link = uid && uid !== "000000000"
+        ? "https://music.163.com/#/user/home?id=" + encodeURIComponent(uid)
+        : "https://music.163.com/";
+      foot.innerHTML =
+        '<span class="listen__src">' +
+          (source === "live"
+            ? '<span class="live-dot" aria-hidden="true"></span>已同步'
+            : "示例数据 · 等待首次同步") +
+        "</span>" +
+        '<a class="listen__more" href="' + esc(link) + '" target="_blank" rel="noopener noreferrer">' +
+          "去网易云看看" + icon("arrow-up-right") + "</a>";
+    }
+  }
+
+  function renderListen() {
+    var d = C.listen || {};
+    /* 骨架（#trackList / #listenFoot）写在 index.html 里，这里只填内容。
+       早先是整块用 innerHTML 生成 —— 那样 sync.js 回填时必须先等 DOM 解析，
+       而且在没有 HTML 解析的环境（自检用的极简 DOM）里会取不到节点。 */
+    setTracks(d.fallback, "fallback");
+  }
+
+  /* ========================================================== Q3 · 游戏 */
+  /* 只保留 图标 + 名称 + ID。介绍性文字全部去掉 —— 这一屏的用途是
+     "在社交场合让对方抄 ID"，多一行字就少一个游戏能露出来。 */
+  function renderGaming() {
+    var d = C.gaming || {};
+    var grid = $("gameRail");
+    if (!grid) return;
+
+    var items = arr(d.items);
+    grid.innerHTML = items.map(function (g, i) {
+      var color = g.color ? "--game:" + esc(g.color) + ";" : "";
+      var img = String(g.iconImage || "").trim();
+      var glyph = img
+        ? '<img class="game__logo" src="' + esc(img) + '" alt="" loading="lazy" decoding="async">'
+        : icon(g.icon);
+
+      var uid = g.uid || g.copy || "";
+      var uidBlock = uid
+        ? '<button class="game__uid" type="button" data-copy="' + esc(uid) + '"' +
+          ' aria-label="复制 ' + esc(g.name) + " 的 " + esc(g.uidLabel || "ID") + "：" + esc(uid) + '">' +
+            '<span class="game__uid-label">' + esc(g.uidLabel || "ID") + "</span>" +
+            '<span class="game__uid-value">' + esc(uid) + "</span>" +
+            '<span class="game__uid-copy">' + icon("copy") + "</span>" +
+          "</button>"
+        : "";
+
+      return '<article class="game" data-reveal style="' + color + delay(i, 50) + '">' +
+               '<span class="game__icon">' + glyph + "</span>" +
+               '<h3 class="game__name">' + esc(g.name) + "</h3>" +
+               uidBlock +
+               (g.link
+                 ? '<a class="game__link" href="' + esc(g.link) + '" target="_blank" rel="noopener noreferrer"' +
+                   ' aria-label="打开 ' + esc(g.name) + ' 主页">' + icon("arrow-up-right") + "</a>"
+                 : "") +
+             "</article>";
+    }).join("");
+  }
+
+  /* ========================================================== Q4 · 维修 */
+  /* config 里报价是扁平的 rows（每行带 group），这里按 group 聚合成分栏。
+     用第一次出现的顺序作为分组顺序，这样编辑器里上下移动行就能调分组次序。 */
+  function groupQuote(rows) {
+    var order = [], map = {};
+    arr(rows).forEach(function (r) {
+      var g = (r && r.group) || "其他";
+      if (!map[g]) { map[g] = []; order.push(g); }
+      map[g].push(r);
+    });
+    return order.map(function (name) { return { name: name, rows: map[name] }; });
+  }
+
+  /* 报价表包在 <details> 里。
+     原因：10 行报价在手机上至少占 150px，而 Q4 是六屏里最高的一屏 ——
+     它一旦超屏，paged.js 就会把**整站**降档、所有字号跟着缩一截。
+     做成可折叠后，手机上默认收起（由 repair.js 在渲染后关掉），
+     Q4 不再绑架其他五屏；桌面默认展开，宽屏有横向余量，收起来反倒少看信息。 */
+  function renderQuote() {
+    var q = (C.repair || {}).quote || {};
+    var el = $("repairQuote");
+    if (!el) return;
+
+    var all = arr(q.rows);
+    var grouped = groupQuote(all);
+
+    var groups = grouped.map(function (g) {
+      var rows = g.rows.map(function (r) {
+        return '<div class="quote__row">' +
+                 '<dt class="quote__item">' + esc(r.item) +
+                   (r.note ? '<span class="quote__hint">' + esc(r.note) + "</span>" : "") +
+                 "</dt>" +
+                 '<dd class="quote__price">' + esc(r.price) + "</dd>" +
+               "</div>";
+      }).join("");
+      return '<section class="quote__group">' +
+               '<h4 class="quote__gname">' + esc(g.name) + "</h4>" +
+               '<dl class="quote__list">' + rows + "</dl>" +
+             "</section>";
+    }).join("");
+
+    el.innerHTML =
+      '<details class="quote" id="quoteDetails" open>' +
+        '<summary class="quote__summary">' +
+          '<span class="quote__title">' + icon("tag") + esc(q.title || "报价单") + "</span>" +
+          '<span class="quote__count">' + all.length + " 项 · " + grouped.length + " 类</span>" +
+          '<span class="quote__caret" aria-hidden="true">' + icon("chevron-right") + "</span>" +
+        "</summary>" +
+        '<div class="quote__body">' +
+          '<div class="quote__groups">' + groups + "</div>" +
+          (q.note ? '<p class="quote__note">' + esc(q.note) + "</p>" : "") +
+        "</div>" +
+      "</details>";
+  }
+
+  function renderRepair() {
+    var d = C.repair || {};
+    paintPreviews("repairPreview", d.xianyu ? [d.xianyu] : []);
+    renderQuote();
+    // 计算器由 repair.js 负责（它有状态和交互，放在渲染层里不合适）
+  }
+
+  /* ========================================================== Q5 · 其他 */
+  function renderLinks() {
+    var d = C.links || {};
+    set("linksGrid", arr(d.items).map(function (it, i) {
+      var inner =
+        '<span class="social__icon">' + icon(it.icon) + "</span>" +
+        '<span class="social__text">' +
+          '<span class="social__label">' + esc(it.label) + "</span>" +
+          '<span class="social__handle">' + esc(it.handle) + "</span>" +
+        "</span>";
+
+      // copy 模式：没有公开主页的账号，点击即复制
+      if (it.copy) {
+        return '<button class="social" type="button" style="' + delay(i, 55) + '" data-reveal ' +
+               'data-copy="' + esc(it.copy) + '" aria-label="复制' + esc(it.label) + "：" + esc(it.copy) + '">' +
+               inner + icon("copy", "social__arrow") + "</button>";
+      }
+
+      var url = it.url || "#";
+      var external = url.charAt(0) !== "#" && url.indexOf("mailto:") !== 0;
+      return '<a class="social" style="' + delay(i, 55) + '" data-reveal ' +
+             'href="' + esc(url) + '"' +
+             (external ? ' target="_blank" rel="noopener noreferrer"' : "") + ">" +
+             inner + icon("arrow-up-right", "social__arrow") + "</a>";
+    }).join(""));
+  }
+
+  /* ========================================================== Q6 · 邮箱 */
+  function renderContact() {
+    var s = C.site || {}, d = C.contact || {};
+    var mail = s.email || "";
+    set("contactBox",
+      '<p class="mailbox__hint">' + esc(d.hint || "欢迎来信") + "</p>" +
+      '<a class="mailbox__mail" href="mailto:' + esc(mail) + '">' + esc(mail) + "</a>" +
+      '<div class="mailbox__actions">' +
+        '<a class="btn btn--primary" href="mailto:' + esc(mail) + '">' +
+          "<span>发封邮件</span>" + icon("send", "btn__icon") + "</a>" +
+        '<button class="btn btn--quiet" type="button" data-copy="' + esc(mail) + '">' +
+          icon("copy", "btn__icon") + "<span>复制邮箱</span></button>" +
+      "</div>");
   }
 
   /* ---------- 导航 + 模块开关 / 排序 ---------- */
@@ -145,9 +400,9 @@ window.SITE_RENDER = (function () {
     list.forEach(function (key, i) {
       var label = esc(conf[key].label || key);
       navHtml += '<li><a class="nav__link" href="#' + key + '" data-nav="' + key + '">' +
-                 '<span class="nav__num">0' + (i + 1) + '</span>' + label + '</a></li>';
+                 '<span class="nav__num">0' + (i + 2) + "</span>" + label + "</a></li>";
       mNavHtml += '<li><a href="#' + key + '" data-mnav="' + key + '">' +
-                  '<span>' + label + '</span>' + icon("arrow-up-right") + '</a></li>';
+                  "<span>" + label + "</span>" + icon("arrow-up-right") + "</a></li>";
     });
     set("navList", navHtml);
     set("mobileNavList", mNavHtml);
@@ -178,150 +433,6 @@ window.SITE_RENDER = (function () {
     });
   }
 
-  /* ---------- 关于个人 ---------- */
-  function renderAbout() {
-    var d = C.about || {};
-    set("aboutBody", arr(d.paragraphs).map(function (p) {
-      return '<p>' + text(p) + '</p>';
-    }).join(""));
-
-    set("aboutFacts", arr(d.facts).map(function (f, i) {
-      return '<div class="facts__row" style="' + delay(i, 55) + '" data-reveal>' +
-             '<dt>' + esc(f.label) + '</dt><dd>' + esc(f.value) + '</dd></div>';
-    }).join(""));
-
-    set("aboutTags", arr(d.tags).map(function (t, i) {
-      return '<li class="tag" style="' + delay(i, 45) + '" data-reveal>' + esc(t) + '</li>';
-    }).join(""));
-  }
-
-  /* ---------- 业务范畴 ---------- */
-  function renderServices() {
-    var d = C.services || {};
-    set("serviceGrid", arr(d.items).map(function (it, i) {
-      var tags = arr(it.tags).map(function (t) { return '<span class="pill">' + esc(t) + '</span>'; }).join("");
-      return '' +
-        '<article class="card" style="' + delay(i, 80) + '" data-reveal>' +
-          '<span class="card__index">' + String(i + 1).padStart(2, "0") + '</span>' +
-          '<span class="card__icon">' + icon(it.icon) + '</span>' +
-          '<h3 class="card__title">' + esc(it.title) + '</h3>' +
-          '<p class="card__desc">' + text(it.desc) + '</p>' +
-          (tags ? '<div class="card__tags">' + tags + '</div>' : '') +
-        '</article>';
-    }).join(""));
-  }
-
-  /* ---------- 个人喜好 ---------- */
-  function renderInterests() {
-    var d = C.interests || {};
-    set("interestGrid", arr(d.items).map(function (it, i) {
-      return '' +
-        '<article class="interest" style="' + delay(i, 60) + '" data-reveal>' +
-          '<span class="interest__icon">' + icon(it.icon) + '</span>' +
-          '<div class="interest__text">' +
-            '<h3>' + esc(it.title) + '</h3>' +
-            '<p>' + esc(it.desc) + '</p>' +
-          '</div>' +
-          (it.meta ? '<span class="interest__meta">' + esc(it.meta) + '</span>' : '') +
-        '</article>';
-    }).join(""));
-  }
-
-  /* ---------- 游戏 ---------- */
-  function renderGaming() {
-    var d = C.gaming || {};
-    var grid = $("gameRail");
-    if (!grid) return;
-
-    var items = arr(d.items);
-    grid.innerHTML = items.map(function (g, i) {
-      var color = g.color ? ' style="--game:' + esc(g.color) + ';' + delay(i, 60) + '"'
-                          : ' style="' + delay(i, 60) + '"';
-
-      var stats = arr(g.stats).map(function (s) {
-        return '<div class="game__stat">' +
-                 '<dt>' + esc(s.label) + '</dt>' +
-                 '<dd>' + esc(s.value) + '</dd>' +
-               '</div>';
-      }).join("");
-
-      var metaBits = [];
-      if (g.server) metaBits.push(esc(g.server));
-      if (g.rank) metaBits.push(esc(g.rank));
-
-      // ID 是可点击复制的主体：社交场合对方要加好友，这一步最有用
-      var uidBlock = (g.uid || g.copy)
-        ? '<button class="game__uid" type="button" ' +
-            'data-copy="' + esc(g.uid || g.copy) + '" ' +
-            'aria-label="复制 ' + esc(g.name) + ' 的 ' + esc(g.uidLabel || "ID") +
-            '：' + esc(g.uid || g.copy) + '">' +
-            '<span class="game__uid-label">' + esc(g.uidLabel || "ID") + '</span>' +
-            '<span class="game__uid-value">' + esc(g.uid || g.copy) + '</span>' +
-            '<span class="game__uid-copy">' + icon("copy") + '</span>' +
-          '</button>'
-        : "";
-
-      return '' +
-        '<article class="game" data-reveal' + color + '>' +
-          '<header class="game__head">' +
-            '<span class="game__icon">' + icon(g.icon) + '</span>' +
-            '<div class="game__title">' +
-              '<h3>' + esc(g.name) + '</h3>' +
-              (metaBits.length ? '<p>' + metaBits.join(" · ") + '</p>' : '') +
-            '</div>' +
-          '</header>' +
-          uidBlock +
-          (stats ? '<dl class="game__stats">' + stats + '</dl>' : '') +
-          (g.note ? '<p class="game__note">' + esc(g.note) + '</p>' : '') +
-          (g.link
-            ? '<a class="game__link" href="' + esc(g.link) + '" target="_blank" rel="noopener noreferrer">' +
-              '查看主页' + icon("arrow-up-right") + '</a>'
-            : "") +
-        '</article>';
-    }).join("");
-
-    // 卡片少于 2 张时不做横滑，避免出现空白轨道
-    grid.classList.toggle("is-static", items.length < 2);
-  }
-
-  /* ---------- 社交平台 ---------- */
-  function renderSocial() {
-    var d = C.social || {}, s = C.site || {};
-    set("socialGrid", arr(d.items).map(function (it, i) {
-      var inner =
-        '<span class="social__icon">' + icon(it.icon) + '</span>' +
-        '<span class="social__text">' +
-          '<span class="social__label">' + esc(it.label) + '</span>' +
-          '<span class="social__handle">' + esc(it.handle) + '</span>' +
-        '</span>';
-
-      // copy 模式：QQ 号 / 微信号这类没有公开主页的账号，点击即复制
-      if (it.copy) {
-        return '<button class="social" type="button" style="' + delay(i, 55) + '" data-reveal ' +
-               'data-copy="' + esc(it.copy) + '" aria-label="复制' + esc(it.label) + '：' + esc(it.copy) + '">' +
-               inner + icon("copy", "social__arrow") + '</button>';
-      }
-
-      var external = it.url && it.url.charAt(0) !== "#" && it.url.indexOf("mailto:") !== 0;
-      return '<a class="social" style="' + delay(i, 55) + '" data-reveal ' +
-             'href="' + esc(it.url || "#") + '"' +
-             (external ? ' target="_blank" rel="noopener noreferrer"' : '') + '>' +
-             inner + icon("arrow-up-right", "social__arrow") + '</a>';
-    }).join(""));
-
-    var mail = s.email || "";
-    set("contactBlock",
-      '<p class="contact__hint">' + esc(d.contactHint || "欢迎联系") + '</p>' +
-      '<div class="contact__actions">' +
-        '<a class="btn btn--primary" href="mailto:' + esc(mail) + '">' +
-          '<span>发封邮件</span>' + icon("send", "btn__icon") + '</a>' +
-        '<button class="btn btn--quiet" type="button" data-copy="' + esc(mail) + '">' +
-          icon("copy", "btn__icon") + '<span>复制邮箱</span></button>' +
-      '</div>' +
-      '<p class="contact__mail">' + esc(mail) + '</p>'
-    );
-  }
-
   /* ---------- 功能性按钮里的图标 ---------- */
   function renderControls() {
     var dark = document.documentElement.dataset.theme === "dark";
@@ -335,7 +446,6 @@ window.SITE_RENDER = (function () {
     set("menuToggle", icon("menu"));
     set("toTop", icon("arrow-up"));
 
-    // 风格切换按钮
     set("skinBtn", icon("palette"));
     var sk = $("skinBtn");
     if (sk && C.ui && C.ui.showSkinPicker === false) sk.hidden = true;
@@ -350,15 +460,22 @@ window.SITE_RENDER = (function () {
     applyAccent();
     renderMeta();
     renderBrand();
-    renderHero();
-    renderSections();
-    renderAbout();
-    renderServices();
-    renderInterests();
+    renderSections();   // 先排好顺序：后面按 id 取元素才不会错位
+    renderProfile();
+    renderListen();
     renderGaming();
-    renderSocial();
+    renderRepair();
+    renderLinks();
+    renderContact();
     renderControls();
   }
 
-  return { init: init, esc: esc, icon: icon, applyAccent: applyAccent };
+  return {
+    init: init,
+    esc: esc,
+    icon: icon,
+    applyAccent: applyAccent,
+    setTracks: setTracks,      // sync.js 用：抓到真实播放记录后重画
+    previewCard: previewCard   // sync.js 用
+  };
 })();

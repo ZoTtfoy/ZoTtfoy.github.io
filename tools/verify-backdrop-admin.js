@@ -110,8 +110,13 @@ const ok = (c, m) => c ? notes.push('OK  ' + m) : fails.push(m);
     r.dispatchEvent(new Event('input', { bubbles: true }));
   });
   await page.waitForTimeout(400);
+  /* 断言带容差：滑杆值走一遍 Number → style → getComputedStyle，
+     浮点往返后会得到 11.9932px 这类值（偶发，不是 bug）。
+     卡死 bl=12 会变成 flaky test —— 那种测试比没有更糟。 */
   const blur = await page.evaluate(() => getComputedStyle(document.querySelector('[data-bd-img]')).filter);
-  ok(/blur\(12px\)/.test(blur), '模糊滑杆映射到预览 filter（' + blur + '）');
+  const blurNum = parseFloat((/blur\(([\d.]+)px\)/.exec(blur) || [])[1]);
+  ok(Math.abs(blurNum - 12) < 0.5,
+     '模糊滑杆映射到预览 filter（' + blur + '，误差 ' + Math.abs(blurNum - 12).toFixed(2) + 'px）');
 
   /* 上传：用一张真实的 PNG */
   const tmp = path.join(ROOT, '.tmp-bd.png');

@@ -25,7 +25,7 @@ const gameCss = fs.readFileSync(path.join(ROOT, 'assets/css/gaming.css'), 'utf8'
 /* ------------------------------------------------ 1. 静态接线与结构 */
 ok(html.includes('assets/css/gaming.css'), 'index.html 引入 gaming.css');
 ok(html.includes('id="gaming"') && html.includes('data-section="gaming"'), '页面含游戏区块');
-ok(html.includes('id="gameRail"'), '页面含横向轨道容器');
+ok(html.includes('id="gameRail"'), '页面含游戏卡片容器');
 ok(/renderGaming/.test(renderSrc), 'render.js 有 renderGaming');
 ok(/renderGaming\(\);/.test(renderSrc), 'renderGaming 已在 init 中调用');
 
@@ -41,26 +41,31 @@ ok(Array.isArray(games), 'config 含 gaming.items');
 ok(games.length === 6, '内置 6 个游戏（实际 ' + games.length + '）');
 ok(!!C.sections.gaming, 'sections 里注册了 gaming');
 
-const FIELDS = ['icon', 'name', 'uidLabel', 'uid', 'server', 'rank', 'color', 'stats', 'note'];
+/* 6 屏重构后游戏卡只保留：icon / iconImage / name / uidLabel / uid / color / link。
+   server / rank / stats / note 全部去掉 —— 这一屏的用途是「让对方抄 ID」，
+   多一行介绍就少一个游戏能露出来。 */
+const ALLOWED = ['icon', 'iconImage', 'name', 'uidLabel', 'uid', 'color', 'link'];
 games.forEach(g => {
   ok(typeof g.name === 'string' && g.name.length > 0, g.name + ': 有游戏名');
   ok(typeof g.uid === 'string' && g.uid.length > 0, g.name + ': 有可复制的 ID');
-  ok(Array.isArray(g.stats) && g.stats.length >= 1, g.name + ': 有可展现资产');
-  ok(g.stats.every(s => s.label && s.value !== undefined), g.name + ': 资产每项都有名称与内容');
   ok(!g.color || /^#[0-9a-f]{3,8}$/i.test(g.color), g.name + ': 品牌色合法');
+  const extra = Object.keys(g).filter(k => ALLOWED.indexOf(k) < 0);
+  ok(extra.length === 0, g.name + ': 没有多余字段（' + (extra.join(',') || '无') + '）');
+  /* 图标二选一：内置图标名 或 自定义图片，至少有一个 */
+  ok(!!(g.icon || g.iconImage), g.name + ': 有图标');
 });
 // 六款游戏都在
 ['明日方舟', '无畏契约', 'Apex', 'DJMAX', 'Phigros', '中二节奏'].forEach(name => {
   ok(games.some(g => g.name.indexOf(name) >= 0), '配置含「' + name + '」');
 });
 
-/* 顺序：现在是 联系 → 关于 → 业务 → 喜好 → 游戏。
-   章节顺序属于内容配置，会变；这里只断言「游戏确实排在喜好之后」。 */
+/* 顺序：在听 → 游戏 → 维修 → 其他 → 邮箱。
+   章节顺序属于内容配置，会变；这里只断言「游戏是第二屏」这一件事。 */
 const order = Object.keys(C.sections)
   .filter(k => C.sections[k].enabled !== false)
   .sort((a, b) => C.sections[a].order - C.sections[b].order);
-ok(order.indexOf('gaming') > order.indexOf('interests'),
-   '游戏排在喜好之后（' + order.join(' → ') + '）');
+ok(order.indexOf('gaming') === 1,
+   '游戏是第二屏（' + order.join(' → ') + '）');
 
 /* ------------------------------------------------ 2. CSS 关键约束 */
 /* 游戏卡从「横向滑动轨道」改成了「网格」，断言随之反转：
@@ -72,9 +77,23 @@ ok(!/scroll-snap-type:\s*x mandatory/.test(gameCss),
 /* 只在「声明」里找 overflow-x，注释里出现这个词不算 */
 const gameCssDecl = gameCss.replace(/\/\*[\s\S]*?\*\//g, '');
 ok(!/overflow-x:\s*auto/.test(gameCssDecl), '没有横向滚动容器');
-ok(/repeat\(auto-fit, minmax/.test(gameCss), '列数随宽度自适应');
-ok(/@supports not \(background: color-mix/.test(gameCss),
-   'color-mix 不支持时有退回方案');
+/* 改成固定 3 列：auto-fit 在 1180px 下会算成 5 列，6 张卡就成了「5 + 1」，
+   最后一行孤零零一张。固定列数才能保证 3×2 的整齐排布。 */
+ok(/\.game-rail\s*\{[\s\S]{0,320}repeat\(3, minmax/.test(gameCss),
+   '游戏卡固定 3 列（6 张正好两行）');
+/* 游戏徽标：保留品牌色，但不再铺彩色底块。
+   原实现用 color-mix 在图标下面垫一层 12% 的品牌色，配 @supports 退回主题软色。
+   这套做法被去掉了 —— 6 个高饱和色块并排会变成「彩色标签墙」，是页面最吵的一处。
+   现在的断言反过来：必须用品牌色，且**不能**再给图标加底色。 */
+ok(/\.game__icon\s*\{[\s\S]{0,240}color:\s*var\(--game/.test(gameCss),
+   '游戏徽标用各自的品牌色');
+const gameIconBlock = (gameCss.match(/\.game__icon\s*\{[\s\S]*?\}/) || [''])[0];
+ok(!/background/.test(gameIconBlock),
+   '游戏徽标不再铺彩色底块');
+/* 用 gameCssDecl（已剥离注释）而不是原文 —— 说明这个改动的注释里
+   本身就写了 color-mix 这个词，对全文匹配会误报。 */
+ok(!/color-mix/.test(gameCssDecl),
+   '不再依赖 color-mix 做渐变底');
 
 /* 章节动画 */
 ok(/@keyframes chapter-item/.test(pagedCss), '有章节入场关键帧');
@@ -431,43 +450,43 @@ async function browserChecks() {
     await page.waitForTimeout(300);
     const ed = await page.evaluate(() => {
       const items = document.querySelectorAll('#panel .item');
-      const pairArea = document.querySelector('#panel textarea[data-pairs="1"]');
       const uidInput = document.querySelector('#panel input[data-f="uid"]');
       return {
         items: items.length,
-        pairCount: document.querySelectorAll('#panel textarea[data-pairs="1"]').length,
-        pairValue: pairArea ? pairArea.value.split('\n').slice(0, 2) : [],
         uidValue: uidInput ? uidInput.value : null,
-        hasColor: !!document.querySelector('#panel input[data-f="color"]')
+        hasColor: !!document.querySelector('#panel input[data-f="color"]'),
+        hasImage: !!document.querySelector('#panel input[data-f="iconImage"]'),
+        /* 6 屏重构后游戏卡不再有「可展现资产」和备注输入框 */
+        hasStats: !!document.querySelector('#panel textarea[data-pairs="1"]'),
+        hasNote: !!document.querySelector('#panel [data-f="note"]')
       };
     });
     ok(ed.items === 6, '[编辑器] 列出 6 张游戏卡（实际 ' + ed.items + '）');
-    ok(ed.pairCount === 6, '[编辑器] 每张卡都有「可展现资产」输入框');
-    ok(ed.pairValue.length >= 2 && /:/.test(ed.pairValue[0]),
-       '[编辑器] 资产以「名称: 内容」形式呈现（' + JSON.stringify(ed.pairValue[0]) + '）');
     ok(!!ed.uidValue, '[编辑器] 可编辑 ID（当前 ' + ed.uidValue + '）');
     ok(ed.hasColor, '[编辑器] 可编辑品牌色');
+    ok(ed.hasImage, '[编辑器] 可编辑自定义图标图片');
+    ok(!ed.hasStats && !ed.hasNote,
+       '[编辑器] 已移除「可展现资产」与备注输入框（卡片简化后不再需要）');
 
-    /* 改一个值，确认草稿同步 */
+    /* 改一个值，确认草稿同步 + 结构化写回 config */
     const typed = await page.evaluate(async () => {
-      const area = document.querySelector('#panel textarea[data-pairs="1"]');
-      area.value = '测试项: 123\n第二项: 456';
-      area.dispatchEvent(new Event('input', { bubbles: true }));
-      await new Promise(r => setTimeout(r, 120));
+      const input = document.querySelector('#panel input[data-f="uid"]');
+      input.value = 'TEST#9999';
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      await new Promise(r => setTimeout(r, 150));
       return {
         dirty: document.getElementById('draftState').textContent.includes('未发布')
       };
     });
-    ok(typed.dirty, '[编辑器] 修改资产后标记为未发布');
+    ok(typed.dirty, '[编辑器] 修改 ID 后标记为未发布');
 
-    /* 用序列化函数确认 pairs 已被解析成结构化数组 */
     const parsed = await page.evaluate(() => {
       const draft = JSON.parse(localStorage.getItem('zotrod-draft-v1') || 'null');
-      const st = draft && draft.gaming && draft.gaming.items && draft.gaming.items[0].stats;
-      return Array.isArray(st) ? st.slice(0, 2) : null;
+      const g = draft && draft.gaming && draft.gaming.items && draft.gaming.items[0];
+      return g ? { uid: g.uid } : null;
     });
-    ok(parsed && parsed.length === 2 && parsed[0].label === '测试项' && parsed[0].value === '123',
-       '[编辑器] 「名称: 内容」已解析为 {label,value}（' + JSON.stringify(parsed && parsed[0]) + '）');
+    ok(parsed && parsed.uid === 'TEST#9999',
+       '[编辑器] 新 ID 已写回草稿（' + JSON.stringify(parsed) + '）');
 
     await ctx.close();
   }

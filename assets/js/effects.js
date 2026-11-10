@@ -100,7 +100,11 @@ window.SITE_EFFECTS = (function () {
   }
 
   /* --------------------------------------------------------- 卡片跟随光斑 */
-  var GLOW_TARGETS = ".card, .interest, .social, .contact, .about__side";
+  /* 跟着 6 屏重构一起更新：旧结构里的 .card / .interest / .about__side / .contact
+     已经不存在了（业务、喜好、关于三屏被删），换成了新组件。
+     这里刻意**没有**加 .chip 和 .track —— 它们太小，光斑在 26px 的盒子里
+     移动会像一只乱窜的亮点，反而廉价。 */
+  var GLOW_TARGETS = ".social, .preview, .game, .calc, .mailbox";
   var glowRaf = null;
   var pendingGlow = null;
 
@@ -217,10 +221,11 @@ window.SITE_EFFECTS = (function () {
     if (!dragging) return;
 
     /* 跟随系数：触屏要比鼠标快得多。
-       实测 0.42 时快速滑动下光团落后手指约 22px，看起来像"追不上"；
-       0.62 把滞后压到 8px 以内，同时仍有一点柔和的拖沓感（完全 1.0 会显得生硬）。
-       鼠标有光标本身作参照，慢一些更自然。 */
-    var k = dragKind === "touch" ? 0.62 : 0.38;
+       鼠标有光标本身作参照，慢一点更柔；手指上没有参照物，
+       光团落后超过约 10px 就会明显"追不上"。
+       0.62 → 0.72：配合下面把触屏撒点间隔从 19 放宽到 22，
+       少画 15% 的点，但因为跟得更紧，视觉上反而更连贯。 */
+    var k = dragKind === "touch" ? 0.72 : 0.38;
     smoothAt.x += (targetAt.x - smoothAt.x) * k;
     smoothAt.y += (targetAt.y - smoothAt.y) * k;
 
@@ -269,11 +274,11 @@ window.SITE_EFFECTS = (function () {
     if (!dragRaf) dragRaf = requestAnimationFrame(dragLoop);
 
     /* 位移超过阈值才开始撒尾：轻点（<8px）不该留下轨迹，否则页面会显得很吵。
-       撒点间隔：触屏 19px、桌面 12px。
-       间隔过大（试过 34px）会让点之间明显断开，像"一串珠子"而不是拖尾；
-       19px 配 12px 的点径刚好首尾相接。 */
+       撒点间隔：触屏 22px、桌面 12px。
+       触屏从 19 放宽到 22 是为了省 15% 的点（翻页手势一次能划过整个屏幕，
+       20 个点会连续复用到三四轮），配合更紧的跟随系数，看不出变稀。 */
     if (moveDist < 8) return;
-    var gap = dragKind === "touch" ? 19 : 12;
+    var gap = dragKind === "touch" ? 22 : 12;
     var sx = x - spawnAt.x;
     var sy = y - spawnAt.y;
     if (sx * sx + sy * sy >= gap * gap) {
@@ -366,12 +371,55 @@ window.SITE_EFFECTS = (function () {
     }, 700);
   }
 
+  /* 涟漪只在「轻点」时出现，滑动时不出。
+     --------------------------------------------------------------------
+     早先是 pointerdown 就画圈。加了「一次滑动 = 一次翻页」之后，
+     这个行为立刻变味：用户上滑翻页，手指按下的位置照样炸开一圈光，
+     一屏一屏划过去就是一路炸光 —— 看起来像廉价的手游特效，而不像克制的主页。
+
+     所以改成「按下只记坐标，抬起时判断位移」：
+       位移 < 8px 且时长 < 600ms  → 轻点，画涟漪
+       否则                        → 滑动或长按，什么也不画
+
+     代价是涟漪延迟到抬指才出现（约 100~200ms）。这个延迟可以接受，
+     因为「我按到了」的即时反馈由 CSS 的 :active 缩放负责（见 motion.css），
+     涟漪只是收尾的一声轻响。 */
   function initRipple() {
+    var downX = 0, downY = 0, downT = 0, activeId = null, armed = false;
+    var lastRippleAt = 0;
+
     document.addEventListener("pointerdown", function (e) {
       if (!on()) return;
-      // 鼠标点按交给 hover / :active，不额外画圈
-      if (e.pointerType === "mouse") return;
-      spawnRipple(e.clientX, e.clientY);
+      if (e.pointerType === "mouse") return;   // 鼠标交给 hover / :active
+      downX = e.clientX;
+      downY = e.clientY;
+      downT = Date.now();
+      activeId = e.pointerId;
+      armed = true;
+    }, { passive: true });
+
+    document.addEventListener("pointerup", function (e) {
+      if (!armed || e.pointerId !== activeId) return;
+      armed = false;
+      activeId = null;
+
+      var dx = e.clientX - downX;
+      var dy = e.clientY - downY;
+      if (Math.sqrt(dx * dx + dy * dy) > 8) return;   // 滑动了，不画
+      if (Date.now() - downT > 600) return;           // 长按，不画
+
+      /* 去重：部分浏览器会同时派发 pointerup 与兼容性 mouse 事件，
+         20ms 内只认一次，避免同一位置叠两圈。 */
+      var now = Date.now();
+      if (now - lastRippleAt < 20) return;
+      lastRippleAt = now;
+
+      spawnRipple(downX, downY);
+    }, { passive: true });
+
+    document.addEventListener("pointercancel", function () {
+      armed = false;
+      activeId = null;
     }, { passive: true });
   }
 

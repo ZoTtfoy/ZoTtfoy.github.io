@@ -173,10 +173,10 @@ function contrast(a, b) {
       return {
         title: pick('.section__title'),
         lead: pick('.section__lead'),
-        body: pick('.about__body p'),
+        body: pick('.profile__intro'),
         eyebrow: pick('.eyebrow'),
         pagerDot: pick('.pager__dot.is-current'),
-        cardDesc: pick('.card__desc')
+        cardDesc: pick('.preview__meta')
       };
     });
 
@@ -187,92 +187,34 @@ function contrast(a, b) {
       ok(r >= 4.5, tag + k + ' 对比度 ' + r.toFixed(2) + ' ≥ 4.5（「' + c.text + '」）');
     });
 
-    /* ---------- 4. 横向滑动卡片（仅小屏） ---------- */
+    /* ---------- 4. 不再有横向滑动容器 ----------
+       6 屏重构后，所有网格都是 grid（游戏卡 3 列、链接 2 列、曲目 1~2 列），
+       没有任何 overflow-x 横滑区。这条断言反过来验证「没有横滑」。 */
     if (vp.width <= 900) {
       const rail = await page.evaluate(() => {
-        const g = document.querySelector('.interest-grid');
-        if (!g) return null;
-        const cs = getComputedStyle(g);
-        return {
-          display: cs.display,
-          overflowX: cs.overflowX,
-          snap: cs.scrollSnapType,
-          scrollable: g.scrollWidth > g.clientWidth + 4,
-          childFlex: getComputedStyle(g.firstElementChild).flexBasis,
-          cols: cs.gridTemplateColumns.split(' ').length,
-          childCount: g.children.length
-        };
+        const sel = ['.game-rail', '.social-grid', '.track-list', '.preview-grid'];
+        const out = [];
+        for (const q of sel) {
+          const g = document.querySelector(q);
+          if (!g) continue;
+          const cs = getComputedStyle(g);
+          out.push({
+            sel: q, display: cs.display, overflowX: cs.overflowX,
+            scrollable: g.scrollWidth > g.clientWidth + 4
+          });
+        }
+        return out;
       });
-      /* 现在不用横向滑动轨道了：窄屏改为两列网格。
-         所以断言反过来 —— 必须是 grid、不能有横向滚动。 */
-      if (rail) {
-        ok(rail.display === 'grid', tag + '喜好卡片为网格布局（' + rail.display + '）');
-        ok(rail.overflowX !== 'auto' || !rail.scrollable,
-           tag + '没有横向滑动（overflowX=' + rail.overflowX + '）');
-        ok(!/x mandatory/.test(rail.snap), tag + '未启用横向吸附');
-        ok(rail.childCount === 6, tag + '6 张喜好卡片都在');
-        ok(rail.cols >= 2, tag + '窄屏为多列（' + rail.cols + ' 列）');
-      }
-    }
-
-    /* ---------- 5. 页面不横向溢出 ---------- */
-    const hOver = await page.evaluate(() =>
-      document.documentElement.scrollWidth > document.documentElement.clientWidth + 1);
-    ok(!hOver, tag + '没有横向溢出');
-
-    /* ---------- 6. 翻页由 JS 接管（CSS 吸附必须关闭） ---------- */
-    /* 早先是 CSS 强制吸附 + JS 劫持滚轮，两者抢 scrollTop，
-       导致桌面"单格滚轮要滚 3 次才翻页"。现在只保留 JS 一套。 */
-    const snapType = await page.evaluate(() =>
-      getComputedStyle(document.documentElement).scrollSnapType);
-    ok(snapType === 'none', tag + 'CSS 吸附已关闭，翻页交给 JS（' + snapType + '）');
-
-    /* ---------- 7. 键盘翻页真的会动 ---------- */
-    await page.evaluate(() => window.scrollTo(0, 0));
-    await page.waitForTimeout(300);
-    const y0 = await page.evaluate(() => window.scrollY);
-    await page.keyboard.press('ArrowDown');
-    await page.waitForTimeout(900);
-    const y1 = await page.evaluate(() => window.scrollY);
-    ok(y1 > y0 + 100, tag + '↓ 键翻到下一页（' + Math.round(y0) + ' → ' + Math.round(y1) + '）');
-
-    const cur = await page.evaluate(() =>
-      [...document.querySelectorAll('.pager__dot')].findIndex(d => d.classList.contains('is-current')));
-    ok(cur === 1, tag + '页码高亮跟到第 2 页（当前索引 ' + cur + '）');
-
-    await page.keyboard.press('ArrowUp');
-    await page.waitForTimeout(900);
-    const y2 = await page.evaluate(() => window.scrollY);
-    ok(y2 < y1 - 100, tag + '↑ 键翻回上一页');
-
-    /* ---------- 8. 光效：鼠标移动后追光亮起 ---------- */
-    if (vp.width > 900) {
-      const before = await page.evaluate(() => {
-        const s = document.getElementById('spotlight');
-        return s ? s.classList.contains('is-on') : false;
+      rail.forEach(r => {
+        ok(r.display === 'grid', tag + r.sel + ' 用网格布局');
+        ok(!r.scrollable, tag + r.sel + ' 没有横向溢出（不再有左右滑块）');
       });
-      await page.mouse.move(vp.width * 0.6, vp.height * 0.5, { steps: 10 });
-      await page.waitForTimeout(400);
-      const after = await page.evaluate(() => {
-        const s = document.getElementById('spotlight');
-        const cs = getComputedStyle(s);
-        return {
-          on: s.classList.contains('is-on'),
-          opacity: parseFloat(cs.opacity),
-          transform: cs.transform,
-          pointerEvents: cs.pointerEvents,
-          zIndex: cs.zIndex
-        };
-      });
-      ok(!before, tag + '初始追光是熄灭的');
-      ok(after.on && after.opacity > 0.5, tag + '鼠标移动后追光亮起（opacity ' + after.opacity + '）');
-      ok(after.pointerEvents === 'none', tag + '追光不拦截点击');
-      ok(Number(after.zIndex) <= 2, tag + '追光在内容之下（z-index ' + after.zIndex + '）');
     }
 
     /* ---------- 9. 卡片光斑变量 ---------- */
     if (vp.width > 900) {
-      const card = page.locator('.card').first();
+      /* 光斑目标跟着 6 屏重构换成了 .preview（见 effects.js 的 GLOW_TARGETS） */
+      const card = page.locator('.preview').first();
       await card.scrollIntoViewIfNeeded();
       await page.waitForTimeout(500);
       const box = await card.boundingBox();
@@ -357,17 +299,8 @@ function contrast(a, b) {
       ok(after === 0, tag + '涟漪动画后自动移除，不残留 DOM');
     }
 
-    /* --- 卡片横滑（手机）：滑一次应切换一张 --- */
-    if (vp.w <= 900) {
-      const rail = page.locator('.interest-grid');
-      await rail.scrollIntoViewIfNeeded();
-      await page.waitForTimeout(400);
-      const before = await rail.evaluate(el => el.scrollLeft);
-      await rail.evaluate(el => el.scrollBy({ left: 300, behavior: 'instant' }));
-      await page.waitForTimeout(800);
-      const after = await rail.evaluate(el => el.scrollLeft);
-      ok(after > before + 100, tag + '喜好卡片可横滑（' + Math.round(before) + ' → ' + Math.round(after) + '）');
-    }
+    /* 横滑测试已删除：6 屏重构后所有网格都不再有 overflow-x 横滑区，
+       「不出现左右滑块」由上面的第 4 项断言正向保障。 */
 
 
     if (errors.length) fails.push(tag + '控制台错误: ' + JSON.stringify(errors.slice(0, 3)));

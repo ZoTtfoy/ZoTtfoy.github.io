@@ -53,12 +53,15 @@ const probe = () => {
   return {
     composed: base.map(Math.round),
     imgOp, scrimOp,
-    title: pick('.hero__title'),
-    lead: pick('.hero__desc'),
-    meta: pick('.hero__meta'),
+    /* 6 屏重构后首屏的大标题/说明换成了 profile__*，
+       卡片说明换成 preview__meta / game 卡片（不再有 note）。
+       这里取的是「背景图上仍需保证可读的几类小字」，换 class 要同步改这里。 */
+    title: pick('.profile__name'),
+    lead: pick('.profile__intro'),
+    meta: pick('.preview__meta'),
     eyebrow: pick('.eyebrow'),
-    cardDesc: pick('.card__desc'),
-    gameNote: pick('.game__note')
+    cardDesc: pick('.preview__meta'),
+    gameNote: pick('.game__uid-value')
   };
 };
 

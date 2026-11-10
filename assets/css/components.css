@@ -49,30 +49,34 @@
 }
 
 /* ------------------------------------------------------------------ 按钮 */
+/* ⚠️ 这里原来是 border-radius: var(--r-full)（999px 胶囊）。
+   全站 35 个胶囊是「AI 生成感」最重的一项 —— 胶囊是 SaaS 落地页的默认形状，
+   一用就显得像模板。改成 var(--r-sm) 后不但是圆角矩形（更接近印刷/编辑物的
+   语气），而且圆角会**跟着主题走**：paper 主题是 2px 的方角按钮，
+   terminal 主题直接 0px 硬角，比一刀切的胶囊更有性格。 */
 .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
-  min-height: 46px;
-  padding: 11px 22px;
+  gap: 9px;
+  min-height: 44px;
+  padding: 10px 20px;
   border: 1px solid transparent;
-  border-radius: var(--r-full);
-  font-size: .9rem;
+  border-radius: var(--r-sm);
+  font-size: .875rem;
   font-weight: 500;
-  letter-spacing: .01em;
+  letter-spacing: .005em;
   white-space: nowrap;
   transition: background-color var(--t) var(--ease), color var(--t) var(--ease),
-              border-color var(--t) var(--ease), transform var(--t) var(--ease),
-              box-shadow var(--t) var(--ease);
+              border-color var(--t) var(--ease);
 }
 .btn__icon { width: 16px; height: 16px; transition: transform var(--t) var(--ease); }
 
 .btn--primary { background: var(--text); color: var(--bg); }
 .btn--quiet {
-  background: var(--bg-elev);
+  background: transparent;
   color: var(--text);
-  border-color: var(--line);
+  border-color: var(--line-strong);
 }
 
 .icon-btn {
@@ -111,6 +115,10 @@
 }
 
 /* ---------------------------------------------------------------- 业务卡 */
+/* 原来这里叠了三层东西：1px 边框 + box-shadow + 白底，外加 hover 时从顶部
+   渐出一条 accent 色发光线（::after）。这在视觉上等于「同一个层级说了三遍」，
+   再配上一圈彩色阴影，就是典型的 AI 生成落地页质感。
+   现在只保留 两 层：边框 + 底色。::after 发光线整条删掉。 */
 .card {
   position: relative;
   overflow: hidden;
@@ -122,18 +130,7 @@
   border: 1px solid var(--line);
   border-radius: var(--r-lg);
   background: var(--bg-elev);
-  box-shadow: var(--shadow-sm);
-  transition: border-color var(--t) var(--ease), box-shadow var(--t) var(--ease),
-              transform var(--t) var(--ease);
-}
-.card::after {
-  content: "";
-  position: absolute;
-  inset: 0 0 auto 0;
-  height: 2px;
-  background: linear-gradient(90deg, var(--accent), transparent 70%);
-  opacity: 0;
-  transition: opacity var(--t) var(--ease);
+  transition: border-color var(--t) var(--ease), background-color var(--t) var(--ease);
 }
 .card__index {
   position: absolute;
@@ -144,37 +141,48 @@
   color: var(--text-3);
   letter-spacing: .06em;
 }
+/* 图标原来是 48×48 的 accent-soft 彩色方块 + accent 色图标 ——
+   这是 2024 年 AI 落地页最标志性的一件东西（每个功能点上面顶一个彩色圆角方块）。
+   现在去掉底色，只留一枚裸图标，颜色降到正文级 --text-2。
+   尺寸刻意保持 48×48 不变：fit.css 的四档压缩是按这个盒模型算的，
+   改尺寸会连带影响每章一屏的适配，收益不值这个风险。 */
 .card__icon {
   display: grid;
   place-items: center;
   width: 48px;
   height: 48px;
-  margin-bottom: 26px;
-  border-radius: 14px;
-  background: var(--accent-soft);
-  color: var(--accent);
+  margin-bottom: 22px;
+  color: var(--text-2);
+  transition: color var(--t) var(--ease);
 }
 .card__icon .icon { width: 23px; height: 23px; }
 .card__title {
   font-family: var(--font-display, var(--font-sans));
-  font-size: 1.24rem;
+  font-size: 1.22rem;
   font-weight: 600;
   letter-spacing: -.02em;
 }
-.card__desc { margin-top: 10px; font-size: .93rem; line-height: 1.85; color: var(--text-2); }
-.card__tags { display: flex; flex-wrap: wrap; gap: 7px; margin-top: auto; padding-top: 24px; }
+.card__desc { margin-top: 9px; font-size: .9rem; line-height: 1.72; color: var(--text-2); }
+.card__tags { display: flex; flex-wrap: wrap; gap: 6px 10px; margin-top: auto; padding-top: 22px; }
 
+/* 标签：胶囊 → 小方角。
+   原来 pill 和 tag 都是 999px 药丸，一行行堆在卡片底部，很像 SaaS 的
+   feature badge。改成 --r-xs（从主题派生的小圆角）后变成轻量方标签。
+   底色保留但压到最淡的 --bg-soft —— 完全不填色会让相邻标签糊成一片，
+   而药丸形状才是那个「模板感」的来源，方角已经解决问题。 */
 .pill {
-  padding: 4px 10px;
-  border-radius: var(--r-full);
+  padding: 2px 8px;
+  border-radius: var(--r-xs);
   background: var(--bg-soft);
   color: var(--text-3);
-  font-size: .72rem;
-  line-height: 1.6;
+  font-size: .71rem;
+  line-height: 1.65;
   white-space: nowrap;
 }
 
 /* ---------------------------------------------------------------- 喜好卡 */
+/* 和业务卡同样的减法：去阴影、图标去边框去彩色。
+   .interest 之间只靠 1px 线区分，避免每张卡都像一颗漂浮的按钮。 */
 .interest {
   position: relative;
   display: flex;
@@ -184,52 +192,51 @@
   border: 1px solid var(--line);
   border-radius: var(--r-md);
   background: var(--bg-elev);
-  transition: border-color var(--t) var(--ease), box-shadow var(--t) var(--ease),
-              transform var(--t) var(--ease);
+  transition: border-color var(--t) var(--ease);
 }
 .interest__icon {
   display: grid;
   place-items: center;
   width: 40px;
   height: 40px;
-  margin-bottom: 22px;
-  border: 1px solid var(--line);
-  border-radius: 11px;
-  color: var(--accent);
-  transition: background-color var(--t) var(--ease), border-color var(--t) var(--ease);
+  margin-bottom: 18px;
+  color: var(--text-2);
+  transition: color var(--t) var(--ease);
 }
-.interest__icon .icon { width: 20px; height: 20px; }
+.interest__icon .icon { width: 21px; height: 21px; }
 .interest__text h3 {
   font-family: var(--font-display, var(--font-sans));
-  font-size: 1.02rem;
+  font-size: 1rem;
   font-weight: 600;
   letter-spacing: -.01em;
 }
-.interest__text p { margin-top: 7px; font-size: .85rem; line-height: 1.7; color: var(--text-2); }
+.interest__text p { margin-top: 6px; font-size: .84rem; line-height: 1.66; color: var(--text-2); }
 .interest__meta {
   margin-top: auto;
-  padding-top: 18px;
+  padding-top: 16px;
   font-family: var(--font-mono);
-  font-size: .68rem;
+  font-size: .66rem;
   letter-spacing: .08em;
   text-transform: uppercase;
   color: var(--text-3);
 }
 
 /* -------------------------------------------------------------- 社交链接 */
+/* 社交卡是唯一保留「图标底块」的组件 —— 因为这里图标是内容的锚点，
+   一列 8 个品牌标识必须有统一的视觉重量，裸图标会参差不齐。
+   但底色从实色 --bg-soft 降到透明 + 1px 线，重量轻一档。 */
 .social {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 13px;
   width: 100%;                    /* 兼作 <button> 的形态 */
-  padding: 16px;
+  padding: 15px 16px;
   border: 1px solid var(--line);
   border-radius: var(--r-md);
   background: var(--bg-elev);
   font: inherit;
   text-align: left;
-  transition: border-color var(--t) var(--ease), box-shadow var(--t) var(--ease),
-              transform var(--t) var(--ease), background-color var(--t) var(--ease);
+  transition: border-color var(--t) var(--ease), background-color var(--t) var(--ease);
 }
 .social__icon {
   display: grid;
@@ -237,25 +244,25 @@
   width: 44px;
   height: 44px;
   flex: none;
-  border-radius: 12px;
+  border-radius: var(--r-sm);
   background: var(--bg-soft);
   color: var(--text);
   transition: background-color var(--t) var(--ease), color var(--t) var(--ease);
 }
 .social__icon .icon { width: 20px; height: 20px; }
 .social__text { display: flex; flex-direction: column; min-width: 0; }
-.social__label { font-size: .95rem; font-weight: 500; }
+.social__label { font-size: .93rem; font-weight: 500; }
 .social__handle {
   overflow: hidden;
   font-family: var(--font-mono);
-  font-size: .72rem;
+  font-size: .71rem;
   color: var(--text-3);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .social__arrow {
-  width: 16px;
-  height: 16px;
+  width: 15px;
+  height: 15px;
   margin-left: auto;
   color: var(--text-3);
   transition: transform var(--t) var(--ease), color var(--t) var(--ease);
@@ -275,15 +282,15 @@
 .facts__row dt { font-size: .8rem; color: var(--text-3); white-space: nowrap; }
 .facts__row dd { font-size: .9rem; font-weight: 500; text-align: right; }
 
-.tags { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 26px; }
+.tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 22px; }
+/* 同 pill：999px 药丸 → 主题派生的小方角 */
 .tag {
-  padding: 5px 12px;
+  padding: 4px 10px;
   border: 1px solid var(--line);
-  border-radius: var(--r-full);
-  font-size: .75rem;
+  border-radius: var(--r-xs);
+  font-size: .73rem;
   color: var(--text-2);
-  transition: border-color var(--t-fast) var(--ease), color var(--t-fast) var(--ease),
-              background-color var(--t-fast) var(--ease);
+  transition: border-color var(--t-fast) var(--ease), color var(--t-fast) var(--ease);
 }
 
 /* 动态背景已迁移到 backdrop.css（图片 / 遮罩 / 光晕 / 网格 / 微粒 / 噪点） */
@@ -338,13 +345,12 @@
   left: 50%;
   bottom: max(30px, env(safe-area-inset-bottom));
   z-index: 90;
-  padding: 10px 20px;
-  border-radius: var(--r-full);
+  padding: 10px 18px;
+  border-radius: var(--r-sm);
   background: var(--toast-bg);
   color: var(--toast-fg);
-  font-size: .84rem;
+  font-size: .83rem;
   white-space: nowrap;
-  box-shadow: var(--shadow-md);
   opacity: 0;
   transform: translate(-50%, 14px);
   pointer-events: none;

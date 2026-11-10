@@ -79,12 +79,23 @@ window.SITE_PAGED = (function () {
        所以改成「**从最宽松开始试，装不下就降一档、重新量**」，
        直到某档能装下，或已到最紧。这样任何比例都能自己找到合适档位。 */
   var FIT_STEPS = ["roomy", "tight", "snug", "micro"];
-  var fitNow = "";
 
-  function setFit(level) {
-    if (fitNow === level) return false;
-    fitNow = level;
-    document.documentElement.dataset.fit = level;
+  /* 档位写在**每一屏自己身上**（.hero / .section），不再写在 <html> 上。
+     为什么改成按屏分档：
+       全站共用一个档位时，内容是「就高不就低」的 —— Q4（计算器 + 报价表）
+       始终是最高的那一屏，它一装不下，Q1/Q5 这些只填了 40% 的屏也跟着降档，
+       于是出现「屏幕上大半是空白，字和留白却被压得很紧」的怪现象。
+       实测 390×844 的 Q1 内容只占 55%，却因为 Q4 超屏被判成 snug 档。
+     改成按屏分档后，每屏各自拿到「自己能承受的最宽松档位」：
+       Q1 → roomy，Q4 → snug/micro，互不牵连。 */
+  function setFit(el, level) {
+    if (!el) return false;
+    /* 真实 DOM 走 dataset；自检脚本用的是轻量 DOM 桩（verify-paged 等），
+       只实现了 getAttribute / setAttribute，没有 dataset，这里兜一下。 */
+    var cur = el.dataset ? el.dataset.fit : el.getAttribute("data-fit");
+    if (cur === level) return false;
+    if (el.dataset) el.dataset.fit = level;
+    else el.setAttribute("data-fit", level);
     return true;
   }
 
@@ -94,8 +105,14 @@ window.SITE_PAGED = (function () {
     var over = 0;
     pages.forEach(function (p) {
       p.removeAttribute("data-tall");
-      // 留 2px 容差，避免亚像素把刚好一屏的页误判成溢出
-      if (naturalHeight(p) > vh + 2) {
+      /* 容差 2px → 1px。
+         2px 原本是想挡住亚像素把「刚好一屏」误判成溢出，但字体的
+         亚像素累积误差实际在 1px 以内，2px 就留得太宽了，
+         会让真正超 2px 的页蒙混过关。
+         实测案例：iPhone 8 Plus 414×736 下 gaming 章节是 738px，
+         判定式 738 > 736 + 2 为假 → 没降档 → 页面底部被切掉 2px。
+         收窄到 1px 后该页会正确降到下一档。 */
+      if (naturalHeight(p) > vh + 1) {
         p.setAttribute("data-tall", "1");
         over++;
       }
@@ -103,13 +120,20 @@ window.SITE_PAGED = (function () {
     return over;
   }
 
-  /* 从最宽松逐级往下试，找到第一个「所有页都装得下」的档位 */
+  /* 每屏各自从最宽松往下试，取第一个「这一屏装得下」的档位。
+     都装不下就停在 micro，交给 countOverflow 标 data-tall（降级为可滚动）。 */
   function pickFit() {
-    for (var i = 0; i < FIT_STEPS.length; i++) {
-      setFit(FIT_STEPS[i]);
-      if (countOverflow() === 0) return FIT_STEPS[i];
-    }
-    return FIT_STEPS[FIT_STEPS.length - 1];
+    var vh = window.innerHeight;
+    pages.forEach(function (p) {
+      var chosen = FIT_STEPS[FIT_STEPS.length - 1];
+      for (var i = 0; i < FIT_STEPS.length; i++) {
+        setFit(p, FIT_STEPS[i]);
+        /* 读一次 offsetHeight 强制浏览器把新档位的样式算完再量 */
+        void p.offsetHeight;
+        if (naturalHeight(p) <= vh + 1) { chosen = FIT_STEPS[i]; break; }
+      }
+      setFit(p, chosen);
+    });
   }
 
   function markTall() {
@@ -118,7 +142,7 @@ window.SITE_PAGED = (function () {
 
     /* 每次都从最宽松档重新试 —— 这样屏幕变大（或竖屏转横屏再转回）
        也能自动放宽，而不是一直卡在上一次的紧档。 */
-    setFit("roomy");
+    pages.forEach(function (p) { setFit(p, "roomy"); });
     void document.documentElement.offsetHeight;
 
     pickFit();
@@ -478,6 +502,119 @@ window.SITE_PAGED = (function () {
     }, { passive: false });
   }
 
+  /* ============================================================ 触摸翻页
+     需求原话：「上滑不管距离全部视为一次上滑，两次间隔可以适量缩短但绝不为 0」。
+
+     所以触摸和滚轮是**两套语义**：
+       · 滚轮要攒够 40px 才算一格 —— 因为鼠标一格约 100，触控板会碎成小块
+       · 触摸是「一次手势 = 一次翻页」，位移只用来判方向，不参与阈值
+
+     但有四种情况必须排除，否则会误伤：
+       1. 点击（位移 < 8px）—— 不然点「复制微信号」会连带翻走一页
+       2. 横向手势（|dx| > |dy|）—— 留给以后可能出现的横滑组件
+       3. 多指（双指缩放 / 三指）—— 那不是翻页
+       4. 有高个页时（snap = proximity）—— 那页本来就该让用户自由滚
+
+     锁间隔 SWIPE_LOCK = 300ms，**绝不为 0**。原因不是手感，是正确性：
+       smooth 滚动有 400~500ms 动画期，期间 scrollTop 一直在变，
+       而 activeIndex 要等滚动停稳（updateActive）才更新。若无锁：
+         第一下 goTo(1) → 动画还在跑；
+         第二下读到的 activeIndex 仍是 0 → 又 goTo(1)，看起来「滑了没反应」；
+       更糟的情况是 activeIndex 已更新到 1，第二下就跳到 2 —— 第 1 页被整个跳过。
+       所以锁的下限必须 >= 一次滚动动画的时长。
+
+     为什么是 300 而不是 460（滚轮的锁）：手指抬起后人会立刻准备下一次滑动，
+     比鼠标滚轮的节奏快得多。300ms 是「跟手」和「不跳页」的平衡点。
+     reduced-motion 下滚动是瞬时的（smooth() 返回 auto），锁收到 160ms。 */
+  var SWIPE_LOCK = 300;
+  var swipeLockedUntil = 0;
+  var swipeEnabled = true;      // 由 init 按 config 设置
+
+  /* 面板打开时不接管触摸，否则用户在面板里滑不动 */
+  function panelOpen() {
+    var panels = ["skinPanel", "mobileNav", "publishSheet"];
+    for (var i = 0; i < panels.length; i++) {
+      var el = $(panels[i]);
+      if (el && !el.hidden) return true;
+    }
+    return false;
+  }
+
+  function swipeAllowed() {
+    if (!enabled || !swipeEnabled) return false;
+    // 有高个页 / 自由滚动模式：让位给浏览器原生滚动
+    if (document.documentElement.dataset.snap !== "mandatory") return false;
+    if (panelOpen()) return false;
+    return true;
+  }
+
+  function initSwipe() {
+    var startX = 0, startY = 0;
+    var tracking = false;    // 这一轮手势是否归我们管
+    var decided = false;     // 是否已判定为竖向手势
+
+    window.addEventListener("touchstart", function (e) {
+      // 多指：直接放弃这一轮
+      if (e.touches.length !== 1) { tracking = false; return; }
+      if (!swipeAllowed()) { tracking = false; return; }
+      var t = e.touches[0];
+      startX = t.clientX;
+      startY = t.clientY;
+      tracking = true;
+      decided = false;
+    }, { passive: true });
+
+    window.addEventListener("touchmove", function (e) {
+      if (!tracking) return;
+      if (e.touches.length !== 1) { tracking = false; return; }
+
+      var t = e.touches[0];
+      var dx = t.clientX - startX;
+      var dy = t.clientY - startY;
+
+      if (!decided) {
+        // 位移还太小，方向未定：先不动，继续观察
+        if (Math.abs(dx) < 5 && Math.abs(dy) < 5) return;
+        // 横向为主：交回浏览器（不 preventDefault，不翻页）
+        if (Math.abs(dx) > Math.abs(dy)) { tracking = false; return; }
+        decided = true;
+      }
+
+      /* 竖向手势：从第一次判定起就完全接管。
+         必须在这里 preventDefault，而不是等 touchend 再纠正 ——
+         一旦让浏览器先滚几像素再拉回来，会看到明显的「抖一下」。 */
+      if (e.cancelable) e.preventDefault();
+    }, { passive: false });
+
+    function finish(e) {
+      if (!tracking) return;
+      tracking = false;
+      if (!decided) return;      // 从没判定成竖向（点击 / 横向）
+
+      var t = e.changedTouches && e.changedTouches[0];
+      if (!t) return;
+
+      var dx = t.clientX - startX;
+      var dy = t.clientY - startY;
+
+      // 位移过小视为点击，不翻页（否则点复制按钮会连带翻走）
+      if (Math.abs(dy) < 8) return;
+      if (Math.abs(dx) > Math.abs(dy)) return;
+
+      var now = Date.now();
+      if (now < swipeLockedUntil) return;
+
+      swipeLockedUntil = now + (reduced() ? 160 : SWIPE_LOCK);
+      // 上滑（dy < 0）→ 下一页；下滑 → 上一页
+      goBy(dy < 0 ? 1 : -1);
+    }
+
+    window.addEventListener("touchend", finish, { passive: true });
+    window.addEventListener("touchcancel", function () {
+      tracking = false;
+    }, { passive: true });
+  }
+
   /* -------------------------------------------------------------- 键盘 */  function initKeys() {
     document.addEventListener("keydown", function (e) {
       if (!enabled) return;
@@ -613,8 +750,10 @@ window.SITE_PAGED = (function () {
     // 页面尺寸或内容变化时重算位置缓存
     observeSizes();
 
+    swipeEnabled = UI.swipePaging !== false;
     initKeys();
     initWheel();
+    initSwipe();
     initHint();
   }
 
@@ -625,6 +764,8 @@ window.SITE_PAGED = (function () {
     snapNow: function () { snapToNearest(); },
     pages: function () { return pages.slice(); },
     activeIndex: function () { return activeIndex; },
-    refresh: function () { markTall(); updateActive(); }
+    refresh: function () { markTall(); updateActive(); },
+    /* 自检用：读触摸翻页的锁状态，验证「间隔绝不为 0」 */
+    swipeLock: function () { return { ms: reduced() ? 160 : SWIPE_LOCK, until: swipeLockedUntil }; }
   };
 })();

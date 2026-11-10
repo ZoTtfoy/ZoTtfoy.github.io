@@ -4,10 +4,14 @@
  * ========================================================================== */
 
 /* ------------------------------------------------------------ 滚动渐显 */
+/* 位移 22px → 14px，模糊 5px → 2px。
+   5px 的失焦入场是 2024 年那批 AI 生成站点最爱的效果，动起来像投影仪对焦。
+   收到 2px 后仍然有「浮现」的质感，但不会喧宾夺主。
+   位移一起收，是因为两者叠加时总幅度太大，会让页面像在「飘」。 */
 .js [data-reveal] {
   opacity: 0;
-  transform: translate3d(0, 22px, 0);
-  filter: blur(5px);
+  transform: translate3d(0, 14px, 0);
+  filter: blur(2px);
   transition:
     opacity var(--t-slow) var(--ease-out),
     transform var(--t-slow) var(--ease-out),
@@ -66,6 +70,11 @@ html[data-motion="off"] .ambient__orb { animation: none; }
 .mobile-nav { animation: menu-in .3s var(--ease-out) both; }
 
 /* ------------------------------------------------------------ 悬停反馈 */
+/* ⚠️ 这里做了一次减法，是整个「去模板感」里最有效的一刀。
+   原来每张卡 hover 都会：上浮 3~5px + 加大投影 + 图标变实色底 + 顶部亮出一道
+   渐变线。四个效果同时动，就是标准 SaaS 落地页的「卡片活了」。
+   现在改成：只改边框色和图标颜色，**不位移、不加阴影**。
+   静止和悬停处在同一个平面上，界面安静下来了，反而更耐看。 */
 @media (hover: hover) and (pointer: fine) {
   .nav__link:hover { color: var(--text); }
   .nav__link:hover::after { transform: scaleX(1); }
@@ -73,56 +82,61 @@ html[data-motion="off"] .ambient__orb { animation: none; }
   .brand:hover .brand__mark { transform: rotate(-6deg); }
   .brand__mark { transition: transform var(--t) var(--ease-out); }
 
-  .btn--primary:hover {
-    background: var(--accent);
-    color: var(--accent-fg);
-    transform: translateY(-2px);
-    box-shadow: 0 10px 28px var(--accent-soft);
-  }
+  .btn--primary:hover { background: var(--accent); color: var(--accent-fg); }
   .btn--primary:hover .btn__icon { transform: translateY(3px); }
-  .btn--quiet:hover { border-color: var(--line-strong); transform: translateY(-2px); }
+  .btn--quiet:hover { border-color: var(--text-3); }
   .btn--quiet:hover .btn__icon { transform: translate(2px, -2px); }
 
   .icon-btn:hover {
     color: var(--text);
-    background: var(--bg-soft);
     border-color: var(--line-strong);
-    transform: translateY(-1px);
   }
 
-  .card:hover {
-    transform: translateY(-5px);
-    border-color: var(--line-strong);
-    box-shadow: var(--shadow-md);
-  }
-  .card:hover::after { opacity: 1; }
-  .card:hover .card__icon { background: var(--accent); color: var(--accent-fg); }
-  .card__icon { transition: background-color var(--t) var(--ease), color var(--t) var(--ease); }
+  /* 卡片：只换线色 + 图标提亮 */
+  .card:hover { border-color: var(--line-strong); }
+  .card:hover .card__icon { color: var(--text); }
+  .card__icon { transition: color var(--t) var(--ease); }
 
-  .interest:hover {
-    transform: translateY(-4px);
-    border-color: var(--line-strong);
-    box-shadow: var(--shadow-md);
-  }
-  .interest:hover .interest__icon { background: var(--accent-soft); border-color: transparent; }
+  .interest:hover { border-color: var(--line-strong); }
+  .interest:hover .interest__icon { color: var(--text); }
 
-  .social:hover {
-    transform: translateY(-3px);
-    border-color: var(--line-strong);
-    box-shadow: var(--shadow-md);
-  }
-  .social:hover .social__icon { background: var(--accent); color: var(--accent-fg); }
-  .social:hover .social__arrow { transform: translate(2px, -2px); color: var(--accent); }
+  .social:hover { border-color: var(--line-strong); }
+  .social:hover .social__icon { background: var(--accent-soft); color: var(--accent); }
+  .social:hover .social__arrow { transform: translate(2px, -2px); color: var(--text); }
 
-  .tag:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
-  .to-top:hover { color: var(--accent); border-color: var(--accent); transform: translateY(-2px); }
+  .tag:hover { border-color: var(--line-strong); color: var(--text); }
+  .to-top:hover { color: var(--text); border-color: var(--line-strong); }
 }
 
-/* 触摸设备：给一个轻微的按压反馈 */
+/* 触摸设备：给一个轻微的按压反馈。
+   --------------------------------------------------------------------------
+   这是触屏唯一能立刻感知到的「我按到了」——比涟漪更即时（涟漪要等抬指）。
+   缩放值刻意很小（.985 ~ .97）：再大就会显得像按钮在"跳"。
+   列表补齐了 6 屏重构后的新组件：chip / preview / game / track / calc__opt。 */
 @media (hover: none) {
-  .btn:active, .social:active, .card:active, .interest:active, .icon-btn:active {
+  .btn:active,
+  .social:active,
+  .icon-btn:active,
+  .chip:active,
+  .preview:active,
+  .game:active,
+  .calc__opt:active,
+  .track__go:active,
+  .mailbox__mail:active {
+    transform: scale(.97);
+    transition-duration: .1s;
+  }
+  .game__uid:active,
+  .calc__reset:active {
     transform: scale(.985);
     transition-duration: .1s;
+  }
+
+  /* 磁贴与摘要在按下时同时压一下边框，给出"被选中"的感觉 */
+  .chip:active,
+  .preview:active,
+  .game:active {
+    border-color: var(--line-strong);
   }
 }
 

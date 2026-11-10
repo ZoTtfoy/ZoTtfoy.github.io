@@ -1,0 +1,1027 @@
+/* ==========================================================================
+ *  blocks.css —— 6 屏结构里的新模块
+ * --------------------------------------------------------------------------
+ *    Q1  .profile / .contact-pair / .ccard / .preview-pair / .preview
+ *    Q2  .listen / .track-list / .track
+ *    Q4  .repair / .quote / .calc
+ *    Q6  .mailbox
+ *
+ *  设计语言沿用 2026-11-10 那轮「去 AI 感」定下的规矩：
+ *    · 圆角用 --r-sm / --r-md / --r-xs，不出现胶囊（浮层控件除外）
+ *    · 层次只用「1px 线 + 底色」，不叠 box-shadow
+ *    · 强调色只在真正需要指向的地方出现（这里几乎为零）
+ * ========================================================================== */
+
+/* ======================================================== Q1 · 身份区 */
+/* 布局从「左图右文 + 一堆胶囊」改成了**居中名片**：
+ *
+ *            [ 头像 ]
+ *            [ 名字 ]
+ *          [ 一句话 ]
+ *     [微 信]      [Q Q]        ← 点一下复制
+ *   [网易云]      [小黑盒]      ← 两张主页卡
+ *
+ * 为什么这么改：原来的左对齐 + 通栏胶囊在宽屏上会拉得很散（一条 760px 的
+ * 「微信 zotrod」横条其实什么也没说），而 QQ/微信/两个主页在语义上是
+ * **成对**的 —— 一个是即时联系，一个是主页展示。做成两列后阅读路径变成
+ * 「中间看人 → 左右扫联系方式」，和递名片的顺序一致。
+ * 手机上两列也天然成立（每列约 170px），不需要额外断点。 */
+.hero {
+  justify-content: center;
+  min-height: min(92svh, 900px);
+  padding: clamp(56px, 8vh, 96px) 0 clamp(40px, 6vh, 72px);
+}
+
+.profile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 640px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+/* 头像：原来是 56~76px 且靠左，现在居中并放大一档 —— 它成了整屏的视觉锚点 */
+.profile__avatar { margin-bottom: clamp(14px, 2vh, 20px); }
+.profile__avatar img {
+  display: block;
+  width: clamp(72px, 9vw, 92px);
+  height: clamp(72px, 9vw, 92px);
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--bg-soft);
+  border: 1px solid var(--line);
+}
+
+.profile__greet {
+  font-family: var(--font-mono);
+  font-size: .68rem;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--text-2);
+}
+
+.profile__name {
+  margin-top: 4px;
+  font-family: var(--font-display, var(--font-sans));
+  font-size: clamp(2.1rem, 5.4vw, 3.6rem);
+  font-weight: 600;
+  line-height: 1.05;
+  letter-spacing: var(--tracking-title, -.035em);
+  text-wrap: balance;
+}
+
+.profile__tagline {
+  max-width: 30ch;
+  margin-top: clamp(10px, 1.4vh, 15px);
+  font-size: clamp(.92rem, 1.4vw, 1.04rem);
+  line-height: 1.55;
+  color: var(--text);
+  text-wrap: balance;
+}
+
+.profile__role {
+  margin-top: 7px;
+  font-family: var(--font-mono);
+  font-size: .72rem;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--text-2);
+}
+
+.profile__intro {
+  max-width: 46ch;
+  margin-top: clamp(14px, 2vh, 20px);
+  font-size: .86rem;
+  line-height: 1.68;
+  color: var(--text-2);
+  text-wrap: pretty;
+}
+
+.hero__actions { margin-top: clamp(16px, 2.2vh, 24px); }
+
+/* ---------------------------------------------- 第一行：微信 | QQ */
+.contact-pair {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  width: 100%;
+  margin-top: clamp(20px, 2.8vh, 28px);
+}
+
+/* 联系卡：图标 + 名称/账号 + 复制提示，整块可点。
+   刻意做成**方角 + 1px 线**，和 Q1 其余卡片一致；不用胶囊。 */
+.ccard {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 11px 13px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--bg-elev);
+  text-align: left;
+  transition: border-color var(--t-fast) var(--ease), background-color var(--t-fast) var(--ease);
+}
+.ccard:hover { border-color: var(--line-strong); }
+
+.ccard__icon {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  flex: none;
+  color: var(--text);
+}
+.ccard__icon .icon { width: 21px; height: 21px; }
+
+.ccard__body {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+  line-height: 1.3;
+}
+.ccard__label { font-size: .68rem; color: var(--text-3); }
+.ccard__value {
+  overflow: hidden;
+  font-family: var(--font-mono);
+  font-size: .85rem;
+  font-weight: 500;
+  color: var(--text);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ccard__act {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  color: var(--text-3);
+  transition: color var(--t-fast) var(--ease);
+}
+.ccard__act .icon { width: 13px; height: 13px; }
+.ccard:hover .ccard__act { color: var(--text); }
+
+/* -------------------------------------- 第二行：网易云 | 小黑盒 */
+.preview-pair {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  width: 100%;
+  margin-top: 10px;
+}
+
+/* 两列里的摘要卡要更紧凑：去掉 min-height，内边距收一档 */
+.preview-pair .preview {
+  min-height: 0;
+  padding: 11px 13px;
+  text-align: left;
+}
+.preview-pair .preview__top { margin-bottom: 7px; }
+.preview-pair .preview__title { font-size: .88rem; }
+.preview-pair .preview__meta { font-size: .72rem; -webkit-line-clamp: 1; }
+
+/* 封面在 Q1 用扁比例（21:9）。
+   两列时每张卡只有约 300px 宽，16:9 会占 169px 高，直接把一屏顶破；
+   21:9 是 129px，既看得出是"主页的缩略图"，又不至于喧宾夺主。 */
+.preview-pair .preview__cover {
+  margin: -11px -11px 10px;
+  aspect-ratio: 21 / 9;
+}
+
+/* ==================================================== 外链摘要卡（通用） */
+/* 一个组件，两种形态：
+     有 cover → 上方 16:9 封面 + 下方信息（缩略图卡）
+     无 cover → 纯文字信息卡，平台图标顶在左上
+   数据优先用 data/previews.json（Actions 抓的），抓不到用 config 兜底。 */
+.preview-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: clamp(22px, 3.4vh, 36px);
+}
+.preview-grid--single { grid-template-columns: minmax(0, 1fr); margin-top: 0; }
+
+.preview {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 128px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--bg-elev);
+  transition: border-color var(--t-fast) var(--ease);
+}
+.preview:hover { border-color: var(--line-strong); }
+
+.preview__cover {
+  display: block;
+  margin: -16px -16px 14px;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  background: var(--bg-soft);
+}
+.preview__cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform var(--t-slow) var(--ease-out);
+}
+.preview:hover .preview__cover img { transform: scale(1.03); }
+
+.preview__body { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+
+.preview__top { display: flex; align-items: center; gap: 8px; margin-bottom: 9px; }
+.preview__icon {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  flex: none;
+  color: var(--pc, var(--text-2));
+}
+.preview__icon .icon { width: 17px; height: 17px; }
+.preview__platform {
+  font-size: .71rem;
+  letter-spacing: .04em;
+  color: var(--text-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.preview__go {
+  width: 14px;
+  height: 14px;
+  margin-left: auto;
+  flex: none;
+  color: var(--text-3);
+  transition: transform var(--t) var(--ease), color var(--t) var(--ease);
+}
+.preview:hover .preview__go { transform: translate(2px, -2px); color: var(--text); }
+
+.preview__title {
+  font-size: .94rem;
+  font-weight: 500;
+  letter-spacing: -.01em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.preview__meta {
+  margin-top: 4px;
+  font-size: .77rem;
+  line-height: 1.55;
+  /* --text-3 实测对比度只有 3.67:1，小字不达标（被 verify-visual 拦下）。
+     这里是"歌单 · 红心 · 最近在听"这类说明，属于要读的信息，不是装饰，
+     所以用 --text-2（6.5:1）。 */
+  color: var(--text-2);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.preview__stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  margin-top: auto;
+  padding-top: 11px;
+}
+.preview__stat { font-size: .68rem; color: var(--text-3); line-height: 1.35; }
+.preview__stat b {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: .9rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+/* ============================================================ Q2 · 在听 */
+/* 这一屏从「两列文字列表」改成了「唱片 + 磁贴」：
+ *
+ *   ┌─────────────────────────────────────────┐
+ *   │        ╭──────╮   ← 黑胶在转（底纹）      │
+ *   │       │  ◉   │                          │
+ *   │  ┌────────┐ ┌────────┐   ╰──────╯       │
+ *   │  │01 曲名  │ │02 曲名  │                 │
+ *   │  │  歌手   │ │  歌手   │                 │
+ *   │  └────────┘ └────────┘                 │
+ *   │  ┌────────┐ ┌────────┐                 │
+ *   │  │03 曲名  │ │04 曲名  │   已同步 · 去网易云│
+ *   │  └────────┘ └────────┘                 │
+ *   └─────────────────────────────────────────┘
+ *
+ * 两个刻意的决定：
+ *   1. 唱片是**底纹**不是主体（opacity 很低）。做成实心大唱片会把磁贴挤到边上，
+ *      而这一屏真正要读的是「最近听了什么」。
+ *   2. 磁贴半透明（86%）让唱片纹路透出来一点，这就是「吸附」的观感来源 ——
+ *      磁贴像是贴在唱片上，而不是飘在另一个平面上。
+ *      不用 backdrop-filter：它是整屏级的模糊，滚动时会掉帧（前面 backdrop.css
+ *      已经踩过同样的坑，一次掉帧从 0 涨到 4/110）。 */
+
+.listen-card {
+  position: relative;
+  overflow: hidden;
+  padding: clamp(20px, 3vw, 30px);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--bg-elev);
+  /* 网易云那一点红：只用在唱片中心标签上，量很小，不会和各主题打架 */
+  --vinyl-label: var(--accent);
+}
+
+.listen-card__body { position: relative; z-index: 1; }
+
+/* ------------------------------------------------------------- 黑胶唱片 */
+/* 纯 CSS 画，不用图片（一张 340px 的黑胶 PNG 要 60~120KB，而且不能跟随主题）。
+   三层叠加：音轨纹路（repeating-radial）+ 盘体（radial 打光）+ 中心标签。
+   纹路间隔 3px 是实测的平衡点：1px 在 1x 屏上会摩尔纹，5px 又看不出是唱片。 */
+/* 定位层：只负责摆位置，不参与动画。
+   盘面交给 ::before 单独旋转 —— 这样 keyframes 里只有纯 rotate，
+   手机上改布局时不需要再重新定义一遍关键帧
+   （如果动画和定位写在同一个元素上，keyframes 必须带上 translateY(-50%)，
+   而手机端不需要那个位移，就得在媒体查询里重写整段 keyframes）。 */
+.vinyl {
+  position: absolute;
+  top: 50%;
+  right: clamp(-90px, -6vw, -40px);
+  width: clamp(260px, 34vw, 380px);
+  aspect-ratio: 1;
+  transform: translateY(-50%);
+  pointer-events: none;
+  opacity: .1;
+  color: var(--text);
+}
+
+.vinyl::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at center,
+      var(--vinyl-label) 0 9%,
+      transparent 9.4%),
+    repeating-radial-gradient(circle at center,
+      currentColor 0 1.2px,
+      transparent 1.2px 3px);
+  animation: vinyl-spin 26s linear infinite;
+}
+
+/* 中心标签单独一层，给一点更实的内圈 */
+.vinyl__label {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 18%;
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: var(--vinyl-label);
+  opacity: .55;
+}
+
+/* 纯 rotate：没有任何位移，换布局时不用改它 */
+@keyframes vinyl-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* 滚动时停转 —— 和背景光球同一条经验：
+   任何"在变"的整屏级图层都会让合成器在滚动时额外忙一遍。
+   唱片面积约 380×380，滚动时旋转会明显抢帧。 */
+html[data-scrolling="on"] .vinyl::before { animation-play-state: paused; }
+
+/* 深色主题下唱片要更亮一点才看得见（0.1 的黑在深底上等于没有） */
+[data-theme="dark"] .vinyl { opacity: .16; }
+
+/* --------------------------------------------------------------- 磁贴 */
+/* 桌面 3 列：limit 默认 6 首，正好 2×3 铺满。
+   为什么不是 2 列 —— 2 列排 3 首会变成「2 + 1」，右下角空一格，
+   看起来像加载失败；而 3 列排 3 首是一整行，排 6 首是整齐的两行。 */
+.track-list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 9px;
+}
+
+/* 落单的磁贴通栏。
+   4 首（3+1）或 5 首（3+2）时，最后一格如果是半宽，右边会留缺口；
+   让它横跨整行，缺口就变成"这一块更宽"的设计感。
+   用 nth-child 判奇偶而不是 data-count 逐个列举，曲目增减时不用改 CSS。 */
+.track:last-child:nth-child(3n + 1) { grid-column: 1 / -1; }
+
+/* 只有 1~2 首：单列，不要三个窄条 */
+.track-list[data-count="1"],
+.track-list[data-count="2"] { grid-template-columns: minmax(0, 1fr); }
+
+/* 平板：2 列（3 列在 700~900px 下每块只有 200px，曲名会被截得太狠） */
+@media (max-width: 900px) {
+  .track-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .track:last-child:nth-child(3n + 1) { grid-column: auto; }
+  .track:last-child:nth-child(odd) { grid-column: 1 / -1; }
+}
+
+.track {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  min-width: 0;
+  padding: 12px 13px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  /* 半透明让底下的唱片纹路透出来 —— "吸附"的观感就来自这里。
+     86% 是实测值：再低文字对比度不够（唱片纹路会干扰阅读），
+     再高就完全看不见底纹了。 */
+  background: color-mix(in srgb, var(--bg-elev) 86%, transparent);
+  transition: border-color var(--t-fast) var(--ease),
+              background-color var(--t-fast) var(--ease);
+}
+@supports not (background: color-mix(in srgb, red 50%, transparent)) {
+  .track { background: var(--bg-elev); }
+}
+.track:hover {
+  border-color: var(--line-strong);
+  background: var(--bg-elev);
+}
+
+.track__idx {
+  flex: none;
+  width: 20px;
+  font-family: var(--font-mono);
+  font-size: .68rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-3);
+}
+
+.track__main { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.track__title {
+  font-size: .92rem;
+  font-weight: 500;
+  letter-spacing: -.005em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.track__meta {
+  margin-top: 2px;
+  font-size: .72rem;
+  color: var(--text-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.track__go {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  flex: none;
+  border-radius: var(--r-xs);
+  color: var(--text-3);
+  transition: color var(--t-fast) var(--ease), background-color var(--t-fast) var(--ease);
+}
+.track__go .icon { width: 12px; height: 12px; }
+.track__go:hover { color: var(--text); background: var(--bg-soft); }
+
+.listen__foot {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 15px;
+  font-size: .72rem;
+  color: var(--text-3);
+}
+.listen__src { display: inline-flex; align-items: center; gap: 7px; }
+.listen__more {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--text-2);
+  transition: color var(--t-fast) var(--ease);
+}
+.listen__more .icon { width: 13px; height: 13px; }
+.listen__more:hover { color: var(--text); }
+
+/* 同步成功的绿点：静态就好，不做呼吸动画 */
+.live-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  flex: none;
+}
+
+/* 减少动态效果：唱片停转（CSS 动画本身也会被 motion.css 的全局规则压掉，
+   这里显式写一遍是为了不依赖那层兜底） */
+@media (prefers-reduced-motion: reduce) {
+  .vinyl::before { animation: none; }
+}
+
+/* 手机：磁贴单列还是双列？
+   双列在 390px 下每块只有 165px，曲名会被截成 8 个字 —— 而曲名是这一屏的正文，
+   截断就等于没显示。所以手机上改成单列，每块整行，曲名完整。
+   代价是高度约 +90px（3 首时），已计入 fit.css 的档位预算。 */
+@media (max-width: 680px) {
+  .listen-card { padding: 16px 16px 14px; border-radius: var(--r-md); }
+  .track-list { grid-template-columns: minmax(0, 1fr); gap: 9px; }
+  .track-list[data-count="1"],
+  .track-list[data-count="2"] { grid-template-columns: minmax(0, 1fr); }
+  .track,
+  .track:last-child:nth-child(odd),
+  .track:last-child:nth-child(3n + 1) { grid-column: auto; }
+  .track { padding: 12px 13px; gap: 10px; }
+  .track__title { font-size: .95rem; }
+  .track__meta { font-size: .76rem; }
+  .listen__foot { margin-top: 13px; font-size: .74rem; }
+  /* 唱片缩小并挪到右下角，避免盖住磁贴文字。
+     keyframes 不需要重写 —— 旋转在 ::before 上，只有纯 rotate。 */
+  .vinyl {
+    top: auto;
+    bottom: -30%;
+    right: -26%;
+    width: 240px;
+    transform: none;
+    opacity: .09;
+  }
+}
+
+/* ============================================================ Q4 · 维修 */
+.section__head--tight { margin-bottom: clamp(22px, 3vw, 34px); }
+
+.repair {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, .95fr);
+  gap: clamp(22px, 3vw, 40px);
+  align-items: start;
+}
+.repair__left { display: flex; flex-direction: column; min-width: 0; }
+
+/* ---------------------------------------------------------------- 报价表
+   结构是 <details>：摘要行（标题 + 项数 + 箭头）/ 内容区。
+   桌面默认展开，手机上由 repair.js 收起 —— 报价表是"查价"用的参考信息，
+   不是首屏必读，但它有 10 行，展开着会把 Q4 顶出屏幕。 */
+.quote {
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+}
+
+/* 收起 summary 的默认三角（Chrome/Safari 走 ::-webkit-details-marker，
+   Firefox 走 list-style），改用自己的箭头，好跟着主题圆角走。 */
+.quote__summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  list-style: none;
+  cursor: pointer;
+  /* 点击区向外扩 6px，细长的标题行更好点；负外边距抵掉，视觉位置不变。 */
+  padding: 6px 0;
+  margin: -6px 0;
+  border-radius: var(--r-xs);
+}
+.quote__summary::-webkit-details-marker { display: none; }
+.quote__summary:focus-visible { outline-offset: 2px; }
+
+.quote__title {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: .9rem;
+  font-weight: 600;
+  letter-spacing: -.01em;
+}
+.quote__title .icon { width: 15px; height: 15px; color: var(--text-2); }
+
+/* 「16 项 · 5 类」：收起时也能看出这张表有多少内容，
+   否则一个光秃秃的标题会让人以为里面只有几行。 */
+.quote__count {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: .7rem;
+  letter-spacing: .02em;
+  color: var(--text-3);
+  white-space: nowrap;
+}
+
+.quote__caret {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  flex: none;
+  color: var(--text-3);
+  transition: transform var(--t-fast) var(--ease);
+}
+.quote__caret .icon { width: 14px; height: 14px; }
+.quote[open] .quote__caret { transform: rotate(90deg); }
+.quote__summary:hover .quote__caret { color: var(--text); }
+
+.quote__body { padding-top: 4px; }
+
+.quote__groups {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px clamp(18px, 2.6vw, 32px);
+  margin-top: 10px;
+}
+
+.quote__gname {
+  margin-bottom: 4px;
+  font-family: var(--font-mono);
+  font-size: .64rem;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+.quote__row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 4px 0;
+  border-bottom: 1px dashed var(--line);
+}
+.quote__row:last-child { border-bottom: 0; }
+
+.quote__item { flex: 1; min-width: 0; font-size: .8rem; line-height: 1.4; }
+.quote__hint {
+  display: block;
+  font-size: .64rem;
+  color: var(--text-3);
+  line-height: 1.35;
+}
+.quote__price {
+  flex: none;
+  font-family: var(--font-mono);
+  font-size: .78rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.quote__note {
+  margin-top: 10px;
+  font-size: .7rem;
+  line-height: 1.6;
+  color: var(--text-3);
+  text-wrap: pretty;
+}
+
+/* -------------------------------------------------------------- 估价器 */
+.calc {
+  padding: clamp(16px, 2.2vw, 22px);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--bg-elev);
+}
+
+.calc__head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.calc__title {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: .92rem;
+  font-weight: 600;
+  letter-spacing: -.01em;
+}
+.calc__title .icon { width: 16px; height: 16px; color: var(--text-2); }
+.calc__hint { font-size: .7rem; color: var(--text-3); }
+
+.calc__step { margin-top: 14px; }
+
+/* 材料 + 加项并排：这两组选项都很短，并排省一半高度 */
+.calc__pair {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 14px;
+}
+
+.calc__label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 7px;
+  font-size: .7rem;
+  letter-spacing: .02em;
+  color: var(--text-3);
+}
+.calc__label b {
+  display: grid;
+  place-items: center;
+  width: 17px;
+  height: 17px;
+  flex: none;
+  border-radius: var(--r-xs);
+  background: var(--bg-soft);
+  font-family: var(--font-mono);
+  font-size: .62rem;
+  font-weight: 600;
+  color: var(--text-2);
+}
+.calc__label i { margin-left: auto; font-style: normal; font-size: .66rem; color: var(--text-3); }
+
+.calc__opts { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.calc__opt {
+  padding: 6px 11px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-xs);
+  font-size: .79rem;
+  line-height: 1.4;
+  color: var(--text-2);
+  transition: border-color var(--t-fast) var(--ease), background-color var(--t-fast) var(--ease),
+              color var(--t-fast) var(--ease);
+}
+.calc__opt:hover:not(:disabled) { border-color: var(--line-strong); color: var(--text); }
+.calc__opt[aria-pressed="true"] {
+  border-color: var(--text);
+  background: var(--text);
+  color: var(--bg);
+}
+.calc__opt:disabled { opacity: .3; cursor: not-allowed; }
+
+/* 结果区：数字要大，因为这是整块的目的 */
+.calc__result {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+.calc__price {
+  font-family: var(--font-mono);
+  font-size: clamp(1.35rem, 2.8vw, 1.75rem);
+  font-weight: 600;
+  letter-spacing: -.02em;
+  line-height: 1.2;
+}
+.calc__price small {
+  margin-right: 2px;
+  font-size: .6em;
+  font-weight: 500;
+  color: var(--text-3);
+}
+.calc__detail {
+  margin-top: 5px;
+  font-size: .72rem;
+  line-height: 1.6;
+  color: var(--text-3);
+  text-wrap: pretty;
+}
+.calc__foot { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
+.calc__reset {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: .72rem;
+  color: var(--text-3);
+  transition: color var(--t-fast) var(--ease);
+}
+.calc__reset .icon { width: 12px; height: 12px; }
+.calc__reset:hover { color: var(--text); }
+
+/* 无 JS 时的降级：计算器位置显示一句说明，报价表照常可读 */
+.calc__fallback { font-size: .8rem; color: var(--text-3); line-height: 1.7; }
+
+/* ============================================================ Q6 · 邮箱 */
+/* 这一屏只有一件事，所以让它有落款感：留白给足、邮箱字号拉大。 */
+.mailbox {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: clamp(34px, 5vw, 60px) clamp(26px, 4vw, 48px);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--bg-elev);
+}
+.mailbox__hint { font-size: .92rem; color: var(--text-2); }
+.mailbox__mail {
+  margin-top: 14px;
+  font-family: var(--font-mono);
+  font-size: clamp(1.35rem, 4vw, 2.4rem);
+  font-weight: 500;
+  letter-spacing: -.03em;
+  line-height: 1.2;
+  word-break: break-all;
+  transition: color var(--t-fast) var(--ease);
+}
+.mailbox__mail:hover { color: var(--accent); }
+.mailbox__actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: clamp(22px, 3vw, 32px); }
+
+/* ================================================================ 响应式 */
+/* 平板及以下：维修屏从左右并排改成上下堆叠，
+   并且**把计算器提到闲鱼卡+报价表前面** —— 访客最想看的是"我这台多少钱"，
+   报价表是补充信息，排在后面才符合阅读顺序。 */
+@media (max-width: 1024px) {
+  .repair { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+  .repair__left { order: 2; }
+  .calc { order: 1; }
+}
+
+/* 手机横屏/窄平板：曲目列表改单列 */
+@media (max-width: 860px) {
+  .track-list { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* ---------------------------------------------------------------- 手机
+   ⚠️ 2026-11-10 重写。这一版的第一原则是**可读**，不是「塞进一屏」。
+
+   上一版为了 320×568 也能一屏装下，字号一路压到 9~11px：
+     计算器选项 9.9px、报价行 9.6px、摘要副标题 9.9px、游戏 UID 9.3px。
+   但同批机型的实测内容填充率只有 26%~62% —— 屏幕上一大半是空白，
+   字却小到看不清。用空白换字号，是本末倒置。
+
+   这一版定了下限（下列三类是硬线，任何档位都不许破）：
+     · 正文（曲名 / 游戏名 / 平台名 / 账号 / 计算器选项）  ≥ .86rem = 13.8px
+     · 辅助信息（标签 / 副标题 / 脚注）                    ≥ .72rem = 11.5px
+     · 报价表这类密集表格                                  ≥ .8rem  = 12.8px
+     · 可点区域高度                                        ≥ 38px
+
+   腾空间的办法改成「改结构」而不是「缩字号」：
+     · Q4 报价表折叠（默认收起，点开才展开）—— 省 150px
+     · 联系卡从「图标 + 文字」横向排改成两行 —— 账号不再被省略号吃掉
+     · 重复信息隐藏（Q4 摘要卡的平台名、曲目卡的小箭头）
+
+   纵向尺寸用带 vh 的 clamp：高屏（844 / 932）自动长开把屏填满，
+   矮屏（568 / 667）收在可读下限，不再靠缩字号去凑高度。 */
+@media (max-width: 680px) {
+  /* ---------------------------------------------------------- Q1 身份区 */
+  /* 名字跟着屏宽走：320px → 28px，390px → 34px，430px → 37px。
+     不再为了塞下一屏把它压到 20px。 */
+  .profile__name { font-size: clamp(2rem, 8.8vw, 2.7rem); }
+  .profile__avatar img {
+    width: clamp(64px, 9vh, 84px);
+    height: clamp(64px, 9vh, 84px);
+  }
+  .profile__tagline { margin-top: 9px; font-size: 1rem; line-height: 1.5; }
+  .profile__role { margin-top: 6px; font-size: .78rem; }
+
+  .profile__intro {
+    margin-top: 14px;
+    font-size: .9rem;
+    line-height: 1.66;
+    /* 窄屏放宽到 3 行：2 行会把句子截在半个分句上，读起来像没说完。 */
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .hero__actions { margin-top: 20px; gap: 10px; }
+  .hero__actions .btn { min-height: 46px; padding: 12px 18px; font-size: .9rem; }
+
+  .contact-pair,
+  .preview-pair { gap: 10px; }
+  .contact-pair { margin-top: clamp(20px, 3.2vh, 32px); }
+  .preview-pair { margin-top: 10px; }
+
+  /* 联系卡：第一行「图标 + 平台名」，第二行账号独占整行。
+     横向排时（图标 32 + 间距 11 + 内边距 26）在 390px 的 170px 列里只剩约 100px
+     给账号，而微信号 12 位起、QQ 号 10 位 —— 必被省略号截断，
+     可「看见并复制账号」正是这张卡唯一的用途。
+     改成两行后账号拿到 146px，13.8px 等宽字能完整放下 11 位。
+     .ccard__body 用 display:contents 把 label / value 提升成 grid 项，
+     这样不用改 render.js 产出的 DOM 结构。 */
+  .ccard {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: 0 8px;
+    padding: 12px 13px 13px;
+    border-radius: var(--r-md);
+  }
+  .ccard__icon { grid-area: 1 / 1 / 2 / 2; width: 22px; height: 22px; }
+  .ccard__icon .icon { width: 17px; height: 17px; }
+  .ccard__body { display: contents; }
+  .ccard__label { grid-area: 1 / 2 / 2 / 3; font-size: .72rem; }
+  .ccard__value { grid-area: 2 / 1 / 3 / 3; margin-top: 5px; font-size: .86rem; }
+  .ccard__act { display: none; }        /* 整块可点，不需要再放一个复制小图标 */
+
+  /* 两列摘要卡（网易云 / 小黑盒）。
+     副标题「歌单 · 红心 · 最近在听」是区分两张卡的识别信息，必须留着。 */
+  .preview-pair .preview { padding: 12px 13px 13px; gap: 8px; border-radius: var(--r-md); }
+  .preview-pair .preview__top { margin-bottom: 4px; gap: 6px; }
+  .preview-pair .preview__icon { width: 20px; height: 20px; }
+  .preview-pair .preview__icon .icon { width: 16px; height: 16px; }
+  .preview-pair .preview__platform { font-size: .7rem; }
+  .preview-pair .preview__title { font-size: .88rem; }
+  .preview-pair .preview__meta {
+    display: -webkit-box;
+    margin-top: 3px;
+    font-size: .72rem;
+    -webkit-line-clamp: 1;
+  }
+  .preview-pair .preview__cover,
+  .preview-pair .preview__stats,
+  .preview-pair .preview__go { display: none; }
+
+  /* ---------------------------------------------------------- Q4 维修 */
+  /* 这一屏是六屏里内容最多的：摘要卡 + 计算器 4 步 + 报价表。
+     实测 390×844 下自然高度 931px，超出 87px —— 而它一超屏，
+     paged.js 就会把**整站**降一档，另外五屏（只填了 44%~78%）也被连累。
+     所以这里把 Q4 独有的重复信息收掉，让它自己扛住，不去绑架别人。 */
+
+  /* 导语藏掉：标题「维修报价」+ 计算器已经说明了这一屏做什么，
+     导语那两句（能修什么、多久出结论）在摘要卡和页脚里都有。 */
+  #repair .section__lead { display: none; }
+  #repair .section__head { margin-bottom: 14px; }
+
+  /* 闲鱼卡：平台名那一行（图标 + 「闲鱼」+ 箭头）与标题说的是同一件事，
+     单列横条里去掉它能省 20px。Q1 的两张卡不动 —— 那里平台名是识别信息。 */
+  #repairPreview .preview__top { display: none; }
+
+  .preview-grid { grid-template-columns: minmax(0, 1fr); gap: 9px; margin-top: 12px; }
+  .preview-grid .preview {
+    min-height: 0;
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 13px;
+  }
+  .preview-grid .preview__body { flex: 1; min-width: 0; }
+  .preview-grid .preview__top { margin-bottom: 3px; }
+  .preview-grid .preview__cover { display: none; }
+  .preview-grid .preview__meta {
+    display: -webkit-box;
+    margin-top: 3px;
+    font-size: .74rem;
+    -webkit-line-clamp: 1;
+  }
+  .preview-grid .preview__stats { display: none; }
+  .preview-grid .preview__title { font-size: .94rem; }
+
+  /* 计算器：选项是短词，但也是要手指点的目标 ——
+     高度不低于 36px，字号保持在 .86rem。 */
+  .calc { padding: 12px 13px 13px; border-radius: var(--r-md); }
+  .calc__title { font-size: 1rem; }
+  .calc__title .icon { width: 17px; height: 17px; }
+  /* 右上角那句「选完即出价」藏掉：结果本来就是实时变的，属于自证信息。
+     留着它还有一个副作用 —— 360px 宽度下它会把标题行挤成两行，
+     凭空多出 33px，正好是 360 机型降一档的差距。 */
+  .calc__hint { display: none; }
+  .calc__step { margin-top: 9px; }
+  .calc__pair { gap: 0 12px; }
+  .calc__label { margin-bottom: 5px; font-size: .72rem; }
+  .calc__opts { gap: 6px; }
+  .calc__opt { min-height: 36px; padding: 7px 11px; font-size: .86rem; }
+  .calc__result { margin-top: 9px; padding-top: 8px; }
+  .calc__price { font-size: 1.45rem; }
+  /* 明细「换屏 ¥320 × 手机 1 × 原装 1」允许折两行 ——
+     它是让报价可信的算式，单行省略等于藏起了依据。 */
+  .calc__detail { margin-top: 4px; font-size: .72rem; line-height: 1.5; }
+  .calc__foot { margin-top: 7px; font-size: .72rem; }
+
+  /* 报价表：默认收起（repair.js 摘掉 open），点摘要行展开。
+     展开后仍走两栏流式排版，行高与字号按「密集表格」的 .8rem 处理 ——
+     它是一张价目表，不是正文段落。 */
+  .quote { margin-top: 8px; padding-top: 7px; }
+  .quote__summary { padding: 7px 0; margin: -7px 0; }
+  .quote__title { font-size: .92rem; }
+  .quote__count { font-size: .7rem; }
+  .quote__groups {
+    display: block;
+    columns: 2;
+    column-gap: 16px;
+    margin-top: 8px;
+  }
+  .quote__group { break-inside: avoid; margin-bottom: 9px; }
+  .quote__row { padding: 2px 0; }
+  .quote__item { font-size: .8rem; line-height: 1.45; }
+  .quote__hint { display: none; }
+  .quote__price { font-size: .8rem; }
+  .quote__gname { margin-bottom: 3px; font-size: .66rem; }
+  .quote__note { margin-top: 8px; font-size: .7rem; line-height: 1.55; }
+
+  /* ------------------------------------------------------- Q5 / Q6 平台 */
+  .social { padding: 14px 15px; gap: 12px; }
+  .social__icon { width: 38px; height: 38px; }
+  .social__label { font-size: .94rem; }
+  .social__handle { font-size: .74rem; }
+
+  .mailbox { padding: 34px 24px; align-items: stretch; }
+  .mailbox__mail { margin-top: 12px; font-size: 1.45rem; }
+  .mailbox__actions { margin-top: 18px; }
+  .mailbox__actions .btn { flex: 1 1 auto; justify-content: center; min-height: 44px; }
+}
+
+/* 窄一点的机型（≤400px）：只收横向间距与图标，
+   不再动字号 —— 上一版就是这里把 390px 主流的字号又压回了 .74rem。 */
+@media (max-width: 400px) {
+  .contact-pair,
+  .preview-pair { gap: 8px; }
+  .ccard { padding: 11px 11px 12px; gap: 0 7px; }
+  .ccard__icon { width: 20px; height: 20px; }
+  .ccard__icon .icon { width: 16px; height: 16px; }
+  .preview-pair .preview { padding: 11px 11px 12px; }
+  .preview-pair .preview__icon { width: 18px; height: 18px; }
+  .preview-pair .preview__icon .icon { width: 15px; height: 15px; }
+  .calc { padding: 14px 14px 15px; }
+  .calc__opt { padding: 8px 10px; }
+  .quote__groups { column-gap: 12px; }
+}

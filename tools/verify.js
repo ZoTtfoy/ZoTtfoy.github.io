@@ -114,7 +114,10 @@ const documentStub = {
   body: new El('body'),
   getElementById(id) {
     const el = byId.get(id);
-    if (!el) missingIds.add(id);
+    /* 少数 id 是渲染期才产出的（index.html 里没有），不算缺失：
+       quoteDetails —— 报价表由 render.js 用字符串拼进 #repairQuote，
+       结构是 <details id="quoteDetails">，所以 HTML 里搜不到。 */
+    if (!el && id !== 'quoteDetails') missingIds.add(id);
     return el || null;
   },
   querySelector(sel) { return metaSel[sel] || null; },
@@ -169,7 +172,10 @@ ctx.window = ctx;
 vm.createContext(ctx);
 
 /* ---------- 依次执行站点脚本 ---------- */
+/* sync.js / repair.js 也一起加载：它们都有「元素不存在就直接退出」的保护，
+   在这里跑一遍能确保这两个新文件本身没有语法或运行时问题。 */
 const scripts = ['assets/js/config.js','assets/js/themes.js','assets/js/icons.js','assets/js/render.js',
+                 'assets/js/sync.js','assets/js/repair.js',
                  'assets/js/skin.js','assets/js/live.js','assets/js/paged.js','assets/js/effects.js',
                  'assets/js/motion.js','assets/js/main.js'];
 for (const rel of scripts) {
@@ -193,48 +199,140 @@ check(documentStub.title.indexOf(C.site.name) === 0, 'document.title 已按配�
 
 // config 中用到的图标名必须存在（改图标名拼错时这里会报错）
 const usedIcons = new Set();
-for (const key of ['services','interests','social']) {
+for (const key of ['links']) {
   (C[key]?.items || []).forEach(it => usedIcons.add(it.icon));
 }
+(C.profile?.contacts || []).forEach(it => usedIcons.add(it.icon));
+(C.profile?.previews || []).forEach(it => usedIcons.add(it.icon));
+if (C.repair?.xianyu) usedIcons.add(C.repair.xianyu.icon);
+(C.gaming?.items || []).forEach(it => { if (!it.iconImage) usedIcons.add(it.icon); });
 for (const name of usedIcons) check(!!ctx.SITE_ICONS[name], '图标存在: ' + name);
 
-// 渲染结果：全部按当前 config 动态比对，改内容不会误报
-check(H('heroTitle').includes(String(C.site.tagline).split('\n')[0]), 'Hero 大标题渲染');
-check(!String(C.site.tagline).includes('\n') || H('heroTitle').includes('<br>'), 'Hero 换行渲染');
-check(H('heroStatus').includes('status-dot') === !!C.site.available, '合作状态徽章与开关一致');
-check(count('serviceGrid', /class="card"/g) === (C.services?.items || []).length, '业务卡片数量正确');
-check(count('interestGrid', /class="interest"/g) === (C.interests?.items || []).length, '喜好卡片数量正确');
-check(count('socialGrid', /class="social"/g) === (C.social?.items || []).length, '社交链接数量正确');
+/* ============================================================ Q1 · 我 */
+check(H('heroName').includes(C.site.name), 'Q1 名字渲染');
+check(H('heroGreet').includes(C.profile.greet), 'Q1 问候语渲染');
+check(H('heroTagline').includes(C.profile.tagline), 'Q1 副标题渲染');
+check(H('heroIntro').length > 0, 'Q1 简介渲染');
+check(count('heroContacts', /class="ccard"/g) === (C.profile.contacts || []).length,
+  'QQ / 微信 复制按钮数量与配置一致');
+check((C.profile.contacts || []).every(c =>
+  H('heroContacts').includes('data-copy="' + ctx.SITE_RENDER.esc(c.value) + '"')),
+  '每个联系方式都带 data-copy（点一下能复制）');
+check(count('heroPreviews', /class="preview"/g) === (C.profile.previews || []).length,
+  'Q1 主页摘要卡数量与配置一致');
+check((C.profile.previews || []).every(p => H('heroPreviews').includes('data-preview-id="' + p.id + '"')),
+  '每张摘要卡都有 data-preview-id（供 sync.js 回填）');
 
-/* ---------- 游戏模块 ---------- */
+/* ============================================================ Q2 · 在听 */
+check(count('trackList', /class="track"/g) === Math.min(
+  (C.listen?.limit || 6), (C.listen?.fallback || []).length),
+  'Q2 兜底曲目数量正确（不超过 limit）');
+check((C.listen?.fallback || []).length === 0 || H('trackList').includes('track__title'),
+  '曲目有标题节点');
+check(!/undefined|NaN/.test(H('trackList')), '曲目列表没有 undefined / NaN 泄漏');
+check(H('listenFoot').includes('music.163.com') || H('listenFoot').includes('网易云'),
+  'Q2 有跳转网易云的入口');
+check(typeof ctx.SITE_SYNC === 'object' && typeof ctx.SITE_SYNC.applyTracks === 'function',
+  '同步模块已注册且暴露 applyTracks');
+
+/* 同步数据契约：applyTracks 必须能接受真实返回的形状，并拒绝脏数据 */
+{
+  const before = H('trackList');
+  ctx.SITE_SYNC.applyTracks({ tracks: [{ title: 'A', artist: 'B', album: 'C' }] });
+  check(H('trackList').includes('A'), 'applyTracks 能吃掉标准格式');
+  ctx.SITE_SYNC.applyTracks({ tracks: [] });
+  check(H('trackList').includes('A'), '空数据不会把已有列表清空');
+  ctx.SITE_SYNC.applyTracks({ tracks: [{ nope: 1 }] });
+  check(H('trackList').includes('A'), '脏数据不会覆盖已有列表');
+  ctx.SITE_SYNC.applyTracks(null);
+  check(H('trackList').includes('A'), 'null 不会导致崩溃');
+  void before;
+}
+
+/* ============================================================ Q3 · 游戏 */
 const games = (C.gaming?.items || []);
-check(count('gameRail', /class="game"/g) === games.length, '游戏卡片数量正确');
+check(count('gameRail', /class="game"/g) === games.length, 'Q3 游戏卡片数量正确');
 check(count('gameRail', /data-copy="/g) === games.filter(g => g.uid || g.copy).length,
   '每张游戏卡都有可复制的 ID');
-check(count('gameRail', /class="game__stat"/g) === games.reduce((n, g) => n + (g.stats || []).length, 0),
-  '可展现资产条数与配置一致');
+check(!/game__stats|game__note/.test(H('gameRail')), 'Q3 卡片不含介绍性内容（只有图标/名称/ID）');
 games.forEach(g => {
-  check(!!ctx.SITE_ICONS[g.icon], '游戏图标存在: ' + g.name + ' → ' + g.icon);
+  if (!g.iconImage) check(!!ctx.SITE_ICONS[g.icon], '游戏图标存在: ' + g.name + ' → ' + g.icon);
 });
-check(H('gameRail').includes('博士 ID') || H('gameRail').includes('Riot ID'),
-  'ID 标签来自配置（uidLabel）');
+check(!games.some(g => g.iconImage) || H('gameRail').includes('game__logo'),
+  '配了自定义图标时渲染 <img>');
 check(!/undefined|NaN/.test(H('gameRail')), '游戏卡片没有 undefined / NaN 泄漏');
-check((C.gaming?.items || []).every(g => !g.color || /^#[0-9a-f]{3,8}$/i.test(g.color)),
-  '品牌色都是合法色值');
+check(games.every(g => !g.color || /^#[0-9a-f]{3,8}$/i.test(g.color)), '品牌色都是合法色值');
+
+/* ============================================================ Q4 · 维修 */
+check(count('repairPreview', /class="preview"/g) === (C.repair?.xianyu ? 1 : 0),
+  'Q4 闲鱼摘要卡渲染');
+const quoteRows = (C.repair?.quote?.rows || []);
+check(count('repairQuote', /class="quote__row"/g) === quoteRows.length,
+  '报价表行数与配置一致');
+check(count('repairQuote', /class="quote__group"/g) ===
+  new Set(quoteRows.map(r => r.group)).size, '报价表按 group 正确分栏');
+check((quoteRows.length === 0) || H('repairQuote').includes(quoteRows[0].item), '报价表项目名来自配置');
+
+/* 计算器：配置层校验 + 渲染校验 */
+const calc = C.repair?.calculator || {};
+check((calc.devices || []).length > 0, '计算器配了设备选项');
+check((calc.services || []).length > 0, '计算器配了项目选项');
+check((calc.materials || []).length > 0, '计算器配了材料选项');
+check((calc.extras || []).length > 0, '计算器配了加项选项');
+check([...(calc.devices || []), ...(calc.materials || [])].every(
+  x => typeof x.factor === 'number' && x.factor > 0), '系数都是正数');
+check((calc.services || []).every(x => typeof x.price === 'number' && x.price >= 0),
+  '项目价格都是非负数');
+check((calc.extras || []).every(x => typeof x.add === 'number'), '加项都是固定金额');
+check(Array.isArray(calc.range) && calc.range.length === 2 && calc.range[0] < calc.range[1],
+  '区间上下限合法');
+check((calc.services || []).every(x => !x.devices ||
+  x.devices.every(d => (calc.devices || []).some(dev => dev.id === d))),
+  '项目支持列表里的设备 id 都存在（拼错会导致该选项永远不可选）');
+check(typeof ctx.SITE_REPAIR === 'object' && typeof ctx.SITE_REPAIR.compute === 'function',
+  '计算器模块已注册且暴露 compute');
+
+/* 算法校验：手算一遍和 compute() 对一次 */
+{
+  const dev = calc.devices?.[0], svc = calc.services?.[0], mat = calc.materials?.[0];
+  const ext = (calc.extras || []).find(e => e.id === 'none') || calc.extras?.[0];
+  if (dev && svc && mat && ext) {
+    ctx.SITE_REPAIR.state.device = dev.id;
+    ctx.SITE_REPAIR.state.service = svc.id;
+    ctx.SITE_REPAIR.state.material = mat.id;
+    ctx.SITE_REPAIR.state.extra = ext.id;
+    const r = ctx.SITE_REPAIR.compute();
+    const mid = svc.price * dev.factor * mat.factor + ext.add;
+    check(r && r.lo === Math.round(mid * calc.range[0]) && r.hi === Math.round(mid * calc.range[1]),
+      '计算器结果 = 项目价 × 设备系数 × 材料系数 + 加项，再按区间展开');
+  }
+}
+
+/* ============================================================ Q5 · 其他 */
+check(count('linksGrid', /class="social"/g) === (C.links?.items || []).length,
+  'Q5 链接数量正确');
+check(H('linksGrid').includes('rel="noopener noreferrer"'), '外链 noopener');
+const copyItems = (C.links?.items || []).filter(it => it.copy);
+check(count('linksGrid', /data-copy="/g) === copyItems.length, 'copy 类型链接数量正确');
+check(copyItems.length === 0 || H('linksGrid').includes('<button class="social"'), 'copy 类型渲染为按钮');
+check(copyItems.every(it => !it.url), 'copy 类型不带无效链接');
+
+/* ============================================================ Q6 · 邮箱 */
+check(H('contactBox').includes('data-copy="' + ctx.SITE_RENDER.esc(C.site.email) + '"'),
+  'Q6 复制邮箱按钮渲染');
+check(H('contactBox').includes('mailto:'), 'Q6 发邮件链接渲染');
+check(H('contactBox').includes(C.site.email), 'Q6 邮箱地址来自配置');
+
+/* ==================================================== 导航与结构一致性 */
 check(count('navList', /<li>/g) === enabledKeys.length, '桌面导航与模块开关一致');
 check(count('mobileNavList', /<li>/g) === enabledKeys.length, '移动导航与模块开关一致');
-check(count('aboutFacts', /facts__row/g) === (C.about?.facts || []).length, '关于信息表行数正确');
-check(count('aboutTags', /class="tag"/g) === (C.about?.tags || []).length, '关键词标签数量正确');
-check(H('contactBlock').includes('data-copy="' + ctx.SITE_RENDER.esc(C.site.email) + '"'), '复制邮箱按钮渲染');
-check(H('contactBlock').includes('mailto:'), '发邮件链接渲染');
-check(H('socialGrid').includes('target="_blank"'), '外链安全属性');
-check(H('socialGrid').includes('rel="noopener noreferrer"'), '外链 noopener');
-// copy 模式（QQ / 微信这类没有公开主页的账号）
-const copyItems = (C.social?.items || []).filter(it => it.copy);
-check(count('socialGrid', /data-copy="/g) === copyItems.length, 'copy 类型社交卡片数量正确');
-check(copyItems.length === 0 || H('socialGrid').includes('<button class="social"'), 'copy 类型渲染为按钮');
-check(copyItems.every(it => !it.url), 'copy 类型不带无效链接');
-check(byId.get('about').querySelector('[data-field="title"]')?.innerHTML === (C.about?.title || ''), '区块标题填充');
+/* 导航编号从 02 起（01 是首屏 Q1，不占导航项） */
+check(!H('navList').includes('>01<') || enabledKeys.length === 0,
+  '导航编号从 02 开始（01 留给首屏）');
+/* 六个页面 id 必须都在 DOM 里，否则翻页引擎会漏页 */
+for (const id of ['top', 'listen', 'gaming', 'repair', 'links', 'contact']) {
+  check(byId.has(id), '页面存在: #' + id);
+}
 check(H('themeToggle').includes('<svg'), '主题按钮图标');
 check(H('toTop').includes('<svg'), '回到顶部图标');
 check(H('menuToggle').includes('<svg'), '菜单按钮图标');
@@ -296,7 +394,9 @@ for (const rel of scripts) {
   catch (e) { failures.push('[降级] 执行 ' + rel + ' 抛错: ' + e.message); }
 }
 check(failures.length === before, '无 IntersectionObserver 时降级正常且无报错');
-check(byId.get('heroTitle')._classes.has('is-visible'), '降级环境下内容仍然可见');
+/* Q1 重构后不再有 heroTitle（大标题换成了 profile__name），
+   这里挑首屏任意一个 [data-reveal] 元素验证降级即可。 */
+check(byId.get('heroName')._classes.has('is-visible'), '降级环境下内容仍然可见');
 
 console.log(notes.join('\n'));
 console.log('\n检查项: ' + notes.length + '，失败: ' + failures.length);

@@ -1,426 +1,355 @@
 /* ==========================================================================
- *  fit.css —— 手机多比例适配：让每一章正好填满一屏
+ *  fit.css —— 多比例适配：按「可用高度」分档收紧留白
  * --------------------------------------------------------------------------
  *  手机屏幕比例跨度极大：16:9 的老机型（375×667）、19.5:9（390×844）、
  *  20:9（360×780），还有折叠屏外屏（344×882）和横屏（844×390）。
- *  同一套留白在这上面表现差得很远 —— 实测 15 种机型里 6 种会超屏。
+ *  同一套留白在这上面表现差得很远。
  *
- *  这里按「可用高度」分四档（档位由 paged.js 写入 html[data-fit]）：
+ *  这里按「可用高度」分四档（档位由 paged.js 循环试探后写入 html[data-fit]）：
  *
  *    roomy  ≥ 700px   主流手机与平板，保持设计稿的宽松留白
- *    tight  580~700   小屏手机（iPhone SE / 8 Plus），收紧留白
- *    snug   460~580   极矮屏与折叠屏外屏，进一步压缩
+ *    tight  580~700   小屏手机（iPhone SE / 8 Plus）
+ *    snug   460~580   极矮屏与折叠屏外屏
  *    micro  < 460     横屏手机，横向空间充足，改用横向布局
  *
  *  为什么不用 @media (max-height)：
  *    手机地址栏滚动时会收缩/展开，视口高度在 640~740 之间反复跳，
  *    媒体查询会跟着反复重排、内容闪动。所以高度档位由 JS 只在跨档时更新。
  *
- *  设计原则：
- *    · 只压缩留白与行高，不动内容结构（信息一条都不删）
- *    · 字号有下限，不为了塞进一屏把字缩到看不清
- *    · 极矮屏优先改布局（横向铺开），而不是无限缩小
+ *  ⚠️ 2026-11-10 第二次重写，只改了一件事，但很关键：
+ *     **档位不再动 font-size，一个都不动。**
+ *
+ *  上一版每个档位都带一串 font-size，而且带 data-fit 的选择器特异性高于
+ *  blocks.css 里的媒体查询 —— 于是出现两个问题：
+ *
+ *    1) 手机上字号随"这一屏装不装得下"漂移：同样内容在 390×844 是 13.9px，
+ *       在 375×667 变成 11.8px，在 320×568 变成 9.6px。用户换个手机，
+ *       看到的是另一套排版，而且最紧那档已经低于可读下限。
+ *    2) 桌面也被卷进来：1024×768 的笔记本被判成 snug 档，
+ *       section 标题从 54px 掉到 22.7px，整站像被缩印过。
+ *       原因是 Q4 内容最高，它一超屏就把**整站六屏**一起降档。
+ *
+ *  现在的分工是：
+ *    · blocks.css / gaming.css 按**宽度**决定字号（手机一套、桌面一套），
+ *      字号只跟"屏幕多宽"有关，与"这一屏装不装得下"无关。
+ *    · fit.css 按**高度**只调留白：内边距、外边距、间隙、图标尺寸，
+ *      以及在极矮屏上隐藏真正的次要信息（导语、备注、脚注）。
+ *
+ *  代价是极矮屏（320×568）可能有一屏装不进一屏 —— 这时 paged.js 会给它
+ *  打上 data-tall，吸附从 mandatory 降级为 proximity，允许把那屏滚完。
+ *  「看得清」优先于「正好一屏」，这是这一版明确取舍。
  * ========================================================================== */
+
+/* --------------------------------------------------------- 手机：基础留白
+   翻页模式下 .section 的上内边距是「页头高度 + 呼吸」，下内边距也留得很足。
+   手机上按 72px 页头 + 10px 呼吸给；下边距还要额外让出底部页码条，
+   否则内容最满的那一屏（Q4）最后一行会被页码条压住 —— 实测 390×844 下
+   报价表的摘要行正好落在页码条下面。页码条占 bottom 24px + 高 36px ≈ 60px。 */
+@media (max-width: 680px) {
+  html[data-paged="on"] .hero,
+  html[data-paged="on"] .section {
+    padding-top: calc(var(--header-h) + 10px);
+    padding-bottom: 74px;
+  }
+  html[data-paged="on"] .hero { padding-bottom: 64px; }
+  html[data-paged="on"] .section__head { margin-bottom: clamp(18px, 2.6vh, 30px); }
+}
 
 /* ============================================================ tight 档
    可用高度 580~700：iPhone SE / 8 Plus 这类。
-   实测「关于」章要压掉 200px 左右，主要来自页头留白、段落行高、
-   信息表行高与标签区。 */
-html[data-paged="on"][data-fit="tight"] .hero,
-html[data-paged="on"][data-fit="tight"] .section {
-  padding-top: calc(var(--header-h) + 10px);
-  padding-bottom: 26px;
+   只收留白，字号交给 blocks.css。 */
+html[data-paged="on"] .hero[data-fit="tight"],
+html[data-paged="on"] .section[data-fit="tight"] {
+  padding-top: calc(var(--header-h) + 8px);
+  padding-bottom: 58px;
 }
 
-html[data-paged="on"][data-fit="tight"] .section__head { margin-bottom: 14px; }
-html[data-paged="on"][data-fit="tight"] .eyebrow { margin-bottom: 8px; }
-html[data-paged="on"][data-fit="tight"] .section__lead { margin-top: 6px; font-size: .92rem; }
+html[data-paged="on"] [data-fit="tight"] .section__head { margin-bottom: 16px; }
+html[data-paged="on"] [data-fit="tight"] .section__lead { margin-top: 8px; }
+html[data-paged="on"] [data-fit="tight"] .eyebrow { margin-bottom: 9px; }
 
-/* 首页 */
-html[data-paged="on"][data-fit="tight"] .hero__status { margin-bottom: 18px; padding: 5px 12px 5px 10px; }
-html[data-paged="on"][data-fit="tight"] .hero__title { font-size: clamp(1.95rem, 9vw, 2.6rem); line-height: 1.12; }
-html[data-paged="on"][data-fit="tight"] .hero__role { margin-top: 10px; font-size: .74rem; }
-html[data-paged="on"][data-fit="tight"] .hero__desc { margin-top: 10px; font-size: .88rem; }
-html[data-paged="on"][data-fit="tight"] .hero__actions { margin-top: 18px; gap: 10px; }
-html[data-paged="on"][data-fit="tight"] .hero__actions .btn { min-height: 42px; padding: 9px 18px; }
-html[data-paged="on"][data-fit="tight"] .hero__quote { margin-top: 12px; font-size: .84rem; }
-html[data-paged="on"][data-fit="tight"] .hero__meta { margin-top: 10px; font-size: .7rem; }
-html[data-paged="on"][data-fit="tight"] .hero__progress { margin-top: 7px; }
-html[data-paged="on"][data-fit="tight"] .hero__avatar { margin-bottom: 14px; }
-html[data-paged="on"][data-fit="tight"] .hero__avatar img { width: 56px; height: 56px; }
+/* Q1 身份区 */
+html[data-paged="on"] [data-fit="tight"] .profile__avatar img { width: 62px; height: 62px; }
+html[data-paged="on"] [data-fit="tight"] .profile__tagline { margin-top: 8px; }
+html[data-paged="on"] [data-fit="tight"] .profile__intro { margin-top: 11px; }
+html[data-paged="on"] [data-fit="tight"] .contact-pair { margin-top: 16px; }
+html[data-paged="on"] [data-fit="tight"] .ccard { padding: 11px 12px 12px; }
+html[data-paged="on"] [data-fit="tight"] .hero__actions { margin-top: 15px; }
 
-/* 关于：正文行高、信息表行高、标签是三大块 */
-html[data-paged="on"][data-fit="tight"] .about__body p { font-size: .9rem; line-height: 1.72; }
-html[data-paged="on"][data-fit="tight"] .about__body p + p { margin-top: .7em; }
-html[data-paged="on"][data-fit="tight"] .about__grid { gap: 18px; }
-html[data-paged="on"][data-fit="tight"] .about__side { padding: 14px; }
-html[data-paged="on"][data-fit="tight"] .facts__row { padding: 6px 0; }
-html[data-paged="on"][data-fit="tight"] .facts__row dt { font-size: .74rem; }
-html[data-paged="on"][data-fit="tight"] .facts__row dd { font-size: .84rem; }
-html[data-paged="on"][data-fit="tight"] .tags { margin-top: 10px; gap: 5px; }
-html[data-paged="on"][data-fit="tight"] .tag { padding: 3px 8px; font-size: .68rem; }
+/* 摘要卡 */
+html[data-paged="on"] [data-fit="tight"] .preview-grid { margin-top: 14px; gap: 9px; }
+html[data-paged="on"] [data-fit="tight"] .preview { min-height: 0; padding: 11px 12px; }
+html[data-paged="on"] [data-fit="tight"] .preview__cover { display: none; }
+html[data-paged="on"] [data-fit="tight"] .preview__top { margin-bottom: 4px; }
 
-/* 卡片类：缩内边距与图标块 */
-html[data-paged="on"][data-fit="tight"] .card { padding: 16px; }
-html[data-paged="on"][data-fit="tight"] .card__icon { width: 38px; height: 38px; margin-bottom: 12px; border-radius: 11px; }
-html[data-paged="on"][data-fit="tight"] .card__icon .icon { width: 19px; height: 19px; }
-html[data-paged="on"][data-fit="tight"] .card__title { font-size: 1.06rem; }
-html[data-paged="on"][data-fit="tight"] .card__desc { font-size: .84rem; line-height: 1.65; margin-top: 6px; }
-html[data-paged="on"][data-fit="tight"] .card__tags { padding-top: 12px; }
+/* Q2 在听 */
+html[data-paged="on"] [data-fit="tight"] .track { padding: 10px 12px; }
+html[data-paged="on"] [data-fit="tight"] .listen__foot { margin-top: 10px; }
 
-html[data-paged="on"][data-fit="tight"] .game { padding: 14px; }
-html[data-paged="on"][data-fit="tight"] .game__icon { width: 30px; height: 30px; border-radius: 9px; }
-html[data-paged="on"][data-fit="tight"] .game__icon .icon { width: 16px; height: 16px; }
-html[data-paged="on"][data-fit="tight"] .game__head { margin-bottom: 10px; }
-html[data-paged="on"][data-fit="tight"] .game__uid { margin-bottom: 10px; padding: 6px 9px; }
-html[data-paged="on"][data-fit="tight"] .game__stats { gap: 6px; margin-bottom: 8px; }
-html[data-paged="on"][data-fit="tight"] .game__stat { padding: 6px 8px; }
+/* Q3 游戏 */
+html[data-paged="on"] [data-fit="tight"] .game { padding: 12px; }
+html[data-paged="on"] [data-fit="tight"] .game__icon { width: 24px; height: 24px; margin-bottom: 7px; }
+html[data-paged="on"] [data-fit="tight"] .game__icon .icon { width: 16px; height: 16px; }
+html[data-paged="on"] [data-fit="tight"] .game__uid { margin-top: 6px; padding: 5px 8px; }
 
-html[data-paged="on"][data-fit="tight"] .interest { padding: 16px; min-height: 0; }
-html[data-paged="on"][data-fit="tight"] .interest__icon { width: 34px; height: 34px; margin-bottom: 12px; }
-html[data-paged="on"][data-fit="tight"] .interest__meta { padding-top: 10px; }
+/* Q4 维修 */
+html[data-paged="on"] [data-fit="tight"] .repair { gap: 14px; }
+html[data-paged="on"] [data-fit="tight"] .quote { margin-top: 12px; padding-top: 10px; }
+html[data-paged="on"] [data-fit="tight"] .quote__summary { padding: 7px 0; margin: -7px 0; }
+html[data-paged="on"] [data-fit="tight"] .quote__row { padding: 1px 0; }
+html[data-paged="on"] [data-fit="tight"] .calc { padding: 13px 14px 14px; }
+html[data-paged="on"] [data-fit="tight"] .calc__step { margin-top: 10px; }
+html[data-paged="on"] [data-fit="tight"] .calc__opt { min-height: 36px; padding: 7px 11px; }
+html[data-paged="on"] [data-fit="tight"] .calc__result { margin-top: 12px; padding-top: 10px; }
 
-html[data-paged="on"][data-fit="tight"] .social { padding: 12px; }
-html[data-paged="on"][data-fit="tight"] .social__icon { width: 38px; height: 38px; }
+/* Q5 / Q6 */
+html[data-paged="on"] [data-fit="tight"] .social { padding: 12px 13px; gap: 11px; }
+html[data-paged="on"] [data-fit="tight"] .social__icon { width: 34px; height: 34px; }
+html[data-paged="on"] [data-fit="tight"] .mailbox { padding: 26px 22px; }
+html[data-paged="on"] [data-fit="tight"] .mailbox__mail { margin-top: 10px; }
+html[data-paged="on"] [data-fit="tight"] .mailbox__actions { margin-top: 15px; }
 
-html[data-paged="on"][data-fit="tight"] .contact { margin-top: 16px; padding: 20px 16px; }
-html[data-paged="on"][data-fit="tight"] .contact__hint { font-size: 1.1rem; }
-html[data-paged="on"][data-fit="tight"] .contact__actions { margin-top: 14px; }
-html[data-paged="on"][data-fit="tight"] .contact__mail { margin-top: 10px; }
-
-/* ============================================================= snug 档
-   可用高度 460~580：极矮屏、折叠屏外屏。
-   在 tight 基础上继续收，并把「关于」的信息表转为两列横向铺开 ——
-   这一章的最大开销就是 4 行竖排信息表 + 5 个标签。 */
-html[data-paged="on"][data-fit="snug"] .hero,
-html[data-paged="on"][data-fit="snug"] .section {
+/* ============================================================ snug 档
+   可用高度 460~580：极矮屏与折叠屏外屏。
+   这一档开始动结构：藏掉重复/可推导的信息，而不是继续缩字。 */
+html[data-paged="on"] .hero[data-fit="snug"],
+html[data-paged="on"] .section[data-fit="snug"] {
   padding-top: calc(var(--header-h) + 6px);
-  padding-bottom: 20px;
+  padding-bottom: 46px;
 }
 
-html[data-paged="on"][data-fit="snug"] .section__head { margin-bottom: 10px; }
-html[data-paged="on"][data-fit="snug"] .section__title { font-size: 1.6rem; }
-html[data-paged="on"][data-fit="snug"] .section__lead { font-size: .86rem; }
+html[data-paged="on"] [data-fit="snug"] .section__head { margin-bottom: 12px; }
+html[data-paged="on"] [data-fit="snug"] .section__lead { margin-top: 6px; }
+html[data-paged="on"] [data-fit="snug"] .eyebrow { margin-bottom: 7px; }
 
-html[data-paged="on"][data-fit="snug"] .hero__title { font-size: 1.85rem; }
-html[data-paged="on"][data-fit="snug"] .hero__status { margin-bottom: 12px; }
-html[data-paged="on"][data-fit="snug"] .hero__desc { font-size: .84rem; line-height: 1.65; }
-html[data-paged="on"][data-fit="snug"] .hero__quote { font-size: .8rem; }
+html[data-paged="on"] [data-fit="snug"] .profile__avatar img { width: 54px; height: 54px; }
+html[data-paged="on"] [data-fit="snug"] .profile__tagline { margin-top: 6px; }
+html[data-paged="on"] [data-fit="snug"] .profile__role { display: none; }
+html[data-paged="on"] [data-fit="snug"] .profile__intro { margin-top: 8px; }
+html[data-paged="on"] [data-fit="snug"] .contact-pair { margin-top: 11px; }
+html[data-paged="on"] [data-fit="snug"] .ccard { padding: 9px 11px 10px; }
+html[data-paged="on"] [data-fit="snug"] .hero__actions { margin-top: 11px; }
+html[data-paged="on"] [data-fit="snug"] .hero__actions .btn { min-height: 40px; padding: 8px 15px; }
 
-/* 关于：信息表两列（横向利用宽度，纵向省一半） */
-html[data-paged="on"][data-fit="snug"] .about__body p { font-size: .86rem; line-height: 1.65; }
-html[data-paged="on"][data-fit="snug"] .about__side { padding: 12px; }
-html[data-paged="on"][data-fit="snug"] .facts {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0 14px;
-}
-html[data-paged="on"][data-fit="snug"] .facts__row {
-  padding: 5px 0;
-  border-bottom: 1px dashed var(--line);
-}
-html[data-paged="on"][data-fit="snug"] .facts__row:nth-last-child(-n+2) { border-bottom: 0; }
-html[data-paged="on"][data-fit="snug"] .facts__row dd { font-size: .8rem; }
+html[data-paged="on"] [data-fit="snug"] .preview-grid { margin-top: 10px; gap: 8px; }
+html[data-paged="on"] [data-fit="snug"] .preview { min-height: 0; padding: 9px 11px; }
+html[data-paged="on"] [data-fit="snug"] .preview__cover { display: none; }
+html[data-paged="on"] [data-fit="snug"] .preview__meta { display: none; }
 
-html[data-paged="on"][data-fit="snug"] .card { padding: 14px; }
-html[data-paged="on"][data-fit="snug"] .card__desc { font-size: .8rem; }
-html[data-paged="on"][data-fit="snug"] .game__note { display: none; }
-html[data-paged="on"][data-fit="snug"] .interest__text p { font-size: .78rem; }
-html[data-paged="on"][data-fit="snug"] .contact { margin-top: 12px; padding: 16px 14px; }
+html[data-paged="on"] [data-fit="snug"] .track { padding: 8px 10px; }
+html[data-paged="on"] [data-fit="snug"] .track__go { display: none; }
+html[data-paged="on"] [data-fit="snug"] .listen__foot { margin-top: 8px; }
+
+html[data-paged="on"] [data-fit="snug"] .game { padding: 10px; }
+html[data-paged="on"] [data-fit="snug"] .game__icon { width: 20px; height: 20px; margin-bottom: 5px; }
+html[data-paged="on"] [data-fit="snug"] .game__icon .icon { width: 14px; height: 14px; }
+html[data-paged="on"] [data-fit="snug"] .game__uid { margin-top: 5px; padding: 4px 7px; }
+
+html[data-paged="on"] [data-fit="snug"] .repair { gap: 10px; }
+html[data-paged="on"] [data-fit="snug"] .quote { margin-top: 9px; padding-top: 8px; }
+html[data-paged="on"] [data-fit="snug"] .quote__hint { display: none; }
+html[data-paged="on"] [data-fit="snug"] .quote__note { display: none; }
+html[data-paged="on"] [data-fit="snug"] .calc { padding: 10px 12px 11px; }
+html[data-paged="on"] [data-fit="snug"] .calc__step { margin-top: 7px; }
+html[data-paged="on"] [data-fit="snug"] .calc__opt { min-height: 34px; padding: 6px 9px; }
+html[data-paged="on"] [data-fit="snug"] .calc__hint { display: none; }
+html[data-paged="on"] [data-fit="snug"] .calc__result { margin-top: 8px; padding-top: 7px; }
+html[data-paged="on"] [data-fit="snug"] .calc__foot { display: none; }
+
+html[data-paged="on"] [data-fit="snug"] .social { padding: 9px 11px; gap: 9px; }
+html[data-paged="on"] [data-fit="snug"] .social__icon { width: 28px; height: 28px; }
+html[data-paged="on"] [data-fit="snug"] .social__icon .icon { width: 15px; height: 15px; }
+html[data-paged="on"] [data-fit="snug"] .mailbox { padding: 20px 18px; }
+html[data-paged="on"] [data-fit="snug"] .mailbox__mail { margin-top: 8px; }
+html[data-paged="on"] [data-fit="snug"] .mailbox__actions { margin-top: 12px; }
+html[data-paged="on"] [data-fit="snug"] .mailbox__actions .btn { min-height: 40px; padding: 8px 14px; }
 
 /* ============================================================ micro 档
-   可用高度 < 460：横屏手机。
-   此时宽度充足（844px），高度只有 300 多。
-   策略换成「横向铺开」：关于页的正文与侧栏并排，卡片轨道更矮。 */
-html[data-paged="on"][data-fit="micro"] .hero,
-html[data-paged="on"][data-fit="micro"] .section {
+   可用高度 < 460。
+   ⚠️ 这一档有两种完全不同的情况，必须分开处理：
+        · 横屏手机（844×390）—— 高度矮但**宽度充足**，该改布局铺开
+        · 竖屏超小机（320×568）—— 宽高都紧张，只能继续收紧间距
+   早先把「多列铺开」写在 micro 里没加 orientation 判断，
+   结果 320×568 竖屏也被铺成两列，卡片挤成条状、文字疯狂换行，
+   高度反而从 712 涨到 940。所以多列部分全部下沉到下面的 landscape 媒体查询。 */
+html[data-paged="on"] .hero[data-fit="micro"],
+html[data-paged="on"] .section[data-fit="micro"] {
   padding-top: calc(var(--header-h) + 4px);
-  padding-bottom: 14px;
-  align-items: flex-start;
+  padding-bottom: 40px;
 }
 
-html[data-paged="on"][data-fit="micro"] .section__head { margin-bottom: 8px; }
-html[data-paged="on"][data-fit="micro"] .eyebrow { display: none; }
-html[data-paged="on"][data-fit="micro"] .section__title { font-size: 1.35rem; }
-html[data-paged="on"][data-fit="micro"] .section__lead { margin-top: 3px; font-size: .8rem; }
+html[data-paged="on"] [data-fit="micro"] .section__head { margin-bottom: 8px; }
+/* 导语不再藏。它只占两行（约 40px），而这些屏的填充率只有 50%~64%，
+   有余量留给信息 —— 上一版为了凑高度把它删掉，属于「省过头」。 */
+html[data-paged="on"] [data-fit="micro"] .eyebrow { margin-bottom: 5px; }
 
-/* ⚠️ 双列布局只给「矮但宽」的横屏用。
-   竖屏窄屏（320×568）也落在 micro 档，但它宽度只有 320，
-   分两列会各挤成 140px 的细柱、文字大量换行，反而比单列更高 ——
-   实测单列 504px 能装下，双列要 585px。 */
-@media (orientation: landscape) {
-  html[data-paged="on"][data-fit="micro"] .hero__inner {
-    display: grid;
-    grid-template-columns: 1.15fr 1fr;
-    gap: 8px 26px;
-    align-items: start;
+/* Q1 */
+html[data-paged="on"] [data-fit="micro"] .profile__avatar img { width: 44px; height: 44px; }
+html[data-paged="on"] [data-fit="micro"] .profile__tagline { margin-top: 4px; }
+html[data-paged="on"] [data-fit="micro"] .profile__role { display: none; }
+html[data-paged="on"] [data-fit="micro"] .profile__intro { margin-top: 5px; -webkit-line-clamp: 2; }
+html[data-paged="on"] [data-fit="micro"] .contact-pair { margin-top: 8px; gap: 8px; }
+html[data-paged="on"] [data-fit="micro"] .preview-pair { gap: 8px; }
+html[data-paged="on"] [data-fit="micro"] .ccard { padding: 8px 10px 9px; }
+html[data-paged="on"] [data-fit="micro"] .hero__actions { margin-top: 9px; }
+html[data-paged="on"] [data-fit="micro"] .hero__actions .btn { min-height: 38px; padding: 7px 14px; }
+
+html[data-paged="on"] [data-fit="micro"] .preview-grid { margin-top: 8px; gap: 7px; }
+html[data-paged="on"] [data-fit="micro"] .preview { min-height: 0; padding: 8px 10px; }
+html[data-paged="on"] [data-fit="micro"] .preview__cover { display: none; }
+html[data-paged="on"] [data-fit="micro"] .preview__meta { display: none; }
+html[data-paged="on"] [data-fit="micro"] .preview__top { margin-bottom: 2px; }
+
+/* Q2 */
+html[data-paged="on"] [data-fit="micro"] .track { padding: 6px 9px; }
+html[data-paged="on"] [data-fit="micro"] .track__go { display: none; }
+html[data-paged="on"] [data-fit="micro"] .listen__foot { margin-top: 6px; }
+
+/* Q3 */
+html[data-paged="on"] [data-fit="micro"] .game { padding: 8px 9px; }
+html[data-paged="on"] [data-fit="micro"] .game__icon { width: 18px; height: 18px; margin-bottom: 3px; }
+html[data-paged="on"] [data-fit="micro"] .game__icon .icon { width: 13px; height: 13px; }
+html[data-paged="on"] [data-fit="micro"] .game__uid { margin-top: 3px; padding: 3px 6px; }
+
+/* Q4 */
+html[data-paged="on"] [data-fit="micro"] .quote { margin-top: 7px; padding-top: 7px; }
+html[data-paged="on"] [data-fit="micro"] .quote__summary { padding: 5px 0; margin: -5px 0; }
+html[data-paged="on"] [data-fit="micro"] .quote__row { padding: 0; }
+html[data-paged="on"] [data-fit="micro"] .quote__hint { display: none; }
+html[data-paged="on"] [data-fit="micro"] .quote__note { display: none; }
+html[data-paged="on"] [data-fit="micro"] .calc { padding: 9px 10px 10px; }
+html[data-paged="on"] [data-fit="micro"] .calc__step { margin-top: 6px; }
+html[data-paged="on"] [data-fit="micro"] .calc__label { margin-bottom: 4px; }
+html[data-paged="on"] [data-fit="micro"] .calc__opt { min-height: 32px; padding: 5px 9px; }
+html[data-paged="on"] [data-fit="micro"] .calc__hint { display: none; }
+html[data-paged="on"] [data-fit="micro"] .calc__result { margin-top: 7px; padding-top: 6px; }
+html[data-paged="on"] [data-fit="micro"] .calc__detail { display: none; }
+html[data-paged="on"] [data-fit="micro"] .calc__foot { display: none; }
+
+/* Q5 / Q6 */
+html[data-paged="on"] [data-fit="micro"] .social { padding: 6px 9px; gap: 8px; }
+html[data-paged="on"] [data-fit="micro"] .social__icon { width: 24px; height: 24px; }
+html[data-paged="on"] [data-fit="micro"] .social__icon .icon { width: 13px; height: 13px; }
+/* 账号不藏：Q5 在这一档的填充率只有 31%~41%，
+   而账号是这张卡唯一的信息，藏了只剩一个平台名。 */
+html[data-paged="on"] [data-fit="micro"] .mailbox { padding: 14px 15px; }
+html[data-paged="on"] [data-fit="micro"] .mailbox__mail { margin-top: 5px; }
+html[data-paged="on"] [data-fit="micro"] .mailbox__actions { margin-top: 9px; }
+html[data-paged="on"] [data-fit="micro"] .mailbox__actions .btn { min-height: 36px; padding: 6px 12px; }
+
+/* ============================== 横屏：高度不够但宽度充足，优先改布局
+   把多列铺开放在这里，而不是混进 micro —— 否则 320×568 那种
+   「竖屏 + 矮高」的机型会被误伤（实测高度从 712 涨到 940）。 */
+@media (orientation: landscape) and (max-height: 560px) {
+  html[data-paged="on"] [data-fit="micro"] .game-rail { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+  html[data-paged="on"] [data-fit="micro"] .social-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+  html[data-paged="on"] [data-fit="micro"] .track-list { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  html[data-paged="on"] [data-fit="micro"] .preview-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  html[data-paged="on"] [data-fit="micro"] .repair {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 10px;
   }
-  html[data-paged="on"][data-fit="micro"] .hero__avatar,
-  html[data-paged="on"][data-fit="micro"] .hero__status { grid-column: 1; }
-  html[data-paged="on"][data-fit="micro"] .hero__title { grid-column: 1; font-size: 1.7rem; }
-  html[data-paged="on"][data-fit="micro"] .hero__role { grid-column: 1; margin-top: 6px; }
-  html[data-paged="on"][data-fit="micro"] .hero__desc {
-    grid-column: 2; grid-row: 1 / span 3;
-    margin-top: 0; font-size: .82rem; line-height: 1.6;
-  }
-  html[data-paged="on"][data-fit="micro"] .hero__actions { grid-column: 1 / -1; margin-top: 12px; }
-  html[data-paged="on"][data-fit="micro"] .hero__quote { grid-column: 1 / -1; margin-top: 8px; font-size: .78rem; }
-  html[data-paged="on"][data-fit="micro"] .hero__meta { grid-column: 1 / -1; margin-top: 6px; }
-  html[data-paged="on"][data-fit="micro"] .hero__progress { grid-column: 1 / -1; margin-top: 4px; max-width: 240px; }
+  html[data-paged="on"] [data-fit="micro"] .repair__left { order: 0; }
+  html[data-paged="on"] [data-fit="micro"] .calc { order: 1; }
+  html[data-paged="on"] [data-fit="micro"] .quote__groups { columns: 1; }
 }
 
-/* 关于页的双列同理：只在横屏用 */
-@media (orientation: portrait) {
-  html[data-paged="on"][data-fit="micro"] .about__grid { grid-template-columns: 1fr; gap: 14px; }
-}
-
-/* 关于：正文与侧栏并排（仅横屏，理由同上） */
-@media (orientation: landscape) {
-  html[data-paged="on"][data-fit="micro"] .about__grid {
-    grid-template-columns: 1.3fr 1fr;
-    gap: 24px;
-    align-items: start;
-  }
-}
-html[data-paged="on"][data-fit="micro"] .about__body p { font-size: .82rem; line-height: 1.6; }
-html[data-paged="on"][data-fit="micro"] .about__side { padding: 12px; }
-html[data-paged="on"][data-fit="micro"] .facts__row { padding: 4px 0; }
-html[data-paged="on"][data-fit="micro"] .tags { margin-top: 8px; }
-html[data-paged="on"][data-fit="micro"] .tag { padding: 2px 7px; font-size: .66rem; }
-
-/* 卡片：横屏下轨道更矮，去掉次要信息 */
-html[data-paged="on"][data-fit="micro"] .card { padding: 14px; min-height: 0; }
-html[data-paged="on"][data-fit="micro"] .card__icon { width: 30px; height: 30px; margin-bottom: 8px; }
-html[data-paged="on"][data-fit="micro"] .card__desc { font-size: .78rem; line-height: 1.55; }
-html[data-paged="on"][data-fit="micro"] .card__tags { display: none; }
-
-/* 横屏时游戏轨道是最高的一块（实测 276px），要压到 200 以内才装得下 */
-html[data-paged="on"][data-fit="micro"] .game { padding: 10px 12px; }
-html[data-paged="on"][data-fit="micro"] .game__note { display: none; }
-html[data-paged="on"][data-fit="micro"] .game__head { margin-bottom: 8px; }
-html[data-paged="on"][data-fit="micro"] .game__icon { width: 26px; height: 26px; border-radius: 8px; }
-html[data-paged="on"][data-fit="micro"] .game__title h3 { font-size: .9rem; }
-html[data-paged="on"][data-fit="micro"] .game__title p { font-size: .6rem; }
-html[data-paged="on"][data-fit="micro"] .game__uid { margin-bottom: 8px; padding: 5px 8px; }
-html[data-paged="on"][data-fit="micro"] .game__uid-value { font-size: .72rem; }
-html[data-paged="on"][data-fit="micro"] .game__stats {
-  margin-bottom: 0;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 5px;
-}
-html[data-paged="on"][data-fit="micro"] .game__stat { padding: 5px 6px; }
-html[data-paged="on"][data-fit="micro"] .game__stat dt { font-size: .58rem; }
-html[data-paged="on"][data-fit="micro"] .game__stat dd { font-size: .74rem; }
-html[data-paged="on"][data-fit="micro"] .game-rail { padding-block: 2px 8px; }
-
-html[data-paged="on"][data-fit="micro"] .interest { padding: 12px; }
-html[data-paged="on"][data-fit="micro"] .interest__meta { display: none; }
-html[data-paged="on"][data-fit="micro"] .interest__text p { display: none; }
-
-html[data-paged="on"][data-fit="micro"] .social { padding: 10px 12px; }
-html[data-paged="on"][data-fit="micro"] .contact { margin-top: 10px; padding: 14px; }
-html[data-paged="on"][data-fit="micro"] .contact__hint { font-size: 1rem; }
-html[data-paged="on"][data-fit="micro"] .contact__mail { display: none; }
-
-/* 横屏时页码在底部会挡住内容，改到右侧竖排（沿用桌面样式） */
-html[data-fit="micro"] .pager {
-  top: 50%;
-  right: 8px;
-  bottom: auto;
-  left: auto;
-  transform: translateY(-50%);
-  padding: 6px 4px;
-  border: 1px solid var(--line);
-  border-radius: var(--r-full);
-  background: var(--bg-elev);
-  box-shadow: var(--shadow-sm);
-  pointer-events: auto;
-}
-html[data-fit="micro"] .pager__list { display: flex; }
-html[data-fit="micro"] .pager__track { display: none; }
-html[data-fit="micro"] .pager__dot { height: 18px; padding: 0 4px; }
-html[data-fit="micro"] .pager__dot::before { width: 4px; height: 4px; }
-html[data-fit="micro"] .pager__label { display: none; }
-
-/* ======================================================= 安全区补偿
-   带刘海 / 灵动岛的机型，底部有 home indicator。
-   翻页模式下每章要有足够的下留白，否则最后一行会贴到指示条上。 */
-html[data-paged="on"] .hero,
-html[data-paged="on"] .section {
-  padding-bottom: max(clamp(26px, 4vh, 40px), env(safe-area-inset-bottom));
-}
-
-/* 横屏时左右也可能有安全区（刘海在侧边） */
-@media (orientation: landscape) {
-  html[data-paged="on"] .hero,
-  html[data-paged="on"] .section {
-    padding-left: max(var(--gutter), env(safe-area-inset-left));
-    padding-right: max(var(--gutter), env(safe-area-inset-right));
-  }
-}
-
-/* ==================================== micro 档的「信息优先级」裁剪
-   到了这一档说明屏幕真的放不下了（320×568 竖屏、或横屏 390 高）。
-   首页有 8 个信息块，实测加起来 496px + 留白就是装不进 568。
-   这时按「对访客的重要性」删减，而不是继续缩小字号：
-     保留  标题 / 身份 / 简介 / 两个按钮   ← 访客真正要看的
-     保留  时钟日期                       ← 至少知道现在几点
-     舍弃  一言                           ← 装饰性，删掉不损失信息
-     合并  今年进度条并进时钟那一行        ← 一行能表达的就别占两行
-   注意：这只是「极矮屏」的降级，390×844 这类主流机型完整显示。 */
-html[data-paged="on"][data-fit="micro"] .hero__quote { display: none; }
-
-html[data-paged="on"][data-fit="micro"] .hero__meta { margin-top: 8px; }
-
-/* 进度条与时钟并排：省掉一整行 */
-html[data-paged="on"][data-fit="micro"] .hero__progress {
-  margin-top: 6px;
-  max-width: none;
-  gap: 8px;
-}
-html[data-paged="on"][data-fit="micro"] .hero__progress__track { flex: 0 1 90px; }
-html[data-paged="on"][data-fit="micro"] .hero__progress__label { font-size: .6rem; }
-
-/* 首页留白再收一档 */
-html[data-paged="on"][data-fit="micro"] .hero__status { margin-bottom: 10px; padding: 4px 10px 4px 9px; font-size: .7rem; }
-html[data-paged="on"][data-fit="micro"] .hero__title { line-height: 1.1; }
-html[data-paged="on"][data-fit="micro"] .hero__actions { margin-top: 12px; }
-html[data-paged="on"][data-fit="micro"] .hero__actions .btn { min-height: 38px; padding: 8px 16px; font-size: .82rem; }
-
-/* ==================================================== 卡片网格：手机端两列
-   去掉横向滑动轨道之后，卡片必须竖向排开。单列排 6 张会远超一屏，
-   所以窄屏统一改成**两列网格** —— 高度直接砍一半，且一眼看全。
-   宽度不够时靠收紧内边距和隐藏次要信息（标签、备注）来让文字不换行太多。 */
-@media (max-width: 900px) {
-  html[data-paged="on"] .card-grid,
-  html[data-paged="on"] .interest-grid,
-  html[data-paged="on"] .social-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 9px;
-  }
-
-  /* 业务卡：图标块缩小，标签只留前两个（完整信息在桌面端仍可见） */
-  html[data-paged="on"] .card { padding: 13px; min-height: 0; }
-  html[data-paged="on"] .card__icon { width: 30px; height: 30px; margin-bottom: 8px; border-radius: 9px; }
-  html[data-paged="on"] .card__icon .icon { width: 16px; height: 16px; }
-  html[data-paged="on"] .card__index { display: none; }
-  html[data-paged="on"] .card__title { font-size: .92rem; line-height: 1.35; }
-  html[data-paged="on"] .card__desc { font-size: .74rem; line-height: 1.55; margin-top: 5px; }
-  html[data-paged="on"] .card__tags { padding-top: 8px; gap: 4px; }
-  html[data-paged="on"] .card__tags .pill:nth-child(n+3) { display: none; }
-
-  /* 喜好卡：去掉右上角的 meta 小字，描述压到两行 */
-  html[data-paged="on"] .interest { padding: 13px; min-height: 0; }
-  html[data-paged="on"] .interest__icon { width: 28px; height: 28px; margin-bottom: 8px; border-radius: 9px; }
-  html[data-paged="on"] .interest__icon .icon { width: 15px; height: 15px; }
-  html[data-paged="on"] .interest__text h3 { font-size: .88rem; }
-  html[data-paged="on"] .interest__text p { font-size: .72rem; line-height: 1.5; margin-top: 3px; }
-  html[data-paged="on"] .interest__meta { display: none; }
-
-  /* 社交卡：缩小图标与字号 */
-  html[data-paged="on"] .social { padding: 9px 10px; gap: 9px; }
-  html[data-paged="on"] .social__icon { width: 28px; height: 28px; border-radius: 9px; }
-  html[data-paged="on"] .social__icon .icon { width: 15px; height: 15px; }
-  html[data-paged="on"] .social__label { font-size: .82rem; }
-  html[data-paged="on"] .social__handle { font-size: .64rem; }
-  html[data-paged="on"] .social__arrow { width: 13px; height: 13px; }
-  /* 游戏卡：这是窄屏最容易撑高的一类。
-     实测 170px 宽时单张卡能到 366px —— 因为统计区 repeat(auto-fit, minmax(78px))
-     在 142px 内只能排 1 列，3 项竖着叠；加上备注和标题换行就更夸张。
-     修法：统计强制 3 列、备注隐藏、标题限一行。卡高降到 150 左右。 */
-  html[data-paged="on"] .game { padding: 11px 12px; }
-  html[data-paged="on"] .game__head { gap: 8px; margin-bottom: 7px; }
-  html[data-paged="on"] .game__icon { width: 24px; height: 24px; border-radius: 7px; }
-  html[data-paged="on"] .game__icon .icon { width: 14px; height: 14px; }
-  html[data-paged="on"] .game__title h3 {
-    font-size: .82rem; line-height: 1.3;
-    display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden;
-  }
-  html[data-paged="on"] .game__title p { font-size: .58rem; }
-  html[data-paged="on"] .game__uid { margin-bottom: 7px; padding: 4px 7px; gap: 5px; }
-  html[data-paged="on"] .game__uid-label { font-size: .5rem; }
-  html[data-paged="on"] .game__uid-value { font-size: .66rem; }
-  html[data-paged="on"] .game__uid-copy { width: 16px; height: 16px; }
-  html[data-paged="on"] .game__stats {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 4px;
-    margin-bottom: 0;
-  }
-  html[data-paged="on"] .game__stat { padding: 4px 5px; border-radius: 6px; }
-  html[data-paged="on"] .game__stat dt { font-size: .54rem; }
-  html[data-paged="on"] .game__stat dd { font-size: .7rem; }
-  html[data-paged="on"] .game__note { display: none; }
-}
-
-/* 极矮屏（snug / micro）：再砍一档，正文只留一行 */
-html[data-fit="snug"] .card__desc,
-html[data-fit="micro"] .card__desc {
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-html[data-fit="micro"] .card__tags { display: none; }
-html[data-fit="micro"] .interest__text p { display: none; }
-
-/* ============================== 超小屏（≤380px 宽）：卡片只留核心信息
-   320×568 这类屏幕，两列网格 + 完整卡片信息仍然装不下（实测差 100px）。
-   这里把卡片降级成「名字 + ID」：统计与备注隐藏。
-   注意这只有 ≤380px 宽才会触发，390 的主流机型不受影响。 */
+/* ============================== 超小屏（≤380px 宽）
+   320×568 这类屏幕横向空间也不够，两列会挤成一条。
+   这里只调列数与间隙，不删内容、不动字号。 */
 @media (max-width: 380px) {
-  html[data-paged="on"] .game__stats { display: none; }
-  html[data-paged="on"] .game { padding: 9px 10px; }
-  html[data-paged="on"] .social { padding: 7px 8px; gap: 7px; }
-  html[data-paged="on"] .social__icon { width: 24px; height: 24px; border-radius: 7px; }
-  html[data-paged="on"] .social__icon .icon { width: 13px; height: 13px; }
-  html[data-paged="on"] .contact { margin-top: 10px; padding: 12px; }
-  html[data-paged="on"] .contact__hint { font-size: .9rem; }
-  html[data-paged="on"] .contact__actions { margin-top: 8px; gap: 7px; }
-  html[data-paged="on"] .contact__mail { display: none; }
-  /* 两个按钮并排：竖着叠会白占 48px，超小屏上这 48px 就是超屏与否的分界 */
-  html[data-paged="on"] .contact__actions .btn { flex: 1 1 0; min-height: 40px; padding: 8px 10px; font-size: .8rem; }
-  html[data-paged="on"] .contact__hint { line-height: 1.5; }
-  html[data-paged="on"] .social-grid { gap: 7px; }
-  html[data-paged="on"] .section__head { margin-bottom: 6px; }
-  html[data-paged="on"] .contact { margin-top: 8px; }
-  html[data-paged="on"] .contact__actions { margin-top: 5px; }
-  html[data-paged="on"] .social-grid { row-gap: 6px; }
-  html[data-paged="on"] .social { padding: 6px 8px; }
+  /* ⚠️ 这里的 .repair gap 必须带 data-fit 限定。
+     早先写成 `html[data-paged="on"] .repair { gap: 6px }`（没有 data-fit），
+     结果它在 roomy 档也生效 —— 而 tight 档是 16px、snug 是 12px，
+     档位顺序于是变成 roomy(6) < snug(12) < tight(16)，
+     「越紧的档压缩越多」这条单调性被打破：实测 tight 比 roomy 还高 28px。
+     pickFit 从 roomy 往下逐档试，遇到"下一档反而更高"会白试一轮。
+     现在只在最紧的两档生效，顺序恢复单调。 */
+  html[data-paged="on"] [data-fit="snug"] .repair,
+  html[data-paged="on"] [data-fit="micro"] .repair { gap: 6px; }
+  html[data-paged="on"] .game-rail { gap: 8px; }
+  html[data-paged="on"] .game { padding: 11px; }
+  html[data-paged="on"] .social { padding: 11px; gap: 9px; }
+  html[data-paged="on"] .social__icon { width: 30px; height: 30px; }
+  html[data-paged="on"] .ccard { padding: 10px 10px 11px; }
+  html[data-paged="on"] .quote__groups { columns: 1; }
+  html[data-paged="on"] .preview__stats { gap: 5px 12px; }
 }
 
-/* ============================== 横屏手机（高度 ≤560）：横向铺开
-   横屏宽度充足（844px）但高度只有 390，两列网格会撑成 4 行。
-   改成 4 列：服务 4 张一排、喜好/游戏 6 张两排、社交 7 张两排。 */
+/* ============================== 横屏手机（高度 ≤560）
+   宽度充足（844px）但高度只有 390，两列网格会撑成 4 行。
+   维修屏用左右并排，其他屏用多列铺开。 */
 @media (max-height: 560px) and (orientation: landscape) {
-  html[data-paged="on"] .card-grid,
-  html[data-paged="on"] .interest-grid,
-  html[data-paged="on"] .social-grid,
-  html[data-paged="on"] .game-rail {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 8px;
-  }
-  html[data-paged="on"] .section__lead { display: none; }
-  html[data-paged="on"] .section__head { margin-bottom: 8px; }
-  html[data-paged="on"] .contact { margin-top: 10px; padding: 12px 14px; }
-  html[data-paged="on"] .contact__hint { font-size: .95rem; }
-  html[data-paged="on"] .contact__actions { margin-top: 8px; }
-  html[data-paged="on"] .contact__mail { display: none; }
-  html[data-paged="on"] .card__desc { -webkit-line-clamp: 2; }
-  html[data-paged="on"] .interest__text p { -webkit-line-clamp: 1; }
-
-  /* 横屏 4 列时游戏卡只有 ~196px 宽，统计区 auto-fit 会退化成 2 列并占用两行。
-     强制 3 列后卡片矮 30px，6 张两行就装得下了。 */
-  /* 游戏卡单独用 3 列：4 列时每张只有 163px 宽，标题和 ID 都要换行，
-     卡高反而比 3 列更高（153 vs ~120）。3 列两行 = 6 张刚好。 */
   html[data-paged="on"] .game-rail { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  html[data-paged="on"] .game { padding: 8px 10px; }
-  html[data-paged="on"] .game__head { margin-bottom: 6px; }
-  /* 横屏 390px 高塞不下「6 张卡 × 完整统计」——实测需要 449px，差 59px。
-     这里做取舍：横屏只留游戏名、区服段位、ID（加好友最需要的三项），
-     隐藏「可展现资产」。竖屏与桌面端仍然完整显示，一条不少。 */
-  html[data-paged="on"] .game__stats { display: none; }
-  html[data-paged="on"] .game__stat { padding: 3px 4px; }
-  html[data-paged="on"] .game__stat dt { font-size: .5rem; }
-  html[data-paged="on"] .game__stat dd { font-size: .66rem; }
-  html[data-paged="on"] .game__uid { margin-bottom: 6px; padding: 3px 6px; }
+  html[data-paged="on"] .social-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  html[data-paged="on"] .track-list { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  html[data-paged="on"] .repair { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  html[data-paged="on"] .repair__left { order: 0; }
+  html[data-paged="on"] .calc { order: 1; }
+}
+
+/* ==========================================================================
+ *  横屏手机：宽度充足、高度极矮（844×390），是**方向**问题不是高度问题
+ * --------------------------------------------------------------------------
+ *  这一档不能只靠压留白：页头就占 72px，390 的高度只剩 318px 可用，
+ *  正文按桌面尺度根本放不下。上一版的做法是把名字缩到 1.25rem、标题 1.1rem、
+ *  隐藏按钮与标签 —— 内容被删掉一半。
+ *
+ *  这一版的取舍：横屏给一套**独立的小一号字阶**（正文 12.5px 起，仍可读），
+ *  内容一条不删；如果这样还是超屏，就让它超 —— paged.js 会把它标成
+ *  data-tall、吸附降级为 proximity，允许滚完。横屏看竖版页面本来就是补充场景。
+ * ========================================================================== */
+@media (orientation: landscape) and (max-height: 560px) {
+  .profile__name { font-size: 1.7rem; }
+  .profile__avatar img { width: 44px; height: 44px; }
+  .profile__tagline { margin-top: 5px; font-size: .84rem; }
+  .profile__role { display: none; }
+  .profile__intro { margin-top: 6px; font-size: .8rem; line-height: 1.5; }
+  .hero__actions { margin-top: 10px; }
+  .hero__actions .btn { min-height: 34px; padding: 6px 13px; font-size: .8rem; }
+
+  .section__title { font-size: 1.5rem; }
+  .section__head { margin-bottom: 12px; }
+  .section__lead { margin-top: 5px; font-size: .8rem; }
+
+  .contact-pair { margin-top: 10px; }
+  .ccard { padding: 7px 9px; }
+  .ccard__label { font-size: .7rem; }
+  .ccard__value { font-size: .8rem; }
+  .preview-pair .preview { padding: 8px 10px; }
+  .preview-pair .preview__title { font-size: .8rem; }
+  .preview-pair .preview__platform { font-size: .7rem; }
+  .preview-pair .preview__meta { font-size: .7rem; }
+
+  .track { padding: 6px 8px; }
+  .track__title { font-size: .84rem; }
+  .track__meta { font-size: .72rem; }
+
+  .game { padding: 8px 9px; }
+  .game__name { font-size: .82rem; }
+  .game__uid-value { font-size: .72rem; }
+
+  .preview-grid .preview { padding: 8px 10px; }
+  .preview-grid .preview__title { font-size: .84rem; }
+
+  .calc { padding: 9px 10px; }
+  .calc__title { font-size: .86rem; }
+  .calc__label { font-size: .7rem; margin-bottom: 4px; }
+  .calc__opt { min-height: 30px; padding: 4px 8px; font-size: .8rem; }
+  .calc__price { font-size: 1.1rem; }
+  .calc__detail { font-size: .7rem; }
+  .calc__foot { display: none; }
+
+  .quote { margin-top: 8px; padding-top: 7px; }
+  .quote__title { font-size: .82rem; }
+  .quote__item,
+  .quote__price { font-size: .78rem; }
+  .quote__note { display: none; }
+
+  .social { padding: 8px 10px; }
+  .social__label { font-size: .84rem; }
+  .social__handle { font-size: .72rem; }
+  .mailbox { padding: 16px 18px; }
+  .mailbox__mail { font-size: 1.1rem; margin-top: 6px; }
+  .mailbox__actions { margin-top: 10px; }
 }

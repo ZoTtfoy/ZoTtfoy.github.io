@@ -32,7 +32,14 @@ ok(html.includes('id="soundOn"'), '页面含音乐挂载点');
 ok(/dataset\.loading/.test(html), '首屏内联脚本决定了是否显示载入动画');
 
 const mainSrc = fs.readFileSync(path.join(ROOT, 'assets/js/main.js'), 'utf8');
-ok(/SITE_LIVE[\s\S]{0,80}SITE_PAGED/.test(mainSrc), 'main.js 里 live 先于 paged 初始化');
+/* 改成比较出现位置，而不是「相隔 80 字符内」的正则：
+   中间插一句注释或一个别的初始化就会误报。语义要的只是先后顺序。 */
+const iLive = mainSrc.indexOf('SITE_LIVE.init');
+const iPaged = mainSrc.indexOf('SITE_PAGED.init');
+const iFold = mainSrc.indexOf('foldQuote');
+ok(iLive > 0 && iPaged > iLive, 'main.js 里 live 先于 paged 初始化');
+/* 报价表的展开/收起会改变 Q4 高度，必须在 paged 测量之前定下来 */
+ok(iFold > 0 && iPaged > iFold, '报价表折叠先于 paged 测量');
 
 /* ------------------------------------------------------ 2. 配置项齐全 */
 ['loading', 'clock', 'progress', 'quote', 'quoteRemote'].forEach(k => {
@@ -110,9 +117,17 @@ function makeCtx(configSource, opts = {}) {
   return { ctx, nodes, store };
 }
 
-/* --- 默认配置：时钟 / 一言 / 进度都应有内容 --- */
-const a = makeCtx(cfgSrc);
-vm.runInContext(cfgSrc, a.ctx);
+/* --- 时钟 / 一言 / 进度都应能正常工作 ---
+   注意：6 屏重构后 config.js 里 clock / quote / progress 默认是 **false**
+   （Q1 要塞 QQ/微信 + 两张摘要卡，没有空间放这些装饰）。
+   所以这里不直接跑默认配置，而是先打开它们再验功能 ——
+   验的是「打开后能正常工作」，而不是「默认就是开的」。 */
+const onCfg = cfgSrc
+  .replace(/clock: false/, 'clock: true')
+  .replace(/progress: false/, 'progress: true')
+  .replace(/quote: false/, 'quote: true');
+const a = makeCtx(onCfg);
+vm.runInContext(onCfg, a.ctx);
 vm.runInContext(liveSrc, a.ctx, { filename: 'live.js' });
 ok(!!a.ctx.SITE_LIVE, 'live.js 暴露 SITE_LIVE');
 a.ctx.SITE_LIVE.init();
@@ -141,7 +156,7 @@ const fill = a.nodes.liveProgressFill.style.transform;
 ok(/^scaleX\(0?\.\d+\)$/.test(fill), '进度条填充比例已设置（' + fill + '）');
 
 /* --- 全部关掉 --- */
-const offCfg = cfgSrc
+const offCfg = onCfg
   .replace(/loading: true/, 'loading: false')
   .replace(/clock: true/, 'clock: false')
   .replace(/progress: true/, 'progress: false')
@@ -155,16 +170,16 @@ ok(b2.nodes.liveProgress.hidden === true, '关掉 progress 后进度条保持隐
 ok(b2.nodes.liveQuote.hidden === true, '关掉 quote 后一言保持隐藏');
 
 /* --- 减少动态效果：不联网、不换句 --- */
-const rc = makeCtx(cfgSrc, { reduced: true });
-vm.runInContext(cfgSrc, rc.ctx);
+const rc = makeCtx(onCfg, { reduced: true });
+vm.runInContext(onCfg, rc.ctx);
 vm.runInContext(liveSrc, rc.ctx, { filename: 'live-rm.js' });
 rc.ctx.SITE_LIVE.init();
 ok(rc.nodes.liveQuote.hidden === false, '减少动效下仍然显示一言（只是不可点击换句）');
 ok(rc.nodes.liveQuote.getAttribute('role') === null, '减少动效下不挂 button 语义');
 
 /* --- 一言：本地列表随机且会换 --- */
-const qc = makeCtx(cfgSrc);
-vm.runInContext(cfgSrc, qc.ctx);
+const qc = makeCtx(onCfg);
+vm.runInContext(onCfg, qc.ctx);
 vm.runInContext(liveSrc, qc.ctx, { filename: 'live-q.js' });
 qc.ctx.SITE_LIVE.init();
 ok(qc.nodes.liveQuote.getAttribute('role') === 'button', '本地一言模式可点击换句');
@@ -220,13 +235,28 @@ async function browserChecks() {
     }));
     ok(second.attr === '0' && second.gone, '[浏览器] 同一会话再次访问不再出现');
 
-    // 一言换句
+    /* 一言：6 屏重构后默认是关闭的（live.quote = false）——
+       Q1 要塞 QQ/微信和两张摘要卡，再加一句话就装不下了。
+       所以这里先验「关掉时确实不出现」，再临时打开验交互，两条都测。 */
     await page.waitForTimeout(600);
-    const q1 = await page.evaluate(() => document.getElementById('liveQuote').textContent);
+    const quoteOff = await page.evaluate(() => {
+      const el = document.getElementById('liveQuote');
+      return { hidden: el.hidden, visible: el.getClientRects().length > 0 };
+    });
+    ok(quoteOff.hidden && !quoteOff.visible, '[浏览器] 默认配置下一言不显示（Q1 空间优先）');
+
+    const q1 = await page.evaluate(() => {
+      // 临时打开，再 init 一次即可生效（live.js 的 init 是幂等的）
+      window.SITE_CONFIG.live.quote = true;
+      window.SITE_CONFIG.live.clock = true;
+      window.SITE_LIVE.init();
+      return document.getElementById('liveQuote').textContent;
+    });
+    await page.waitForTimeout(300);
     await page.locator('#liveQuote').click();
     await page.waitForTimeout(400);
     const q2 = await page.evaluate(() => document.getElementById('liveQuote').textContent);
-    ok(!!q1 && !!q2, '[浏览器] 一言有点击交互（' + q1.slice(0, 8) + ' → ' + q2.slice(0, 8) + '）');
+    ok(!!q1 && !!q2, '[浏览器] 打开配置后一言有点击交互（' + q1.slice(0, 8) + ' → ' + q2.slice(0, 8) + '）');
     await ctx.close();
   }
 
@@ -267,8 +297,20 @@ async function browserChecks() {
     const errs = [];
     page.on('pageerror', e => errs.push(e.message));
     page.on('console', c => { if (c.type() === 'error') errs.push(c.text()); });
+    /* 这三档验的是「时钟 / 一言 / 进度在真实布局下是否可读、是否挤坏首屏」，
+       而它们默认是关闭的，所以注入一次配置再重载。 */
+    await page.addInitScript(() => {
+      // config.js 先于本脚本执行，等它加载完再改
+      Object.defineProperty(window, '__forceLive', { value: true, configurable: true });
+    });
     await page.goto(URL, { waitUntil: 'networkidle' });
-    await page.waitForTimeout(1500);
+    await page.evaluate(() => {
+      const L = window.SITE_CONFIG && window.SITE_CONFIG.live;
+      if (!L) return;
+      L.clock = true; L.quote = true; L.progress = true;
+      if (window.SITE_LIVE) window.SITE_LIVE.init();
+    });
+    await page.waitForTimeout(900);
 
     const r = await page.evaluate(() => {
       const hero = document.querySelector('.hero');

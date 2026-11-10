@@ -180,7 +180,15 @@ async function testTouch(browser) {
   await p.waitForTimeout(400);
 
   const ev = await p.evaluate(() => window.__ev);
-  ok(ev.pm <= 2, tag + '确认 pointermove 被浏览器掐断（只 ' + ev.pm + ' 次）');
+
+  /* ⚠️ 这条断言在「触摸翻页」上线后反转了。
+     原先它在验证一个坑：在可滚动页面上，浏览器一旦判定为滚动手势
+     就会发 pointercancel，pointermove 随之停止（实测 12 步只触发 1 次），
+     结论是「触屏必须用 touch 事件而不是 pointer 事件」。
+     现在 paged.js 在竖向手势的第一次 touchmove 就 preventDefault 接管了，
+     页面根本不会滚动，浏览器也就不会发 pointercancel —— pointermove 全程可用。
+     所以改成断言「没有被掐断」，同时下面单独验证 touch 路径仍能拿到完整轨迹。 */
+  ok(ev.pm >= 5, tag + 'pointermove 未被掐断（' + ev.pm + ' 次，触摸已由翻页层接管）');
   ok(ev.tm >= 6, tag + 'touchmove 持续触发（' + ev.tm + ' 次），可用来追踪轨迹');
 
   const held = samples.filter(s => s.dragging).length;
@@ -200,8 +208,12 @@ async function testTouch(browser) {
   const maxDots = Math.max(...samples.map(s => s.live));
   ok(maxDots >= 4, tag + '拖动产生拖尾（最多 ' + maxDots + ' 个活跃点）');
 
+  /* 同上：以前拖拽会带着页面滚（原生滚动 + 停手后归位），
+     现在竖向手势被翻页层完全接管，页面**一动不动**。
+     这正是「上滑不管距离都算一次翻页」想要的效果：
+     手指在动、光效在跟、页面等抬手才翻。 */
   const scrolled = samples[samples.length - 1].scrollY;
-  ok(scrolled > 50, tag + '拖拽与页面滚动共存（已滚 ' + scrolled + 'px）');
+  ok(scrolled === 0, tag + '拖拽期间页面不滚动（scrollY=' + scrolled + '，抬手才翻页）');
 
   const after = await p.evaluate(() => {
     const g = document.getElementById('dragGlow');
