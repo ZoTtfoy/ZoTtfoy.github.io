@@ -290,20 +290,43 @@ window.SITE_MOTION = (function () {
     });
   }
 
+  /* -------------------------------------------------------------- 复制
+     四个入口共用这一套：联系卡 / 游戏 UID / Q5 的 copy 型社交 / Q6 邮箱。
+
+     ⚠️ 反馈只落在显式标了 [data-copy-hint] 的元素上。
+     早先这里写的是 btn.querySelector("span") —— 它命中的是**第一个** span。
+     对联系卡来说第一个 span 是图标容器 .ccard__icon，于是点一下图标就被
+     "已复制"三个字顶掉、整张卡当场塌一下，1.8 秒后才弹回来。
+     没有 hint 的元素（游戏 UID、社交按钮）就不动 DOM，只靠 toast + 配色。
+
+     toast 报的是"复制了什么"，不是"复制到了什么"：
+     data-copy-toast 缺省为「已复制」，绝不把账号明文念出来。 */
+  function flashCopied(btn) {
+    btn.classList.add("is-copied");
+    clearTimeout(btn.copyTimer);
+    btn.copyTimer = setTimeout(function () { btn.classList.remove("is-copied"); }, 1600);
+
+    var hint = btn.querySelector("[data-copy-hint]");
+    if (!hint) return;
+    // 原文记在 DOM 上而不是闭包里：连点几次也不会把"已复制"记成原文
+    if (hint.dataset.raw == null) hint.dataset.raw = hint.textContent;
+    hint.textContent = "已复制";
+    clearTimeout(hint.copyTimer);
+    hint.copyTimer = setTimeout(function () {
+      hint.textContent = hint.dataset.raw;
+    }, 1600);
+  }
+
   function initCopy() {
     document.addEventListener("click", function (e) {
       var btn = e.target.closest && e.target.closest("[data-copy]");
       if (!btn) return;
       var value = btn.getAttribute("data-copy");
+      var said = btn.getAttribute("data-copy-toast") || "已复制";
       copyText(value).then(function () {
-        toast("已复制：" + value);
-        var label = btn.querySelector("span");
-        if (label) {
-          var old = label.textContent;
-          label.textContent = "已复制";
-          setTimeout(function () { label.textContent = old; }, 1800);
-        }
-      }).catch(function () { toast("复制失败，请手动选择邮箱地址"); });
+        toast(said);
+        flashCopied(btn);
+      }).catch(function () { toast("复制失败，请长按手动选中"); });
     });
   }
 

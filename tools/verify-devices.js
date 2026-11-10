@@ -64,7 +64,7 @@ const BODY_SEL = [
   ['.track__title', '曲名'],
   ['.game__name', '游戏名'],
   ['.social__label', '平台名'],
-  ['.ccard__value', '联系账号'],
+  ['.ccard__label', '联系平台名'],
   ['.calc__opt', '计算器选项'],
   ['.profile__intro', '简介']
 ];
@@ -76,7 +76,7 @@ const TABLE_SEL = [
 ];
 /* 辅助类：标签 / 副标题 / 脚注 */
 const META_SEL = [
-  ['.ccard__label', '联系标签'],
+  ['.ccard__hint', '复制提示'],
   ['.track__meta', '曲目副标'],
   ['.calc__label', '计算器标签'],
   ['.quote__price', '报价价格'],

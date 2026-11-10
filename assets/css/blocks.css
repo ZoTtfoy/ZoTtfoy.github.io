@@ -109,7 +109,7 @@
    现在的层级靠四件事同时表达，而不是只靠字号：
      · 尺寸：联系卡 88px 高、图标 40px；外链卡 64px 高、图标 20px
      · 质感：联系卡是实心白卡 + 微投影（浮起来）；外链卡透明底、只有细线
-     · 字重：账号 600 字重、1rem；外链标题 500 字重、.84rem
+     · 字重：平台名 600 字重、1rem；外链标题 500 字重、.84rem
      · 位置：联系卡在上，外链卡在下，中间多一道 12px 间隙 */
 .contact-pair {
   display: grid;
@@ -119,13 +119,20 @@
   margin-top: clamp(20px, 2.8vh, 28px);
 }
 
-/* 联系卡：图标 + 名称/账号 + 复制提示，整块可点。
-   刻意做成**方角 + 1px 线**，和 Q1 其余卡片一致；不用胶囊。 */
+/* 联系卡：图标 + 平台名 + 右侧「点击复制」，整块可点。
+   刻意做成**方角 + 1px 线**，和 Q1 其余卡片一致；不用胶囊。
+
+   ⚠️ 2026-11-10 第二次改版：账号不再印在卡上。
+   QQ 号 10 位、微信号 12 位，摆在卡里只有两种下场 —— 挤成第二行，
+   或者吃省略号；而这张卡的用途本来就是"把号码交给对方"。
+   点一下直接进剪贴板，比"看见再手抄"少一步，也不会被旁人顺眼记走。
+   于是卡片内部从「图标 + (小标签 / 大账号) + 复制图标」简化成
+   「图标 + 平台名 + 点击复制」，纵向也不再需要两行文字。 */
 .ccard {
   display: flex;
   align-items: center;
   gap: 13px;
-  min-height: 92px;
+  min-height: 88px;
   padding: 15px 17px;
   border: 1px solid var(--line);
   border-radius: var(--r-md);
@@ -140,6 +147,7 @@
   box-shadow: var(--shadow-md);
   transform: translateY(-1px);
 }
+.ccard:active { transform: translateY(0); }
 
 /* 图标放进一块浅色底：比裸图标更像"按钮"，也让卡片的视觉重量集中在左侧 */
 .ccard__icon {
@@ -156,40 +164,44 @@
 }
 .ccard__icon .icon { width: 22px; height: 22px; }
 
-.ccard__body {
-  display: flex;
-  flex-direction: column;
+/* 平台名现在是这张卡唯一的一行字，也就是它的主文字：
+   flex:1 把它顶到左边、把「点击复制」推到最右，中间留白由卡片宽度决定。 */
+.ccard__label {
   min-width: 0;
   flex: 1;
-  line-height: 1.3;
-}
-.ccard__label {
-  font-size: .7rem;
-  letter-spacing: .06em;
-  color: var(--text-3);
-}
-.ccard__value {
   overflow: hidden;
-  margin-top: 1px;
-  font-family: var(--font-mono);
-  font-size: 1.05rem;
+  font-size: 1.06rem;
   font-weight: 600;
+  letter-spacing: .01em;
   color: var(--text);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
+/* 右侧「点击复制」+ 复制图标。
+   用 --text-2 而不是 --text-3：这行小字是整张卡唯一的"可点"信号，
+   --text-3 在浅色下只有 3.7:1、深色 4.2:1，读到但看不清。
+   平台名占 --text + 600 字重，层级由字号和字重表达，不靠把提示压到发灰。 */
 .ccard__act {
+  display: flex;
   flex: none;
-  display: grid;
-  place-items: center;
-  width: 20px;
-  height: 20px;
-  color: var(--text-3);
+  align-items: center;
+  gap: 5px;
+  color: var(--text-2);
   transition: color var(--t-fast) var(--ease);
+}
+.ccard__hint {
+  font-size: .72rem;
+  letter-spacing: .02em;
+  white-space: nowrap;
 }
 .ccard__act .icon { width: 13px; height: 13px; }
 .ccard:hover .ccard__act { color: var(--text); }
+
+/* 复制成功的那 1.6s：motion.js 只加一个 class，不改 DOM。
+   提示文字由 JS 换成「已复制」（见 flashCopied），这里只负责变色 ——
+   用强调色而不是红色，避免被读成"出错了"。 */
+.ccard.is-copied .ccard__act { color: var(--accent); }
 
 /* -------------------------------------- 第二行：网易云 | 小黑盒 */
 /* 第二行：网易云 | 小黑盒 —— 次要信息，做成"链接"而不是"卡片"。
@@ -1034,28 +1046,32 @@ html[data-scrolling="on"] .vinyl::before { animation-play-state: paused; }
   .contact-pair { margin-top: clamp(18px, 2.8vh, 28px); }
   .preview-pair { margin-top: 10px; }
 
-  /* 联系卡：第一行「图标 + 平台名」，第二行账号独占整行。
-     横向排时（图标 32 + 间距 11 + 内边距 26）在 390px 的 170px 列里只剩约 100px
-     给账号，而微信号 12 位起、QQ 号 10 位 —— 必被省略号截断，
-     可「看见并复制账号」正是这张卡唯一的用途。
-     改成两行后账号拿到 146px，13.8px 等宽字能完整放下 11 位。
-     .ccard__body 用 display:contents 把 label / value 提升成 grid 项，
-     这样不用改 render.js 产出的 DOM 结构。 */
+  /* 联系卡：手机上两列只剩 ~170px，横向一行放不下「平台名 + 点击复制」，
+     所以改成两行 —— 平台名在上，「点击复制」缩在它下面，图标跨两行居中。
+     高度约 66px，仍明显高于下面 41px 的外链条，主次层级不变。
+     （账号改成点击复制后，这里不再需要为 10~12 位账号让路。） */
   .ccard {
     display: grid;
     grid-template-columns: auto minmax(0, 1fr);
+    grid-template-rows: auto auto;
     align-items: center;
-    gap: 0 8px;
-    padding: 13px 14px 14px;
+    column-gap: 9px;
+    row-gap: 2px;
+    min-height: 0;
+    padding: 12px 13px;
     border-radius: var(--r-md);
   }
-  .ccard__icon { grid-area: 1 / 1 / 2 / 2; width: 26px; height: 26px; }
-  .ccard__icon .icon { width: 18px; height: 18px; }
-  .ccard__body { display: contents; }
-  .ccard__label { grid-area: 1 / 2 / 2 / 3; font-size: .72rem; }
-  /* 账号是这张卡的全部意义 —— 16px 等宽字，加到最大可读尺寸 */
-  .ccard__value { grid-area: 2 / 1 / 3 / 3; margin-top: 5px; font-size: 1rem; }
-  .ccard__act { display: none; }        /* 整块可点，不需要再放一个复制小图标 */
+  .ccard__icon { grid-area: 1 / 1 / 3 / 2; width: 30px; height: 30px; }
+  .ccard__icon .icon { width: 19px; height: 19px; }
+  .ccard__label { grid-area: 1 / 2 / 2 / 3; font-size: 1rem; }
+  .ccard__act {
+    grid-area: 2 / 2 / 3 / 3;
+    justify-content: flex-start;
+    gap: 4px;
+  }
+  /* 手机上文字提示本身就是"可点"的信号，小图标反而是噪声 */
+  .ccard__act .icon { display: none; }
+  .ccard__hint { font-size: .7rem; }
 
   /* 两列摘要卡（网易云 / 小黑盒）。
      现在只剩单行「图标 + 平台名 + 箭头」，副标题与标题都已由桌面规则藏掉。 */
@@ -1172,8 +1188,10 @@ html[data-scrolling="on"] .vinyl::before { animation-play-state: paused; }
 @media (max-width: 400px) {
   .contact-pair,
   .preview-pair { gap: 8px; }
-  .ccard { padding: 11px 11px 12px; gap: 0 7px; }
-  .ccard__icon { width: 22px; height: 22px; }
+  /* 联系卡在窄屏只收内边距和图标，字号一个不动 ——
+     平台名与「点击复制」分处两行，各有整列宽，本来就没有挤的风险。 */
+  .ccard { padding: 10px 10px 11px; column-gap: 7px; }
+  .ccard__icon { width: 24px; height: 24px; }
   .ccard__icon .icon { width: 16px; height: 16px; }
   /* 次要行已经是单行了，纵向内边距跟着收 —— 11px 是旧的「多行卡」留下的 */
   .preview-pair .preview { padding: 9px 10px; }

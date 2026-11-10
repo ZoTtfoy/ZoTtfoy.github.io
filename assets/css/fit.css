@@ -313,9 +313,12 @@ html[data-paged="on"] [data-fit="micro"] .mailbox__actions .btn { min-height: 36
   .section__lead { margin-top: 5px; font-size: .8rem; }
 
   .contact-pair { margin-top: 10px; }
-  .ccard { padding: 7px 9px; }
-  .ccard__label { font-size: .7rem; }
-  .ccard__value { font-size: .8rem; }
+  /* 横屏的每一像素都要用来放内容，卡片不再撑高度，靠「实心底 + 投影」保持层级 */
+  .ccard { min-height: 0; padding: 9px 10px; gap: 9px; }
+  .ccard__icon { width: 30px; height: 30px; }
+  .ccard__icon .icon { width: 18px; height: 18px; }
+  .ccard__label { font-size: .92rem; }
+  .ccard__hint { font-size: .7rem; }
   .preview-pair .preview { padding: 8px 10px; }
   .preview-pair .preview__title { font-size: .8rem; }
   .preview-pair .preview__platform { font-size: .7rem; }

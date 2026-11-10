@@ -221,25 +221,52 @@ window.SITE_PAGED = (function () {
      为什么不在滚动过程中播：从第 1 页跳到第 5 页时会途经中间几页，
      若每经过一页都触发，就会有多页同时挂着 is-entering，动画互相打架。
      所以改成「停稳 140ms 后再判断」，并且每次都先把其他页的标记清干净。 */
-  function playEnter(page) {
+  function playEnter(page, force) {
     if (!page || reduced()) return false;
 
-    /* 只给「确实在视口里」的页播动画。
-       平滑滚动从第 1 页跳到第 6 页时，中途可能有短暂停顿触发调度，
-       若不校验，那一页会在屏幕外播完动画、真正翻到时反而什么都不动。 */
-    var rect = page.getBoundingClientRect();
-    var vh = window.innerHeight || 800;
-    if (rect.top > vh * 0.5 || rect.bottom < vh * 0.5) return false;
+    /* 默认路径（停稳后补播）：只给「确实在视口里」且**还没露过面**的页播。
+       已经露过面的页再播，等于把看得见的内容按回 opacity:0 重来一遍。 */
+    if (!force) {
+      if (page.getAttribute("data-entered")) return false;
+      var rect = page.getBoundingClientRect();
+      var vh = window.innerHeight || 800;
+      if (rect.top > vh * 0.5 || rect.bottom < vh * 0.5) return false;
+    }
 
     pages.forEach(function (p) { p.classList.remove("is-entering"); });
     void page.offsetHeight;                 // 强制回流，保证重复进入也能重播
     page.classList.add("is-entering");
 
     clearTimeout(enterTimer);
+    /* 1150ms = 卡片那层的最长延时 .50s + 时长 .55s，留一点余量。
+       早先写 920ms，是从"停稳后才加"的时机倒推的；现在动画提前开跑，
+       920ms 会把最后几张卡片的淡入从中间掐断，留下一次生硬的跳变。 */
     enterTimer = setTimeout(function () {
       page.classList.remove("is-entering");
-    }, 920);
+    }, 1150);
     return true;
+  }
+
+  /* ⚠️ 2026-11-10 修「翻页闪两下」：
+     原先入场动画只在「滚动停稳 140ms 后」播。而平滑滚动本身要 700ms 左右，
+     等它停稳时，目标页的内容早就随着滚动露出来了 ——
+     @keyframes chapter-item 的 from{opacity:0} 又把它们按回去重播，
+     屏幕上就是「内容亮了 → 整页变黑 → 再淡入」，实测在 866ms 处必然发生，
+     且卡片上还叠着两层 chapter-item（轨道 + 卡片），暗得更明显。
+
+     根治办法是让动画在**目标页还在视口外**时就开始：那一刻没人看得见
+     它被藏起来，等它滑进屏幕时正好淡入，全程单调 0→1，不会有回跳。
+     所以 goTo 在 scrollTo 之前就把 is-entering 加上（force = true）。
+     手动滚轮 / 滑动进来的页不补播 —— 用户是自己把内容拖进来的，
+     再给它来一次淡入只能制造同样的回跳；data-entered 会把这条路关掉。 */
+  function enterOnNavigate(i) {
+    var page = pages[i];
+    if (!page || page.getAttribute("data-entered")) return;
+    page.setAttribute("data-entered", "1");
+    if (playEnter(page, true)) {
+      lastAnimated = i;
+      if (UI.lightEffects !== false && !reduced()) sweep();
+    }
   }
 
   function scheduleSettle() {
@@ -263,6 +290,9 @@ window.SITE_PAGED = (function () {
     pages.forEach(function (p, k) {
       p.classList.toggle("is-page-active", k === i);
     });
+    /* 露过面就记下来：以后无论是谁把这一页滚进来，都不再补播入场动画。
+       只有「从没露过面」的页才有资格在屏幕外偷偷藏一下再淡入。 */
+    if (pages[i]) pages[i].setAttribute("data-entered", "1");
     dots.forEach(function (d, k) {
       d.classList.toggle("is-current", k === i);
       if (k === i) d.setAttribute("aria-current", "page");
@@ -381,6 +411,9 @@ window.SITE_PAGED = (function () {
       top = pages[i].getBoundingClientRect().top + (window.scrollY || window.pageYOffset || 0);
     }
     markProgrammatic(520);
+    /* 入场动画赶在 scrollTo 之前开跑：此时目标页还在屏幕外，
+       藏起来没人看得见，滑进来的过程正好淡入（见 enterOnNavigate 的注释）。 */
+    enterOnNavigate(i);
     window.scrollTo({ top: Math.max(0, top), behavior: smooth() });
     setActive(i);
     scheduleSettle();

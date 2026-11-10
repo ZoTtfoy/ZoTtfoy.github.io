@@ -118,19 +118,26 @@ window.SITE_RENDER = (function () {
     set("heroIntro", text(p.intro || ""));
     if (!p.tagline) { var t = $("heroTagline"); if (t) t.hidden = true; }
 
-    // 微信 / QQ：显示平台名 + 账号，点一下复制。
+    // 微信 / QQ：只印平台名，点一下复制账号。
     // 用 <button> 而不是 <a>，因为它不跳转。
+    //
+    // ⚠️ 账号本身不再上屏（2026-11-10 改）：QQ 号 10 位、微信号 12 位，
+    // 摆在卡上要么被挤成第二行、要么吃省略号；而"看见再手抄"本来就不如
+    // "点一下进剪贴板"。账号仍留在 data-copy 与 aria-label 里 ——
+    // 读屏用户照样听得到，复制也照样拿到。
+    // data-copy-toast 让 Toast 只说"已复制 QQ"，不把号码复述一遍。
     set("heroContacts", arr(p.contacts).map(function (c, i) {
       return '<button class="ccard" type="button" ' +
              'data-copy="' + esc(c.value) + '" ' +
+             'data-copy-toast="已复制 ' + esc(c.label) + '" ' +
              'aria-label="复制' + esc(c.label) + '：' + esc(c.value) + '" ' +
              'style="' + delay(i, 70) + '">' +
                '<span class="ccard__icon">' + icon(c.icon) + "</span>" +
-               '<span class="ccard__body">' +
-                 '<span class="ccard__label">' + esc(c.label) + "</span>" +
-                 '<span class="ccard__value">' + esc(c.value) + "</span>" +
+               '<span class="ccard__label">' + esc(c.label) + "</span>" +
+               '<span class="ccard__act">' +
+                 '<span class="ccard__hint" data-copy-hint>点击复制</span>' +
+                 icon("copy") +
                "</span>" +
-               '<span class="ccard__act">' + icon("copy") + "</span>" +
              "</button>";
     }).join(""));
 
@@ -266,6 +273,7 @@ window.SITE_RENDER = (function () {
       var uid = g.uid || g.copy || "";
       var uidBlock = uid
         ? '<button class="game__uid" type="button" data-copy="' + esc(uid) + '"' +
+          ' data-copy-toast="已复制 ' + esc(g.uidLabel || "ID") + '"' +
           ' aria-label="复制 ' + esc(g.name) + " 的 " + esc(g.uidLabel || "ID") + "：" + esc(uid) + '">' +
             '<span class="game__uid-label">' + esc(g.uidLabel || "ID") + "</span>" +
             '<span class="game__uid-value">' + esc(uid) + "</span>" +
@@ -361,7 +369,9 @@ window.SITE_RENDER = (function () {
       // copy 模式：没有公开主页的账号，点击即复制
       if (it.copy) {
         return '<button class="social" type="button" style="' + delay(i, 55) + '" data-reveal ' +
-               'data-copy="' + esc(it.copy) + '" aria-label="复制' + esc(it.label) + "：" + esc(it.copy) + '">' +
+               'data-copy="' + esc(it.copy) + '"' +
+               ' data-copy-toast="已复制 ' + esc(it.label) + '"' +
+               ' aria-label="复制' + esc(it.label) + "：" + esc(it.copy) + '">' +
                inner + icon("copy", "social__arrow") + "</button>";
       }
 
@@ -384,8 +394,9 @@ window.SITE_RENDER = (function () {
       '<div class="mailbox__actions">' +
         '<a class="btn btn--primary" href="mailto:' + esc(mail) + '">' +
           "<span>发封邮件</span>" + icon("send", "btn__icon") + "</a>" +
-        '<button class="btn btn--quiet" type="button" data-copy="' + esc(mail) + '">' +
-          icon("copy", "btn__icon") + "<span>复制邮箱</span></button>" +
+        '<button class="btn btn--quiet" type="button" data-copy="' + esc(mail) + '"' +
+          ' data-copy-toast="已复制邮箱">' +
+          icon("copy", "btn__icon") + '<span data-copy-hint>复制邮箱</span></button>' +
       "</div>");
   }
 
