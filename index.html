@@ -5,10 +5,39 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="color-scheme" content="light dark">
   <meta name="description" content="Zotrod 的个人主页 —— 联系方式、最近在听、在玩的游戏，以及维修报价。">
-  <meta property="og:type" content="website">
-  <meta property="og:title" content="Zotrod · 个人主页">
-  <meta property="og:description" content="Zotrod 的个人主页 —— 联系方式、最近在听、在玩的游戏，以及维修报价。">
   <meta name="theme-color" content="#fbfbf9">
+
+  <!-- ═══════════════════════════════════════════════════════════════════
+       社交分享标签（Open Graph + Twitter Card）
+       ───────────────────────────────────────────────────────────────────
+       为什么两种都写：微信 / TG / Discord / Slack 读 og:*，
+       X（Twitter）在没有 twitter:* 时会退回读 og:*，但卡片类型会退化成
+       普通链接（没有大图）。补上 twitter:card=summary_large_image
+       才能拿到 1200×630 的大图版式。
+
+       ⚠️ og:image 必须是**位图**和**绝对地址**：
+         · 微信 / TG 的抓取器不渲染 SVG，所以用 PNG；
+         · 相对路径在部分平台上解析失败，所以写全 https:// 开头。
+         目标是 1200×630 —— 低于 600×315 会被某些平台裁成小图。
+       ═══════════════════════════════════════════════════════════════════ -->
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Zotrod">
+  <meta property="og:locale" content="zh_CN">
+  <meta property="og:title" content="Zotrod · 个人主页">
+  <meta property="og:description" content="Zotrod 的个人主页 —— 联系方式、听歌排行、在玩的游戏，以及一份透明的维修报价。">
+  <meta property="og:url" content="https://zottfoy.github.io/">
+  <meta property="og:image" content="https://zottfoy.github.io/assets/meta/og-cover.png">
+  <meta property="og:image:secure_url" content="https://zottfoy.github.io/assets/meta/og-cover.png">
+  <meta property="og:image:type" content="image/png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Zotrod 的个人主页：把复杂的东西，做得简单一点。">
+
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Zotrod · 个人主页">
+  <meta name="twitter:description" content="联系方式、听歌排行、在玩的游戏，以及一份透明的维修报价。">
+  <meta name="twitter:image" content="https://zottfoy.github.io/assets/meta/og-cover.png">
+  <meta name="twitter:image:alt" content="Zotrod 的个人主页">
 
   <title>Zotrod · 个人主页</title>
 
@@ -181,7 +210,11 @@
     <p class="mobile-nav__foot" id="mobileNavFoot"></p>
   </nav>
 
-  <main id="main">
+  <!-- tabindex="-1" 让 <main> 可以被脚本聚焦。
+       没有它的话，「跳到主要内容」只是把视口滚过去，键盘焦点还停在那条链接上 ——
+       用户再按一次 Tab 会跳回页头第一个链接，等于白跳。
+       这是 skip-link 能真正工作的前提。 -->
+  <main id="main" tabindex="-1">
 
     <!-- ============================================================ Q1 · 我 -->
     <section class="hero" id="top" aria-labelledby="heroName">

@@ -130,7 +130,14 @@ window.SITE_PAGED = (function () {
         setFit(p, FIT_STEPS[i]);
         /* 读一次 offsetHeight 强制浏览器把新档位的样式算完再量 */
         void p.offsetHeight;
-        if (naturalHeight(p) <= vh + 1) { chosen = FIT_STEPS[i]; break; }
+        /* 容差从 +1 收到 -2（即要求 ≥2px 余量）。
+           ⚠️ 为什么不能留 1px 余量：这项判定选出的档位是"刚好装下"，
+           而实际渲染时还会有 1~6px 的额外高度 —— 来源是字体亚像素累积，
+           以及 density / scale 在 pickFit 之后才调的 makeText 变化。
+           实测 810×680：pickFit 时量到 680 ≤ 681 判"装得下"，
+           最终渲染 686px，溢出 6px。留 2px 余量让 borderline 的页
+           再降一档，比"报告里多出一条溢出"划算。 */
+        if (naturalHeight(p) <= vh - 2) { chosen = FIT_STEPS[i]; break; }
       }
       setFit(p, chosen);
     });

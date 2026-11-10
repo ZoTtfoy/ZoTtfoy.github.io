@@ -267,3 +267,21 @@
   body { background: #fff; color: #000; }
   .section { break-inside: avoid; padding: 32px 0; }
 }
+
+/* ------------------------------------------------------- 跳转目标与焦点
+   main 只有在你用「跳到主要内容」跳过来时才会获得焦点，
+   这时不需要一圈焦点框 —— 屏幕已经滚到这里了，再描个方框反而像出了错。
+   用 :focus 而不是 :focus-visible：后者对脚本聚焦一般不匹配，
+   写了等于没写，起不到抑制的作用。 */
+#main:focus { outline: none; }
+
+/* 用 Tab 走到卡片内的按钮时，焦点框要能压在卡片边界内看出来。
+   全局的 outline-offset 是 4px，在 6px 间距的选项网格里会互相叠，
+   这里单独收成 2px。 */
+.calc__opt:focus-visible,
+.calc__back:focus-visible,
+.calc__again:focus-visible,
+.calc__reset:focus-visible,
+.calc__trail__item:focus-visible {
+  outline-offset: 2px;
+}

@@ -75,6 +75,7 @@ const LEVEL_ORDER = ['mini', 'tight', 'compact', 'full'];
   /* ------------------------------------------- 1. 全尺寸扫描：不许溢出 */
   const overflow = [];
   const levels = [];
+  const debug = [];
   for (const [w, h] of GRID) {
     await page.setViewportSize({ width: w, height: h });
     /* 1050ms 必须大于 density 的收敛时点：
@@ -82,10 +83,13 @@ const LEVEL_ORDER = ['mini', 'tight', 'compact', 'full'];
        早先给 850ms，正好落在复检之前，会读到"还没收口"的中间态
        （实测误报 3~4px 溢出）。 */
     await page.waitForTimeout(300);
-    /* 先等足够久：density 的收敛链是
-         120ms 跟随 → 560ms 收口 → rAF×2 → 300ms 复检
-       总计约 900ms，再加过渡 300ms。给 1400ms 一次到位。 */
-    await page.waitForTimeout(1400);
+    /* 等足够久。density 的收敛链现在有四段：
+         120ms 跟随 → 560ms 收口 → rAF×2 → 300ms 复检 → 340ms 最终校正
+       累计约 1.4s，再加收起过渡 300ms ≈ 1.7s。
+       早先给 1400ms 不够，读到的是"还没收口"的中间态 ——
+       扫描里出现的 6px 溢出全是这么来的，单独打开那个尺寸却完全正常。
+       给 2000ms。 */
+    await page.waitForTimeout(2000);
     let r = await probe();
 
     /* 溢出要"稳定后再判"。
@@ -95,8 +99,40 @@ const LEVEL_ORDER = ['mini', 'tight', 'compact', 'full'];
        断言的对象是"停稳后的状态"，不是"某一瞬间"。
        真实用户不会每秒改一次窗口尺寸，这条放宽不会掩盖真正的问题。 */
     if (r.over.length) {
-      await page.waitForTimeout(1400);
+      /* 复检：再等一轮，仍然溢出才算真的坏。
+         断言的对象是"停稳后的状态"，不是某一瞬间。 */
+      const first = r.over.map(x => x.id + '+' + x.d).join(',');
+      await page.waitForTimeout(1600);
       r = await probe();
+      if (r.over.length) {
+        /* 仍然溢出：把现场打出来，别只报一句"溢出了"。
+           需要知道的：档位、tall、曲目数、内容高、内边距、缩放 ——
+           这几个数一摆就能看出是"档位没跟上"还是"真的装不下"。 */
+        const detail = await page.evaluate(() => {
+          const out = {};
+          ['top', 'listen', 'gaming', 'repair', 'links', 'contact'].forEach(id => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            const inner = el.querySelector('.container') || el.querySelector('.hero__inner');
+            const pcs = getComputedStyle(el);
+            out[id] = {
+              over: el.offsetHeight - innerHeight,
+              fit: el.dataset.fit,
+              tall: el.getAttribute('data-tall') || '-',
+              innerH: Math.round((inner || el).getBoundingClientRect().height),
+              padY: Math.round(parseFloat(pcs.paddingTop) + parseFloat(pcs.paddingBottom))
+            };
+          });
+          return {
+            pages: out,
+            n: document.querySelectorAll('#trackList .track').length,
+            quoteOpen: (document.getElementById('quoteDetails') || {}).open,
+            vp: document.documentElement.dataset.vp,
+            scale: document.documentElement.dataset.scale
+          };
+        });
+        debug.push({ at: w + '×' + h, first, second: r.over.map(x => x.id + '+' + x.d).join(','), detail });
+      }
     }
 
     levels.push({ w, h, vp: r.vp, quote: r.quote, lead: r.lead, tbl: r.tbl, n: r.n });
@@ -107,6 +143,17 @@ const LEVEL_ORDER = ['mini', 'tight', 'compact', 'full'];
   ok(overflow.length === 0,
     GRID.length + ' 个桌面尺寸都没有溢出' +
     (overflow.length ? '（' + overflow.slice(0, 6).join('；') + '）' : ''));
+  if (debug.length) {
+    console.log('\n=== 溢出现场 ===');
+    debug.slice(0, 3).forEach(d => {
+      console.log(d.at, '→ 首次', d.first, '复检后', d.second);
+      console.log('  曲目', d.detail.n, '| 报价表', d.detail.quoteOpen ? '展开' : '折叠',
+        '| 级别', d.detail.vp, '| 缩放', d.detail.scale);
+      Object.entries(d.detail.pages).forEach(([id, v]) => {
+        if (v.over > 0) console.log('  ', id, JSON.stringify(v));
+      });
+    });
+  }
 
   /* ----------------------------------------------- 2. 级别随高度单调 */
   /* 同一宽度下，视口越矮，级别只能越紧（或者不变），不能反而变宽松。 */
@@ -138,14 +185,36 @@ const LEVEL_ORDER = ['mini', 'tight', 'compact', 'full'];
   await page.waitForTimeout(900);
   const before = await probe();
   await page.setViewportSize({ width: 1100, height: 580 });
-  await page.waitForTimeout(900);
+  /* 收敛链：120ms 跟随 → 560ms 收口 → rAF×2 → 300ms 复检，
+     再加收起过渡 300ms，总计约 1.2s。给 1500ms。 */
+  await page.waitForTimeout(1900);
   const small = await probe();
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.waitForTimeout(900);
+  await page.waitForTimeout(1900);
   const after = await probe();
 
   ok(small.quote !== null && small.quote < 0.1, '缩小时一言退场');
-  ok(small.tbl === false, '缩小时报价表折叠');
+  /* 缩小后报价表**不一定**要折叠 —— 这才是对的。
+     ⚠️ 原来断言"缩小时必须折叠"，但密度分级会把留白压下去：
+     实测 1100×580 从 tight 档进来时，展开态只需 579px，580 的视口装得下 ——
+     那它就该展开（信息更全）。硬要求折叠等于让"压缩生效"变成失败。
+     真正该守的不变式是：**要么展开且装得下，要么折叠** —— 二者皆可，
+     不许出现"展开却溢出"。 */
+  const smallFitOk = await page.evaluate(() => {
+    const el = document.getElementById('repair');
+    const inner = el.querySelector('.container');
+    const d = document.getElementById('quoteDetails');
+    const pcs = getComputedStyle(el);
+    const padY = parseFloat(pcs.paddingTop) + parseFloat(pcs.paddingBottom);
+    const openNow = d.open;
+    if (!openNow) { d.setAttribute('open', ''); void d.offsetHeight; }
+    const need = inner.getBoundingClientRect().height + padY;
+    if (!openNow) { d.removeAttribute('open'); void d.offsetHeight; }
+    return { open: openNow, need: Math.round(need), vh: innerHeight, over: el.offsetHeight - innerHeight };
+  });
+  ok(smallFitOk.open ? (smallFitOk.need <= smallFitOk.vh + 1) : true,
+    '缩小时报价表要么折叠、要么展开也装得下（'
+      + (smallFitOk.open ? '展开，需 ' + smallFitOk.need + ' ≤ ' + smallFitOk.vh : '折叠') + '）');
   ok(after.vp === 'full', '放大后级别回到 full');
   ok(after.quote !== null && after.quote > 0.9, '放大后一言回来');
   ok(after.lead !== null && after.lead > 0.9, '放大后章节导语回来');

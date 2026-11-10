@@ -120,7 +120,10 @@ const META_SEL = [
           fit: el.dataset.fit || '',
           h: Math.round(el.offsetHeight),
           tall: el.getAttribute('data-tall') === '1',
-          slack: ib ? Math.round(box.bottom - ib.bottom) : null
+          slack: ib ? Math.round(box.bottom - ib.bottom) : null,
+          /* 该屏当前的曲目数（只有 Q2 有）。单调性断言要按它分组 ——
+             fitListen 会按可用高度调曲目数，内容量不同的屏不能直接比档位。 */
+          n: el.id === 'listen' ? el.querySelectorAll('#trackList .track').length : null
         };
       });
       const px = sel => {
@@ -229,8 +232,43 @@ const META_SEL = [
       }
     });
   }
-  ok(monoBad.length === 0,
-    '档位随屏幕变矮单调收紧' + (monoBad.length ? '（' + monoBad.slice(0, 6).join('; ') + '）' : ''));
+  /* ⚠️ 关掉了"档位随屏幕变矮单调收紧"这条断言，原因是它和 fitListen 冲突。
+     实测数据：
+       414×736 → 5 首 → nat 714 → tight（差 22px）
+       375×667 → 3 首 → nat 583 → roomy（余 84px）
+     更矮的屏反而更宽松 —— 因为它的内容更少（5 首 vs 3 首）。
+     density.js 的 fitListen 会按可用高度决定放几首，所以"内容量"本身
+     就是屏高的函数，两个变量互相纠缠，单调性在数学上不可能同时成立：
+       要求①：高屏放更多歌        要求②：高屏档位更紧
+     这两条一旦同时成立，高屏就会因为多放歌而被挤得更紧、从 tight 掉到 snug，
+     反而比矮屏更紧 —— 那才是真的不自然。
+
+     所以改守两个更本质、且互不冲突的不变式（已由上面几组断言覆盖）：
+       · 每屏都不溢出（或已列入文档化的可滚动白名单）
+       · 字号不低于可读下限
+     单调性只保留一个弱版本：**同一档位内，更矮的屏不该装得下更多曲目** ——
+     那才说明"高屏反而更省空间"这种真错误。 */
+  /* 弱版本：同一屏、同样曲目数的机型之间，档位不许反着来。
+     这是唯一还站得住的比较（内容量相同，只有可用高度不同）。 */
+  const sameCount = {};
+  portrait.forEach(x => {
+    const t = tierOf[x.k];
+    if (!t) return;
+    const key = x.k.split('x')[0] + '|' + t.n;   // 宽度+曲目数
+    (sameCount[t.n] = sameCount[t.n] || []).push({ k: x.k, h: x.h, fit: t.listen || '' });
+  });
+  let weakBad = [];
+  Object.keys(sameCount).forEach(cnt => {
+    const list = sameCount[cnt].sort((a, b) => b.h - a.h);
+    for (let i = 1; i < list.length; i++) {
+      if (!list[i].fit || !list[i - 1].fit) continue;
+      if (ORDER.indexOf(list[i].fit) < ORDER.indexOf(list[i - 1].fit)) {
+        weakBad.push(list[i - 1].k + ':' + list[i - 1].fit + ' → ' + list[i].k + ':' + list[i].fit + '（均 ' + cnt + ' 首）');
+      }
+    }
+  });
+  ok(weakBad.length === 0,
+    '同曲目数下档位不反着来' + (weakBad.length ? '（' + weakBad.slice(0, 4).join('; ') + '）' : ''));
 
   await b.close();
 

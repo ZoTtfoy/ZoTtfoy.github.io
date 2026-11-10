@@ -110,15 +110,27 @@ window.SITE_DENSITY = (function () {
 
     var MIN = 3;                     // 少于三首就不像"排行"了
     var want = Math.min(C_limit(), all.length);
-    for (var n = want; n >= MIN; n--) {
+    var budget = window.innerHeight - 12;
+
+    /* 两道手段，顺序不能反：
+       1) 先让 paged 把档位收紧（改内边距、字号不改），这不会删任何内容；
+       2) 档位收到底还装不下，才减少曲目数。
+
+       ⚠️ 早先只做第 2 步，于是档位停在 roomy 而曲目已经减到 4 首 ——
+       溢出现场是这样的：6 首 / fit=snug / 溢出 6px。
+       fit 与当前密度级别不同步，看起来像"档位没跟上"，实际是
+       减少曲目根本解决不了那 6px（它来自页头/内边距，与曲目数无关）。
+       先降档再减曲目，才不会拿"少显示内容"去补"留白太多"的窟窿。 */
+    if (window.SITE_PAGED && window.SITE_PAGED.refresh) window.SITE_PAGED.refresh();
+    window.SITE_RENDER.setTracks(all.slice(0, want), "live");
+    if (measure(page) <= budget) return;
+
+    for (var n = want - 1; n >= MIN; n--) {
       window.SITE_RENDER.setTracks(all.slice(0, n), "live");
-      /* 留 8px 余量：字体亚像素累积 + 唱片底纹溢出 + scale 放大字号，
-         三者叠加会让"刚好 100vh"的页面实际多出 1~6px
-         （实测 810×640 残留 4px、810×680 残留 6px）。
-         宁可少放一首，也不要让这一屏把整站拖成可滚动。 */
-      if (measure(page) <= window.innerHeight - 8) return;
-      if (n === MIN) return;         // 到下限还装不下，交给 paged 标 data-tall
+      if (measure(page) <= budget) return;
     }
+    /* 到下限还装不下：交给 paged 标 data-tall（降级为可滚动） */
+    window.SITE_RENDER.setTracks(all.slice(0, MIN), "live");
   }
 
   /* 量「内容自然高度」。
@@ -192,31 +204,54 @@ window.SITE_DENSITY = (function () {
     var d = $("quoteDetails");
     var page = $("repair");
     if (!d || !page) return;
-    if (!window.SITE_REPAIR || typeof window.SITE_REPAIR.quoteDelta !== "function") return;
+    if (!window.SITE_REPAIR) return;
 
-    /* 算"折叠态的内容需要多少高度"。
-       ⚠️ 不能用页高（offsetHeight / section 的 rect）——
-       paged 模式下每屏都撑到 100vh，页高恒等于视口高，
-       再叠加展开增量必然超预算，于是大屏也会被判成"装不下"
-       （实测 1440×900 的报价表被折了）。
-       内容高度 + 页面内边距才是真实需求：内容 614 + 内边距 138 = 752。 */
     var pcs = getComputedStyle(page);
     var padY = parseFloat(pcs.paddingTop) + parseFloat(pcs.paddingBottom);
     var inner = page.querySelector(".container") || page;
-    /* 若此刻是展开态，先减掉展开增量，还原成"折叠态需求" */
-    var nowH = inner.getBoundingClientRect().height + padY;
-    var foldH = nowH - (d.open ? window.SITE_REPAIR.quoteDelta() : 0);
+    var budget = window.innerHeight;
 
-    var delta = window.SITE_REPAIR.quoteDelta();
-    var openH = foldH + delta;
+    /* 只量一次：**展开态**够不够。
+       为什么只量展开态：折叠态永远比它矮，所以
+         · 展开装得下 → 就该展开（信息更全）
+         · 展开装不下 → 只能折叠
+       判据只用这一个数，就没有"两态互相推演导致结论反掉"的余地。
 
-    /* 留 4px 余量：避免卡在边界上反复折展。 */
-    var budget = window.innerHeight - 4;
-    if (openH > budget) {
-      if (d.open) d.removeAttribute("open");
-    } else {
-      if (!d.open) d.setAttribute("open", "");
+       ⚠️ 这个函数前后改过五版，别再来回折腾，先看清楚为什么：
+         1) 量 offsetHeight 判断 —— 受 max-height 过渡影响，读中间值
+         2) 加两帧 rAF 等过渡 —— 过渡 300ms 比两帧长
+         3) 数行数 × 估算行高 —— 估算必须恰好落在偏大/偏小之间，两头都错
+         4) 让 repair 缓存展开增量，density 做加减 —— delta 是刚重量的新值、
+            而高度还是旧布局，两个数不属于同一时刻，结论会反
+         5) 现在：**临时展开、量、按结果定去留**。一步到位，没有推演。 */
+    /* 量之前必须把"滚动条变化"这类尾随布局吃掉。
+       ⚠️ 实测踩到的具体情形：从 1100×580 放大回 1440×900 时，
+       根字号由 scale 从 14.4px 升到 16.8px，全站 rem 尺寸整体变大 ——
+       文字重排、页面变高，纵向滚动条随之出现或消失，可用宽度再变一次，
+       于是布局要重排两轮。fitQuote 若在第一轮就量，读到的是中间态
+       （实测 need 从 855 一路涨到 901，误判成"装不下"）。
+       这里读两次 offsetHeight，中间隔一次强制回流，逼浏览器把
+       第一轮重排结算完再给数字。 */
+    void inner.offsetHeight;
+    void document.documentElement.offsetHeight;
+
+    var wasOpen = d.open;
+    if (!wasOpen) {
+      d.setAttribute("open", "");
+      void d.offsetHeight;          // 强制回流，确保 .quote__body 已渲染
     }
+    /* 留 6px 余量：paged 模式下每屏是 100vh，但字体亚像素累积 +
+       等比缩放会让"刚好等于视口"实际多出 1~6px（实测 700×840 差 6px）。
+       报价表折起来只是少显示一点信息，溢出则是价目表被切掉。 */
+    var need = inner.getBoundingClientRect().height + padY + 6;
+
+    /* 恢复成"该有的样子"：装得下就展开，装不下就折。 */
+    if (need <= budget) {
+      if (!d.open) d.setAttribute("open", "");
+    } else {
+      if (d.open) d.removeAttribute("open");
+    }
+    void d.offsetHeight;
   }
 
   /* ------------------------------------------------------------------ 应用 */
@@ -326,6 +361,7 @@ window.SITE_DENSITY = (function () {
      这里只需跟上它的节奏，不必自己再防抖一遍。 */
   var timer = null;
   var settleTimer = null;
+  var finalTimer = null;
   function onResize() {
     clearTimeout(timer);
     timer = setTimeout(refresh, 120);

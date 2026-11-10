@@ -146,6 +146,34 @@ window.SITE_MOTION = (function () {
   }
 
   /* ------------------------------------------------------------ 锚点平滑跳转 */
+
+  /* 把焦点交给跳转目标。
+     为什么必须做：锚点跳转只改变滚动位置，键盘焦点还留在原来那条链接上 ——
+     「跳到主要内容」之后按 Tab，会回到页头的第一个链接，等于没跳。
+     只对"本来就能接收焦点"的容器做（有 tabindex 的），
+     不改变任何元素的原有行为。 */
+  function focusTarget(el) {
+    if (!el || !el.focus) return;
+    if (!el.hasAttribute("tabindex")) return;
+    // preventScroll：滚动已经安排好了，别让聚焦再滚一次把落点带偏
+    el.focus({ preventScroll: true });
+  }
+
+  /* 压历史时保留已有 state。
+     ⚠️ 这里原来写的是 pushState(null, "", hash) —— 会把 history.state
+     整个覆盖成 null。而 repair.js 现在把「估价向导停在第几步」存在
+     history.state 里，被覆盖后按浏览器后退就找不到步骤，只能退回第一步。
+     保留原 state、只换 URL，两边的记录才能共存。 */
+  function pushHash(hash) {
+    if (!history.pushState) return;
+    try {
+      var st = history.state;
+      history.pushState(st == null ? null : st, "", hash);
+    } catch (e) {
+      history.pushState(null, "", hash);
+    }
+  }
+
   function initAnchors() {
     document.addEventListener("click", function (e) {
       var a = e.target.closest && e.target.closest('a[href^="#"]');
@@ -169,8 +197,11 @@ window.SITE_MOTION = (function () {
           var idx = all.indexOf(target);
           if (idx >= 0) {
             window.SITE_PAGED.goTo(idx);
-            if (history.pushState) history.pushState(null, "", hash);
+            pushHash(hash);
             closeMenu();
+            /* 翻页是平滑滚动，立刻聚焦会让浏览器把视口拽一下。
+               等落点稳定再交焦点。 */
+            setTimeout(function () { focusTarget(target); }, reduced() ? 0 : 520);
             return;
           }
         }
@@ -180,8 +211,9 @@ window.SITE_MOTION = (function () {
       }
 
       window.scrollTo({ top: Math.max(0, top), behavior: reduced() ? "auto" : "smooth" });
-      if (history.pushState) history.pushState(null, "", hash);
+      pushHash(hash);
       closeMenu();
+      setTimeout(function () { focusTarget(target); }, reduced() ? 0 : 520);
     });
   }
 

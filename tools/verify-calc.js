@@ -29,7 +29,13 @@ const ok = (c, m) => c ? notes.push('OK  ' + m) : fails.push(m);
   page.on('pageerror', e => errs.push(String(e)));
   page.on('console', m => { if (m.type() === 'error') errs.push(m.text()); });
 
-  await page.goto(SITE, { waitUntil: 'networkidle' });
+  /* 一言走外网，偶尔会 ERR_CONNECTION_CLOSED —— 那会在控制台留下一条
+     error，把"没有 JS 报错"这条断言误判成失败。固定成本地响应。 */
+  await page.route('**/v1.hitokoto.cn/**', r => r.fulfill({
+    status: 200, contentType: 'application/json',
+    body: JSON.stringify({ hitokoto: '把复杂的东西，做得简单一点。', from: '测试' })
+  }));
+  await page.goto(SITE, { waitUntil: 'load' });
   await page.waitForTimeout(900);
   await page.locator('#repair').scrollIntoViewIfNeeded();
   await page.waitForTimeout(400);
@@ -40,9 +46,14 @@ const ok = (c, m) => c ? notes.push('OK  ' + m) : fails.push(m);
     ? card.locator('.calc__label').innerText() : '';
   const opts = () => card.locator('.calc__opt').allInnerTexts();
   const trail = () => card.locator('.calc__trail__item').allInnerTexts();
+  /* 点击后要等「确认窗口」走完再断言。
+     ⚠️ 这里原来是 140ms —— 那时是"点下即跳"。
+     现在选中后会有 240ms 的高亮确认（给误触留反悔时间，见 repair.js 的
+     CONFIRM_MS），140ms 时还停在本步，断言会全部落空。
+     400ms = 240 确认 + 160 渲染余量。 */
   const press = async (name) => {
     await card.locator('.calc__opt', { hasText: new RegExp('^' + name + '$') }).first().click();
-    await page.waitForTimeout(140);
+    await page.waitForTimeout(400);
   };
   const height = () => card.evaluate(el => Math.round(el.getBoundingClientRect().height));
 
@@ -68,7 +79,7 @@ const ok = (c, m) => c ? notes.push('OK  ' + m) : fails.push(m);
 
   /* -------------------------------------------------- 2. 自动跳转 */
   await press('手机');
-  ok(/哪一项/.test(await label()), '选完设备自动跳到「项目」，不需要点下一步');
+  ok(/哪一项/.test(await label()), '选中设备后自动跳到「项目」，不需要点下一步');
   ok((await trail())[0].includes('手机'), '第一格变成已选答案「手机」');
   const h1 = await height();
   ok(h1 === h0, '第 2 步卡片高度不变（' + h0 + 'px）');
@@ -154,8 +165,117 @@ const ok = (c, m) => c ? notes.push('OK  ' + m) : fails.push(m);
   await page.waitForTimeout(120);
   ok(/这是.*设备/.test(await label()), '方向键只挪焦点，不会替人选中并跳步');
   await page.keyboard.press('Enter');
-  await page.waitForTimeout(160);
+  /* 与点击同一条路径：键盘选中同样要过 240ms 的确认窗口 */
+  await page.waitForTimeout(400);
   ok(/哪一项/.test(await label()), 'Enter 选中并前进到下一步');
+
+  /* ============================================ 5. 选中确认（防误触）
+     点下去到跳步之间有一段 CONFIRM_MS 的停顿，用来给误触留反悔余地。
+     这条断言守两件事：那段窗口真的存在，且窗口里按钮已经高亮。 */
+  await page.evaluate(() => window.SITE_REPAIR.resetAll());
+  await page.waitForTimeout(220);
+  await card.locator('.calc__opt', { hasText: /^手机$/ }).first().click();
+  await page.waitForTimeout(90);
+  ok(await page.evaluate(() => window.SITE_REPAIR.step()) === 0,
+    '点击后 90ms 仍停在本步（还没跳走）');
+  ok(await page.locator('.calc__opt.is-picked').count() > 0,
+    '窗口期内被选中的按钮带 is-picked（视觉确认）');
+  await page.waitForTimeout(340);
+  ok(await page.evaluate(() => window.SITE_REPAIR.step()) === 1,
+    '窗口结束后才前进');
+
+  /* ================================================== 6. 上一步 / 重置 */
+  ok(await card.locator('[data-calc-back]').first().evaluate(el => getComputedStyle(el).visibility) === 'visible',
+    '第 2 步的「上一步」可见');
+  await card.locator('[data-calc-back]').first().click();
+  await page.waitForTimeout(260);
+  ok(await page.evaluate(() => window.SITE_REPAIR.step()) === 0, '点「上一步」回到第 1 步');
+  ok(await card.locator('[data-calc-back]').first().evaluate(el => getComputedStyle(el).visibility) === 'hidden',
+    '第 1 步的「上一步」是隐藏占位（保持卡片等高）');
+
+  /* ================================================== 7. 浏览器后退键 */
+  await press('手机');
+  await press('换电池');
+  const beforePop = await page.evaluate(() => window.SITE_REPAIR.step());
+  await page.goBack();
+  await page.waitForTimeout(420);
+  const afterPop = await page.evaluate(() => window.SITE_REPAIR.step());
+  ok(beforePop === 2 && afterPop === 1,
+    '浏览器后退回到上一步（' + beforePop + ' → ' + afterPop + '），没有跳出页面');
+  await page.goForward();
+  await page.waitForTimeout(420);
+  ok(await page.evaluate(() => window.SITE_REPAIR.step()) === 2, '浏览器前进回到下一步');
+
+  /* ================================================ 8. 防抖（连点保护） */
+  await page.evaluate(() => window.SITE_REPAIR.resetAll());
+  await page.waitForTimeout(220);
+  const dbBefore = await page.evaluate(() => window.SITE_REPAIR.step());
+  const one = card.locator('.calc__opt').first();
+  await one.click({ force: true });
+  await one.click({ force: true });
+  await one.click({ force: true });
+  await one.click({ force: true });
+  await page.waitForTimeout(520);
+  ok(await page.evaluate(() => window.SITE_REPAIR.step()) - dbBefore === 1,
+    '连点 4 次只前进一步（防抖生效）');
+
+  /* ==================================================== 9. 校验与兜底 */
+  const conflictMsg = await page.evaluate(() => {
+    const S = window.SITE_REPAIR.state;
+    S.device = 'console'; S.service = 'screen';   // 游戏机不能换屏
+    S.material = 'oem'; S.extra = 'none';
+    return window.SITE_REPAIR.validate();
+  });
+  ok(conflictMsg.length > 0, '设备与项目冲突被校验拦下（' + conflictMsg.join('；') + '）');
+
+  const emptyMsg = await page.evaluate(() => {
+    const S = window.SITE_REPAIR.state;
+    S.device = 'phone'; S.service = ''; S.material = ''; S.extra = '';
+    return window.SITE_REPAIR.validate();
+  });
+  ok(emptyMsg.length >= 3, '缺项被逐条列出（' + emptyMsg.length + ' 条）');
+
+  const warnView = await page.evaluate(() => {
+    const S = window.SITE_REPAIR.state;
+    S.device = 'console'; S.service = 'screen'; S.material = 'oem'; S.extra = 'none';
+    window.SITE_REPAIR.go(4);
+    return {
+      hasWarn: !!document.querySelector('.calc__result--warn'),
+      hasPrice: !!document.querySelector('.calc__price'),
+      text: (document.querySelector('.calc__warn-list') || {}).textContent || ''
+    };
+  });
+  ok(warnView.hasWarn && !warnView.hasPrice, '冲突时显示提示块而不是价格');
+  ok(warnView.text.indexOf('做不了') >= 0, '提示说清了哪一项做不了');
+
+  /* ================================================= 10. 结果页的人话 */
+  await page.evaluate(() => {
+    const S = window.SITE_REPAIR.state;
+    S.device = 'phone'; S.service = 'screen'; S.material = 'oem'; S.extra = 'none';
+    window.SITE_REPAIR.go(4);
+  });
+  await page.waitForTimeout(260);
+  const tone = await page.locator('.calc__tone').innerText();
+  ok(tone.length > 8, '结果页有一句解释性文案（' + tone + '）');
+  /* 文案必须与所选配件对应，不能是随机夸奖 */
+  const toneBrand = await page.evaluate(() => {
+    window.SITE_REPAIR.state.material = 'value';
+    window.SITE_REPAIR.go(4);
+    return window.SITE_REPAIR.tone();
+  });
+  ok(tone !== toneBrand, '换材料后文案跟着变（不是写死的一句）');
+  const again = page.locator('.calc__again');
+  ok(await again.count() > 0, '结果页有「重新估价」主按钮');
+  ok(await again.evaluate(el => getComputedStyle(el).backgroundColor) !== 'rgba(0, 0, 0, 0)',
+    '「重新估价」是实心强调色，不是灰字');
+
+  await again.click();
+  await page.waitForTimeout(280);
+  ok(await page.evaluate(() => window.SITE_REPAIR.step()) === 0, '「重新估价」回到第 1 步');
+  ok(await page.evaluate(() => {
+    const S = window.SITE_REPAIR.state;
+    return Object.keys(S).every(k => S[k] === '');
+  }), '「重新估价」清空全部选项');
 
   ok(errs.length === 0, '没有 JS 报错' + (errs.length ? '：' + errs.join(' | ') : ''));
 

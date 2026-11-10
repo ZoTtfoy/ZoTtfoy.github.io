@@ -732,7 +732,12 @@ html[data-scrolling="on"] .vinyl::before { animation-play-state: paused; }
 }
 
 /* ============================================================ Q4 · 维修 */
-.section__head--tight { margin-bottom: clamp(22px, 3vw, 34px); }
+/* 第四屏页头与内容的间距。
+   上限从 34 收到 30：加了「上一步」按钮和第 4 步的"人话"之后，
+   这一屏展开报价表的自然高度变成 902px —— 1440×900 差 2px 就装不下，
+   density 于是把报价表折起来，读者看不到价目（信息更少的那一态）。
+   收 4px 是最小代价的修法：视觉上看不出，但让 900 高的窗口重新装得下。 */
+.section__head--tight { margin-bottom: clamp(20px, 3vw, 28px); }
 
 .repair {
   display: grid;
@@ -802,7 +807,7 @@ html[data-scrolling="on"] .vinyl::before { animation-play-state: paused; }
 .quote[open] .quote__caret { transform: rotate(90deg); }
 .quote__summary:hover .quote__caret { color: var(--text); }
 
-.quote__body { padding-top: 4px; }
+.quote__body { padding-top: 2px; }
 
 .quote__groups {
   display: grid;
@@ -812,7 +817,7 @@ html[data-scrolling="on"] .vinyl::before { animation-play-state: paused; }
 }
 
 .quote__gname {
-  margin-bottom: 4px;
+  margin-bottom: 3px;
   font-family: var(--font-mono);
   /* 原 .64rem —— 在 0.82 缩放下只剩 8.4px，分组标题几乎读不出。
      它是价目表的分组名（屏幕 / 电池 / 其他），属于结构信息，不该最小化。 */
@@ -847,7 +852,7 @@ html[data-scrolling="on"] .vinyl::before { animation-play-state: paused; }
 }
 
 .quote__note {
-  margin-top: 10px;
+  margin-top: 7px;
   font-size: .7rem;
   line-height: 1.6;
   color: var(--text-3);
@@ -1044,7 +1049,7 @@ html[data-scrolling="on"] .vinyl::before { animation-play-state: paused; }
   color: var(--text-3);
   text-wrap: pretty;
 }
-.calc__foot { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
+.calc__foot { display: flex; align-items: center; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
 .calc__reset {
   display: inline-flex;
   align-items: center;
@@ -1057,6 +1062,101 @@ html[data-scrolling="on"] .vinyl::before { animation-play-state: paused; }
 .calc__reset:hover { color: var(--text); }
 /* 「实际以拆机检测为准」：价格旁边必须有一句免责，否则区间数字会被当成报价 */
 .calc__more { margin-left: auto; font-size: .68rem; color: var(--text-3); }
+
+/* --------------------------------------------------- 上一步 / 重新估价
+   两个按钮承担相反的情绪，所以外观必须拉开：
+     · 上一步    ——「反悔」，灰白描边，安静，别和选项抢注意力
+     · 重新估价  —— 结果页唯一的主行动，实心强调色
+   上一步用 ← 箭头而不是图标：箭头本身就说明"往回"，不需要额外解释。 */
+.calc__back {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-height: 30px;
+  padding: 5px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-full);
+  font-size: .72rem;
+  color: var(--text-2);
+  background: var(--bg-soft);
+  transition: border-color var(--t-fast) var(--ease),
+              color var(--t-fast) var(--ease),
+              background-color var(--t-fast) var(--ease);
+}
+.calc__back:hover {
+  border-color: var(--line-strong);
+  background: var(--bg-elev);
+  color: var(--text);
+}
+
+/* 结果页的主按钮。用强调色而不是黑色 —— 深色主题下黑色按钮会陷进背景里 */
+.calc__again {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 8px 16px;
+  border-radius: var(--r-full);
+  background: var(--accent);
+  color: var(--accent-fg);
+  font-size: .8rem;
+  font-weight: 600;
+  transition: transform var(--t-fast) var(--ease), filter var(--t-fast) var(--ease);
+}
+.calc__again .icon { width: 13px; height: 13px; }
+.calc__again:hover { filter: brightness(1.08); transform: translateY(-1px); }
+.calc__again:active { transform: translateY(0); }
+
+/* 结果页里那句"人话"。它比算式重要，所以字号排在算式之上。 */
+.calc__tone {
+  margin-top: 8px;
+  font-size: .84rem;
+  line-height: 1.66;
+  color: var(--text-2);
+  text-wrap: pretty;
+  /* 与算式之间留一道细线：一个说"值不值"，一个说"怎么算的" */
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--line);
+}
+
+/* ------------------------------------------------------ 校验未通过
+   用左边缘一道强调色而不是整块红底：这不是错误，是"还差一点"，
+   弄成报错样式会让访客以为自己操作坏了。 */
+.calc__result--warn {
+  padding-left: 12px;
+  border-left: 3px solid var(--accent);
+}
+.calc__warn-title {
+  font-size: .9rem;
+  font-weight: 600;
+  color: var(--text);
+}
+.calc__warn-list {
+  margin: 8px 0 0;
+  padding-left: 1.1em;
+  font-size: .8rem;
+  line-height: 1.7;
+  color: var(--text-2);
+}
+.calc__warn-list li + li { margin-top: 2px; }
+
+/* -------------------------------------------------- 选中后那一瞬的确认
+   240ms 里按钮先"实心 + 轻微回弹"，让人看见"我记下了"，
+   再跳到下一步。这不只是为了好看 —— 误触时这几帧给了反悔的余地。
+   prefers-reduced-motion 下取消缩放，只保留颜色变化。 */
+.calc__opt.is-picked {
+  animation: calc-pick .24s var(--ease-out) both;
+}
+@keyframes calc-pick {
+  0%   { transform: scale(.96); }
+  55%  { transform: scale(1.015); }
+  100% { transform: scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .calc__opt.is-picked { animation: none; }
+}
 
 /* 无 JS 时的降级：计算器位置显示一句说明，报价表照常可读 */
 .calc__fallback { font-size: .8rem; color: var(--text-3); line-height: 1.7; }
@@ -1307,4 +1407,13 @@ html[data-scrolling="on"] .vinyl::before { animation-play-state: paused; }
   .calc { padding: 14px 14px 15px; }
   .calc__opt { padding: 8px 10px; }
   .quote__groups { column-gap: 12px; }
+}
+
+/* 「上一步」的占位态：第 1 步看不见它，但保留它那 30px 高度。
+   用 visibility 而不是 display:none —— 后者会让高度归零，
+   而这里要的正是"不显示但占位"。visibility:hidden 的元素也不可聚焦，
+   配合 aria-hidden + tabindex="-1" 三保险。 */
+.calc__back.is-ghost {
+  visibility: hidden;
+  pointer-events: none;
 }
