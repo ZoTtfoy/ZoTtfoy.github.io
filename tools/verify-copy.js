@@ -23,10 +23,12 @@
  *     测试会误报成"复制失败"。
  *
  *  依赖：playwright-core + 本地 chromium
+ *
+ *  可以指到线上跑：node tools/verify-copy.js https://zottfoy.github.io/
  * ========================================================================== */
 const { chromium } = require('playwright-core');
 
-const SITE = 'http://127.0.0.1:8791/';
+const SITE = process.argv[2] || 'http://127.0.0.1:8791/';
 const notes = [], fails = [];
 const ok = (c, m) => c ? notes.push('OK  ' + m) : fails.push(m);
 
