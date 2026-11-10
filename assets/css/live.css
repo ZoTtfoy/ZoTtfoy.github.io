@@ -87,6 +87,18 @@ html[data-loading="0"] .splash { display: none; }
   line-height: 1.75;
   color: var(--text-2);
   transition: opacity .3s var(--ease);
+
+  /* ⚠️ 行数上限 2 行，超了省略。
+     本地 quotes 是你手写的，长度可控；但 quoteRemote 打开后，
+     句子来自一言接口，长度随机 —— 实测 375×667 上抽到一句长的就折成两行、
+     高度 49px，把首屏从 667 顶到 673，paged.js 只好降档。
+     限两行之后高度锁定在 ~49px 以内，抽到多长的句子都不会溢出。
+     用 -webkit-line-clamp 而不是 white-space:nowrap：后者会把句子截成一行，
+     长一点的句子读起来像断了。 */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 /* 左侧一道细竖线，代替引号的视觉重量 */
 .hero__quote::before {

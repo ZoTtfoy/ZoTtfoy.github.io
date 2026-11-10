@@ -95,7 +95,18 @@ const META_SEL = [
       deviceScaleFactor: 2
     });
     const p = await ctx.newPage();
-    await p.goto(SITE, { waitUntil: 'networkidle' });
+    /* ⚠️ 不要用 networkidle。
+       config 里 quoteRemote 打开后，页面会去请求 v1.hitokoto.cn，
+       那是个跨国小站，偶尔几秒不回 —— 而 networkidle 要求"500ms 内无网络活动"，
+       于是整个脚本每台机型都白等 30s 然后 TimeoutError。
+       这里只等 DOM + 脚本执行完（load），再固定等一段时间让 fit 档位算完。
+       顺带把外部请求全挡掉：这一组断言测的是布局，不需要任何外网数据。 */
+    await p.route('**/v1.hitokoto.cn/**', (route) => route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ hitokoto: '把复杂的东西，做得简单一点。', from: '测试' })
+    }));
+    await p.goto(SITE, { waitUntil: 'load' });
     await p.waitForTimeout(1300);
 
     const r = await p.evaluate(({ BODY_SEL, META_SEL, TABLE_SEL }) => {

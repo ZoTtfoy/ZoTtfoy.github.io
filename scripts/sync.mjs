@@ -105,32 +105,53 @@ function decodeEntities(s) {
 void decodeEntities;
 
 /* ============================================================ 1. 网易云 */
-/* 要两样东西，来源是两个不同的接口 —— 这一点很关键：
+/* 要三样数据，来自三个接口，权限要求各不相同 —— 这个区别是实测出来的：
  *
- *   A. 累计听歌数 + 等级
- *      GET /api/v1/user/detail/{uid}      ← 不需要登录
- *      返回 { listenSongs: 77025, level: 10, profile: {...} }
+ *   A. 累计听歌数 + 等级     GET /api/v1/user/detail/{uid}
+ *      ✅ 不需要登录。返回 { listenSongs: 77025, level: 10, profile: {...} }
  *      ⚠️ 旧文档里的 /api/user/detail?uid= 已经 404，只有这个路径还在。
  *
- *   B. 听歌排行（带每首歌的播放次数）
- *      GET /api/v1/play/record?uid={uid}&type=1     ← 需要 MUSIC_U cookie
- *          type=1 → weekData（最近一周）   type=0 → allData（所有时间）
- *      返回 { weekData: [ { playCount, song: { name, ar[], al{}, id } } ] }
- *      没 cookie 时返回 { code: -2, msg: "无权限访问" }。
+ *   B. 听歌排行              GET /api/v1/play/record?uid={uid}&type=1
+ *      ⚠️ 也不需要 cookie，但**需要账号把「听歌排行」设为公开**。
+ *      type=1 → weekData（最近一周）   type=0 → allData（所有时间）
+ *      设为私密时返回 { code: -2, msg: "无权限访问" }。
  *
- * 为什么把 A 和 B 拆开抓：
- *   以前只抓 B。一旦 cookie 过期或没配，整个 JSON 就写不出来，
- *   页面上一片示例数据 —— 而 A 根本不需要登录，白丢了。
- *   现在 A 拿到就写 A，B 拿到就写 B，互不牵连。
+ *      ⚠️⚠️ 2026-11-10 实测纠正了一个长期误解：
+ *      -2 不是"缺 cookie"，而是"这个账号的听歌排行是私密的"。
+ *      证据：同一时刻、同一请求头，uid=2116/83659385 等账号返回 code=200
+ *      且有完整 weekData；而 uid=1（网易云官方）和自己的账号返回 -2。
+ *      如果是"接口要登录"，应该是所有 uid 都 -2。
+ *      也就是说：**把听歌排行设为公开，就不需要 cookie 了**。
+ *
+ *      代价：匿名读到的次数被服务端脱敏了 —— playCount 恒为 0，
+ *      真实信息在 score 字段，是百分制相对热度（top1=100，其次 75/50…）。
+ *      weapi 加密、移动端 UA、各种 os= 标识都试过，拿不到真实次数：
+ *      那是账号私密数据，脱敏是服务端设计，不是协议问题。
+ *
+ *   C. 我喜欢的音乐（兜底）   GET /api/user/playlist?uid=  +  /api/v1/playlist/detail?id=
+ *      ✅ 不需要登录，也**不需要任何设置**（喜欢歌单默认公开）。
+ *      代价：详情接口只给前 6 首（同样是脱敏），但这一屏本来就只显示 6 首。
+ *
+ * 于是有三层降级：公开排行 → 我喜欢的音乐 → 上一次的数据。
+ * 目标是**页面上永远有真实内容**，而不是一片"示例曲目一"。
  */
 const USER_DETAIL = (uid) =>
   `https://music.163.com/api/v1/user/detail/${encodeURIComponent(uid)}`;
 const PLAY_RECORD = (uid, type) =>
   `https://music.163.com/api/v1/play/record?uid=${encodeURIComponent(uid)}&type=${type}`;
+const USER_PLAYLIST = (uid) =>
+  `https://music.163.com/api/user/playlist?uid=${encodeURIComponent(uid)}&limit=50&offset=0`;
+const PLAYLIST_DETAIL = (id) =>
+  `https://music.163.com/api/v1/playlist/detail?id=${encodeURIComponent(id)}`;
 
 /* 把接口返回的一条记录拍平成页面要的形状。
    字段名在不同接口/不同年代之间飘过好几次（song / ar / artists / al / album），
-   所以这里宁可多写几个兜底，也不要让某一首因为少一个字段就整条丢掉。 */
+   所以这里宁可多写几个兜底，也不要让某一首因为少一个字段就整条丢掉。
+
+   ⚠️ playCount 和 score 必须分开存。
+   早先写的是 `Number(it.playCount ?? it.score)` —— 而匿名接口的 playCount
+   是 0 而不是 null，`0 ?? x` 等于 0，于是 score 永远取不到，次数恒显示 0。
+   现在两个字段各自保留，由前端决定显示"次数"还是"热度条"。 */
 function normTrack(it) {
   const s = (it && it.song) || it || {};
   const ar = Array.isArray(s.ar) ? s.ar : Array.isArray(s.artists) ? s.artists : [];
@@ -139,13 +160,48 @@ function normTrack(it) {
     title: s.name || s.title || "",
     artist: ar.map((a) => (a && a.name) || "").filter(Boolean).join(" / "),
     album: (al && al.name) || "",
-    playCount: Number(it && (it.playCount ?? it.score)) || 0,
+    playCount: Number(it && it.playCount) || 0,  // 真实次数：只有带 cookie 才非 0
+    score: Number(it && it.score) || 0,          // 相对热度：匿名读排行时唯一有值的
     url: s.id ? `https://music.163.com/song?id=${s.id}` : ""
   };
 }
 
 function parseJSON(body) {
   try { return JSON.parse(body); } catch { return null; }
+}
+
+/* 读听歌排行。返回 { tracks, all, denied, empty } —— 把"没权限"和"没数据"分开，
+   因为这两种情况给用户的建议完全不同。 */
+async function readRank(uid, headers) {
+  const week = parseJSON(await fetchText(PLAY_RECORD(uid, 1), { headers })) || {};
+  const all = parseJSON(await fetchText(PLAY_RECORD(uid, 0), { headers })) || {};
+  const pick = (r) => {
+    const raw = r && (r.weekData || r.allData);
+    if (!Array.isArray(raw)) return null;   // null = 这个接口没给数据
+    return raw.map(normTrack).filter((t) => t.title);
+  };
+  return {
+    tracks: pick(week) || [],
+    all: pick(all) || [],
+    denied: week.code === -2 || all.code === -2,
+    code: week.code
+  };
+}
+
+/* 读「我喜欢的音乐」歌单。零设置可用，是排行私密时的兜底。 */
+async function readLiked(uid, headers) {
+  const pl = parseJSON(await fetchText(USER_PLAYLIST(uid), { headers })) || {};
+  const list = Array.isArray(pl.playlist) ? pl.playlist : [];
+  if (!list.length) return { tracks: [], name: "" };
+  // specialType === 5 就是「我喜欢的音乐」；老接口可能没有这个字段，退到名字匹配
+  const liked = list.find((p) => p.specialType === 5) || list.find((p) => /喜欢/.test(p.name || ""));
+  if (!liked) return { tracks: [], name: "" };
+  const d = parseJSON(await fetchText(PLAYLIST_DETAIL(liked.id), { headers })) || {};
+  const raw = (d.playlist && d.playlist.tracks) || [];
+  return {
+    tracks: raw.map(normTrack).filter((t) => t.title),
+    name: liked.name || ""
+  };
 }
 
 async function syncNetease() {
@@ -177,34 +233,51 @@ async function syncNetease() {
     log("网易云：没拿到累计听歌数（接口结构可能又变了）");
   }
 
-  /* ------------------------------------ B. 本周 / 全部 听歌排行 */
-  const week = parseJSON(await fetchText(PLAY_RECORD(uid, 1), { headers })) || {};
-  const all = parseJSON(await fetchText(PLAY_RECORD(uid, 0), { headers })) || {};
+  /* ------------------------------- B. 听歌排行（不需要 cookie，但要公开） */
+  const rank = await readRank(uid, headers);
+  const hasRank = rank.tracks.length > 0;
 
-  const pick = (resp) => {
-    const raw = resp && (resp.weekData || resp.allData);
-    if (!Array.isArray(raw)) return null;          // null = 没抓到，区别于"抓到了但为空"
-    return raw.map(normTrack).filter((t) => t.title);
-  };
-
-  const weekTracks = pick(week);
-  const allTracks = pick(all);
-
-  if (weekTracks === null && allTracks === null) {
-    log("网易云：没拿到听歌排行。检查 ① NETEASE_COOKIE 是否配了 / 过期 ② 听歌排行是否公开");
-    if (week && week.code === -2) log("网易云：接口回的是「无权限访问」—— 这就是缺 cookie 的症状");
+  if (hasRank) {
+    const real = rank.tracks.some((t) => t.playCount > 0);
+    log(`网易云：听歌排行 ${rank.tracks.length} 首` +
+      (real ? "（含真实播放次数）" : "（匿名读取，次数为相对热度）"));
+  } else if (rank.denied) {
+    log("网易云：听歌排行返回 -2「无权限访问」—— 这是账号把它设成了私密，不是缺 cookie。");
+    log("网易云：去 music.163.com → 设置 → 隐私 →「公开我的听歌排行」，之后无需任何配置就能抓。");
+  } else {
+    log("网易云：排行接口可读但没有记录（可能这一周还没听歌）");
   }
 
-  /* 排行抓不到就沿用上一次的，别把已经有内容的列表擦成空。
-     累计听歌是这次新拿到的，照样要写进去。 */
-  const finalWeek = weekTracks && weekTracks.length ? weekTracks : (prev.week || prev.tracks || []);
-  const finalAll = allTracks && allTracks.length ? allTracks : (prev.allTime || []);
+  /* --------------------------- C. 兜底：我喜欢的音乐（零设置，永远可用） */
+  let source = "rank";
+  let finalTracks = rank.tracks;
+  let likedName = "";
+
+  if (!finalTracks.length) {
+    const liked = await readLiked(uid, headers);
+    likedName = liked.name;
+    if (liked.tracks.length) {
+      source = "liked";
+      finalTracks = liked.tracks;
+      log(`网易云：改用「${liked.name}」作为数据源（${liked.tracks.length} 首，无需任何设置）`);
+    }
+  }
+
+  /* 三层都空：沿用上一次的数据，别把已有内容擦成空 */
+  if (!finalTracks.length) {
+    finalTracks = prev.tracks || prev.week || [];
+    if (finalTracks.length) {
+      source = prev.source || "cache";
+      log(`网易云：本次没抓到内容，沿用上一次的 ${finalTracks.length} 首`);
+    }
+  }
+
   const finalTotal = totalSongs || Number(prev.totalSongs) || 0;
   const finalLevel = level || Number(prev.level) || 0;
 
-  if (!finalWeek.length && !finalTotal) {
+  if (!finalTracks.length && !finalTotal) {
     log("网易云：什么都没有拿到，保持原样");
-    return 0;
+    return { count: 0, source: "none" };
   }
 
   const payload = {
@@ -212,18 +285,24 @@ async function syncNetease() {
     uid,
     totalSongs: finalTotal,
     level: finalLevel,
-    week: finalWeek,
-    allTime: finalAll,
-    /* tracks = week，留给还没有升级的前端 / 旧缓存 */
-    tracks: finalWeek
+    /* rank   = 听歌排行（公开）
+       liked  = 我喜欢的音乐（排行私密时的兜底）
+       cache  = 这次什么都没抓到，沿用旧数据 */
+    source,
+    likedName,
+    week: rank.tracks,
+    allTime: rank.all,
+    /* tracks = 前端实际用的那份，旧字段名保持不变 */
+    tracks: finalTracks
   };
   await writeJSON(outPath, payload);
 
-  if (finalWeek.length) log(`网易云：听歌排行已同步 ${finalWeek.length} 首（带播放次数）`);
+  const label = source === "rank" ? "听歌排行" : source === "liked" ? "我喜欢的音乐" : "上一次的数据";
+  if (finalTracks.length) log(`网易云：已写入 ${finalTracks.length} 首（来源：${label}）`);
   if (!totalSongs && finalTotal) log("网易云：累计听歌沿用上次的值");
   /* 返回"这次真的抓到几首"。以前这里写 `|| 1`，本意是"写成功就算有进展"，
      结果 empty 的排行会被下游当成"本周在听 1 首"写进摘要卡 —— 一个假数字。 */
-  return finalWeek.length;
+  return { count: finalTracks.length, source };
 }
 
 /* ==================================================== 2. 摘要卡的真实数据 */
@@ -245,7 +324,7 @@ async function syncNetease() {
  *    也就是网易云播放记录本身能算出来的东西（本周听了几首）。
  *    其余两个卡片的文字由你在 config.js 里填，想放缩略图就截图上传。
  */
-async function syncPreviewStats(trackCount) {
+async function syncPreviewStats(trackCount, source) {
   const outPath = path.join(DATA_DIR, "previews.json");
   const prev = await readJSON(outPath, { items: {} });
   const items = { ...(prev.items || {}) };
@@ -262,7 +341,14 @@ async function syncPreviewStats(trackCount) {
   const stats = [];
   // 累计听歌是这张卡最有分量的一格：一个六位数的数字，比"本周 N 首"更像"我听了多少年"
   if (totalSongs) stats.push({ label: "累计听歌", value: fmtCount(totalSongs) + " 首" });
-  if (trackCount) stats.push({ label: "本周在听", value: trackCount + " 首" });
+  /* trackCount 的标签要跟着数据来源走。
+     早先不管来源一律写「本周在听」—— 当数据源退到「我喜欢的音乐」时，
+     那句"本周在听 6 首"就是假的：那 6 首是收藏，不是本周循环。
+     宁可写「收藏歌曲」，也不让卡片替一个不存在的事实背书。 */
+  if (trackCount) {
+    const label = source === "liked" ? "收藏歌曲" : "本周在听";
+    stats.push({ label, value: trackCount + " 首" });
+  }
   if (!stats.length) return;
 
   items.netease = {
@@ -291,11 +377,11 @@ async function main() {
     annotate("没有配置 NETEASE_COOKIE，听歌排行抓不到（累计听歌不受影响）。见 README 第五节。");
   }
 
-  let count = 0;
-  try { count = await syncNetease(); }
+  let result = { count: 0, source: "none" };
+  try { result = await syncNetease(); }
   catch (e) { log("网易云同步异常（已忽略）", e.message); }
 
-  try { await syncPreviewStats(count); }
+  try { await syncPreviewStats(result.count, result.source); }
   catch (e) { log("摘要统计异常（已忽略）", e.message); }
 
   log("完成");

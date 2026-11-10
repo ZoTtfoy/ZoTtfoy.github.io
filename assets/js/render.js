@@ -208,29 +208,46 @@ window.SITE_RENDER = (function () {
 
      ⚠️ 2026-11-10 从「最近在听」改成「听歌排行」：
      以前只显示歌名，其实网易云那边每首歌都有播放次数，只是被脚本丢掉了。
-     现在每块右侧印出「N 次」，这一屏才真的回答了"你最近在听什么"——
-     不是"有哪些歌"，而是"哪几首听得最多、听了几遍"。 */
+
+     ⚠️ 2026-11-10 二次修正 —— 次数有两种可信度，不能混着说：
+       · 配了 cookie：拿得到真实 playCount，印「128 次」。
+       · 匿名读公开排行：服务端把次数脱敏成 score（百分制相对热度，
+         top1=100，其次 75/50…），`playCount` 恒为 0。
+       所以这里分两条路：有真实次数就写次数；只有相对热度就画一根热度条。
+       绝不在只有 score 的时候印「100 次」—— 那是个编出来的数字。 */
   function fmtNum(n) {
     return String(Math.round(Number(n) || 0)).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
   }
 
-  /* sync.js 抓来的额外信息（累计听歌 / 等级 / 同步时间）。
-     和曲目分开存：排行抓不到时（缺 cookie），这几个数字照样有。 */
-  var listenMeta = { total: 0, level: 0, updated: "", live: false };
+  /* sync.js 抓来的额外信息（累计听歌 / 等级 / 数据来源 / 同步时间）。
+     和曲目分开存：排行抓不到时，这几个数字照样有。 */
+  var listenMeta = { total: 0, level: 0, updated: "", live: false, source: "rank" };
 
-  function trackHtml(t, i) {
+  function trackHtml(t, i, maxScore) {
     var meta = [t.artist, t.album].filter(Boolean).join(" · ");
-    var plays = Number(t.playCount) > 0
-      ? '<span class="track__plays">' + fmtNum(t.playCount) +
-        '<span class="track__plays-unit">次</span></span>'
-      : "";
+    var badge = "";
+
+    if (Number(t.playCount) > 0) {
+      /* 真实次数。 */
+      badge = '<span class="track__plays">' + fmtNum(t.playCount) +
+              '<span class="track__plays-unit">次</span></span>';
+    } else if (Number(t.score) > 0) {
+      /* 只有相对热度：画一条按最高分归一化的细条。
+         aria/title 给出百分比，读屏和悬停都能问到具体值。 */
+      var pct = Math.max(6, Math.round((Number(t.score) / maxScore) * 100));
+      badge = '<span class="track__heat" title="相对热度 ' + pct + '%"' +
+              ' aria-label="相对热度 ' + pct + '%">' +
+                '<i style="width:' + pct + '%"></i>' +
+              "</span>";
+    }
+
     return '<li class="track" style="' + delay(i, 45) + '" data-reveal>' +
              '<span class="track__idx">' + String(i + 1).padStart(2, "0") + "</span>" +
              '<span class="track__main">' +
                '<span class="track__title">' + esc(t.title || "") + "</span>" +
                (meta ? '<span class="track__meta">' + esc(meta) + "</span>" : "") +
              "</span>" +
-             plays +
+             badge +
              (t.url
                ? '<a class="track__go" href="' + esc(t.url) + '" target="_blank" rel="noopener noreferrer"' +
                  ' aria-label="在网易云打开 ' + esc(t.title || "") + '">' + icon("play") + "</a>"
@@ -250,15 +267,22 @@ window.SITE_RENDER = (function () {
       ? "https://music.163.com/#/user/home?id=" + encodeURIComponent(uid)
       : "https://music.163.com/";
 
-    /* 三种状态，页脚说三种话：
+    /* 四种状态，页脚说四种话 —— 关键是别让"数字是真的"冒充"歌也是真的"：
          · 排行已同步        → 已同步
-         · 只有累计听歌      → 排行待同步（数字是真的，歌还是兜底，不能写"已同步"）
+         · 我喜欢的音乐      → 已同步 · 收藏（内容真实，但语义不是"排行"，必须点明）
+         · 只有累计听歌      → 排行待同步（数字是真的，歌还是兜底）
          · 什么都没有        → 示例数据 · 等待首次同步 */
-    var src = listenMeta.live
-      ? '<span class="listen__src is-live"><span class="live-dot" aria-hidden="true"></span>已同步</span>'
-      : listenMeta.total
-        ? '<span class="listen__src is-pending">排行待同步</span>'
-        : '<span class="listen__src">示例数据 · 等待首次同步</span>';
+    var src;
+    if (listenMeta.live && listenMeta.source === "liked") {
+      src = '<span class="listen__src is-live is-liked" title="听歌排行未公开，当前显示的是「我喜欢的音乐」">' +
+              '<span class="live-dot" aria-hidden="true"></span>已同步 · 收藏</span>';
+    } else if (listenMeta.live) {
+      src = '<span class="listen__src is-live"><span class="live-dot" aria-hidden="true"></span>已同步</span>';
+    } else if (listenMeta.total) {
+      src = '<span class="listen__src is-pending">排行待同步</span>';
+    } else {
+      src = '<span class="listen__src">示例数据 · 等待首次同步</span>';
+    }
 
     var stat = listenMeta.total
       ? '<span class="listen__stat">累计听歌 <b>' + fmtNum(listenMeta.total) + "</b> 首</span>"
@@ -301,24 +325,39 @@ window.SITE_RENDER = (function () {
       if (Number(meta.totalSongs) > 0) listenMeta.total = Number(meta.totalSongs);
       if (Number(meta.level) > 0) listenMeta.level = Number(meta.level);
       if (meta.updated) listenMeta.updated = meta.updated;
+      if (meta.source) listenMeta.source = meta.source;
     }
 
     var items = arr(list).slice(0, Math.min(d.limit || 6, trackCap()));
-    ul.innerHTML = items.map(trackHtml).join("");
+
+    /* 热度条的归一化基准：取本屏最高分。
+       匿名接口的 score 本身是百分制（top1=100），但别的接口未必，
+       按实际最大值归一化比假设量纲更稳。 */
+    var maxScore = 1;
+    items.forEach(function (t) {
+      var s = Number(t.score) || 0;
+      if (s > maxScore) maxScore = s;
+    });
+
+    ul.innerHTML = items.map(function (t, i) { return trackHtml(t, i, maxScore); }).join("");
     ul.setAttribute("data-count", String(items.length));
-    /* 有播放次数时加这个标记：手机上要换成单列，
-       否则两列里每块只剩 ~100px 放"曲名 + 次数"，两样都会被截断。 */
-    ul.setAttribute("data-ranked", items.some(function (t) { return Number(t.playCount) > 0; }) ? "1" : "0");
+    /* 有次数或热度时加这个标记：手机上要换成单列，
+       否则两列里每块只剩 ~100px 放"曲名 + 数值"，两样都会被截断。 */
+    ul.setAttribute("data-ranked",
+      items.some(function (t) { return Number(t.playCount) > 0 || Number(t.score) > 0; }) ? "1" : "0");
     paintListenFoot();
   }
 
-  /* 只更新页脚（累计听歌变了、但排行没变时用） */
+  /* 只更新页脚（累计听歌变了、但曲目没变时用） */
   function setListenMeta(meta) {
     if (!meta) return;
     if (Number(meta.totalSongs) > 0) listenMeta.total = Number(meta.totalSongs);
     if (Number(meta.level) > 0) listenMeta.level = Number(meta.level);
     if (meta.updated) listenMeta.updated = meta.updated;
-    if (meta.live) listenMeta.live = true;
+    /* ⚠️ 显式赋值而不是 `if (meta.live)`：调用方不传 live 就意味着
+       "这次没有真实曲目"，此时必须把 live 拉回 false，
+       否则页脚会停在"已同步"，替一排兜底歌曲作伪证。 */
+    listenMeta.live = meta.live === true;
     paintListenFoot();
   }
 

@@ -1,9 +1,60 @@
 {
-  "updated": "2026-11-10T08:24:30.149Z",
+  "updated": "2026-11-10T11:01:40.374Z",
   "uid": "1695307327",
   "totalSongs": 77025,
   "level": 10,
+  "source": "liked",
+  "likedName": "Zotrod喜欢的音乐",
   "week": [],
   "allTime": [],
-  "tracks": []
+  "tracks": [
+    {
+      "title": "キセキ～未来へ～",
+      "artist": "whiteeeen",
+      "album": "キセキ～未来へ～",
+      "playCount": 0,
+      "score": 0,
+      "url": "https://music.163.com/song?id=426850114"
+    },
+    {
+      "title": "キセキ",
+      "artist": "GRe4N BOYZ",
+      "album": "あっ、ども。おひさしぶりです。(期間限定盤)",
+      "playCount": 0,
+      "score": 0,
+      "url": "https://music.163.com/song?id=733149"
+    },
+    {
+      "title": "Somero",
+      "artist": "Mich",
+      "album": "Somero",
+      "playCount": 0,
+      "score": 0,
+      "url": "https://music.163.com/song?id=414980898"
+    },
+    {
+      "title": "五月猫",
+      "artist": "ナナツカゼ",
+      "album": "五月猫",
+      "playCount": 0,
+      "score": 0,
+      "url": "https://music.163.com/song?id=3383668637"
+    },
+    {
+      "title": "17.",
+      "artist": "ChakYoun9",
+      "album": "17.",
+      "playCount": 0,
+      "score": 0,
+      "url": "https://music.163.com/song?id=557820289"
+    },
+    {
+      "title": "ヒッチコック (Re-Recording)",
+      "artist": "ヨルシカ",
+      "album": "二人称",
+      "playCount": 0,
+      "score": 0,
+      "url": "https://music.163.com/song?id=3355479296"
+    }
+  ]
 }

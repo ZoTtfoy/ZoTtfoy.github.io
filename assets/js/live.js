@@ -152,6 +152,14 @@ window.SITE_LIVE = (function () {
   }
 
   function fetchRemoteQuote() {
+    /* ⚠️ 先确认 fetch 存在再调。
+       `fetch(...)` 在 fetch 未定义时抛的是 ReferenceError，不是 Promise rejection ——
+       它不会走到下面的 .catch，而是直接冒泡出 initQuote，
+       再被 main.js 那个包住整个 init 的 try 接住，于是**其余模块全都不初始化**。
+       触发场景不止测试桩：老浏览器、被 CSP 拦掉、某些隐私模式禁用 fetch，都会这样。
+       一言本来就是锦上添花，取不到就用本地列表，没有任何理由让它拖垮整站。 */
+    if (typeof fetch !== "function") return Promise.resolve(null);
+
     // 5 秒超时；失败就用本地列表顶上，绝不留白
     return new Promise(function (resolve) {
       var settled = false;
@@ -159,20 +167,25 @@ window.SITE_LIVE = (function () {
         if (!settled) { settled = true; resolve(null); }
       }, 5000);
 
-      fetch("https://v1.hitokoto.cn/?encode=json&max_length=24")
-        .then(function (r) { return r.ok ? r.json() : null; })
-        .then(function (data) {
-          if (settled) return;
-          settled = true;
-          clearTimeout(to);
-          resolve(data && data.hitokoto ? { text: data.hitokoto, from: data.from || "" } : null);
-        })
-        .catch(function () {
-          if (settled) return;
-          settled = true;
-          clearTimeout(to);
-          resolve(null);
-        });
+      try {
+        fetch("https://v1.hitokoto.cn/?encode=json&max_length=24")
+          .then(function (r) { return r.ok ? r.json() : null; })
+          .then(function (data) {
+            if (settled) return;
+            settled = true;
+            clearTimeout(to);
+            resolve(data && data.hitokoto ? { text: data.hitokoto, from: data.from || "" } : null);
+          })
+          .catch(function () {
+            if (settled) return;
+            settled = true;
+            clearTimeout(to);
+            resolve(null);
+          });
+      } catch (e) {
+        // fetch 同步抛错（部分环境下会）—— 同样降级
+        if (!settled) { settled = true; clearTimeout(to); resolve(null); }
+      }
     });
   }
 
@@ -240,6 +253,17 @@ window.SITE_LIVE = (function () {
       bar.appendChild(audio);
 
       var btn = bar.querySelector("#musicBtn");
+      /* ⚠️ 必须判空再绑。
+         这里的 #musicBtn 是靠上面 innerHTML 解析出来的，一旦解析没发生
+         （极简 DOM、被 CSP 拦掉的 innerHTML、将来改成模板渲染），
+         btn 就是 null，`btn.addEventListener` 会直接抛错 ——
+         而 main.js 把整个 init 包在一个 try 里，于是**其余所有模块一起不初始化**：
+         时钟、进度条、主题按钮全都没有，排查时完全看不出根因在音乐浮窗。
+         宁可让浮窗退化成一个纯链接，也不要拖垮整站。 */
+      if (!btn) {
+        // 静默退化：这是可选装饰，不该在控制台制造噪音
+        return;
+      }
       var setIcon = function (playing) {
         btn.innerHTML = window.siteIcon(playing ? "pause" : "music");
         btn.setAttribute("aria-label", playing ? "暂停" : "播放");

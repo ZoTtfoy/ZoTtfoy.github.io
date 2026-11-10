@@ -12,13 +12,32 @@ const fs = require('fs');
 const path = require('path');
 const { chromium } = require('playwright-core');
 
-const ROOT = 'D:/2026-11-09-12-47-30/zotrod-homepage';
+/* ⚠️ 不再写死 D:/2026-11-09-12-47-30/…。
+   项目一度放在 D 盘，脚本里留下了绝对路径，工作区搬到别处后
+   这一行直接 ENOENT 把整个脚本弄崩 —— 而且崩在 require 阶段之前的读取，
+   连一行检查项都跑不出来。改成"从当前工作目录往上找 管理凭据.txt"：
+   项目在 zotrod-homepage/ 下，凭据在它上一级。 */
+const ROOT = process.cwd();
 const URL = 'http://127.0.0.1:8791/admin.html';
 const notes = [], fails = [];
 const ok = (c, m) => c ? notes.push('OK  ' + m) : fails.push(m);
 
+function findCred() {
+  const tries = [
+    path.join(ROOT, '..', '管理凭据.txt'),
+    path.join(ROOT, '管理凭据.txt')
+  ];
+  for (const f of tries) { if (fs.existsSync(f)) return f; }
+  return null;
+}
+
 (async () => {
-  const cred = fs.readFileSync(path.join(ROOT, '..', '管理凭据.txt'), 'utf8');
+  const credFile = findCred();
+  if (!credFile) {
+    console.log('--  找不到 管理凭据.txt（在项目上一级），跳过编辑器登录相关断言');
+    process.exit(0);
+  }
+  const cred = fs.readFileSync(credFile, 'utf8');
   const user = /账户[:：]\s*(\S+)/.exec(cred)[1];
   const pass = /口令[:：]\s*(\S+)/.exec(cred)[1];
 

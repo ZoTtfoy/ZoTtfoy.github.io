@@ -509,10 +509,12 @@ window.ADMIN = {
       body += group("网易云账号", "",
         '<p class="sheet__hint">' +
           'UID 这样找：打开 music.163.com → 点自己头像进主页 → 地址栏 <code>id=</code> 后面那串数字。<br>' +
-          '填了 UID 之后，「听歌排行」会由仓库的定时任务自动同步（每天一次）。' +
-          '累计听歌数不需要登录就能抓，<strong>配好 UID 立刻就有</strong>；' +
-          '曲目排行还需要在仓库里配一个 <code>NETEASE_COOKIE</code> Secret（见 README）。' +
-          '没配 cookie 时，排行会一直显示下面的兜底曲目，其余部分照常。' +
+          '填好 UID，定时任务（每天一次）就能拿到：<strong>累计听歌数</strong>与<strong>「我喜欢的音乐」</strong>，' +
+          '两者都不需要登录、也不需要 cookie。<br>' +
+          '想要真正的「听歌排行」：去网易云 <strong>设置 → 隐私 → 公开我的听歌排行</strong>，同样不需要 cookie' +
+          '（这时每首歌的次数会显示成一根热度条，因为匿名读取拿不到绝对次数）。<br>' +
+          '想要显示<strong>真实播放次数</strong>，才需要在仓库配 <code>NETEASE_COOKIE</code> Secret（见 README）。<br>' +
+          '以上都拿不到时会退回下面的兜底曲目，页面不会空。' +
         '</p>' +
         scalarFields([
           { path: ["listen", "neteaseUid"], label: "网易云数字 UID", value: getPath(draft, ["listen", "neteaseUid"]), mono: true },

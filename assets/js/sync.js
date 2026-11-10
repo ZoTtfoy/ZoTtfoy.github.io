@@ -47,7 +47,11 @@
   }
 
   /* ------------------------------------------------- Q2：听歌排行 */
-  /* 两种半成品都要能用：
+  /* 数据可能来自三个来源，页脚要如实说明：
+       rank  = 听歌排行（账号把排行设为公开了）
+       liked = 我喜欢的音乐（排行私密时的兜底，零设置也能有真实内容）
+       cache = 本次没抓到，沿用旧数据
+     两种半成品也都要能用：
        · 只有排行、没有累计听歌（旧缓存） → 画排行，页脚不显示总数
        · 只有累计听歌、没有排行（没配 cookie） → 排行保持兜底，页脚照样有总数
      以前这里一上来就 `if (!tracks.length) return false`，把第二种情况直接丢了。 */
@@ -59,6 +63,8 @@
       totalSongs: Number(data.totalSongs) || 0,
       level: Number(data.level) || 0,
       updated: typeof data.updated === "string" ? data.updated : "",
+      source: typeof data.source === "string" ? data.source : "rank",
+      likedName: typeof data.likedName === "string" ? data.likedName : "",
       live: true
     };
     var hasMeta = meta.totalSongs > 0;
@@ -75,6 +81,7 @@
         artist: t.artist || "",
         album: t.album || "",
         playCount: Number(t.playCount) || 0,
+        score: Number(t.score) || 0,
         url: typeof t.url === "string" && /^https?:\/\//.test(t.url) ? t.url : ""
       };
     });
@@ -84,7 +91,7 @@
       return true;
     }
 
-    /* 没有排行：至少把累计听歌写在页脚，而不是什么都不做。
+    /* 没有曲目：至少把累计听歌写在页脚，而不是什么都不做。
        ⚠️ 这里**不能**带 live:true —— 页面上还是兜底曲目，
        页脚却写"已同步"，那就是拿一个真数字给一排假歌背书。
        交给 render 去显示「排行待同步」。 */
