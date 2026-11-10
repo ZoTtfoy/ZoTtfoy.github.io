@@ -740,7 +740,10 @@ html[data-scrolling="on"] .vinyl::before { animation-play-state: paused; }
   text-wrap: pretty;
 }
 
-/* -------------------------------------------------------------- 估价器 */
+/* -------------------------------------------------------------- 估价器
+   跳转式向导：一次只问一件事，选完自动到下一问，顶部四格既是进度也是返回键。
+   旧版四个问题同时铺开，12 个按钮挤在手机上半屏里，读者还得自己判断
+   "从哪开始、还差几项"；现在一屏一问，选项能放大到 44px 的触控高度。 */
 .calc {
   padding: clamp(16px, 2.2vw, 22px);
   border: 1px solid var(--line);
@@ -760,64 +763,147 @@ html[data-scrolling="on"] .vinyl::before { animation-play-state: paused; }
 .calc__title .icon { width: 16px; height: 16px; color: var(--text-2); }
 .calc__hint { font-size: .7rem; color: var(--text-3); }
 
-.calc__step { margin-top: 14px; }
-
-/* 材料 + 加项并排：这两组选项都很短，并排省一半高度 */
-.calc__pair {
+/* ---------------------------------------------- 进度条（兼返回键）
+   四格等宽：已答的格子直接显示答案（「手机」而不是「设备」），
+   读者不用记自己选过什么。点任意一格回去改。 */
+.calc__trail {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0 14px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  margin-top: 14px;
+  padding: 0;
+  list-style: none;
+}
+.calc__trail__li { display: flex; min-width: 0; }
+.calc__trail__item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  width: 100%;
+  min-width: 0;
+  padding: 5px 7px;
+  border: 1px solid transparent;
+  border-radius: var(--r-xs);
+  background: var(--bg-soft);
+  font-size: .7rem;
+  line-height: 1.4;
+  color: var(--text-3);
+  text-align: left;
+  transition: border-color var(--t-fast) var(--ease), color var(--t-fast) var(--ease);
+}
+.calc__trail__n {
+  flex: none;
+  font-family: var(--font-mono);
+  font-size: .62rem;
+  opacity: .8;
+}
+.calc__trail__t { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.calc__trail__item.is-done { color: var(--text-2); }
+.calc__trail__item.is-now {
+  border-color: var(--line-strong);
+  background: var(--bg-elev);
+  color: var(--text);
+  font-weight: 500;
+}
+.calc__trail__item:hover { color: var(--text); }
+/* 深色下 --bg-soft 比 --bg-elev 更亮（深色的"抬升"是变亮）。
+   照搬浅色会让"当前这一步"看起来比已答的更暗、更靠后，
+   所以深色里反过来：未答的只有一道描边，当前这一步填亮。 */
+[data-theme="dark"] .calc__trail__item { background: transparent; border-color: var(--line); }
+[data-theme="dark"] .calc__trail__item.is-now {
+  background: var(--bg-soft);
+  border-color: var(--line-strong);
 }
 
+/* ------------------------------------------------------------ 当前这一问 */
+.calc__stage { margin-top: 14px; outline: none; }
+/* 问题本身要像一句话，不像原来的分组标签 */
 .calc__label {
   display: flex;
   align-items: center;
   gap: 7px;
-  margin-bottom: 7px;
-  font-size: .7rem;
-  letter-spacing: .02em;
-  color: var(--text-3);
+  margin-bottom: 9px;
+  font-size: .86rem;
+  letter-spacing: 0;
+  color: var(--text);
 }
 .calc__label b {
   display: grid;
   place-items: center;
-  width: 17px;
-  height: 17px;
+  width: 18px;
+  height: 18px;
   flex: none;
-  border-radius: var(--r-xs);
+  border-radius: 50%;
+  /* 浅底 + 内描边而不是实心黑：实心圆在一屏只有一句话时太抢眼，
+     读者先看到的是"1"而不是问题本身。 */
   background: var(--bg-soft);
+  box-shadow: inset 0 0 0 1px var(--line-strong);
   font-family: var(--font-mono);
   font-size: .62rem;
   font-weight: 600;
   color: var(--text-2);
 }
-.calc__label i { margin-left: auto; font-style: normal; font-size: .66rem; color: var(--text-3); }
+/* 提示紧跟在问题后面，不要 margin-left:auto 甩到右边缘 ——
+   拉满一行后它看起来像列表头的另一列，而不像这句话的注解。 */
+.calc__label i { font-style: normal; font-size: .68rem; color: var(--text-3); }
 
-.calc__opts { display: flex; flex-wrap: wrap; gap: 6px; }
+/* 选项：等宽格子而不是长短不一的胶囊。
+   两列不是随手定的 —— 四组选项的条数是 4 / 4 / 3 / 4
+   （项目按设备过滤后最多 4 个，游戏机只有 2 个），
+   两列下每一步都正好两行，卡片高度天然一致：
+   不用给卡片锁最小高度，也不会在「材料」那一步留下半张空白。
+   等宽还顺手解决了「换摄像头」比「换屏」长、把整行撑歪的问题。 */
+.calc__opts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-content: start;
+  gap: 6px;
+}
+/* 只剩两个选项时（游戏机能修的项目）改单列：两个按钮各占一行，仍是两行高 */
+.calc__opts.is-single { grid-template-columns: minmax(0, 1fr); }
+/* 奇数个（材料 3 个）：最后一个横跨两列，不留半格空洞 */
+.calc__opts.is-odd .calc__opt:last-child { grid-column: 1 / -1; }
 
 .calc__opt {
-  padding: 6px 11px;
+  display: grid;
+  place-items: center;
+  min-height: 35px;
+  padding: 6px 9px;
   border: 1px solid var(--line);
   border-radius: var(--r-xs);
-  font-size: .79rem;
+  font-size: .84rem;
   line-height: 1.4;
   color: var(--text-2);
+  text-align: center;
   transition: border-color var(--t-fast) var(--ease), background-color var(--t-fast) var(--ease),
               color var(--t-fast) var(--ease);
 }
-.calc__opt:hover:not(:disabled) { border-color: var(--line-strong); color: var(--text); }
+.calc__opt:hover { border-color: var(--line-strong); color: var(--text); }
 .calc__opt[aria-pressed="true"] {
   border-color: var(--text);
   background: var(--text);
   color: var(--bg);
 }
-.calc__opt:disabled { opacity: .3; cursor: not-allowed; }
 
-/* 结果区：数字要大，因为这是整块的目的 */
+/* 选项说明：一行高度写死，换选项时只换字不换高 */
+.calc__note {
+  min-height: 1.5em;
+  margin-top: 9px;
+  overflow: hidden;
+  font-size: .72rem;
+  line-height: 1.5;
+  color: var(--text-3);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* -------------------------------------------------------------- 结果区
+   只有四步都答完才出现：中途报个半成品价格，反而会让人以为还能更便宜。 */
 .calc__result {
   margin-top: 16px;
   padding-top: 14px;
   border-top: 1px solid var(--line);
+  outline: none;
 }
 .calc__price {
   font-family: var(--font-mono);
@@ -850,6 +936,8 @@ html[data-scrolling="on"] .vinyl::before { animation-play-state: paused; }
 }
 .calc__reset .icon { width: 12px; height: 12px; }
 .calc__reset:hover { color: var(--text); }
+/* 「实际以拆机检测为准」：价格旁边必须有一句免责，否则区间数字会被当成报价 */
+.calc__more { margin-left: auto; font-size: .68rem; color: var(--text-3); }
 
 /* 无 JS 时的降级：计算器位置显示一句说明，报价表照常可读 */
 .calc__fallback { font-size: .8rem; color: var(--text-3); line-height: 1.7; }
@@ -1016,26 +1104,30 @@ html[data-scrolling="on"] .vinyl::before { animation-play-state: paused; }
   .preview-grid .preview__stats { display: none; }
   .preview-grid .preview__title { font-size: .94rem; }
 
-  /* 计算器：选项是短词，但也是要手指点的目标 ——
-     高度不低于 36px，字号保持在 .86rem。 */
+  /* 计算器（向导版）：手机上只有一问，选项就是主角 ——
+     44px 的触控高度、.9rem 的字，比原来挤在一起的小胶囊好点得多。 */
   .calc { padding: 12px 13px 13px; border-radius: var(--r-md); }
   .calc__title { font-size: 1rem; }
   .calc__title .icon { width: 17px; height: 17px; }
-  /* 右上角那句「选完即出价」藏掉：结果本来就是实时变的，属于自证信息。
+  /* 右上角那句「四步选完就有结果」藏掉：四个格子已经把进度说清楚了。
      留着它还有一个副作用 —— 360px 宽度下它会把标题行挤成两行，
      凭空多出 33px，正好是 360 机型降一档的差距。 */
   .calc__hint { display: none; }
-  .calc__step { margin-top: 9px; }
-  .calc__pair { gap: 0 12px; }
-  .calc__label { margin-bottom: 5px; font-size: .72rem; }
-  .calc__opts { gap: 6px; }
-  .calc__opt { min-height: 36px; padding: 7px 11px; font-size: .86rem; }
+  .calc__trail { margin-top: 10px; gap: 5px; }
+  .calc__trail__item { padding: 4px 6px; font-size: .68rem; }
+  .calc__stage { margin-top: 10px; }
+  .calc__label { margin-bottom: 7px; font-size: .88rem; }
+  .calc__label i { display: none; }        /* 「选完自动到下一步」在手机上只会把问题挤断行 */
+  .calc__opts { gap: 7px; }
+  .calc__note { margin-top: 8px; font-size: .74rem; }
+  .calc__opt { min-height: 46px; padding: 8px 6px; font-size: .9rem; }
   .calc__result { margin-top: 9px; padding-top: 8px; }
   .calc__price { font-size: 1.45rem; }
   /* 明细「换屏 ¥320 × 手机 1 × 原装 1」允许折两行 ——
      它是让报价可信的算式，单行省略等于藏起了依据。 */
   .calc__detail { margin-top: 4px; font-size: .72rem; line-height: 1.5; }
   .calc__foot { margin-top: 7px; font-size: .72rem; }
+  .calc__more { display: none; }
 
   /* 报价表：默认收起（repair.js 摘掉 open），点摘要行展开。
      展开后仍走两栏流式排版，行高与字号按「密集表格」的 .8rem 处理 ——

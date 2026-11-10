@@ -1,10 +1,17 @@
 /* ==========================================================================
- *  repair.js —— Q4 的维修估价器（四步向导）
+ *  repair.js —— Q4 的维修估价器（跳转式四步向导）
  * --------------------------------------------------------------------------
- *  流程和你描述的一致：
- *      ① 选设备  →  ② 选项目  →  ③ 选材料  →  ④ 选加项  →  出价格
+ *  流程：
+ *      ① 设备  →  ② 项目  →  ③ 材料  →  ④ 加项  →  出价格
+ *    每一步只显示一个问题，**选完立刻跳到下一步**，不用点「下一步」按钮。
+ *    顶部那排小格子是进度条，也是返回键：点任意一格可以回去改。
  *
- *  为什么放在独立文件、不塞进 render.js：
+ *  为什么改成一次只问一件事：
+ *    原来四个问题同时铺在卡里，读者要自己判断"从哪开始、还差几项"，
+ *    手机上 12 个按钮挤在一起，误触率也高。一次一问之后，选项可以放大到
+ *    44px 的触控高度，卡片高度反而更矮 —— Q4 是唯一「一屏差几十像素」的屏。
+ *
+ *  为什么不放 render.js：
  *    它是有状态的交互组件（每次点击都要重算 + 重画），
  *    render.js 的职责是"把静态数据填进骨架"，两者混在一起会互相拖累。
  *
@@ -26,6 +33,17 @@
   var state = { device: "", service: "", material: "", extra: "" };
   var mount = null;
 
+  /* 四个问题。改动这里的文案不用碰其它逻辑；
+     想换问法可以在 config.js 的 calculator.questions 里覆盖。 */
+  var STEPS = [
+    { key: "device",   label: "设备", q: "这是什么设备？" },
+    { key: "service",  label: "项目", q: "要修的是哪一项？" },
+    { key: "material", label: "材料", q: "配件用什么料？" },
+    { key: "extra",    label: "加项", q: "需要加急、上门或备份吗？" }
+  ];
+  var QA = CFG.questions || {};
+  var cursor = 0;                    // 0~3 = 第几步，4 = 看结果
+
   /* --------------------------------------------------------------- 工具 */
   function list(v) { return Array.isArray(v) ? v : []; }
   function find(arr, id) {
@@ -36,6 +54,11 @@
     return String(v == null ? "" : v)
       .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
   }
+  function pool(key) { return list(CFG[key + "s"]); }   // device → devices
+  function nameOf(key, id) {
+    var it = find(pool(key), id);
+    return it ? it.name : "";
+  }
 
   /* 某个项目是否适用于当前设备。
      项目上的 devices 为空 = 全设备通用。 */
@@ -43,12 +66,10 @@
     return !service.devices || service.devices.indexOf(deviceId) >= 0;
   }
 
-  /* 切换设备后，原来的项目可能不适用了 —— 自动落到第一个能做的项目上，
-     否则用户会看到「已选换屏，但设备是游戏机」这种矛盾状态。 */
-  function firstServiceFor(deviceId) {
-    var svcs = list(CFG.services);
-    for (var i = 0; i < svcs.length; i++) if (supports(svcs[i], deviceId)) return svcs[i].id;
-    return svcs.length ? svcs[0].id : "";
+  /* 当前设备能做的项目。设备还没选时先给全量，避免出现空白步骤。 */
+  function validServices(deviceId) {
+    if (!deviceId) return list(CFG.services);
+    return list(CFG.services).filter(function (s) { return supports(s, deviceId); });
   }
 
   /* ----------------------------------------------------------- 价格计算 */
@@ -72,154 +93,223 @@
   }
 
   /* --------------------------------------------------------------- 渲染 */
-  function optBtn(group, item, active, disabled) {
-    return '<button class="calc__opt" type="button" role="radio"' +
-           ' data-opt="' + group + '" data-value="' + esc(item.id) + '"' +
-           ' aria-pressed="' + (active ? "true" : "false") + '"' +
-           (disabled ? ' disabled aria-disabled="true"' : "") +
-           ' title="' + esc(item.note || item.name) + '">' +
-           esc(item.name) +
-           "</button>";
+  /* 顶部进度条：四格，各自是一个按钮。
+     已答的格子显示答案本身（「手机」而不是「设备」）——
+     读者不用记自己选过什么，扫一眼就知道。 */
+  function trailHtml() {
+    return '<ol class="calc__trail">' +
+      STEPS.map(function (s, i) {
+        var ans = nameOf(s.key, state[s.key]);
+        var cls = "calc__trail__item" +
+          (i === cursor ? " is-now" : "") +
+          (i !== cursor && ans ? " is-done" : "");
+        return '<li class="calc__trail__li">' +
+          '<button class="' + cls + '" type="button" data-goto="' + i + '"' +
+            (i === cursor ? ' aria-current="step"' : "") +
+            ' aria-label="第 ' + (i + 1) + " 步 · " + esc(s.label) +
+              (ans ? "，已选 " + esc(ans) : "，未选") + '">' +
+            '<span class="calc__trail__n">' + (i + 1) + "</span>" +
+            '<span class="calc__trail__t">' + esc(ans || s.label) + "</span>" +
+          "</button></li>";
+      }).join("") + "</ol>";
   }
 
-  function stepHtml(no, label, extra, group, items, activeId, disFn) {
-    return '<div class="calc__step">' +
-             '<div class="calc__label"><b>' + no + "</b>" + esc(label) +
-               (extra ? "<i>" + esc(extra) + "</i>" : "") +
-             "</div>" +
-             '<div class="calc__opts" role="radiogroup" aria-label="' + esc(label) + '">' +
-               items.map(function (it) {
-                 return optBtn(group, it, it.id === activeId, disFn ? disFn(it) : false);
-               }).join("") +
-             "</div>" +
-           "</div>";
+  /* 选项底下那行小字：把这个选项"贵在哪、便宜在哪"说清楚。
+     这些信息本来只写在 title 里 —— 手机上根本没有 hover，等于没写。
+     服务项没有 note 字段，就用价格顶上，正好对应结果里那条算式。 */
+  function noteOf(key, it) {
+    if (!it) return "";
+    var n = it.note || "";
+    if (key === "service") return CUR + it.price + " 起" + (n ? " · " + n : "");
+    if (key === "material") return (n ? n + " · " : "") + "系数 ×" + it.factor;
+    if (key === "device") return (n ? n + " · " : "") + "系数 ×" + it.factor;
+    if (key === "extra") return (it.add ? "+" + CUR + it.add + (n ? " · " + n : "") : (n || "不加钱"));
+    return n;
+  }
+
+  /* 当前这一问。选项做成按钮，点一下 = 选定 + 前进。
+
+     排成两列是为了"每一步都是两行"：四组选项的条数是 4 / 4 / 3 / 4
+     （项目按设备过滤后最多 4 个，游戏机只有 2 个），
+     两列下分别是 2 / 2 / 2 / 2 行 —— 高度天然对齐，
+     不需要给卡片锁死一个最小高度，也就不会在「材料」那一步留下半张空白。
+     奇数个（材料 3 个）让最后一个横跨两列；只剩 2 个时改单列，
+     两个按钮各占一行，仍然是两行高。 */
+  function stageHtml() {
+    var s = STEPS[cursor];
+    var items = s.key === "service" ? validServices(state.device) : pool(s.key);
+    var q = QA[s.key] || s.q;
+    var first = find(items, state[s.key]) || items[0];
+
+    /* 兜底：某个设备在配置里一个项目都没挂（改配置时容易漏）。
+       与其渲染一排空按钮，不如说清楚并给一条退路。 */
+    if (!items.length) {
+      return '<div class="calc__stage" tabindex="-1">' +
+          '<p class="calc__label"><b>' + (cursor + 1) + "</b>" + esc(q) + "</p>" +
+          '<p class="calc__note">这个设备暂时没有对应项目，换一个设备试试。</p>' +
+          '<div class="calc__foot"><button class="calc__reset" type="button" data-goto="0">' +
+            window.siteIcon("refresh") + "重新选设备</button></div>" +
+        "</div>";
+    }
+
+    return '<div class="calc__stage" tabindex="-1">' +
+        '<p class="calc__label" id="calcQ"><b>' + (cursor + 1) + "</b>" + esc(q) +
+          (cursor === 0 ? "<i>选完自动到下一步</i>" : "") +
+        "</p>" +
+        '<div class="calc__opts' + (items.length <= 2 ? " is-single" : "") +
+          (items.length > 2 && items.length % 2 ? " is-odd" : "") +
+          '" role="group" aria-labelledby="calcQ">' +
+          items.map(function (it) {
+            return '<button class="calc__opt" type="button"' +
+              ' data-opt="' + s.key + '" data-value="' + esc(it.id) + '"' +
+              ' aria-pressed="' + (it.id === state[s.key] ? "true" : "false") + '"' +
+              ' title="' + esc(it.note || it.name) + '">' +
+              esc(it.name) +
+            "</button>";
+          }).join("") +
+        "</div>" +
+        '<p class="calc__note" data-note>' + esc(noteOf(s.key, first)) + "</p>" +
+      "</div>";
+  }
+
+  function resultHtml(r) {
+    return '<div class="calc__result" tabindex="-1" aria-live="polite">' +
+        '<p class="calc__price"><small>' + esc(CUR) + "</small>" +
+          r.lo + " – " + r.hi + "</p>" +
+        '<p class="calc__detail">' +
+          esc(r.svc.name) + " " + esc(CUR) + r.svc.price +
+          " × " + esc(r.dev.name) + " " + r.dev.factor +
+          " × " + esc(r.mat.name) + " " + r.mat.factor +
+          (r.ext.add ? " + " + esc(r.ext.name) + " " + esc(CUR) + r.ext.add : "") +
+        "</p>" +
+        '<div class="calc__foot">' +
+          '<button class="calc__reset" type="button" data-calc-reset>' +
+            window.siteIcon("refresh") + "重新估价</button>" +
+          '<span class="calc__more">实际以拆机检测为准</span>' +
+        "</div>" +
+      "</div>";
   }
 
   function render() {
     if (!mount) return;
 
-    var devices = list(CFG.devices);
-    var services = list(CFG.services);
-    var materials = list(CFG.materials);
-    var extras = list(CFG.extras);
+    var atEnd = cursor >= STEPS.length;
     var r = compute();
 
-    var html =
+    mount.innerHTML =
       '<div class="calc__head">' +
         '<h3 class="calc__title">' + window.siteIcon("calc") + esc(CFG.title || "估个价") + "</h3>" +
         (CFG.hint ? '<span class="calc__hint">' + esc(CFG.hint) + "</span>" : "") +
       "</div>" +
 
-      stepHtml("1", "设备", "", "device", devices, state.device) +
-      stepHtml("2", "项目", "", "service", services, state.service, function (it) {
-        return !supports(it, state.device);
-      }) +
-      /* 材料与加项并排一行。
-         手机上一行只放得下 3~4 个短按钮，这两组的选项都很短（原装/品牌/国产、
-         不需要/加急/上门/备份），并排后正好各占一半，省下约 50px 高度 ——
-         这 50px 是 Q4 能不能一屏装下的关键。 */
-      '<div class="calc__pair">' +
-        stepHtml("3", "材料", "", "material", materials, state.material) +
-        stepHtml("4", "加项", "", "extra", extras, state.extra) +
-      "</div>" +
+      trailHtml() +
 
-      '<div class="calc__result" aria-live="polite">' +
-        (r
-          ? '<p class="calc__price"><small>' + esc(CUR) + "</small>" +
-              r.lo + " – " + r.hi + "</p>" +
-            '<p class="calc__detail">' +
-              esc(r.svc.name) + " " + esc(CUR) + r.svc.price +
-              " × " + esc(r.dev.name) + " " + r.dev.factor +
-              " × " + esc(r.mat.name) + " " + r.mat.factor +
-              (r.ext.add ? " + " + esc(r.ext.name) + " " + esc(CUR) + r.ext.add : "") +
-            "</p>"
-          : '<p class="calc__detail">选项不完整，无法估价。</p>') +
-        '<div class="calc__foot">' +
-          '<button class="calc__reset" type="button" data-calc-reset>' +
-            window.siteIcon("refresh") + "重新开始</button>" +
-        "</div>" +
-      "</div>";
-
-    mount.innerHTML = html;
+      (atEnd
+        ? (r ? resultHtml(r)
+             : '<div class="calc__result" tabindex="-1">' +
+                 '<p class="calc__detail">选项不完整，无法估价。</p>' +
+                 '<div class="calc__foot"><button class="calc__reset" type="button" ' +
+                 'data-calc-reset>' + window.siteIcon("refresh") + "重新估价</button></div>" +
+               "</div>")
+        : stageHtml());
 
     // 高度变了，翻页引擎要重新量一次，否则吸附落点会偏
     if (window.Paged && typeof window.Paged.refresh === "function") window.Paged.refresh();
   }
 
   /* --------------------------------------------------------------- 交互 */
-  function pick(group, value) {
-    if (state[group] === value) return;
-
-    state[group] = value;
-
-    if (group === "device") {
-      var svc = find(list(CFG.services), state.service);
-      if (!svc || !supports(svc, value)) state.service = firstServiceFor(value);
+  /* 前进到「下一个还没答的问题」；都答完了就看结果。
+     从第 3 步回头改材料时，加项已经答过 —— 这时直接出结果，
+     而不是把读者又拖回第 3 步：他改完就是要看新价格。 */
+  function advance(from) {
+    // 设备只对应一个可修项目时，替读者选掉，省一次点击
+    if (from === 0 && !state.service) {
+      var only = validServices(state.device);
+      if (only.length === 1) state.service = only[0].id;
     }
 
-    var focusKey = group + ":" + value;
-
-    if (mount) {
-      // 只更新按钮状态和结果区，不整块重建 —— 避免焦点丢失和闪烁
-      Array.prototype.forEach.call(mount.querySelectorAll("[data-opt]"), function (btn) {
-        if (btn.getAttribute("data-opt") !== group) return;
-        btn.setAttribute("aria-pressed", btn.getAttribute("data-value") === value ? "true" : "false");
-      });
-
-      // 设备变了，项目按钮的可用状态要跟着变
-      if (group === "device") {
-        Array.prototype.forEach.call(mount.querySelectorAll('[data-opt="service"]'), function (btn) {
-          var svc = find(list(CFG.services), btn.getAttribute("data-value"));
-          var ok = svc ? supports(svc, value) : false;
-          btn.disabled = !ok;
-          btn.setAttribute("aria-disabled", ok ? "false" : "true");
-        });
-        Array.prototype.forEach.call(mount.querySelectorAll('[data-opt="service"]'), function (btn) {
-          btn.setAttribute("aria-pressed",
-            btn.getAttribute("data-value") === state.service ? "true" : "false");
-        });
-      }
-
-      updateResult(focusKey);
+    var next = STEPS.length;
+    for (var i = from + 1; i < STEPS.length; i++) {
+      if (!state[STEPS[i].key]) { next = i; break; }
     }
+    go(next);
   }
 
-  function updateResult(focusKey) {
-    var box = mount && mount.querySelector(".calc__result");
-    if (!box) return;
-    var r = compute();
-    var old = box.querySelector(".calc__price");
-    var det = box.querySelector(".calc__detail");
-    if (r) {
-      if (old) old.innerHTML = "<small>" + esc(CUR) + "</small>" + r.lo + " – " + r.hi;
-      if (det) {
-        det.textContent = r.svc.name + " " + CUR + r.svc.price +
-          " × " + r.dev.name + " " + r.dev.factor +
-          " × " + r.mat.name + " " + r.mat.factor +
-          (r.ext.add ? " + " + r.ext.name + " " + CUR + r.ext.add : "");
+  function go(i) {
+    cursor = Math.max(0, Math.min(STEPS.length, i));
+    render();
+    focusStep();
+  }
+
+  function pick(key, value) {
+    // 重复点同一个答案 = 「确认，继续」，不该原地不动
+    if (state[key] !== value) {
+      state[key] = value;
+      /* 换了设备，原来选的项目可能做不了（比如游戏机不能换屏）。
+         清空而不是自动顶替：下一步就会问「要修哪一项」，
+         自动顶替会让读者以为自己选过。 */
+      if (key === "device") {
+        var svc = find(list(CFG.services), state.service);
+        if (svc && !supports(svc, value)) state.service = "";
       }
     }
-    if (focusKey) {
-      var b = mount.querySelector('[data-opt="' + focusKey.split(":")[0] + '"][data-value="' + focusKey.split(":")[1] + '"]');
-      if (b && document.activeElement !== b) b.focus({ preventScroll: true });
-    }
+    advance(STEPS.findIndex(function (s) { return s.key === key; }));
+  }
+
+  function reset() {
+    state.device = state.service = state.material = state.extra = "";
+    cursor = 0;
+  }
+
+  /* 跳转后把焦点交给新的问题块。
+     不直接聚焦第一个选项：那样鼠标用户手一抖按到回车，就替自己选了一项。
+     聚焦容器后按 Tab 才进入选项，读屏也会先念出问题。 */
+  function focusStep() {
+    if (!mount) return;
+    var t = mount.querySelector(cursor >= STEPS.length ? ".calc__result" : ".calc__stage");
+    if (t && document.activeElement !== t) t.focus({ preventScroll: true });
+  }
+
+  /* 指针掠过或键盘移焦时，把那一条的说明换到下面 —— 不改变任何状态，
+     所以可以随便划过，不会误选。 */
+  function onHover(e) {
+    var t = e.target;
+    if (!t.closest) return;
+    var el = t.closest("[data-opt]");
+    if (!el || !mount.contains(el)) return;
+    var key = el.getAttribute("data-opt");
+    var it = find(pool(key), el.getAttribute("data-value"));
+    var box = mount.querySelector("[data-note]");
+    if (box && it) box.textContent = noteOf(key, it);
   }
 
   function onClick(e) {
-    var btn = e.target.closest ? e.target.closest("[data-opt]") : null;
-    if (btn && mount.contains(btn)) {
+    var t = e.target;
+    if (!t.closest) return;
+
+    var opt = t.closest("[data-opt]");
+    if (opt && mount.contains(opt)) {
       e.preventDefault();
-      pick(btn.getAttribute("data-opt"), btn.getAttribute("data-value"));
+      pick(opt.getAttribute("data-opt"), opt.getAttribute("data-value"));
       return;
     }
-    if (e.target.closest && e.target.closest("[data-calc-reset]")) {
+    var jump = t.closest("[data-goto]");
+    if (jump && mount.contains(jump)) {
+      e.preventDefault();
+      go(+jump.getAttribute("data-goto"));
+      return;
+    }
+    if (t.closest("[data-calc-reset]")) {
       e.preventDefault();
       reset();
       render();
+      focusStep();
     }
   }
 
-  /* 方向键在选项组之间移动（radio 的标准键盘行为） */
+  /* 方向键在同一组选项里挪焦点，但**不**替人选中：
+     这里一选中就会跳到下一步，用方向键「浏览」会变成连环跳。
+     Enter / 空格是原生按钮行为，选中并前进。 */
   function onKey(e) {
     var k = e.key;
     if (["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].indexOf(k) < 0) return;
@@ -227,11 +317,8 @@
     var btn = document.activeElement;
     if (!btn || !btn.getAttribute || !btn.getAttribute("data-opt")) return;
 
-    var group = btn.getAttribute("data-opt");
-    var all = Array.prototype.filter.call(
-      mount.querySelectorAll('[data-opt="' + group + '"]'),
-      function (b) { return !b.disabled; }
-    );
+    var key = btn.getAttribute("data-opt");
+    var all = Array.prototype.slice.call(mount.querySelectorAll('[data-opt="' + key + '"]'));
     var i = all.indexOf(btn);
     if (i < 0) return;
 
@@ -241,20 +328,9 @@
 
     e.preventDefault();
     all[next].focus();
-    pick(group, all[next].getAttribute("data-value"));
   }
 
   /* --------------------------------------------------------------- 初始化 */
-  function reset() {
-    var devices = list(CFG.devices);
-    state.device = devices.length ? devices[0].id : "";
-    state.service = firstServiceFor(state.device);
-    var mats = list(CFG.materials);
-    state.material = mats.length ? mats[0].id : "";
-    var exts = list(CFG.extras);
-    state.extra = exts.length ? exts[0].id : "";
-  }
-
   /* 手机上把报价表默认收起。
      为什么放在 repair.js 而不是 render.js：
        render.js 只负责产出结构，不知道"当前该不该展开"这种设备相关的策略；
@@ -316,6 +392,8 @@
 
     mount.addEventListener("click", onClick);
     mount.addEventListener("keydown", onKey);
+    mount.addEventListener("pointerover", onHover);
+    mount.addEventListener("focusin", onHover);
   }
 
   function boot() {
@@ -326,7 +404,7 @@
 
   window.SITE_REPAIR = {
     init: init, reset: reset, state: state, compute: compute,
-    foldQuote: foldQuote
+    foldQuote: foldQuote, go: go, step: function () { return cursor; }
   };
 
   /* 竖屏 ↔ 横屏、或把浏览器窗口拉宽跨过 680px 时，跟着切换折叠状态。

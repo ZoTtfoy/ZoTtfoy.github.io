@@ -195,6 +195,13 @@ window.SITE_CONFIG = {
     calculator: {
       title: "估个价",
       hint: "四步选完就有结果，不需要填任何信息。",
+      // 四步的提问文案。不改就用 repair.js 里的默认值，改这里可以换问法。
+      // questions: {
+      //   device: "这是什么设备？",
+      //   service: "要修的是哪一项？",
+      //   material: "配件用什么料？",
+      //   extra: "需要加急、上门或备份吗？"
+      // },
       currency: "¥",
       range: [0.85, 1.15],                    // 输出区间：在估算值上下浮动 ±15%
 

@@ -98,8 +98,8 @@ html[data-paged="on"] [data-fit="tight"] .quote { margin-top: 12px; padding-top:
 html[data-paged="on"] [data-fit="tight"] .quote__summary { padding: 7px 0; margin: -7px 0; }
 html[data-paged="on"] [data-fit="tight"] .quote__row { padding: 1px 0; }
 html[data-paged="on"] [data-fit="tight"] .calc { padding: 13px 14px 14px; }
-html[data-paged="on"] [data-fit="tight"] .calc__step { margin-top: 10px; }
-html[data-paged="on"] [data-fit="tight"] .calc__opt { min-height: 36px; padding: 7px 11px; }
+html[data-paged="on"] [data-fit="tight"] .calc__stage { margin-top: 8px; }
+html[data-paged="on"] [data-fit="tight"] .calc__opt { min-height: 44px; padding: 7px 10px; }
 html[data-paged="on"] [data-fit="tight"] .calc__result { margin-top: 12px; padding-top: 10px; }
 
 /* Q5 / Q6 */
@@ -150,8 +150,8 @@ html[data-paged="on"] [data-fit="snug"] .quote { margin-top: 9px; padding-top: 8
 html[data-paged="on"] [data-fit="snug"] .quote__hint { display: none; }
 html[data-paged="on"] [data-fit="snug"] .quote__note { display: none; }
 html[data-paged="on"] [data-fit="snug"] .calc { padding: 10px 12px 11px; }
-html[data-paged="on"] [data-fit="snug"] .calc__step { margin-top: 7px; }
-html[data-paged="on"] [data-fit="snug"] .calc__opt { min-height: 34px; padding: 6px 9px; }
+html[data-paged="on"] [data-fit="snug"] .calc__stage { margin-top: 6px; }
+html[data-paged="on"] [data-fit="snug"] .calc__opt { min-height: 42px; padding: 6px 9px; }
 html[data-paged="on"] [data-fit="snug"] .calc__hint { display: none; }
 html[data-paged="on"] [data-fit="snug"] .calc__result { margin-top: 8px; padding-top: 7px; }
 html[data-paged="on"] [data-fit="snug"] .calc__foot { display: none; }
@@ -218,9 +218,9 @@ html[data-paged="on"] [data-fit="micro"] .quote__row { padding: 0; }
 html[data-paged="on"] [data-fit="micro"] .quote__hint { display: none; }
 html[data-paged="on"] [data-fit="micro"] .quote__note { display: none; }
 html[data-paged="on"] [data-fit="micro"] .calc { padding: 9px 10px 10px; }
-html[data-paged="on"] [data-fit="micro"] .calc__step { margin-top: 6px; }
+html[data-paged="on"] [data-fit="micro"] .calc__stage { margin-top: 5px; }
 html[data-paged="on"] [data-fit="micro"] .calc__label { margin-bottom: 4px; }
-html[data-paged="on"] [data-fit="micro"] .calc__opt { min-height: 32px; padding: 5px 9px; }
+html[data-paged="on"] [data-fit="micro"] .calc__opt { min-height: 40px; padding: 5px 9px; }
 html[data-paged="on"] [data-fit="micro"] .calc__hint { display: none; }
 html[data-paged="on"] [data-fit="micro"] .calc__result { margin-top: 7px; padding-top: 6px; }
 html[data-paged="on"] [data-fit="micro"] .calc__detail { display: none; }
@@ -335,7 +335,7 @@ html[data-paged="on"] [data-fit="micro"] .mailbox__actions .btn { min-height: 36
   .calc { padding: 9px 10px; }
   .calc__title { font-size: .86rem; }
   .calc__label { font-size: .7rem; margin-bottom: 4px; }
-  .calc__opt { min-height: 30px; padding: 4px 8px; font-size: .8rem; }
+  .calc__opt { min-height: 36px; padding: 4px 8px; font-size: .8rem; }
   .calc__price { font-size: 1.1rem; }
   .calc__detail { font-size: .7rem; }
   .calc__foot { display: none; }
