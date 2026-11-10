@@ -164,19 +164,22 @@ function restore() {
 
       ok(/累计听歌/.test(d.foot), '页脚有「累计听歌」');
       ok(/累计听歌\s*[\d,]{3,}/.test(d.foot), '累计听歌是个六位数级别的数字');
-    } else if (shape.hasHeat) {
-      /* ---- 形态 score：只有相对热度 ---- */
-      ok(!shape.hasPlays, '只有热度时不印次数（不编造绝对量）');
-      ok(shape.heatTitles.length > 0 && shape.heatTitles.every(t => /相对热度\s*\d+%/.test(t)),
-        '热度条带「相对热度 N%」的无障碍标签');
-      /* 归一化：最高分那条应当是 100% */
-      ok(shape.heatTitles.some(t => /100%/.test(t)), '最高分归一化为 100%');
-      ok(d.ranked === '1', '有热度条时 ul[data-ranked=1]（手机靠它切单列）');
-      ok(/累计听歌/.test(d.foot), '页脚有「累计听歌」');
     } else if (/已同步/.test(shape.srcText)) {
-      /* ---- 形态 liked：真实曲目，但没有阅读次数的能力 ---- */
-      ok(!shape.hasPlays && !shape.hasHeat, '收藏来源下既无次数也无热度条');
-      ok(/收藏/.test(shape.srcText), '页脚标明来源是「收藏」，不冒充排行（' + shape.srcText + '）');
+      /* ---- 形态 rank / liked：真实曲目，但没有绝对次数 ---- */
+      ok(!shape.hasPlays, '匿名来源下不印播放次数（不编造绝对量）');
+      /* 页脚必须如实标注来源，两种都是"对"的，取决于数据从哪来：
+           rank  → 已同步
+           liked → 已同步 · 收藏（不能让人以为这是听歌排行）
+         断言跟着 data/netease.json 里的 source 走，而不是写死一种。 */
+      const src = (() => {
+        try { return JSON.parse(fs.readFileSync(DATA, 'utf8')).source || 'rank'; }
+        catch { return 'rank'; }
+      })();
+      if (src === 'liked') {
+        ok(/收藏/.test(shape.srcText), '来源是收藏时页脚明确标出（' + shape.srcText + '）');
+      } else {
+        ok(!/收藏/.test(shape.srcText), '来源是听歌排行时不误标成收藏（' + shape.srcText + '）');
+      }
       ok(/累计听歌/.test(d.foot), '页脚有「累计听歌」');
     } else {
       skip('data/netease.json 里没有曲目数据，跳过渲染断言');
@@ -195,6 +198,19 @@ function restore() {
       });
     });
     ok(noOverlap, '序号 / 曲名 / 副标 / 数值 / 播放键互不重叠');
+
+    /* 前三名高亮：排行榜靠它表达次序，且不占宽度（不加任何图标） */
+    const topMarks = await page.evaluate(() => {
+      const rows = [...document.querySelectorAll('#trackList .track')];
+      const marked = rows.map((r, i) => r.querySelector('.track__idx').classList.contains('is-top') ? i : -1).filter(i => i >= 0);
+      const heat = rows.some(r => r.querySelector('.track__heat'));
+      return { marked, heat };
+    });
+    if (topMarks.marked.length || d.n > 0) {
+      ok(topMarks.marked.join(',') === '0,1,2' || d.n < 3,
+        '前三名的序号带 is-top 高亮（实际 ' + (topMarks.marked.join(',') || '无') + '）');
+      ok(!topMarks.heat, '已移除热度条（看不出差别的图形是噪声）');
+    }
 
     ok(d.cols === 3, '桌面 3 列（实际 ' + d.cols + '）');
     ok(errs.length === 0, '桌面没有 JS 报错' + (errs.length ? '：' + errs[0] : ''));

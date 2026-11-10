@@ -209,12 +209,17 @@ window.SITE_RENDER = (function () {
      ⚠️ 2026-11-10 从「最近在听」改成「听歌排行」：
      以前只显示歌名，其实网易云那边每首歌都有播放次数，只是被脚本丢掉了。
 
-     ⚠️ 2026-11-10 二次修正 —— 次数有两种可信度，不能混着说：
-       · 配了 cookie：拿得到真实 playCount，印「128 次」。
-       · 匿名读公开排行：服务端把次数脱敏成 score（百分制相对热度，
-         top1=100，其次 75/50…），`playCount` 恒为 0。
-       所以这里分两条路：有真实次数就写次数；只有相对热度就画一根热度条。
-       绝不在只有 score 的时候印「100 次」—— 那是个编出来的数字。 */
+     ⚠️ 2026-11-10 三次定稿 —— 只留排行，不要热度条。
+     中间版本画过一根「相对热度条」，理由是匿名接口把次数脱敏成 score。
+     实测真实数据后发现它没用：我这一周的 score 是 100/57/51/51/48/48，
+     归一化到 32px 轨道上就是 32/18/16/16/15/15 ——
+     后四首差 1px，读者看不出任何区别，只会以为那是几根随机的短线，
+     而它占掉的 32px 正是曲名最缺的宽度（曲名是这一屏唯一的正文）。
+     所以热度条撤掉，排行靠两件事表达：
+       · 序号 01~06 的先后顺序（这本来就是排行榜）
+       · 前三名的序号用强调色（排行榜的通用语言，零宽度成本）
+     有真实 playCount 时才印「128 次」；只有 score 时什么都不印。
+     绝不在只有 score 的时候印「100 次」—— 那是个编出来的数字。 */
   function fmtNum(n) {
     return String(Math.round(Number(n) || 0)).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
   }
@@ -223,31 +228,27 @@ window.SITE_RENDER = (function () {
      和曲目分开存：排行抓不到时，这几个数字照样有。 */
   var listenMeta = { total: 0, level: 0, updated: "", live: false, source: "rank" };
 
-  function trackHtml(t, i, maxScore) {
+  function trackHtml(t, i) {
     var meta = [t.artist, t.album].filter(Boolean).join(" · ");
-    var badge = "";
 
-    if (Number(t.playCount) > 0) {
-      /* 真实次数。 */
-      badge = '<span class="track__plays">' + fmtNum(t.playCount) +
-              '<span class="track__plays-unit">次</span></span>';
-    } else if (Number(t.score) > 0) {
-      /* 只有相对热度：画一条按最高分归一化的细条。
-         aria/title 给出百分比，读屏和悬停都能问到具体值。 */
-      var pct = Math.max(6, Math.round((Number(t.score) / maxScore) * 100));
-      badge = '<span class="track__heat" title="相对热度 ' + pct + '%"' +
-              ' aria-label="相对热度 ' + pct + '%">' +
-                '<i style="width:' + pct + '%"></i>' +
-              "</span>";
-    }
+    /* 只有真实次数才印数字。score 是服务端的相对热度，
+       印成"N 次"是编数据，画成条又看不出差别 —— 两样都不做。 */
+    var plays = Number(t.playCount) > 0
+      ? '<span class="track__plays">' + fmtNum(t.playCount) +
+        '<span class="track__plays-unit">次</span></span>'
+      : "";
+
+    /* 前三名的序号高亮。不加奖牌、不加图标 ——
+       排行榜的语言本来就是"数字越小越靠前"，一个颜色就够。 */
+    var top3 = i < 3 ? " is-top" : "";
 
     return '<li class="track" style="' + delay(i, 45) + '" data-reveal>' +
-             '<span class="track__idx">' + String(i + 1).padStart(2, "0") + "</span>" +
+             '<span class="track__idx' + top3 + '">' + String(i + 1).padStart(2, "0") + "</span>" +
              '<span class="track__main">' +
                '<span class="track__title">' + esc(t.title || "") + "</span>" +
                (meta ? '<span class="track__meta">' + esc(meta) + "</span>" : "") +
              "</span>" +
-             badge +
+             plays +
              (t.url
                ? '<a class="track__go" href="' + esc(t.url) + '" target="_blank" rel="noopener noreferrer"' +
                  ' aria-label="在网易云打开 ' + esc(t.title || "") + '">' + icon("play") + "</a>"
@@ -330,21 +331,12 @@ window.SITE_RENDER = (function () {
 
     var items = arr(list).slice(0, Math.min(d.limit || 6, trackCap()));
 
-    /* 热度条的归一化基准：取本屏最高分。
-       匿名接口的 score 本身是百分制（top1=100），但别的接口未必，
-       按实际最大值归一化比假设量纲更稳。 */
-    var maxScore = 1;
-    items.forEach(function (t) {
-      var s = Number(t.score) || 0;
-      if (s > maxScore) maxScore = s;
-    });
-
-    ul.innerHTML = items.map(function (t, i) { return trackHtml(t, i, maxScore); }).join("");
+    ul.innerHTML = items.map(trackHtml).join("");
     ul.setAttribute("data-count", String(items.length));
-    /* 有次数或热度时加这个标记：手机上要换成单列，
-       否则两列里每块只剩 ~100px 放"曲名 + 数值"，两样都会被截断。 */
+    /* 有真实次数时标记：手机上要换成单列，
+       否则两列里每块只剩 ~100px 放"曲名 + 次数"，两样都会被截断。 */
     ul.setAttribute("data-ranked",
-      items.some(function (t) { return Number(t.playCount) > 0 || Number(t.score) > 0; }) ? "1" : "0");
+      items.some(function (t) { return Number(t.playCount) > 0; }) ? "1" : "0");
     paintListenFoot();
   }
 

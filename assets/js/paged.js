@@ -694,13 +694,113 @@ window.SITE_PAGED = (function () {
   }
 
   /* ------------------------------------------------------- 尺寸变化重算 */
+  /* ⚠️ 2026-11-10 重写 —— 拖拽/缩放窗口时的三个坑。
+   *
+   * 原先是「防抖 180ms 后重算一次」。问题在于：
+   *   1. 拖动过程中那 180ms 一直被打断，于是**整段拖拽期间档位都停在旧值**，
+   *      而视口已经变了 → 页面明显高于/矮于视口，看起来像"布局坏了"。
+   *   2. 位置缓存 pageTops 也是旧的。此时点页码、按方向键，
+   *      会滚到一个按旧尺寸算出来的偏移 —— 落点偏掉。
+   *   3. 重算完只调 updateActive()，**没有把滚动位置重新对齐到当前页**。
+   *      页高变了但 scrollY 没变，于是停在两页交界处，屏幕上同时露着上一页的尾声
+   *      和下一页的开头 —— 这是"缩放后渲染不对"最直观的那一幕。
+   *
+   * 现在改成：
+   *   · 过程中节流重算（每 120ms 一次），让档位跟着窗口走，而不是拖完才反应；
+   *   · 停手 160ms 后做最后一次，并把滚动位置对齐回当前页顶部；
+   *   · 拖动期间挂 html[data-resizing="on"]，CSS 里借它去掉页间那 14px 位移，
+   *     避免每个像素的窗口变化都让六屏内容整体上下抖一下。
+   */
   var resizeTimer = null;
+  var resizeThrottle = 0;
+  var resizeAnchor = -1;      // 开始拖拽时停在哪一页
+
+  /* 把滚动位置钉回「开始缩放时那一页」的顶部。
+     落点用**实际高度累加**算，不用 i × 视口高：
+       paged 模式下每屏是 100vh，但一旦某页装不下（data-tall），
+       它的高度就大于 100vh，后面所有页的偏移就都变了 ——
+       而窗口变矮时恰恰最容易出现高个页（实测 1000×620 下 top 与 repair 都超高）。
+       早先用 i × innerHeight 就是栽在这里：钉完偏 231px，正好是那一页超出的高度。
+     为什么不读 pageTops 缓存：拖动过程中它至少落后一个节流周期，
+     用旧值去滚等于滚到错的地方。现读 offsetHeight 一共 6 次，
+     而这次 resize 本来就要强制回流十几次，这点开销不算什么。
+     为什么用 auto 不用 smooth：这是"修正落点"，不是"翻页"，
+     平滑滚动会让读者以为页面自己在动。 */
+  /* 当前视口顶部落在哪一页的头部（用实际高度累加反推）。
+     为什么不直接用 activeIndex：拖动过程中浏览器会自行调整 scrollY，
+     scroll 事件随之把 activeIndex 改成邻居页或中间页 ——
+     实测「停在末页 → 连续放大 → 落到了 repair」，就是因为锚点取到了那个漂移值。
+     按"谁的顶部离 scrollY 最近"来判，才不受这些中间状态影响。 */
+  function pageAtTop() {
+    var y = window.scrollY || 0;
+    var acc = 0, best = 0, bestD = Infinity;
+    for (var i = 0; i < pages.length; i++) {
+      var d = Math.abs(acc - y);
+      if (d < bestD) { bestD = d; best = i; }
+      acc += pages[i].offsetHeight;
+    }
+    return best;
+  }
+
+  function pinToActivePage(forceIndex) {
+    var i = typeof forceIndex === "number" ? forceIndex
+          : resizeAnchor >= 0 ? resizeAnchor : activeIndex;
+    if (i < 0 || i >= pages.length) return;
+    var y = 0;
+    for (var k = 0; k < i; k++) y += pages[k].offsetHeight;
+    if (Math.abs((window.scrollY || 0) - y) > 1) {
+      window.scrollTo({ top: Math.max(0, y), behavior: "auto" });
+    }
+  }
+
   function onResize() {
+    /* 位置缓存立刻作废：拖动中任何一次滚动/跳页都要用新尺寸算落点 */
+    queueMeasure();
+
+    if (document.documentElement.dataset.resizing !== "on") {
+      document.documentElement.dataset.resizing = "on";
+      /* 在第一次 resize 时锁定锚点：用 pageAtTop() 反推，而不是读 activeIndex。 */
+      resizeAnchor = pageAtTop();
+    }
+
+    /* 落点修正每帧都做（一次 scrollTo，开销可忽略），
+       档位重算才节流 —— markTall 会强制回流十几次，那个不能每帧跑。 */
+    pinToActivePage();
+
+    var now = Date.now();
+    if (now - resizeThrottle > 120) {
+      resizeThrottle = now;
+      markTall();
+      pinToActivePage();
+    }
+
     clearTimeout(resizeTimer);
     resizeTimer = setTimeout(function () {
-      markTall();          // 内部会刷新位置缓存
+      /* 锚点要在整个收尾过程里一直有效。
+         ⚠️ 早先这里先把 resizeAnchor 置 -1，再做尾帧修正 ——
+         结果尾帧退回用 activeIndex，而那时它已被滚动事件改成了邻居页，
+         实测从末页放大回去会落到 repair（第 4 页）。锚点必须活到最后一帧。 */
+      var anchor = resizeAnchor;
+      markTall();
+      pinToActivePage(anchor);
+      if (anchor >= 0) setActive(anchor);
       updateActive();
-    }, 180);
+      document.documentElement.dataset.resizing = "off";
+
+      /* 尾帧再钉两次。
+         第一次钉完可能又变了一次版面 —— 典型是滚动条：内容从"装得下"变成
+         "装不下"会让纵向滚动条出现，可用宽度少约 15px，文字重排、页高再变，
+         于是刚才那个落点又偏了。实测在 1000×620 上残留 81px，就是这个原因。
+         两次都在 rAF 里、都用固定的 anchor，不受中途滚动事件影响。 */
+      requestAnimationFrame(function () {
+        pinToActivePage(anchor);
+        requestAnimationFrame(function () {
+          pinToActivePage(anchor);
+          if (anchor >= 0) setActive(anchor);
+          resizeAnchor = -1;
+        });
+      });
+    }, 240);
   }
 
   /* ------------------------------------------------------ 首次翻页提示 */

@@ -155,6 +155,15 @@ html[data-paged="on"] .section.is-page-active > .container {
   transform: none;
 }
 
+/* 拖拽 / 缩放窗口期间：把上面那 14px 的页间位移收掉。
+   窗口在变、每屏高度跟着在变，如果同时还在做 0.8s 的位移过渡，
+   肉眼看到的是"整站内容在抖"。拖动期间只保留最终位置，不做过渡；
+   停手后 JS 会把 data-resizing 置回 off，过渡自然恢复。 */
+html[data-paged="on"][data-resizing="on"] .section > .container {
+  transform: none;
+  transition: none;
+}
+
 /* ==================================================== Apple 式章节递进
    翻到某一页时，页内元素逐项错开淡入并轻微上移——不是整块出现，
    而是一层一层落位。这是「章节衔接」的观感来源。

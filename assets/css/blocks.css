@@ -594,30 +594,11 @@ html[data-scrolling="on"] .vinyl::before { animation-play-state: paused; }
   color: var(--text-3);
 }
 
-/* 相对热度条：没有真实播放次数时的替代品。
-   匿名读「听歌排行」时，服务端把次数脱敏成百分制 score（top1=100，其次 75/50…），
-   这时不能印"N 次"（那是编的），改用一根按最高分归一化的细条 ——
-   它表达的是同一件事"哪几首听得更多"，只是不谎报绝对量。
-   和 .track__plays 占同一格，两者互斥（有次数就不画条）。 */
-.track__heat {
-  grid-area: 2 / 3 / 3 / 4;
-  justify-self: end;
-  align-self: center;
-  width: 32px;
-  height: 3px;
-  border-radius: 2px;
-  background: var(--line);
-  overflow: hidden;
-}
-.track__heat i {
-  display: block;
-  height: 100%;
-  border-radius: 2px;
-  background: var(--accent);
-  /* 从 0 长到目标宽度：和磁贴本身的淡入一起发生，
-     比"直接出现在那里"更像在"量出来"。 */
-  transition: width .5s var(--ease-out) .1s;
-}
+/* 前三名的序号用强调色。
+   排行榜的通用语言就是"越靠前越重要"，一个颜色就够表达，
+   而且不占任何宽度 —— 上一版在这里放过一根 32px 的热度条，
+   实测后四首只差 1px、看不出区别，却把曲名最缺的宽度吃掉了。 */
+.track__idx.is-top { color: var(--accent); font-weight: 600; }
 
 .track__go {
   grid-area: 1 / 3 / 2 / 4;

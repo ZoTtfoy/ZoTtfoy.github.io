@@ -1,0 +1,111 @@
+/* ==========================================================================
+ *  unify.css —— 卡片语言统一层
+ * --------------------------------------------------------------------------
+ *  为什么要单独一个文件：
+ *    六屏的卡片样式散在 blocks / components / gaming / motion / fit 五个文件里，
+ *    同一种"内容卡"却有三套圆角、三套 hover 反馈：
+ *
+ *      圆角   .ccard 16  .game 16  .social 16  .calc 16  .track 10  ← 磁贴莫名小一圈
+ *      阴影   .ccard 有  .game 无  .social 无  .calc 无               ← 只有 Q1 的卡浮着
+ *      hover  .ccard 描边+阴影+上浮  .game 只描边  .social 描边+图标变色
+ *
+ *    结果就是"元素太不统一"：同样是白卡，Q1 的浮起来、Q3/Q5 的贴平；
+ *    同样是内容块，Q2 的磁贴圆角比别处小 6px。
+ *    这些规则的来源文件互相覆盖（gaming.css 在 blocks.css 之后、
+ *    motion.css 又在最后），改一处要同时记得另外两处，很容易漏。
+ *
+ *  所以这里只做一件事：把"白卡"这件事定义一次。
+ *    本文件必须在所有样式之后加载（见 index.html 的最后一行 link），
+ *    这样它给出的是一致的最终值，而不是又一层被覆盖的中间值。
+ *
+ *  三条判据（不满足就不属于这个家族）：
+ *    · 实心抬升底：background 用 --bg-elev
+ *    · 1px 细线：border 用 --line
+ *    · 可点击：整块是 button / a，或有 hover 反馈
+ *  按这三条筛出来的就是 .ccard / .game / .social / .calc。
+ *  反例（有意不纳入）：
+ *    · .preview —— 次要卡，底色 --bg-soft（下沉），本就该比白卡轻一档
+ *    · .track   —— 磁贴，一屏要放六个，内边距与圆角服务于"紧凑"，见下方单独说明
+ * ========================================================================== */
+
+/* ---------------------------------------------------------- 一、卡片家族 */
+.ccard,
+.game,
+.social,
+.calc {
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--bg-elev);
+  /* 统一的一道极淡投影：白卡在浅色底上靠它"浮"起来。
+     深色下 --shadow-sm 是黑色阴影，视觉上很弱，但正合适 ——
+     深色的"抬升"主要靠 --bg-elev 比 --bg 亮，阴影只补一点边。 */
+  box-shadow: var(--shadow-sm);
+  /* 四个属性的过渡一次写全，别让各处的 transition 各写各的 */
+  transition:
+    border-color var(--t-fast) var(--ease),
+    box-shadow var(--t-fast) var(--ease),
+    transform var(--t-fast) var(--ease),
+    background-color var(--t-fast) var(--ease);
+}
+
+/* hover：三件事一起做 —— 描边加深、阴影抬起、上浮 1px。
+   只在真能悬停的设备上启用。
+   ⚠️ 必须包 @media (hover: hover)：触屏上 :hover 会"粘住"，
+   点完一张卡它就永远停在抬起状态，看起来像选中了。 */
+@media (hover: hover) {
+  .ccard:hover,
+  .game:hover,
+  .social:hover {
+    /* .calc 不加：它是表单容器，鼠标划过不该跳一下 */
+    border-color: var(--line-strong);
+    box-shadow: var(--shadow-md);
+    transform: translateY(-1px);
+  }
+}
+
+/* 按下时立刻回位，给一个"按到了"的确认 */
+.ccard:active,
+.game:active,
+.social:active {
+  transform: translateY(0);
+}
+
+/* ------------------------------------------------- 二、剔掉零碎的圆角值 */
+/* 这两个是历史上手写的近似值，和 --r-sm(10) / --r-xs(4) 差 2~3px。
+   差值本身没意义，但会让"按 10px 网格设计"这件事变成假的。 */
+.icon-btn.icon-btn--xs { border-radius: var(--r-xs); }
+.brand__mark.brand__mark--sm { border-radius: var(--r-sm); }
+
+/* 主题色块是"左右各一半"的药丸形，四个角本来就该不同 ——
+   但值应当从 token 派生，而不是写死 7px / 4px。 */
+.skin-item__swatch i:first-child { border-radius: var(--r-sm) var(--r-xs) var(--r-xs) var(--r-sm); }
+.skin-item__swatch i:last-child { border-radius: var(--r-xs) var(--r-sm) var(--r-sm) var(--r-xs); }
+
+/* ------------------------------------------- 三、同一个角色，同一个字号
+   实测各卡片同一角色的字号是散的：
+     卡片主标题  14.72 / 14.88 / 15.04 / 15.2   ← 同一个角色四种值
+     卡片副标题  11.36 / 11.52 / 12.32          ← 差出 1px 是肉眼可辨的
+     游戏小标签   8.96                          ← 低于 11px 可读下限
+   0.3px 级的差异看不出来，不值得为它冒险动布局；
+   所以这里只把「看得出差别的」拉齐，并顺手修掉那个过小的标签。
+
+   ⚠️ 刻意**不动** .track__title / .track__meta：
+     它们只差 0.48px（肉眼无感），而第二屏是六屏里最紧的一屏
+     （390×844 下正好 844px，零余量），动字号会把整屏推到下一档。 */
+.social__label,
+.preview__title { font-size: .95rem; }
+.social__handle,
+.preview__meta { font-size: .75rem; }
+
+/* 游戏卡里的 "博士 ID / Riot ID" 标签原本是 .56rem = 8.96px，
+   手机上虽然会隐藏，但桌面上确实小到要凑近看。
+   抬到 .7rem = 11.2px，正好越过 11px 这条可读下限。 */
+.game__uid-label { font-size: .7rem; }
+
+/* ------------------------------------------------------ 四、磁贴（.track） */
+/* 磁贴是卡片家族的紧凑版本，不是另一种东西，所以圆角跟家族一致（16px）。
+   内边距 / 行距仍然比独立卡片小 —— 一屏要放六个，这是功能需要，
+   但它和"圆角该不该统一"是两件事，不该混为一谈。 */
+.track {
+  border-radius: var(--r-md);
+}
