@@ -44,8 +44,8 @@ window.SITE_CONFIG = {
     },
   profile: {
       greet: "你好，我是",
-      tagline: "把复杂的东西，做得简单一点。",
-      intro: "白天写代码，晚上拆机器。喜欢把模糊的想法变成能真正跑起来、也经得起细看的东西。这里放着我常待的地方、在听的歌，和一份还算透明的维修报价。",
+      tagline: "看庭前花开花落，望天上云卷云舒",
+      intro: "你好，很高兴认识你，看看我在做什么吧。",
       contacts: [
           {
               icon: "qq",
@@ -76,9 +76,9 @@ window.SITE_CONFIG = {
               id: "xiaoheihe",
               icon: "box",
               platform: "小黑盒",
-              url: "https://www.xiaoheihe.cn/app/user/profile/000000",
-              title: "我的小黑盒",
-              meta: "游戏库 · 时长 · 战绩",
+              url: "https://www.xiaoheihe.cn/app/user/profile/54034751",
+              title: "小黑盒",
+              meta: "游戏库 · 时长 · 日常",
               cover: "",
               stats: [],
               accent: "#ff6b35"
