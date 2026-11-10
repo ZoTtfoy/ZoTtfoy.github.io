@@ -65,7 +65,7 @@ window.SITE_CONFIG = {
               id: "netease",
               icon: "netease",
               platform: "网易云音乐",
-              url: "https://music.163.com/#/user/home?id=000000000",
+              url: "https://music.163.com/#/user/home?id=1695307327",
               title: "我的音乐主页",
               meta: "歌单 · 红心 · 最近在听",
               cover: "",
