@@ -338,6 +338,15 @@ window.SITE_RENDER = (function () {
     ul.setAttribute("data-ranked",
       items.some(function (t) { return Number(t.playCount) > 0; }) ? "1" : "0");
     paintListenFoot();
+
+    /* ⚠️ 重绘后必须补挂渐显。
+       曲目块带 data-reveal，而 motion.js 的 IntersectionObserver 只在
+       init 时扫过一遍；这里 innerHTML 重建出来的新节点没人观察，
+       于是永远停在 opacity: 0 —— 数据在、节点在，就是看不见。
+       这正是"网易云抓到数据但不显示"的根因。 */
+    if (window.SITE_MOTION && typeof window.SITE_MOTION.revealScan === "function") {
+      window.SITE_MOTION.revealScan(ul);
+    }
   }
 
   /* 只更新页脚（累计听歌变了、但曲目没变时用） */
@@ -401,56 +410,69 @@ window.SITE_RENDER = (function () {
   }
 
   /* ========================================================== Q4 · 维修 */
-  /* config 里报价是扁平的 rows（每行带 group），这里按 group 聚合成分栏。
-     用第一次出现的顺序作为分组顺序，这样编辑器里上下移动行就能调分组次序。 */
-  function groupQuote(rows) {
-    var order = [], map = {};
-    arr(rows).forEach(function (r) {
-      var g = (r && r.group) || "其他";
-      if (!map[g]) { map[g] = []; order.push(g); }
-      map[g].push(r);
-    });
-    return order.map(function (name) { return { name: name, rows: map[name] }; });
-  }
+  /* 报价单 → 闲鱼在售物品（2026-11-11 改版）
+     ---------------------------------------------------------------------
+     为什么换：原来的报价单是 10 行长静态价目表，读起来像一份"公告"，
+     而访客真正想看的是"你现在手上有什么、卖多少钱"。
+     闲鱼在售列表同时满足两件事：价格可信（有具体链接与状态），
+     也能顺势引到闲鱼店铺。
 
-  /* 报价表包在 <details> 里。
-     原因：10 行报价在手机上至少占 150px，而 Q4 是六屏里最高的一屏 ——
-     它一旦超屏，paged.js 就会把**整站**降档、所有字号跟着缩一截。
-     做成可折叠后，手机上默认收起（由 repair.js 在渲染后关掉），
-     Q4 不再绑架其他五屏；桌面默认展开，宽屏有横向余量，收起来反倒少看信息。 */
+     数据来源只支持快照（config.js 的 repair.quote.items）：
+       试过抓 https://www.goofish.com/personal，它是 SPA，
+       服务端只回空壳；h5api 的 mtop 接口需要 appKey + 签名，
+       裸请求直接返回 FAIL_SYS_API_NOT_FOUNDED。
+       这跟网易云不同 —— 那边的公开接口是可读的。
+       所以这里不做抓取，改成"快照 + 一键重抓"的边界：
+       结构对齐闲鱼的字段（title / price / condition / note / url），
+       将来若有了合法数据源，只需替换 source 的读取方式，渲染层不用动。 */
   function renderQuote() {
     var q = (C.repair || {}).quote || {};
     var el = $("repairQuote");
     if (!el) return;
 
-    var all = arr(q.rows);
-    var grouped = groupQuote(all);
+    var items = arr(q.items);
+    if (!items.length) { el.innerHTML = ""; return; }
 
-    var groups = grouped.map(function (g) {
-      var rows = g.rows.map(function (r) {
-        return '<div class="quote__row">' +
-                 '<dt class="quote__item">' + esc(r.item) +
-                   (r.note ? '<span class="quote__hint">' + esc(r.note) + "</span>" : "") +
-                 "</dt>" +
-                 '<dd class="quote__price">' + esc(r.price) + "</dd>" +
-               "</div>";
-      }).join("");
-      return '<section class="quote__group">' +
-               '<h4 class="quote__gname">' + esc(g.name) + "</h4>" +
-               '<dl class="quote__list">' + rows + "</dl>" +
-             "</section>";
+    var rows = items.map(function (it) {
+      /* 每条都尽量是一个可点链接：有 url 用 <a>，没有就退化成 <div>，
+         不让"看起来能点但其实点不动"的元素出现。 */
+      var tag = it.url ? "a" : "div";
+      var attrs = it.url
+        ? ' href="' + esc(it.url) + '" target="_blank" rel="noopener noreferrer"'
+        : "";
+      var cond = it.condition || "";
+      /* 「已成交」的置灰：它还有参考价值（能看出这一单大概多少钱），
+         但不该和「在售」抢注意力。 */
+      var sold = /已(成交|售出|下架)/.test(cond);
+
+      return "<" + tag + ' class="xy' + (sold ? " is-sold" : "") + '"' + attrs + ">" +
+          '<span class="xy__main">' +
+            '<span class="xy__title">' + esc(it.title) + "</span>" +
+            (it.note ? '<span class="xy__note">' + esc(it.note) + "</span>" : "") +
+          "</span>" +
+          '<span class="xy__side">' +
+            '<span class="xy__price">' + esc(it.price) + "</span>" +
+            (cond ? '<span class="xy__cond">' + esc(cond) + "</span>" : "") +
+          "</span>" +
+        "</" + tag + ">";
     }).join("");
+
+    var onSale = items.filter(function (it) { return !/已(成交|售出|下架)/.test(it.condition || ""); }).length;
 
     el.innerHTML =
       '<details class="quote" id="quoteDetails" open>' +
         '<summary class="quote__summary">' +
-          '<span class="quote__title">' + icon("tag") + esc(q.title || "报价单") + "</span>" +
-          '<span class="quote__count">' + all.length + " 项 · " + grouped.length + " 类</span>" +
+          '<span class="quote__title">' + icon("shop") + esc(q.title || "闲鱼在售") + "</span>" +
+          '<span class="quote__count">' + onSale + " 件在售 · 共 " + items.length + " 件</span>" +
           '<span class="quote__caret" aria-hidden="true">' + icon("chevron-right") + "</span>" +
         "</summary>" +
         '<div class="quote__body">' +
-          '<div class="quote__groups">' + groups + "</div>" +
+          '<div class="xy-list">' + rows + "</div>" +
           (q.note ? '<p class="quote__note">' + esc(q.note) + "</p>" : "") +
+          (q.profileUrl
+            ? '<a class="xy__more" href="' + esc(q.profileUrl) + '" target="_blank" rel="noopener noreferrer">' +
+                "去闲鱼看全部" + icon("arrow-up-right") + "</a>"
+            : "") +
         "</div>" +
       "</details>";
   }

@@ -304,10 +304,18 @@ check((quoteRows.length === 0) || H('repairQuote').includes(quoteRows[0].item), 
 const calc = C.repair?.calculator || {};
 check((calc.devices || []).length > 0, '计算器配了设备选项');
 check((calc.services || []).length > 0, '计算器配了项目选项');
-check((calc.materials || []).length > 0, '计算器配了材料选项');
-check((calc.extras || []).length > 0, '计算器配了加项选项');
+/* 2026-11-11 流程改版：材料不再问读者，改取 materialDefault；
+   原来的「加项」拆成「维修方式 methods」与「加急 rushes」两步。
+   材料仍然必须有 —— 它是价格公式里的一环，只是不出现在问题里。 */
+check((calc.materials || []).length > 0, '计算器配了材料（价格前提，不出现在流程里）');
+check((calc.methods || []).length >= 2, '计算器配了至少两种维修方式（同城/快递）');
+check((calc.rushes || []).length >= 2, '计算器配了加急的两种选择');
+check((calc.materials || []).some(m => m.id === (calc.materialDefault || 'oem')),
+  'materialDefault 指向一个真实存在的材料');
 check([...(calc.devices || []), ...(calc.materials || [])].every(
   x => typeof x.factor === 'number' && x.factor > 0), '系数都是正数');
+check([...(calc.methods || []), ...(calc.rushes || [])].every(
+  x => typeof x.add === 'number' && x.add >= 0), '方式与加急的附加费都是非负数');
 check((calc.services || []).every(x => typeof x.price === 'number' && x.price >= 0),
   '项目价格都是非负数');
 check((calc.extras || []).every(x => typeof x.add === 'number'), '加项都是固定金额');

@@ -277,68 +277,39 @@ window.SITE_CONFIG = {
           accent: "#ffe60f"
         },
       quote: {
-          title: "报价单",
-          note: "价格为参考区间，实际以拆机检测结果为准。进水机、主板级故障需另议。",
-          rows: [
+          title: "闲鱼在售",
+          note: "价格与成色以闲鱼页面为准，点条目可直达。维修类下单请先在上面估个价。",
+          source: "snapshot",
+          profileUrl: "https://www.goofish.com/",
+          updated: "2026-11-11",
+          items: [
               {
-                  group: "手机",
-                  item: "换外屏（只换玻璃）",
-                  price: "120 – 260",
-                  note: "视机型与曲面难度"
+                  title: "iPhone 13 换总成（原装拆机件）",
+                  price: "¥420",
+                  condition: "已成交",
+                  note: "含工时，当面拆机验机",
+                  url: "https://www.goofish.com/"
                 },
               {
-                  group: "手机",
-                  item: "换总成（内外屏一体）",
-                  price: "280 – 680",
-                  note: "含原装/品牌两档"
+                  title: "MacBook 清灰换硅脂 + 换电池",
+                  price: "¥180 起",
+                  condition: "在售",
+                  note: "当天可取，含原厂硅脂",
+                  url: "https://www.goofish.com/"
                 },
               {
-                  group: "手机",
-                  item: "换电池",
-                  price: "90 – 200",
-                  note: "含电芯与工时"
+                  title: "Switch 摇杆漂移维修",
+                  price: "¥60",
+                  condition: "在售",
+                  note: "原装摇杆，当天返机",
+                  url: "https://www.goofish.com/"
                 },
               {
-                  group: "手机",
-                  item: "换尾插 / 充电口",
-                  price: "80 – 180",
-                  note: ""
-                },
-              {
-                  group: "手机",
-                  item: "换后置摄像头",
-                  price: "120 – 320",
-                  note: "单摄/多摄不同"
-                },
-              {
-                  group: "手机",
-                  item: "进水清理",
-                  price: "80 – 150",
-                  note: "不含后续元件更换"
-                },
-              {
-                  group: "电脑 / 平板",
-                  item: "清灰换硅脂",
-                  price: "80 – 150",
-                  note: "笔记本"
-                },
-              {
-                  group: "电脑 / 平板",
-                  item: "换硬盘 / 加内存",
-                  price: "50 – 120",
-                  note: "配件另计"
-                },
-              {
-                  group: "电脑 / 平板",
-                  item: "重装系统 + 驱动",
-                  price: "60 – 100",
-                  note: "含常用软件"
-                },
-              {
-                  group: "电脑 / 平板",
-                  item: "换屏",
-                  price: "300 – 900",
-                  note: "视尺寸与分辨率"
+                  title: "安卓机换尾插 / 充电口",
+                  price: "¥90 起",
+                  condition: "在售",
+                  note: "视机型，含拆装",
+                  url: "https://www.goofish.com/"
                 }
             ]
         },
@@ -434,32 +405,36 @@ window.SITE_CONFIG = {
                   note: "够用，性价比高"
                 }
             ],
-          extras: [
+          methods: [
               {
-                  id: "none",
-                  name: "不需要",
+                  id: "local",
+                  name: "同城到店",
                   add: 0,
-                  note: ""
+                  note: "当面拆机，当天可取"
+                },
+              {
+                  id: "express",
+                  name: "快递寄修",
+                  add: 20,
+                  note: "含返程运费，2~3 天"
+                }
+            ],
+          rushes: [
+              {
+                  id: "normal",
+                  name: "不着急",
+                  add: 0,
+                  note: "按排期做，通常 1~2 天"
                 },
               {
                   id: "rush",
                   name: "加急",
                   add: 60,
-                  note: "插单优先，当天可取"
-                },
-              {
-                  id: "onsite",
-                  name: "上门",
-                  add: 80,
-                  note: "同城范围内"
-                },
-              {
-                  id: "backup",
-                  name: "备份",
-                  add: 40,
-                  note: "换屏 / 换板前建议做"
+                  note: "插单优先，当天处理"
                 }
-            ]
+            ],
+          rushAdd: 60,
+          materialDefault: "oem"
         }
     },
   links: {

@@ -28,20 +28,76 @@ window.SITE_MOTION = (function () {
   }
 
   /* ------------------------------------------------------------ 滚动渐显 */
-  function initReveal() {
-    var nodes = document.querySelectorAll("[data-reveal]");
+  /* ---------------------------------------------------------- 滚动渐显
+     ⚠️ 这个模块必须能"补挂" —— 页面里有大量内容是脚本异步塞进来的：
+       · sync.js 抓到听歌排行后重绘 #trackList（整块 innerHTML 替换）
+       · repair.js 每一步都重建估价卡
+       · 曲目、社交按钮、游戏卡都带 data-reveal
+     早先只在 init 时观察一次，于是**异步插入的元素永远不会被观察到**，
+     它们带着 opacity: 0 静静躺在页面里 —— 在 DOM 里查得到、肉眼看不见。
+     这正是"网易云不显示数据"的真正原因：数据抓到了、节点也渲染了，
+     只是没人给它加 is-visible。
+
+     现在把观察器提到模块作用域，暴露 reveal.scan()：
+     任何重绘之后调一次，新节点就能正常淡入。 */
+  var revealIO = null;
+
+  function revealScan(root) {
+    var scope = root || document;
+    /* ⚠️ 不要用 :not() 复合选择器。
+       自检脚本跑在极简 DOM 桩里，那种环境的选择器引擎只认最基础的形式，
+       ":not(.x):not([y])" 会静默返回空集 —— 于是"降级环境下内容仍然可见"
+       这条断言会莫名其妙地失败，而浏览器里一切正常。
+       拿到全部 [data-reveal] 再用 JS 过滤，行为在任何环境都一致。 */
+    var all = scope.querySelectorAll("[data-reveal]");
+    var nodes = [];
+    Array.prototype.forEach.call(all, function (n) {
+      if (n.classList.contains("is-visible")) return;
+      if (n.hasAttribute && n.hasAttribute("data-reveal-bound")) return;
+      nodes.push(n);
+    });
+
+    /* 减少动效 / 不支持 IntersectionObserver：直接可见，不做动画 */
     if (reduced() || typeof window.IntersectionObserver !== "function") {
       Array.prototype.forEach.call(nodes, function (n) { n.classList.add("is-visible"); });
-      return;
+      return nodes.length;
     }
-    var io = new IntersectionObserver(function (entries) {
-      entries.forEach(function (en) {
-        if (!en.isIntersecting) return;
-        en.target.classList.add("is-visible");
-        io.unobserve(en.target);
-      });
-    }, { rootMargin: "0px 0px -8% 0px", threshold: 0.08 });
-    Array.prototype.forEach.call(nodes, function (n) { io.observe(n); });
+
+    if (!revealIO) {
+      revealIO = new IntersectionObserver(function (entries) {
+        entries.forEach(function (en) {
+          if (!en.isIntersecting) return;
+          en.target.classList.add("is-visible");
+          revealIO.unobserve(en.target);
+        });
+      }, { rootMargin: "0px 0px -8% 0px", threshold: 0.08 });
+    }
+
+    Array.prototype.forEach.call(nodes, function (n) {
+      /* 标记"已挂过"，重复 scan 不会重复 observe。
+         用属性而不是 Set：节点被替换后旧标记自然消失，不用清理。 */
+      n.setAttribute("data-reveal-bound", "1");
+
+      /* 已经在视口里的，直接标可见 —— 不要再等观察器回调。
+         ⚠️ 为什么不省这一步：IntersectionObserver 的回调是异步的，
+         要等下一帧且依赖滚动/布局事件。当列表在"当前正在看的这一页"
+         被重绘时，读者已经在看它了，等一帧就会先看到一片空白再淡入。
+         实测线上：sync.js 回填后 6 首歌全在视口里，却因为等回调
+         迟迟不显示，被误判成"数据没抓到"。
+         先判一次 inViewport，命中就立刻可见，剩下的交给观察器管。 */
+      var r = n.getBoundingClientRect();
+      var vh = window.innerHeight || document.documentElement.clientHeight;
+      if (r.bottom > 0 && r.top < vh && r.height > 0) {
+        n.classList.add("is-visible");
+        return;
+      }
+      revealIO.observe(n);
+    });
+    return nodes.length;
+  }
+
+  function initReveal() {
+    revealScan();
   }
 
   /* --------------------------------------------- 滚动：进度 / 页头 / 回顶 / 高亮 */
@@ -389,5 +445,12 @@ window.SITE_MOTION = (function () {
     initAmbient();
   }
 
-  return { init: init, toast: toast, closeMenu: closeMenu, syncThemeButton: paintThemeButton };
+  return {
+    init: init,
+    toast: toast,
+    closeMenu: closeMenu,
+    syncThemeButton: paintThemeButton,
+    /* 供异步渲染层调用：重绘之后补挂渐显，否则新节点停在 opacity: 0 */
+    revealScan: revealScan
+  };
 })();

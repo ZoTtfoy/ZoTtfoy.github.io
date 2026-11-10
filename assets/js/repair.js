@@ -30,16 +30,24 @@
   var CUR = CFG.currency || "¥";
   var RANGE = (Array.isArray(CFG.range) && CFG.range.length === 2) ? CFG.range : [0.85, 1.15];
 
-  var state = { device: "", service: "", material: "", extra: "" };
+  /* 四步流程（2026-11-11 改版）：
+       ① 维修种类 → ② 维修项目 → ③ 维修方式 → ④ 是否需要加急 → 报价
+     顺序是用户定的：先说是*什么东西*，再说*修什么*，再说*怎么送来*，最后问*急不急*。
+     这个顺序有道理 —— 前三步都在收敛"这一单是什么"，最后一步才是服务附加项，
+     放在最后问，读者已经知道大概多少钱，加急费才有参照。
+
+     ⚠️ 材料（原装/品牌/国产）从流程里去掉了。
+     它不是用户想回答的问题（一般人不知道自己要什么料），而是报价的前提。
+     保留在数据里、默认取 materialDefault（原装 ×1），
+     在结果页那行小字里说明"按原装件计" —— 想省钱的人看到这句会主动问。 */
+  var state = { device: "", service: "", method: "", rush: "" };
   var mount = null;
 
-  /* 四个问题。改动这里的文案不用碰其它逻辑；
-     想换问法可以在 config.js 的 calculator.questions 里覆盖。 */
   var STEPS = [
-    { key: "device",   label: "设备", q: "这是什么设备？" },
-    { key: "service",  label: "项目", q: "要修的是哪一项？" },
-    { key: "material", label: "材料", q: "配件用什么料？" },
-    { key: "extra",    label: "加项", q: "需要加急、上门或备份吗？" }
+    { key: "device",  label: "种类", q: "要修的是什么？" },
+    { key: "service", label: "项目", q: "哪一项坏了？" },
+    { key: "method",  label: "方式", q: "怎么送过来？" },
+    { key: "rush",    label: "加急", q: "着急要吗？" }
   ];
   var QA = CFG.questions || {};
   var cursor = 0;                    // 0~3 = 第几步，4 = 看结果
@@ -98,7 +106,11 @@
     return String(v == null ? "" : v)
       .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
   }
-  function pool(key) { return list(CFG[key + "s"]); }   // device → devices
+  /* 单数 key → 配置里的复数数组名。
+     device→devices / service→services / method→methods / rush→rushes。
+     直接拼 "s" 对 rush 会得到 rushs，所以显式映射一遍。 */
+  var POOL = { device: "devices", service: "services", method: "methods", rush: "rushes" };
+  function pool(key) { return list(CFG[POOL[key] || key + "s"]); }
   function nameOf(key, id) {
     var it = find(pool(key), id);
     return it ? it.name : "";
@@ -116,23 +128,39 @@
     return list(CFG.services).filter(function (s) { return supports(s, deviceId); });
   }
 
-  /* ----------------------------------------------------------- 价格计算 */
+  /* ----------------------------------------------------------- 价格计算
+     2026-11-11 改版后的公式：
+
+       基准 = 项目价 × 种类系数
+       总额 = 基准 × 材料系数（默认原装 = 1）+ 方式附加 + 加急附加
+       区间 = 总额 × [RANGE[0], RANGE[1]]
+
+     方式和加急是**加法**而不是乘法，这是有意的：
+       快递费 20 元、加急费 60 元都是固定成本，跟机器多贵没关系。
+       打八折的机器不该因为走快递就把运费也打折。
+     材料仍是乘法（它按配件价格的比例走），只是不再问了，取默认值。 */
   function compute() {
     var dev = find(list(CFG.devices), state.device);
     var svc = find(list(CFG.services), state.service);
-    var mat = find(list(CFG.materials), state.material);
-    var ext = find(list(CFG.extras), state.extra);
-    if (!dev || !svc || !mat || !ext) return null;
+    var met = find(list(CFG.methods), state.method);
+    var rsh = find(list(CFG.rushes), state.rush);
+    /* 材料不再由读者选，用配置里的默认件（原装）。 */
+    var mat = find(list(CFG.materials), CFG.materialDefault || "oem")
+           || list(CFG.materials)[0]
+           || { id: "", name: "标准件", factor: 1 };
+    if (!dev || !svc || !met || !rsh) return null;
 
     var base = (svc.price || 0) * (dev.factor || 1);
-    var mid = base * (mat.factor || 1) + (ext.add || 0);
+    var parts = base * (mat.factor || 1);
+    var mid = parts + (met.add || 0) + (rsh.add || 0);
 
     return {
       lo: Math.round(mid * RANGE[0]),
       hi: Math.round(mid * RANGE[1]),
       base: base,
+      parts: parts,
       mid: mid,
-      dev: dev, svc: svc, mat: mat, ext: ext
+      dev: dev, svc: svc, mat: mat, met: met, rsh: rsh
     };
   }
 
@@ -157,13 +185,13 @@
 
     var dev = find(list(CFG.devices), state.device);
     var svc = find(list(CFG.services), state.service);
-    var mat = find(list(CFG.materials), state.material);
-    var ext = find(list(CFG.extras), state.extra);
+    var met = find(list(CFG.methods), state.method);
+    var rsh = find(list(CFG.rushes), state.rush);
 
-    if (!dev) problems.push("还没选设备");
+    if (!dev) problems.push("还没选维修种类");
     if (!svc) problems.push("还没选维修项目");
-    if (!mat) problems.push("还没选配件");
-    if (!ext) problems.push("还没选加项");
+    if (!met) problems.push("还没选维修方式");
+    if (!rsh) problems.push("还没选要不要加急");
 
     /* 项目与设备不兼容 —— 这是这一套数据里唯一真实的逻辑冲突 */
     if (dev && svc && !supports(svc, dev.id)) {
@@ -196,21 +224,27 @@
    *    所以下面每一句都对应一个确定的事实：用了什么料、做的是什么活、
    *    有没有加急。读者对着上面的算式能验证这句话，它才有分量。 */
   function toneOf(r) {
-    /* 材料决定"修完的手感"，这是访客最关心的那一层 */
+    /* 材料不再由读者选，但报价是按它算的 —— 那就把它说出来。
+       读者看到"按原装件"，既知道这个价不算虚高，也知道想省钱该问什么。 */
     var byMaterial = {
       oem: "按原装件报的价，修完手感最接近出厂状态。",
-      brand: "一线副厂的件，日常使用基本看不出差别，价格也松快些。",
-      value: "走国产件，预算压到了最低；寿命会短一些，但够用。"
-    }[r.mat.id] || "";
+      brand: "按一线副厂件报的价，日常用几乎看不出差别，还能再省一点。",
+      value: "按国产件报的价，预算压到最低；寿命短些，但够用。"
+    }[r.mat.id] || ("按" + r.mat.name + "件报的价。");
 
     /* 保养类项目的价值不在"修"，而在"省" */
     if (r.svc.id === "clean" || r.svc.id === "system") {
       return "这类活本身不贵，定期做一次，能省下将来更大的开销。";
     }
 
-    /* 加急已经把等待时间算进价格了，值得点明，否则访客会觉得"贵在哪" */
-    if (r.ext.id === "rush") {
-      return byMaterial + " 加急费用已含在内，当天可取。";
+    /* 加急费已经算进总额了，点明一句，读者才不会觉得"贵在哪" */
+    if (r.rsh && r.rsh.add) {
+      return byMaterial + " 加急费 " + CUR + r.rsh.add + " 已含在内，当天处理。";
+    }
+
+    /* 快递费同理 */
+    if (r.met && r.met.add) {
+      return byMaterial + " 报价含返程运费 " + CUR + r.met.add + "。";
     }
 
     return byMaterial;
@@ -245,9 +279,14 @@
     if (!it) return "";
     var n = it.note || "";
     if (key === "service") return CUR + it.price + " 起" + (n ? " · " + n : "");
-    if (key === "material") return (n ? n + " · " : "") + "系数 ×" + it.factor;
     if (key === "device") return (n ? n + " · " : "") + "系数 ×" + it.factor;
-    if (key === "extra") return (it.add ? "+" + CUR + it.add + (n ? " · " + n : "") : (n || "不加钱"));
+    /* 方式和加急都是"加多少钱"，说清楚加在哪、为什么加 */
+    if (key === "method") {
+      return it.add ? "+" + CUR + it.add + "（" + n + "）" : (n || "不加钱");
+    }
+    if (key === "rush") {
+      return it.add ? "+" + CUR + it.add + "（" + n + "）" : (n || "不加钱");
+    }
     return n;
   }
 
@@ -322,7 +361,8 @@
           esc(r.svc.name) + " " + esc(CUR) + r.svc.price +
           " × " + esc(r.dev.name) + " " + r.dev.factor +
           " × " + esc(r.mat.name) + " " + r.mat.factor +
-          (r.ext.add ? " + " + esc(r.ext.name) + " " + esc(CUR) + r.ext.add : "") +
+          (r.met.add ? " + " + esc(r.met.name) + " " + esc(CUR) + r.met.add : "") +
+          (r.rsh.add ? " + " + esc(r.rsh.name) + " " + esc(CUR) + r.rsh.add : "") +
         "</p>" +
         '<div class="calc__foot">' +
           /* 结果页的主按钮改成实心强调色：到这里只剩"再来一次"这一个动作，
@@ -376,6 +416,12 @@
             ? problemHtml(problems)
             : (r ? resultHtml(r) : problemHtml(["选项不完整，无法估价"])))
         : stageHtml());
+
+    /* 每一步都重建整卡 innerHTML —— 里面的 data-reveal 元素同样需要补挂，
+       否则估价器会"看得见布局、看不见文字"（同听歌列表那个 bug）。 */
+    if (window.SITE_MOTION && typeof window.SITE_MOTION.revealScan === "function") {
+      window.SITE_MOTION.revealScan(mount);
+    }
 
     // 高度变了，翻页引擎要重新量一次，否则吸附落点会偏
     if (window.Paged && typeof window.Paged.refresh === "function") window.Paged.refresh();
@@ -518,7 +564,7 @@
        那个旧定时器还会把界面推到下一步。 */
     clearTimeout(pendingTimer);
     pendingTimer = null;
-    state.device = state.service = state.material = state.extra = "";
+    state.device = state.service = state.method = state.rush = "";
     cursor = 0;
   }
 

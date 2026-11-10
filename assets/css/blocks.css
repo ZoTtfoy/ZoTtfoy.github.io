@@ -1417,3 +1417,83 @@ html[data-scrolling="on"] .vinyl::before { animation-play-state: paused; }
   visibility: hidden;
   pointer-events: none;
 }
+
+/* ========================================== 闲鱼在售列表（Q4 报价位）
+   取代了原来那份 10 行长价目表。设计上刻意做成"商品行"而不是"表格行"：
+   左侧标题 + 一句备注，右侧价格 + 状态，整行可点。
+   和站点其它卡片同一套语言（1px 细线、圆角、hover 加深），
+   但更紧凑 —— 一屏要放下三到四件。 */
+.xy-list { display: flex; flex-direction: column; gap: 6px; }
+
+.xy {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 11px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--bg-elev);
+  transition: border-color var(--t-fast) var(--ease),
+              background-color var(--t-fast) var(--ease);
+}
+@media (hover: hover) {
+  a.xy:hover { border-color: var(--line-strong); background: var(--bg-soft); }
+}
+
+.xy__main { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.xy__title {
+  overflow: hidden;
+  font-size: .82rem;
+  font-weight: 500;
+  color: var(--text);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.xy__note {
+  margin-top: 1px;
+  overflow: hidden;
+  font-size: max(10.5px, .68rem);
+  color: var(--text-3);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.xy__side {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  flex: none;
+}
+.xy__price {
+  font-family: var(--font-mono);
+  font-size: .82rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+  white-space: nowrap;
+}
+/* 状态标签：在售用强调色，已成交整体降一档。
+   不加重色块 —— 四个色块排在一起会盖过价格本身。 */
+.xy__cond {
+  font-size: max(10.5px, .64rem);
+  color: var(--accent);
+  white-space: nowrap;
+}
+
+/* 已成交 / 已下架：整行降到 55% 不透明度。
+   保留可读 —— 它的价值是"这一单大概多少钱"的参照。 */
+.xy.is-sold { opacity: .55; }
+.xy.is-sold .xy__cond { color: var(--text-3); }
+
+/* 「去闲鱼看全部」：与页脚外链同一套小字语言 */
+.xy__more {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 10px;
+  font-size: max(10.5px, .72rem);
+  color: var(--text-2);
+  transition: color var(--t-fast) var(--ease);
+}
+.xy__more:hover { color: var(--text); }
+.xy__more .icon { width: 12px; height: 12px; }

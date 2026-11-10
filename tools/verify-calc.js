@@ -61,16 +61,18 @@ const ok = (c, m) => c ? notes.push('OK  ' + m) : fails.push(m);
   const CFG = await page.evaluate(() => window.SITE_CONFIG.repair.calculator);
   const by = (arr, id) => (arr || []).find(x => x.id === id);
   const CUR = CFG.currency || '¥';
-  const money = (svc, dev, mat, ext) => {
-    const mid = svc.price * dev.factor * mat.factor + (ext.add || 0);
+  /* 新公式：项目价 × 种类系数 × 材料系数（固定原装）+ 方式附加 + 加急附加 */
+  const money = (svc, dev, met, rsh) => {
+    const mat = (CFG.materials || []).find(m => m.id === (CFG.materialDefault || 'oem')) || { factor: 1 };
+    const mid = svc.price * dev.factor * mat.factor + (met.add || 0) + (rsh.add || 0);
     return [Math.round(mid * CFG.range[0]), Math.round(mid * CFG.range[1])];
   };
 
   /* ---------------------------------------------------------- 1. 首问 */
-  ok((await opts()).length === 4, '第一步只显示设备，四选一（当前 ' + (await opts()).join('/') + '）');
-  ok(/这是.*设备/.test(await label()), '第一步问的是设备');
+  ok((await opts()).length === 4, '第一步只显示维修种类，四选一（当前 ' + (await opts()).join('/') + '）');
+  ok(/要修的是什么/.test(await label()), '第一步问的是维修种类');
   ok((await trail()).length === 4, '顶部有四格进度');
-  ok((await trail()).every(t => /^\d\s*(设备|项目|材料|加项)$/.test(t.trim())),
+  ok((await trail()).every(t => /^\d\s*(种类|项目|方式|加急)$/.test(t.trim())),
     '未开始时进度格显示的是四个步骤名');
 
   const h0 = await height();
@@ -79,7 +81,7 @@ const ok = (c, m) => c ? notes.push('OK  ' + m) : fails.push(m);
 
   /* -------------------------------------------------- 2. 自动跳转 */
   await press('手机');
-  ok(/哪一项/.test(await label()), '选中设备后自动跳到「项目」，不需要点下一步');
+  ok(/哪一项坏了/.test(await label()), '选中设备后自动跳到「项目」，不需要点下一步');
   ok((await trail())[0].includes('手机'), '第一格变成已选答案「手机」');
   const h1 = await height();
   ok(h1 === h0, '第 2 步卡片高度不变（' + h0 + 'px）');
@@ -87,12 +89,12 @@ const ok = (c, m) => c ? notes.push('OK  ' + m) : fails.push(m);
     '手机做不了的项目被过滤掉（清灰保养只给笔记本/游戏机）');
 
   await press('换屏');
-  ok(/什么料/.test(await label()), '选完项目自动跳到「材料」');
+  ok(/怎么送过来/.test(await label()), '选完项目自动跳到「方式」');
   const h2 = await height();
   ok(h2 === h0, '第 3 步卡片高度不变（材料只有 3 个选项也没塌陷）');
 
-  await press('品牌');
-  ok(/加急|上门/.test(await label()), '选完材料自动跳到「加项」');
+  await press('同城到店');
+  ok(/着急要吗/.test(await label()), '选完方式自动跳到「加急」');
   ok(await page.locator('.calc__price').count() === 0, '四步没走完不报价');
   const h3 = await height();
   ok(h3 === h0, '第 4 步卡片高度不变');
@@ -100,23 +102,23 @@ const ok = (c, m) => c ? notes.push('OK  ' + m) : fails.push(m);
   await press('加急');
   const price = (await card.locator('.calc__price').innerText()).replace(/\s+/g, '');
   const [lo, hi] = money(by(CFG.services, 'screen'), by(CFG.devices, 'phone'),
-    by(CFG.materials, 'brand'), by(CFG.extras, 'rush'));
+    by(CFG.methods, 'local'), by(CFG.rushes, 'rush'));
   ok(price === CUR + lo + '–' + hi, '价格 = ' + CUR + lo + '–' + hi + '（页面：' + price + '）');
-  ok((await trail()).every((t, i) => t.includes(['手机', '换屏', '品牌', '加急'][i])),
+  ok((await trail()).every((t, i) => t.includes(['手机', '换屏', '同城到店', '加急'][i])),
     '四格进度都换成了答案');
   ok((await card.locator('.calc__opt').count()) === 0, '出结果后不再显示选项');
 
   /* ---------------------------------------------- 3. 回头改答案 */
   await card.locator('.calc__trail__item').nth(1).click();
   await page.waitForTimeout(160);
-  ok(/哪一项/.test(await label()), '点第 2 格回到「项目」');
+  ok(/哪一项坏了/.test(await label()), '点第 2 格回到「项目」');
   await press('换电池');
   const p2 = (await card.locator('.calc__price').innerText()).replace(/\s+/g, '');
   const [lo2, hi2] = money(by(CFG.services, 'battery'), by(CFG.devices, 'phone'),
-    by(CFG.materials, 'brand'), by(CFG.extras, 'rush'));
+    by(CFG.methods, 'local'), by(CFG.rushes, 'rush'));
   ok(p2 === CUR + lo2 + '–' + hi2, '改完项目直接出新价 ' + CUR + lo2 + '–' + hi2 + '（页面：' + p2 + '）');
   ok((await card.locator('.calc__price').count()) === 1,
-    '没有把读者又拖回「材料」或「加项」，改完直接停在结果');
+    '没有把读者又拖回「方式」或「加急」，改完直接停在结果');
 
   /* -------------------------------------------- 4. 换设备后的清理 */
   /* 4a. 新设备仍然能做原来那项 → 直接按新系数出价 */
@@ -127,7 +129,7 @@ const ok = (c, m) => c ? notes.push('OK  ' + m) : fails.push(m);
     '换成游戏机后直接出价（换电池游戏机也能做，不必重问项目）');
   const p3 = (await card.locator('.calc__price').innerText()).replace(/\s+/g, '');
   const [lo3, hi3] = money(by(CFG.services, 'battery'), by(CFG.devices, 'console'),
-    by(CFG.materials, 'brand'), by(CFG.extras, 'rush'));
+    by(CFG.methods, 'local'), by(CFG.rushes, 'rush'));
   ok(p3 === CUR + lo3 + '–' + hi3, '价格按游戏机系数重算 ' + CUR + lo3 + '–' + hi3 + '（页面：' + p3 + '）');
 
   /* 4b. 新设备做不了原来那项 → 清空并重新问「项目」 */
@@ -140,20 +142,20 @@ const ok = (c, m) => c ? notes.push('OK  ' + m) : fails.push(m);
   await card.locator('.calc__trail__item').nth(0).click();
   await page.waitForTimeout(160);
   await press('游戏机');
-  ok(/哪一项/.test(await label()), '游戏机做不了换屏 → 清空原项目并重新问「项目」');
+  ok(/哪一项坏了/.test(await label()), '游戏机做不了换屏 → 清空原项目并重新问「项目」');
   const conOpts = await opts();
   ok(conOpts.length === 2 && conOpts.includes('清灰保养') && !conOpts.includes('换屏'),
     '游戏机只剩两个可修项目且不含换屏（' + conOpts.join('/') + '）');
   await press('清灰保养');
   const p4 = (await card.locator('.calc__price').innerText()).replace(/\s+/g, '');
   const [lo4, hi4] = money(by(CFG.services, 'clean'), by(CFG.devices, 'console'),
-    by(CFG.materials, 'brand'), by(CFG.extras, 'rush'));
+    by(CFG.methods, 'local'), by(CFG.rushes, 'rush'));
   ok(p4 === CUR + lo4 + '–' + hi4, '游戏机清灰价格 ' + CUR + lo4 + '–' + hi4 + '（页面：' + p4 + '）');
 
   /* ------------------------------------------- 5. 重新估价 + 键盘 */
   await card.locator('[data-calc-reset]').click();
   await page.waitForTimeout(160);
-  ok(/这是.*设备/.test(await label()), '「重新估价」回到第一步');
+  ok(/要修的是什么/.test(await label()), '「重新估价」回到第一步');
 
   await page.keyboard.press('Tab');
   const focused = await page.evaluate(() => {
@@ -163,11 +165,11 @@ const ok = (c, m) => c ? notes.push('OK  ' + m) : fails.push(m);
   ok(/手机|平板|笔记本|游戏机/.test(focused), 'Tab 能进到选项（当前焦点：' + focused + '）');
   await page.keyboard.press('ArrowRight');
   await page.waitForTimeout(120);
-  ok(/这是.*设备/.test(await label()), '方向键只挪焦点，不会替人选中并跳步');
+  ok(/要修的是什么/.test(await label()), '方向键只挪焦点，不会替人选中并跳步');
   await page.keyboard.press('Enter');
   /* 与点击同一条路径：键盘选中同样要过 240ms 的确认窗口 */
   await page.waitForTimeout(400);
-  ok(/哪一项/.test(await label()), 'Enter 选中并前进到下一步');
+  ok(/哪一项坏了/.test(await label()), 'Enter 选中并前进到下一步');
 
   /* ============================================ 5. 选中确认（防误触）
      点下去到跳步之间有一段 CONFIRM_MS 的停顿，用来给误触留反悔余地。
@@ -223,21 +225,21 @@ const ok = (c, m) => c ? notes.push('OK  ' + m) : fails.push(m);
   const conflictMsg = await page.evaluate(() => {
     const S = window.SITE_REPAIR.state;
     S.device = 'console'; S.service = 'screen';   // 游戏机不能换屏
-    S.material = 'oem'; S.extra = 'none';
+    S.method = 'local'; S.rush = 'normal';
     return window.SITE_REPAIR.validate();
   });
   ok(conflictMsg.length > 0, '设备与项目冲突被校验拦下（' + conflictMsg.join('；') + '）');
 
   const emptyMsg = await page.evaluate(() => {
     const S = window.SITE_REPAIR.state;
-    S.device = 'phone'; S.service = ''; S.material = ''; S.extra = '';
+    S.device = 'phone'; S.service = ''; S.method = ''; S.rush = '';
     return window.SITE_REPAIR.validate();
   });
   ok(emptyMsg.length >= 3, '缺项被逐条列出（' + emptyMsg.length + ' 条）');
 
   const warnView = await page.evaluate(() => {
     const S = window.SITE_REPAIR.state;
-    S.device = 'console'; S.service = 'screen'; S.material = 'oem'; S.extra = 'none';
+    S.device = 'console'; S.service = 'screen'; S.method = 'local'; S.rush = 'normal';
     window.SITE_REPAIR.go(4);
     return {
       hasWarn: !!document.querySelector('.calc__result--warn'),
@@ -251,31 +253,44 @@ const ok = (c, m) => c ? notes.push('OK  ' + m) : fails.push(m);
   /* ================================================= 10. 结果页的人话 */
   await page.evaluate(() => {
     const S = window.SITE_REPAIR.state;
-    S.device = 'phone'; S.service = 'screen'; S.material = 'oem'; S.extra = 'none';
+    S.device = 'phone'; S.service = 'screen'; S.method = 'local'; S.rush = 'normal';
     window.SITE_REPAIR.go(4);
   });
   await page.waitForTimeout(260);
   const tone = await page.locator('.calc__tone').innerText();
   ok(tone.length > 8, '结果页有一句解释性文案（' + tone + '）');
-  /* 文案必须与所选配件对应，不能是随机夸奖 */
-  const toneBrand = await page.evaluate(() => {
-    window.SITE_REPAIR.state.material = 'value';
+  /* 文案必须随选择变化，不能是写死的一句话。
+     材料已不由读者选，所以改用「加急」来验证：它会往文案里追加一句运费/加急说明。 */
+  const toneRush = await page.evaluate(() => {
+    window.SITE_REPAIR.state.rush = 'rush';
     window.SITE_REPAIR.go(4);
     return window.SITE_REPAIR.tone();
   });
-  ok(tone !== toneBrand, '换材料后文案跟着变（不是写死的一句）');
+  ok(tone !== toneRush, '换加急后文案跟着变（不是写死的一句）');
+  ok(toneRush.indexOf('加急') >= 0, '加急时文案点明了加急费已含在内');
   const again = page.locator('.calc__again');
   ok(await again.count() > 0, '结果页有「重新估价」主按钮');
   ok(await again.evaluate(el => getComputedStyle(el).backgroundColor) !== 'rgba(0, 0, 0, 0)',
     '「重新估价」是实心强调色，不是灰字');
 
-  await again.click();
-  await page.waitForTimeout(280);
-  ok(await page.evaluate(() => window.SITE_REPAIR.step()) === 0, '「重新估价」回到第 1 步');
-  ok(await page.evaluate(() => {
-    const S = window.SITE_REPAIR.state;
-    return Object.keys(S).every(k => S[k] === '');
-  }), '「重新估价」清空全部选项');
+  /* 用 DOM 里现存的按钮点，并把"清空"放在同一个 evaluate 里读完 ——
+     分两次 evaluate 会有竞态：click 触发的 render 会重建 innerHTML，
+     第二次读到的 state 可能还没被 reset 覆盖（实测偶发失败）。
+     另外顺便断言界面真的回到了第一步的选项（而不只是内部变量为空）。 */
+  await page.locator('[data-calc-reset]').first().click();
+  await page.waitForTimeout(320);
+  const afterReset = await page.evaluate(() => ({
+    step: window.SITE_REPAIR.step(),
+    state: JSON.parse(JSON.stringify(window.SITE_REPAIR.state)),
+    label: (document.querySelector('.calc__label') || {}).textContent || '',
+    opts: [...document.querySelectorAll('.calc__opt')].map(e => e.textContent.trim()),
+    hasPrice: !!document.querySelector('.calc__price')
+  }));
+  ok(afterReset.step === 0, '「重新估价」回到第 1 步');
+  ok(Object.keys(afterReset.state).every(k => afterReset.state[k] === ''),
+    '「重新估价」清空全部选项（' + JSON.stringify(afterReset.state) + '）');
+  ok(/要修的是什么/.test(afterReset.label), '界面回到第一步的问题');
+  ok(!afterReset.hasPrice, '结果页的价格已消失');
 
   ok(errs.length === 0, '没有 JS 报错' + (errs.length ? '：' + errs.join(' | ') : ''));
 
