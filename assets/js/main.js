@@ -23,9 +23,23 @@
       // live 要先于 paged：时钟/一言/进度条会改变首页高度，
       // 必须在测量「这一页装不装得下」之前就位，否则会误判。
       if (window.SITE_LIVE) window.SITE_LIVE.init();
-      /* 报价表的展开/收起会直接改变 Q4 高度，必须赶在 paged 测量之前定下来。 */
+      /* 顺序有依赖，别随手调：
+           1) density 先算"视口能吃多少"，把级别写到 <html data-vp>
+              —— 它决定哪些装饰退场，直接影响每屏高度。
+           2) repair.foldQuote() 问 density 要不要折叠报价表
+              —— 报价表展开与否是 Q4 高度的大头。
+           3) paged.init() 最后测量、定档。
+         任何一步提前，测量到的都是"还没让位"的旧高度，档位就会判错。 */
+      /* scale 必须第一个：它改 <html> 的 font-size，而全站字号/间距都是 rem，
+         等于给后面所有测量定下了基准。放后面的话，density 与 paged 量到的
+         还是旧根字号的尺寸。 */
+      if (window.SITE_SCALE) window.SITE_SCALE.init();
+      if (window.SITE_DENSITY) window.SITE_DENSITY.init();
       if (window.SITE_REPAIR) window.SITE_REPAIR.foldQuote();
       if (window.SITE_PAGED) window.SITE_PAGED.init();
+      /* 可读性兜底放在最后：它要读"最终生效"的字号，
+         前面 scale/density/档位都定下来之后才知道谁真的太小。 */
+      if (window.SITE_READABLE) window.SITE_READABLE.init();
       window.SITE_MOTION.init();
       if (window.SITE_EFFECTS) window.SITE_EFFECTS.init();
     } catch (err) {

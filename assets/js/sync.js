@@ -21,6 +21,11 @@
   var C = window.SITE_CONFIG || {};
   var TIMEOUT = 4000;
 
+  /* 当前这一屏实际在用的曲目（清洗过的完整列表，未被 trackCap 截断）。
+     density.js 的 fitListen() 需要在溢出时"少放一首"，
+     所以必须拿得到完整列表，而不是已经截断的结果。 */
+  var current = [];
+
   /* --------------------------------------------------------------- 工具 */
   function getJSON(url) {
     if (!url || typeof fetch !== "function") return Promise.resolve(null);
@@ -87,6 +92,7 @@
     });
 
     if (clean.length) {
+      current = clean;
       window.SITE_RENDER.setTracks(clean, "live", meta);
       return true;
     }
@@ -170,8 +176,19 @@
 
     if (typeof Promise.allSettled === "function") {
       Promise.allSettled(tasks).then(function () {
-        // 内容可能变高了（比如多了封面图），让翻页引擎重新量一遍
+        /* 数据是异步到的，落地时页高已经变了 —— 必须补一次测量。
+           ⚠️ 顺序不能反：density 先决定"放几首"（它会把曲目数压到装得下），
+           再让 paged 按新的内容定档。反过来就会出现"档位按 6 首算、
+           实际渲染 4 首"的错配，那一屏会空出一大块。
+           早先这里只调了 Paged.refresh，漏了 density —— 结果在
+           810×640 这类窄矮窗口上，回填之后悄悄溢出 3~4px，谁也没发现。 */
+        if (window.SITE_DENSITY && typeof window.SITE_DENSITY.refresh === "function") {
+          window.SITE_DENSITY.refresh();
+        }
         if (window.Paged && typeof window.Paged.refresh === "function") window.Paged.refresh();
+        else if (window.SITE_PAGED && typeof window.SITE_PAGED.refresh === "function") {
+          window.SITE_PAGED.refresh();
+        }
       });
     }
   }
@@ -185,7 +202,13 @@
     }
   }
 
-  window.SITE_SYNC = { run: run, applyTracks: applyTracks, applyPreviews: applyPreviews };
+  window.SITE_SYNC = {
+    run: run,
+    applyTracks: applyTracks,
+    applyPreviews: applyPreviews,
+    /* density.js 用：拿完整曲目列表做"少放一首"的自适应 */
+    currentTracks: function () { return current.slice(); }
+  };
 
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", boot);

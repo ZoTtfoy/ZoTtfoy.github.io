@@ -1,0 +1,134 @@
+/* ==========================================================================
+ *  density.css —— 视口密度分级下的「渐进取舍」
+ * --------------------------------------------------------------------------
+ *  配套 density.js：它算级别写进 <html data-vp>，这里决定每一级留什么。
+ *  级别只看视口（full / compact / tight / mini），与内容无关，所以稳定可预测。
+ *
+ *  ⚠️ 收起用的是「可过渡的收起」，不是 display: none。
+ *     display 无法过渡 —— 元素会啪一下消失、周围内容瞬移，
+ *     这正是"缩放时界面难看"最直接的原因。
+ *     这里统一用四件可动画的属性：
+ *        max-height  → 高度平滑收拢（布局跟着连续变化）
+ *        opacity     → 淡出
+ *        margin      → 归零（否则会留下一条空白）
+ *        padding     → 归零（否则 0 高元素仍有内边距）
+ *     overflow 用 clip 而不是 hidden：clip 不创建滚动容器，
+ *     也不会改变 position: sticky 的参照。
+ *
+ *  ⚠️ 收起的必须是**真的可以不要**的：
+ *     装饰（一言、同步时间、进度条）、重复信息（章节导语）、
+ *     或能折叠而不丢内容（报价表）。正文一个字都不删。
+ * ========================================================================== */
+
+/* --------------------------------------------------------- 可收起的元素集 */
+/* 把这几个选择器写在一起，是为了让"过渡"和"收起"两套规则永远作用于同一批元素。
+   分成两处写、一边漏掉一个，就会出现"能收但不能动画"的元素，比不收起更难看。 */
+.hero__quote,
+.hero__meta,
+.hero__progress,
+.section__lead,
+.profile__intro,
+.hero .preview-pair {
+  max-height: 400px;      /* 足够容纳任何一种情况；实际高度更小时无副作用 */
+  overflow: clip;
+  opacity: 1;
+  transition:
+    max-height .3s var(--ease-out),
+    opacity .22s var(--ease),
+    margin-top .3s var(--ease-out),
+    margin-bottom .3s var(--ease-out),
+    padding-top .3s var(--ease-out),
+    padding-bottom .3s var(--ease-out);
+}
+
+/* ====================================================== compact（h < 780）
+   开始吃紧。先让纯装饰退场：一言和同步时间不承载任何信息，只是氛围。
+   它们走了，首屏立刻松一口气。 */
+html[data-vp="compact"] .hero__quote,
+html[data-vp="tight"] .hero__quote,
+html[data-vp="mini"] .hero__quote,
+html[data-vp="compact"] .hero__meta,
+html[data-vp="tight"] .hero__meta,
+html[data-vp="mini"] .hero__meta {
+  max-height: 0;
+  opacity: 0;
+  margin-top: 0;
+  margin-bottom: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+/* ======================================================== tight（h < 660）
+   明显吃紧。这一级动"结构"：
+   · 报价表折叠 —— 由 repair.js 摘掉 open（见 density.js 的 quoteFolded）
+   · 章节导语退场 —— 标题本身已经说明了这一屏做什么
+   · 首页进度条退场 —— 右侧页码已经表达了同样的信息
+
+   导语只在**桌面**退场：手机上导语常常是唯一的说明文字，
+   而手机的高度档位本来就走另一套（fit.css），这里用宽度守住。 */
+@media (min-width: 721px) {
+  html[data-vp="tight"] .section__lead,
+  html[data-vp="mini"] .section__lead {
+    max-height: 0;
+    opacity: 0;
+    margin-top: 0;
+    margin-bottom: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+}
+
+html[data-vp="tight"] .hero__progress,
+html[data-vp="mini"] .hero__progress {
+  max-height: 0;
+  opacity: 0;
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+/* ========================================================= mini（h < 560）
+   只能留骨架。主要服务横屏手机与极矮的桌面窗口。
+   · 简介退场：它是补充，标题 + 名片已经说清了这个人是谁
+   · 平台名那一行（网易云 / 小黑盒）退场：次要入口
+   正文（联系卡、曲目、估价器、邮箱）一律保留。 */
+html[data-vp="mini"] .profile__intro,
+html[data-vp="mini"] .hero .preview-pair,
+html[data-vp="mini"] #repairPreview {
+  max-height: 0;
+  opacity: 0;
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+/* ------------------------------------------------------ 跨级时的整体手感 */
+/* 这里曾经加过一段「跨级时整屏轻微上浮」的 keyframes，后来删掉了。
+   原因：它给 .container > * 加了 opacity 动画并带 fill-mode: both，
+   而 .hero__quote / .section__lead 这类元素正是**靠 opacity: 0 收起**的 ——
+   动画的终值 opacity: 1 会临时（甚至因为 fill 而永久）盖掉那条收起规则。
+   实测表现是"缩小时一言有时还在、有时没了"，取决于触发时刻。
+
+   去掉之后并不缺手感：收起本身用的是 max-height + opacity + margin 的过渡
+   （见文件顶部），布局是连续变化的，没有"跳一下"需要掩盖。
+   少一个动画，就少一处会和状态打架的地方。 */
+
+/* 关于"拖动期间要不要过渡"，试过两种，最后选了开着：
+   关掉（transition: none）虽然能让每次测量都精确，但元素会"啪"地消失，
+   而且要等到松手才有动画 —— 与"放大后再显示、动画自然"正好相反。
+   开着的话，过渡时长 300ms 比拖拽事件间隔（~16ms）长得多，
+   元素会以很短的延迟跟随光标连续收放，观感是"跟着走"而不是"跳过去"。
+
+   代价是拖动过程中的测量可能读到中间值。这不要紧：
+   density.js 只做"往下减"（少放一首 / 折叠报价表），不会来回摆，
+   而停手 240ms 后的那次测量是在过渡结束之后做的，会把偏差收口。 */
+/* 减少动效：一律不做过渡，直接到位 */
+@media (prefers-reduced-motion: reduce) {
+  .hero__quote,
+  .hero__meta,
+  .hero__progress,
+  .section__lead,
+  .profile__intro,
+  .hero .preview-pair,
+  html[data-vp-change] .container > * {
+    animation: none !important;
+  }
+}

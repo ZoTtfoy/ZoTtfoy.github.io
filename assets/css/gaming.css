@@ -102,7 +102,8 @@
 .game__uid-label {
   flex: none;
   font-family: var(--font-mono);
-  font-size: .56rem;
+  /* 原 .56rem(8.96px) 低于可读下限；这是 ID 的类型标签，缩小它省不下多少空间 */
+  font-size: .7rem;
   letter-spacing: .06em;
   text-transform: uppercase;
   color: var(--text-3);

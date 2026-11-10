@@ -898,6 +898,10 @@ window.SITE_PAGED = (function () {
     pages: function () { return pages.slice(); },
     activeIndex: function () { return activeIndex; },
     refresh: function () { markTall(); updateActive(); },
+    /* 量"内容自然高度"（不受 min-height:100vh 影响）。
+       density.js 需要它来判断第二屏装不装得下曲目 ——
+       直接读 offsetHeight 永远是 100vh，那样的判断毫无意义。 */
+    naturalHeight: naturalHeight,
     /* 自检用：读触摸翻页的锁状态，验证「间隔绝不为 0」 */
     swipeLock: function () { return { ms: reduced() ? 160 : SWIPE_LOCK, until: swipeLockedUntil }; }
   };

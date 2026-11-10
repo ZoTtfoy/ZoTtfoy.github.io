@@ -814,7 +814,9 @@ html[data-scrolling="on"] .vinyl::before { animation-play-state: paused; }
 .quote__gname {
   margin-bottom: 4px;
   font-family: var(--font-mono);
-  font-size: .64rem;
+  /* 原 .64rem —— 在 0.82 缩放下只剩 8.4px，分组标题几乎读不出。
+     它是价目表的分组名（屏幕 / 电池 / 其他），属于结构信息，不该最小化。 */
+  font-size: .7rem;
   letter-spacing: .1em;
   text-transform: uppercase;
   color: var(--text-3);
@@ -906,8 +908,9 @@ html[data-scrolling="on"] .vinyl::before { animation-play-state: paused; }
 .calc__trail__n {
   flex: none;
   font-family: var(--font-mono);
-  font-size: .62rem;
-  opacity: .8;
+  /* 同 .nav__num：原来是 .62em，在父级 0.9rem 上叠乘后只剩 ~9px。改用 rem。 */
+  font-size: .7rem;
+  opacity: .85;
 }
 .calc__trail__t { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .calc__trail__item.is-done { color: var(--text-2); }
@@ -951,7 +954,9 @@ html[data-scrolling="on"] .vinyl::before { animation-play-state: paused; }
   background: var(--bg-soft);
   box-shadow: inset 0 0 0 1px var(--line-strong);
   font-family: var(--font-mono);
-  font-size: .62rem;
+  /* 同 .nav__num：.62rem 在 18px 的圆里本来就偏小，
+     而这是"第几步"的唯一标识，糊掉就失去意义。抬到 .7rem。 */
+  font-size: .7rem;
   font-weight: 600;
   color: var(--text-2);
 }
@@ -1026,7 +1031,9 @@ html[data-scrolling="on"] .vinyl::before { animation-play-state: paused; }
 }
 .calc__price small {
   margin-right: 2px;
-  font-size: .6em;
+  /* 货币符号跟着价格一起缩是有意的（它是同一个数字的组成部分），
+     但 .6em 在小窗口下会掉到 8px 以下，这里锁一个下限。 */
+  font-size: max(.6em, 10px);
   font-weight: 500;
   color: var(--text-3);
 }
@@ -1268,7 +1275,7 @@ html[data-scrolling="on"] .vinyl::before { animation-play-state: paused; }
   .quote__item { font-size: .8rem; line-height: 1.45; }
   .quote__hint { display: none; }
   .quote__price { font-size: .8rem; }
-  .quote__gname { margin-bottom: 3px; font-size: .66rem; }
+  .quote__gname { margin-bottom: 3px; font-size: .7rem; }
   .quote__note { margin-top: 8px; font-size: .7rem; line-height: 1.55; }
 
   /* ------------------------------------------------------- Q5 / Q6 平台 */

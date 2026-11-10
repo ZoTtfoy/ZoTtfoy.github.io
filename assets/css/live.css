@@ -115,7 +115,9 @@ html[data-loading="0"] .splash { display: none; }
 .hero__quote.is-swapping { opacity: 0; }
 .hero__quote__from {
   margin-left: 8px;
-  font-size: .78em;
+  /* 原 .78em —— 在父级（约 .9rem）上再乘一次，实际只有 ~11px，
+     而 scale 再缩 0.82 就只剩 9px。改成 rem 直接对齐根字号。 */
+  font-size: max(10.5px, .72rem);
   color: var(--text-3);
 }
 /* 作为按钮时不要按钮外观 */
@@ -173,9 +175,11 @@ button.hero__quote:hover { color: var(--text); }
   transition: transform 1.2s var(--ease-out);
 }
 .hero__progress__label {
+  /* 原 .66rem 在最小缩放下掉到 8.7px。这是"今年过了多少"的标签，
+     数值旁边没有它就只是两个无意义的数字。 */
   flex: none;
   font-family: var(--font-mono);
-  font-size: .66rem;
+  font-size: .7rem;
   letter-spacing: .05em;
   color: var(--text-3);
   font-variant-numeric: tabular-nums;

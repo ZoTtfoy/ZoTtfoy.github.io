@@ -61,7 +61,12 @@
 }
 .nav__num {
   font-family: var(--font-mono);
-  font-size: .62rem;
+  /* ⚠️ 这里曾写过 .62em —— em 是**相对父级字号**，而 .nav__link 已经是
+     0.9rem(14.4px)，于是实际算出来是 0.62 × 14.4 ≈ 8.9px，再被档位一压只剩
+     9.9px，低于 11px 可读下限。改成 rem 直接对齐根字号，不再叠乘。
+     （这个 bug 与"切换设备"直接相关：1680 宽时档位不缩、2560 宽也一模一样，
+       因为父级字号不随视口变 —— 但换成窄屏时父级被压，这里就跟着糊了。） */
+  font-size: .7rem;
   color: var(--text-3);
   letter-spacing: .02em;
 }

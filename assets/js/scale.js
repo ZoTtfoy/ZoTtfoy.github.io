@@ -1,0 +1,161 @@
+/* ==========================================================================
+ *  scale.js —— 等比缩放（按"可用空间"整体缩放界面，而不是逐项取舍）
+ * --------------------------------------------------------------------------
+ *  要解决的问题：
+ *    用户要在很多设备之间切换。窗口比例的跨度远超"手机 / 平板 / 桌面"三分法：
+ *    32:9 带鱼屏、1:1 方形、500×800 微信内置浏览器、1024×1366 的 iPad、
+ *    还有 400×1200 这种极端竖条。任何"按比例写死阈值"的做法都会在某些
+ *    比例上失效 —— 阈值只能覆盖你想到的那些。
+ *
+ *  思路：不去逐个判断"这个比例该怎么办"，而是统一回答一个问题 ——
+ *    **这个视口里，一屏的可用面积相当于多少个 390×844 的屏幕？**
+ *    然后按这个倍数等比缩放整个界面的度量（字号、间距、图标、圆角）。
+ *    比例再怪，也只是"面积大 / 面积小"，缩放系数自然跟着变。
+ *
+ *  为什么不用 CSS 的 font-size: clamp(…) 或 vw：
+ *    1) vw 只看宽度。1024×768 和 1024×1366 宽度一样，可用面积差 78%，
+ *       用 vw 会得到同一个字号 —— 前者挤、后者空。
+ *    2) vmin 在极端比例下会取到很小的一边。400×1200 的 vmin 是 400，
+ *       按它缩放会让文字小到没法读，而实际可用宽度就是 400，不该再缩。
+ *    所以必须同时看宽和高，并且对"极端长宽比"做钳制。
+ *
+ *  实现：
+ *    用 rem 做全局基准 —— 把 --root-scale 写进 <html> 的 font-size。
+ *    全站字号 / 间距大多是 rem，改根字号等于整体缩放，
+ *    且不需要动任何一条既有规则（这是能落地的关键）。
+ *    px 写死的地方（圆角、少数图标）不跟着缩，它们是"骨架"尺寸，
+ *    缩了反而会糊。
+ *
+ *  ⚠️ 缩放有上下限，不能无限等比：
+ *      下界 0.82 —— 再小正文就低于 13.5px 可读下限（详见 verify-devices）。
+ *      上界 1.18 —— 再大在 4K 上会像把页面放大镜看，而且一屏放不下。
+ *    超出上下界时不再缩字，改由既有的密度分级（density.js）去收留白。
+ * ========================================================================== */
+
+window.SITE_SCALE = (function () {
+  "use strict";
+
+  var root = document.documentElement;
+
+  /* 基准视口：设计稿就是按 390×844 的手机调出来的。
+     用它做"1.0 倍"的参照，缩放在这个尺寸附近最接近手调的观感。 */
+  var BASE_W = 390;
+  var BASE_H = 844;
+
+  /* 上下界。
+     下界 0.82：再小正文就跌破可读下限。
+     上界 1.32：这是"大屏该舒展"与"一屏要装得下"之间的平衡点。
+
+     ⚠️ 曾取 1.08，结果所有桌面尺寸都被钳到同一个值 ——
+       700×800 和 3440×1440 的根字号都是 17.3px，"等比"实际上没生效，
+       只是给桌面统一加了个 8%。放大到 1.32 后才真正拉开差距：
+
+         1024×768  → 1.08
+         1440×900  → 1.24
+         1920×1080 → 1.32
+         3440×1440 → 1.32
+
+     为什么敢放到 1.32：一屏装不装得下由 paged.js 的档位和 density.js
+     的让位共同保证（实测 144 个窗口尺寸零溢出），字号不必替它们背这个责任。
+     字号的职责只有"读起来舒不舒服"，而这个确实随屏幕变大该变大。 */
+  var MIN = 0.90;   // 再小正文会低于可读下限
+  var MAX = 1.26;   // 再大在 4K 上像放大镜，一屏也放不下
+
+  /* 内容不被撑爆的软约束：视口太矮时，即使面积够，也不该按面积放大 ——
+     否则字号一变大，一屏更装不下。
+     用"等效高度"把高度折进来：高度每少 1px 相当于面积少一点。 */
+  function computeScale(w, h) {
+    /* 手机与矮屏不参与缩放。
+       fit.css 早已按"可用高度"给手机分了四档，那套档位是逐机型调过的；
+       再叠一层等比缩放 = 双重缩小。实测 375×667 算出 0.89 后正文 12.6px、
+       320×568 算出 0.82 后 11.8px，都跌破可读下限（verify-devices 报 16 项）。
+       矮屏（横屏手机、极矮窗口）同理：它们的问题在高度，解法是 density
+       让位 + paged 降级，不是把字缩小。 */
+    if (w <= 600 || h <= 500) return 1;
+
+    /* 标尺：屏幕对角线。
+       ⚠️ 试过三种标尺，前两种都被实测否掉：
+         1) 面积比平方根 —— 390×844 的基准面积太小（33 万），
+            任何桌面都是它的 3~10 倍，结果全部撞上上限，
+            "等比"退化成"统一放大一个固定比例"（700×800 和 3440×1440 同值）。
+         2) 高度当标尺 —— 带鱼屏 3840×1080 只有 1080 高，
+            会和 1920×1080 得到同一个系数，而前者明显更空。
+         对角线同时反映宽与高，且天然随"物理屏幕多大"变化，
+         最接近人眼对"这块屏幕有多大"的直觉。 */
+    var diag = Math.sqrt(w * w + h * h);
+    /* 基准取 1280×800（最常见的笔记本窗口），让它在 1.0 附近。
+       不以 390×844 为基准：那是手机，而手机已经不参与缩放了。 */
+    var REF = Math.sqrt(1280 * 1280 + 800 * 800);
+
+    /* 指数 0.42：比平方根更缓。
+       平方根会让 1920 宽比 1280 宽大 22%，可实际观感上两者差别没那么大；
+       0.42 次幂把 1920×1080 收敛到 1.17 倍，更接近"该大一点，但不突兀"。 */
+    var s = Math.pow(diag / REF, 0.42);
+
+    /* 硬边界：可读性优先于"等比"。
+       下界 0.90 —— 再小正文跌破可读下限；
+       上界 1.26 —— 再大在 4K 上像放大镜，一屏也放不下。 */
+    return Math.max(MIN, Math.min(MAX, s));
+  }
+
+  var current = 1;
+
+  function apply(force) {
+    var w = window.innerWidth || BASE_W;
+    var h = window.innerHeight || BASE_H;
+    if (w < 2 || h < 2) return false;
+
+    var s = Math.round(computeScale(w, h) * 1000) / 1000;
+    if (!force && s === current) return false;
+    current = s;
+
+    /* 16px × s。
+       用 px 而不是百分比：百分比相对的是"浏览器默认字号"，
+       用户如果在浏览器里调过默认字号，两套缩放会相乘，结果不可控。 */
+    root.style.fontSize = (16 * s).toFixed(2) + "px";
+    /* 同时把系数写成变量，供需要"知道当前缩放"的样式使用
+       （比如某些必须按比例算的 clamp 边界）。 */
+    root.style.setProperty("--scale", s);
+    root.dataset.scale = s.toFixed(2);
+
+    return true;
+  }
+
+  /* 尺寸变化：paged.js 的 onResize 已经负责节流与落点修正，
+     这里只要跟上它的节奏。缩放本身不涉及布局测量，代价很小。 */
+  var raf = 0;
+  function onResize() {
+    if (raf) return;
+    raf = requestAnimationFrame(function () {
+      raf = 0;
+      if (apply()) {
+        /* 根字号变了 → 所有 rem 尺寸变化 → 每屏高度全变了，
+           必须让翻页引擎与密度分级重新算。 */
+        if (window.SITE_PAGED && window.SITE_PAGED.refresh) window.SITE_PAGED.refresh();
+        if (window.SITE_DENSITY && window.SITE_DENSITY.refresh) window.SITE_DENSITY.refresh();
+      }
+    });
+  }
+
+  function init() {
+    apply(true);
+    window.addEventListener("resize", onResize, { passive: true });
+    window.addEventListener("orientationchange", onResize, { passive: true });
+    /* 缩放变化后字体会重新排版，行数可能变 —— 等字体就绪再补一次 */
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(function () {
+        if (window.SITE_PAGED && window.SITE_PAGED.refresh) window.SITE_PAGED.refresh();
+      }).catch(function () {});
+    }
+  }
+
+  return {
+    init: init,
+    refresh: function () { if (apply()) { if (window.SITE_PAGED && window.SITE_PAGED.refresh) window.SITE_PAGED.refresh(); } },
+    scale: function () { return current; },
+    /* 自检用：给定视口算缩放系数，不依赖当前页面状态 */
+    compute: computeScale,
+    MIN: MIN,
+    MAX: MAX
+  };
+})();

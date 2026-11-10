@@ -339,10 +339,23 @@
        只能用 JS 摘掉 open。 */
   var phoneMQ = window.matchMedia("(max-width: 680px)");
 
+  /* 什么时候该折叠报价表？
+       手机（≤680px）           —— 竖屏一屏根本放不下展开的价目
+       矮窗口（density 的 tight/mini）—— 展开时它一张就吃掉整屏（实测 535px）
+     第二个判断交给 density.js 统一出（它是"视口能吃多少"的唯一决策处），
+     这里只问结果，不自己再写一套阈值 —— 否则又变成两处逻辑打架。 */
+  function shouldFold() {
+    if (phoneMQ.matches) return true;
+    if (window.SITE_DENSITY && typeof window.SITE_DENSITY.quoteFolded === "function") {
+      return window.SITE_DENSITY.quoteFolded();
+    }
+    return false;
+  }
+
   function foldQuote() {
     var d = document.getElementById("quoteDetails");
     if (!d) return;
-    if (phoneMQ.matches) d.removeAttribute("open");
+    if (shouldFold()) d.removeAttribute("open");
     else d.setAttribute("open", "");
     watchQuote(d);
   }
@@ -351,9 +364,54 @@
      展开后它会把 Q4 标成 data-tall、吸附降级为 proximity，
      用户才能滚着把价目表看完（否则一次滑动就直接翻页，下半截永远看不到）。
      收起后重算会把状态还原。 */
+  /* ---------------------------------------------------------- 展开高度
+     谁知道"报价表展开后有多高"？只有 repair 自己。
+     它生成了这个 <details>、知道里面几行、也知道 Q4 的容器是谁。
+
+     为什么必须由 repair 出这个数、而不是让 density 去数 DOM 再乘常数：
+       · 数行 × 猜行高，是**估算**。估算必须在"偏大"和"偏小"之间精确落位：
+         偏大则大屏也判装不下（表再也展不开），偏小则矮屏保持展开（溢出 75px）。
+         实测两个方向都踩到了，调常数只是在两种错误之间来回。
+       · 这个高度可以**直接读**，只要在"展开状态"下读一次，然后记下来。
+
+     折叠时 .quote__body 是 display:none，量不到 —— 那就不要在折叠时量。
+     在展开时量一次、缓存住，之后折展都用缓存值。这是缓存，不是估算。 */
+  var openDeltaH = 0;      // 展开比折叠多出来的高度
+
+  /* 量一次并缓存。调用方负责确保此刻是展开态，或接受它自己临时展开。 */
+  function measureOpenDelta() {
+    var d = document.getElementById("quoteDetails");
+    if (!d) return openDeltaH;
+    var wasOpen = d.open;
+    if (!wasOpen) {
+      d.setAttribute("open", "");
+      void d.offsetHeight;                // 强制回流，确保展开态已渲染
+    }
+    var body = d.querySelector(".quote__body");
+    var h = body ? body.getBoundingClientRect().height : 0;
+    if (!wasOpen) {
+      d.removeAttribute("open");
+      void d.offsetHeight;
+    }
+    if (h > 0) openDeltaH = h;
+    return openDeltaH;
+  }
+
+  /* 供 density 问：现在的价格表展开会占多高（基准是当前折叠态的页高）。 */
+  function quoteDelta() {
+    /* 缓存为空（还没展开过一次）时，先量一次 */
+    if (!openDeltaH) measureOpenDelta();
+    return openDeltaH;
+  }
+
   function watchQuote(d) {
     if (d.dataset.bound === "1") return;
     d.dataset.bound = "1";
+    /* 每次展开都刷新缓存：档位/字号变了高度也会变，
+       而展开的那一刻正是量得最准的时刻。 */
+    d.addEventListener("toggle", function () {
+      if (d.open) measureOpenDelta();
+    });
     d.addEventListener("toggle", function () {
       if (!window.SITE_PAGED) return;
       /* 记下点击前的阅读位置。展开会让 Q4 突然高出 100~300px，
@@ -404,7 +462,10 @@
 
   window.SITE_REPAIR = {
     init: init, reset: reset, state: state, compute: compute,
-    foldQuote: foldQuote, go: go, step: function () { return cursor; }
+    foldQuote: foldQuote, go: go, step: function () { return cursor; },
+    /* density 用：报价表展开比折叠多占多少高度（缓存的真实值） */
+    quoteDelta: quoteDelta,
+    measureOpenDelta: measureOpenDelta
   };
 
   /* 竖屏 ↔ 横屏、或把浏览器窗口拉宽跨过 680px 时，跟着切换折叠状态。
