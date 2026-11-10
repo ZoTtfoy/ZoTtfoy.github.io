@@ -70,13 +70,13 @@ window.SITE_CONFIG = {
           {
               icon: "qq",
               label: "QQ",
-              value: "100000000",
+              value: "3605921064",
               hint: "点击复制"
             },
           {
               icon: "wechat",
               label: "微信",
-              value: "zotrod",
+              value: "Zotrod",
               hint: "点击复制"
             }
         ],
@@ -109,7 +109,7 @@ window.SITE_CONFIG = {
       eyebrow: "02 / LISTENING",
       title: "最近在听",
       lead: "网易云最近播放，由仓库的定时任务自动同步。",
-      neteaseUid: "000000000",
+      neteaseUid: "",
       dataFile: "data/netease.json",
       limit: 6,
       fallback: [
@@ -132,7 +132,7 @@ window.SITE_CONFIG = {
     },
   gaming: {
       eyebrow: "03 / GAMES",
-      title: "在游戏里",
+      title: "MY GAME‘S ",
       lead: "想一起玩的话，ID 都在这里，点一下就能复制。",
       items: [
           {
@@ -521,14 +521,15 @@ window.SITE_CONFIG = {
               icon: "mail",
               label: "邮箱",
               handle: "写信给我",
-              url: "mailto:hello@example.com"
+              url: "mailto:hello@example.com",
+              copy: "zotrod"
             }
         ]
     },
   contact: {
       eyebrow: "06 / MAIL",
       title: "写信给我",
-      lead: "邮件是我最稳定的联系方式，通常 1–2 天内回。",
+      lead: "邮件是我最稳定的联系方式。",
       hint: "有项目、有问题，或者只是想聊两句？"
     },
   backdrop: {
@@ -541,10 +542,10 @@ window.SITE_CONFIG = {
       gridSize: 64,
       starsOpacity: 0.5,
       image: "assets/backdrop/mesh.svg",
-      imageOpacity: 0.35,
-      imageBlur: 0,
-      scrim: 0.65,
-      kenBurns: false,
+      imageOpacity: 1,
+      imageBlur: 24,
+      scrim: 0.2,
+      kenBurns: true,
       parallax: true
     },
   live: {
@@ -573,7 +574,7 @@ window.SITE_CONFIG = {
       "细节自由，但边界要清楚。"
     ],
   music: {
-      enabled: false,
+      enabled: true,
       title: "我的歌单",
       artist: "网易云音乐",
       src: "",
