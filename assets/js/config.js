@@ -65,7 +65,7 @@ window.SITE_CONFIG = {
               id: "netease",
               icon: "netease",
               platform: "网易云音乐",
-              url: "https://music.163.com/#/user/home?id=000000000",
+              url: "https://music.163.com/#/user/home?id=1695307327",
               title: "我的音乐主页",
               meta: "歌单 · 红心 · 最近在听",
               cover: "",
@@ -89,7 +89,7 @@ window.SITE_CONFIG = {
       eyebrow: "02 / LISTENING",
       title: "最近在听",
       lead: "网易云最近播放，由仓库的定时任务自动同步。",
-      neteaseUid: "",
+      neteaseUid: "1695307327",
       dataFile: "data/netease.json",
       limit: 6,
       fallback: [
