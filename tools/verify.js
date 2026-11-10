@@ -415,6 +415,12 @@ for (const rel of ['assets/css/tokens.css','assets/css/layout.css','assets/css/c
 /* ---------- 头像 ---------- */
 const setAvatar = (v) => { ctx.SITE_CONFIG.site.avatar = v; };
 check(typeof H('brandMark') === 'string', '品牌标记已渲染');
+/* ⚠️ 不能假设"初始配置没有头像"。
+   线上配置是真实内容，用户随时可能在后台设了头像 —— 一旦设了，
+   这条断言就会失败，而代码其实完全正确（它正确渲染了图片）。
+   要测"没有头像时的降级"，就得先显式清空，再重渲染。 */
+setAvatar('');
+try { ctx.SITE_RENDER.init(); } catch (e) { failures.push('清空头像后重渲染失败: ' + e.message); }
 const letterHtml = H('brandMark');
 check(letterHtml.includes('brand__mark') && !letterHtml.includes('<img'), '未设头像时用字母方块');
 setAvatar('https://example.com/a.png');

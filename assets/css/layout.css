@@ -24,12 +24,30 @@
 /* 滚动期间临时关掉毛玻璃。
    原因：sticky + backdrop-filter 会让浏览器每帧重新模糊顶栏覆盖的那块区域，
    实测占滚动耗时的 5.5ms（23.5ms → 18.0ms）。
-   滚动时人的注意力在内容上，换成实色背景几乎看不出差别；
-   停手 160ms 后自动恢复模糊（由 motion.js 加/去 .is-scrolling）。 */
+   停手 160ms 后自动恢复模糊（由 motion.js 加/去 .is-scrolling）。
+
+   ⚠️ 这里原来写的是 background: var(--bg-elev) —— 那是**错的**，会让顶栏
+   在滚动时"闪一下变亮"：
+     · 深色主题：--bg-elev(#171a1c) 比页面底色 --bg(#0e1011) 更亮，
+       顶栏一换就直接亮一个档；
+     · 浅色主题：--bg-elev 是纯白 #fff，而静止态的半透明 header-bg
+       叠在页面底上只有 #fbfbf9 —— 也是变亮。
+   实测像素亮度：浅色顶栏 242.5 → 249.6（+7.1），深色 27.1 → 30.9（+3.9）。
+   用户看到的就是"滚动时屏幕临时提高亮度"。
+
+   正确做法：保持与静止态**同一个色源**，只把透明度提到接近不透明
+   （关掉模糊后必须够实，否则内容会从顶栏透出来）。
+   --header-bg 本身就是"页面底色 + 72% 不透明度"，所以它在视觉上
+   天然等于页面底色 —— 提到 96% 只是让它变实，不变色。 */
 .site-header.is-scrolling {
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
-  background: var(--bg-elev);
+  background: color-mix(in srgb, var(--header-bg) 96%, transparent);
+}
+/* 不支持 color-mix 的浏览器：退回半透明 header-bg。
+   它比实色 --bg-elev 更接近原色，仍不会出现亮度跳变。 */
+@supports not (background: color-mix(in srgb, red 50%, transparent)) {
+  .site-header.is-scrolling { background: var(--header-bg); }
 }
 
 .header__inner {

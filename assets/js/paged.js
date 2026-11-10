@@ -859,12 +859,38 @@ window.SITE_PAGED = (function () {
     collect();
     if (!pages.length) return;
 
+    /* ------------------------------------------- 进入时回到第一页
+       ⚠️ 浏览器的 history.scrollRestoration 默认是 "auto"：
+       刷新时它会自动把 scrollY 恢复到上次的位置 —— 而这一站是「一屏一页」，
+       于是刷新后会直接落在第 4 屏，看起来像"记住了上次在哪一页"。
+       主页不需要这种记忆：每次进来都该从名片开始。
+       把它设成 manual，并主动滚到顶部；只在首帧做，不影响之后的翻页。 */
+    try { history.scrollRestoration = "manual"; } catch (e) {}
+    if ((window.scrollY || 0) > 1) window.scrollTo(0, 0);
+
     markTall();
     buildPager();
 
     // 首帧先确定当前页，但不触发光扫
     activeIndex = -1;
     updateActive();
+
+    /* URL 带 hash 时尊重它（从别处点 #repair 进来就该落到维修页）。
+       这里的语义是"显式指定"，与上面的"不记忆上次"不冲突：
+       没 hash 才回第一页。 */
+    /* ⚠️ 不能直接写 location.hash：自检跑在极简 DOM 桩里，
+       那里没有 location 这个全局对象，一访问就 ReferenceError，
+       整个 init 被打断 —— 表现是"降级环境下内容仍然可见"等一连串失败。
+       用 typeof 守卫，桩环境里安静跳过即可。 */
+    var hash = (typeof location !== "undefined" && location.hash) ? location.hash : "";
+    if (hash.length > 1) {
+      var t = null;
+      try { t = document.querySelector(hash); } catch (e) {}
+      if (t) {
+        var idx = pages.indexOf(t);
+        if (idx > 0) goTo(idx);
+      }
+    }
     // 首帧就把「已播放入场的页」对齐当前页，避免一进页面就动一次
     lastAnimated = activeIndex;
 
