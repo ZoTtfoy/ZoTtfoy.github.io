@@ -100,11 +100,21 @@
 
 .hero__actions { margin-top: clamp(16px, 2.2vh, 24px); }
 
-/* ---------------------------------------------- 第一行：微信 | QQ */
+/* ---------------------------------------------- 第一行：微信 | QQ
+   ⚠️ 2026-11-10 主次重排：这一屏真正的主角是「怎么联系我」——
+   微信号和 QQ 号是要给对方看、让对方抄的，网易云/小黑盒只是"顺路看看"。
+   原先四张卡尺寸几乎一样，而外链卡多了「平台名」一行反而更显眼，
+   于是出现「主次不分明」：扫一眼先看到的是网易云，不是微信。
+
+   现在的层级靠四件事同时表达，而不是只靠字号：
+     · 尺寸：联系卡 88px 高、图标 40px；外链卡 64px 高、图标 20px
+     · 质感：联系卡是实心白卡 + 微投影（浮起来）；外链卡透明底、只有细线
+     · 字重：账号 600 字重、1rem；外链标题 500 字重、.84rem
+     · 位置：联系卡在上，外链卡在下，中间多一道 12px 间隙 */
 .contact-pair {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
+  gap: 12px;
   width: 100%;
   margin-top: clamp(20px, 2.8vh, 28px);
 }
@@ -114,25 +124,37 @@
 .ccard {
   display: flex;
   align-items: center;
-  gap: 11px;
-  padding: 11px 13px;
+  gap: 13px;
+  min-height: 92px;
+  padding: 15px 17px;
   border: 1px solid var(--line);
   border-radius: var(--r-md);
   background: var(--bg-elev);
+  box-shadow: var(--shadow-sm);
   text-align: left;
-  transition: border-color var(--t-fast) var(--ease), background-color var(--t-fast) var(--ease);
+  transition: border-color var(--t-fast) var(--ease), transform var(--t-fast) var(--ease),
+              box-shadow var(--t-fast) var(--ease);
 }
-.ccard:hover { border-color: var(--line-strong); }
+.ccard:hover {
+  border-color: var(--line-strong);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
 
+/* 图标放进一块浅色底：比裸图标更像"按钮"，也让卡片的视觉重量集中在左侧 */
 .ccard__icon {
   display: grid;
   place-items: center;
-  width: 32px;
-  height: 32px;
+  width: 40px;
+  height: 40px;
   flex: none;
+  border-radius: var(--r-sm);
+  background: var(--bg-soft);
+  /* 一道内描边：浅灰底在浅色主题里几乎和白卡同色，没有它图标像是"浮"着的 */
+  box-shadow: inset 0 0 0 1px var(--line);
   color: var(--text);
 }
-.ccard__icon .icon { width: 21px; height: 21px; }
+.ccard__icon .icon { width: 22px; height: 22px; }
 
 .ccard__body {
   display: flex;
@@ -141,12 +163,17 @@
   flex: 1;
   line-height: 1.3;
 }
-.ccard__label { font-size: .68rem; color: var(--text-3); }
+.ccard__label {
+  font-size: .7rem;
+  letter-spacing: .06em;
+  color: var(--text-3);
+}
 .ccard__value {
   overflow: hidden;
+  margin-top: 1px;
   font-family: var(--font-mono);
-  font-size: .85rem;
-  font-weight: 500;
+  font-size: 1.05rem;
+  font-weight: 600;
   color: var(--text);
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -165,23 +192,61 @@
 .ccard:hover .ccard__act { color: var(--text); }
 
 /* -------------------------------------- 第二行：网易云 | 小黑盒 */
+/* 第二行：网易云 | 小黑盒 —— 次要信息，做成"链接"而不是"卡片"。
+   去掉了实心底与投影，只留一道细线：视觉上退到背景里，
+   读者扫过时先看到上面两张联系卡，需要时才注意到这两个入口。 */
 .preview-pair {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
+  gap: 12px;
   width: 100%;
-  margin-top: 10px;
+  margin-top: 12px;
 }
 
-/* 两列里的摘要卡要更紧凑：去掉 min-height，内边距收一档 */
 .preview-pair .preview {
   min-height: 0;
-  padding: 11px 13px;
+  padding: 10px 12px;
+  border-color: var(--line);
+  /* 浅灰底而不是透明：完全透明时两块会糊进页面底色，看起来像"没加载出来"；
+     浅灰底既比白卡退一档，又能看出一块可点的区域。 */
+  background: var(--bg-soft);
+  box-shadow: none;
   text-align: left;
 }
-.preview-pair .preview__top { margin-bottom: 7px; }
-.preview-pair .preview__title { font-size: .88rem; }
-.preview-pair .preview__meta { font-size: .72rem; -webkit-line-clamp: 1; }
+.preview-pair .preview:hover {
+  background: var(--bg-elev);
+  border-color: var(--line-strong);
+}
+/* 深色下 --bg-soft 比 --bg-elev 更亮（深色主题的"抬升"是变亮），
+   照搬会让次要卡看起来比主卡更高一档，主次正好颠倒。
+   深色改用页面底色 —— 贴着背景才是"下沉"，两套明暗下语义一致。 */
+[data-theme="dark"] .preview-pair .preview { background: var(--bg); }
+[data-theme="dark"] .preview-pair .preview:hover { background: var(--bg-elev); }
+/* 单行即可：图标 + 平台名 + 外链箭头。
+   原先还有一行「我的音乐主页」，但这一行和平台名说的是同一件事
+   （「网易云音乐」已经说明这是音乐主页），留着只是把次要卡撑成一张"卡"。
+   收成单行后它与上面的联系卡形成 2:1 的高度差，主次不再靠猜。 */
+.preview-pair .preview__top { margin-bottom: 0; gap: 8px; }
+.preview-pair .preview__icon { width: 20px; height: 20px; }
+.preview-pair .preview__icon .icon { width: 16px; height: 16px; }
+.preview-pair .preview__platform { flex: 1; font-size: .8rem; color: var(--text-2); }
+.preview-pair .preview__title { display: none; }
+.preview-pair .preview__meta { display: none; }
+.preview-pair .preview__go { display: block; width: 13px; height: 13px; }
+
+/* 例外：如果某张卡在后台配了封面（cover 非空），它本身就是一张缩略图，
+   压成 40px 细条会把图裁掉大半。这时改走「左边 40px 方图 + 右边单行」，
+   高度不变，主次关系也不会被一张图重新拉回来。 */
+.preview-pair .preview--cover { flex-direction: row; align-items: center; gap: 10px; }
+.preview-pair .preview--cover .preview__cover {
+  width: 40px;
+  height: 40px;
+  margin: 0;
+  flex: none;
+  aspect-ratio: auto;
+  border-radius: var(--r-sm);
+}
+.preview-pair .preview--cover .preview__body { flex: 1; min-width: 0; }
 
 /* 封面在 Q1 用扁比例（21:9）。
    两列时每张卡只有约 300px 宽，16:9 会占 169px 高，直接把一屏顶破；
@@ -878,7 +943,7 @@ html[data-scrolling="on"] .vinyl::before { animation-play-state: paused; }
 
   .contact-pair,
   .preview-pair { gap: 10px; }
-  .contact-pair { margin-top: clamp(20px, 3.2vh, 32px); }
+  .contact-pair { margin-top: clamp(18px, 2.8vh, 28px); }
   .preview-pair { margin-top: 10px; }
 
   /* 联系卡：第一行「图标 + 平台名」，第二行账号独占整行。
@@ -893,33 +958,28 @@ html[data-scrolling="on"] .vinyl::before { animation-play-state: paused; }
     grid-template-columns: auto minmax(0, 1fr);
     align-items: center;
     gap: 0 8px;
-    padding: 12px 13px 13px;
+    padding: 13px 14px 14px;
     border-radius: var(--r-md);
   }
-  .ccard__icon { grid-area: 1 / 1 / 2 / 2; width: 22px; height: 22px; }
-  .ccard__icon .icon { width: 17px; height: 17px; }
+  .ccard__icon { grid-area: 1 / 1 / 2 / 2; width: 26px; height: 26px; }
+  .ccard__icon .icon { width: 18px; height: 18px; }
   .ccard__body { display: contents; }
   .ccard__label { grid-area: 1 / 2 / 2 / 3; font-size: .72rem; }
-  .ccard__value { grid-area: 2 / 1 / 3 / 3; margin-top: 5px; font-size: .86rem; }
+  /* 账号是这张卡的全部意义 —— 16px 等宽字，加到最大可读尺寸 */
+  .ccard__value { grid-area: 2 / 1 / 3 / 3; margin-top: 5px; font-size: 1rem; }
   .ccard__act { display: none; }        /* 整块可点，不需要再放一个复制小图标 */
 
   /* 两列摘要卡（网易云 / 小黑盒）。
-     副标题「歌单 · 红心 · 最近在听」是区分两张卡的识别信息，必须留着。 */
-  .preview-pair .preview { padding: 12px 13px 13px; gap: 8px; border-radius: var(--r-md); }
-  .preview-pair .preview__top { margin-bottom: 4px; gap: 6px; }
-  .preview-pair .preview__icon { width: 20px; height: 20px; }
-  .preview-pair .preview__icon .icon { width: 16px; height: 16px; }
-  .preview-pair .preview__platform { font-size: .7rem; }
-  .preview-pair .preview__title { font-size: .88rem; }
-  .preview-pair .preview__meta {
-    display: -webkit-box;
-    margin-top: 3px;
-    font-size: .72rem;
-    -webkit-line-clamp: 1;
-  }
-  .preview-pair .preview__cover,
-  .preview-pair .preview__stats,
-  .preview-pair .preview__go { display: none; }
+     现在只剩单行「图标 + 平台名 + 箭头」，副标题与标题都已由桌面规则藏掉。 */
+  .preview-pair .preview { padding: 10px 11px; gap: 7px; border-radius: var(--r-md); }
+  .preview-pair .preview__top { margin-bottom: 0; gap: 7px; }
+  .preview-pair .preview__icon { width: 18px; height: 18px; }
+  .preview-pair .preview__icon .icon { width: 15px; height: 15px; }
+  .preview-pair .preview__platform { font-size: .8rem; }
+  .preview-pair .preview__go { display: block; width: 12px; height: 12px; }
+  /* 配了封面的那张（当前没配，留着兜底）在手机上缩到 32px，仍是一行高 */
+  .preview-pair .preview--cover .preview__cover { width: 32px; height: 32px; }
+  .preview-pair .preview__stats { display: none; }
 
   /* ---------------------------------------------------------- Q4 维修 */
   /* 这一屏是六屏里内容最多的：摘要卡 + 计算器 4 步 + 报价表。
@@ -1021,9 +1081,10 @@ html[data-scrolling="on"] .vinyl::before { animation-play-state: paused; }
   .contact-pair,
   .preview-pair { gap: 8px; }
   .ccard { padding: 11px 11px 12px; gap: 0 7px; }
-  .ccard__icon { width: 20px; height: 20px; }
+  .ccard__icon { width: 22px; height: 22px; }
   .ccard__icon .icon { width: 16px; height: 16px; }
-  .preview-pair .preview { padding: 11px 11px 12px; }
+  /* 次要行已经是单行了，纵向内边距跟着收 —— 11px 是旧的「多行卡」留下的 */
+  .preview-pair .preview { padding: 9px 10px; }
   .preview-pair .preview__icon { width: 18px; height: 18px; }
   .preview-pair .preview__icon .icon { width: 15px; height: 15px; }
   .calc { padding: 14px 14px 15px; }
