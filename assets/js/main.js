@@ -45,6 +45,9 @@
          它挂了也不影响任何功能。 */
       if (window.SITE_STEAMWALL) window.SITE_STEAMWALL.init();
       if (window.SITE_EFFECTS) window.SITE_EFFECTS.init();
+      /* 站内播放器：只挂事件委托，不改布局，所以放最后。
+         它必须在 render 之后 —— 委托节点 #trackList 那时才存在。 */
+      if (window.SITE_PLAYER) window.SITE_PLAYER.init();
     } catch (err) {
       // 出错时至少保证内容可见，不要留一个空白页面
       console.error("[Zotrod] 初始化失败：", err);

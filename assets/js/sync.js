@@ -87,7 +87,13 @@
         album: t.album || "",
         playCount: Number(t.playCount) || 0,
         score: Number(t.score) || 0,
-        url: typeof t.url === "string" && /^https?:\/\//.test(t.url) ? t.url : ""
+        url: typeof t.url === "string" && /^https?:\/\//.test(t.url) ? t.url : "",
+        /* 封面与可播性也必须在白名单里。
+           ⚠️ 这里是个"字段白名单"过滤 —— 少写一个字段，数据文件里明明有、
+           页面上却永远不出现，而且不报错。加封面第一版就踩了这个坑：
+           netease.json 里 100 首全有 cover，页面上却一张图都没有。 */
+        cover: typeof t.cover === "string" && /^https?:\/\//.test(t.cover) ? t.cover : "",
+        playable: typeof t.playable === "boolean" ? t.playable : undefined
       };
     });
 

@@ -231,7 +231,18 @@ window.SITE_LIVE = (function () {
     var bar = document.createElement("div");
     bar.className = "music-dock";
 
-    var hasSrc = typeof M.src === "string" && M.src.trim().length > 0;
+    /* 只有"真的是音频文件"的地址才做成播放按钮。
+       ⚠️ config.music.src 里最常见填的是**网页地址**
+       （ https://music.163.com/#/song?id=733149 这种），
+       把它塞进 <audio> 必然报错，点一下的后果是 play() 被拒 →
+       掉进 catch → window.open 弹一个新标签页。用户看到的是
+       "我点播放，结果跳走了"，很像播放器坏了。
+       所以先认扩展名（或网易云的外链地址），认不出就当纯链接 ——
+       跳转至少是诚实的。 */
+    var rawSrc = typeof M.src === "string" ? M.src.trim() : "";
+    var isAudioFile = /\.(mp3|m4a|aac|ogg|oga|opus|wav|flac|webm)(\?|#|$)/i.test(rawSrc) ||
+      /\/media\/outer\//.test(rawSrc);
+    var hasSrc = rawSrc.length > 0 && isAudioFile;
     var title = M.title || "我的歌单";
     var artist = M.artist || "";
 

@@ -407,21 +407,29 @@
   border: 1px solid var(--line);
   border-radius: var(--r-lg);
   background: var(--bg-elev);
-  /* 网易云那一点红：只用在唱片中心标签上，量很小，不会和各主题打架 */
-  --vinyl-label: var(--accent);
 }
 
 .listen-card__body { position: relative; z-index: 1; }
 
 /* ------------------------------------------------------------- 黑胶唱片 */
-/* 纯 CSS 画，不用图片（一张 340px 的黑胶 PNG 要 60~120KB，而且不能跟随主题）。
-   三层叠加：音轨纹路（repeating-radial）+ 盘体（radial 打光）+ 中心标签。
-   纹路间隔 3px 是实测的平衡点：1px 在 1x 屏上会摩尔纹，5px 又看不出是唱片。 */
-/* 定位层：只负责摆位置，不参与动画。
-   盘面交给 ::before 单独旋转 —— 这样 keyframes 里只有纯 rotate，
-   手机上改布局时不需要再重新定义一遍关键帧
-   （如果动画和定位写在同一个元素上，keyframes 必须带上 translateY(-50%)，
-   而手机端不需要那个位移，就得在媒体查询里重写整段 keyframes）。 */
+/* 2026-11-11 重做：从「纯 CSS 同心圆」换成内联 SVG。
+ *
+ * 为什么换 —— 原来那版确实假，原因很具体：
+ *   1. `repeating-radial-gradient` 3px 间隔画音槽。但真实唱片的槽距在
+ *      一张 380px 的图上是**亚像素级**的，人眼根本分不出圈，只会读成
+ *      "一片均匀的深灰"。画出看得见的圈 = 立刻露出"这是代码画的"。
+ *   2. 没有高光。黑胶之所以像黑胶，靠的是盘面上那两道对角反光扇区 ——
+ *      光滑表面反射环境光的结果。没有它，再密的纹路也只是一个灰色圆盘。
+ *   3. 没有厚度。少了外缘的倒角亮边与内侧暗边，看着像贴纸不像实体。
+ *
+ * 现在 SVG 里做的三件事：音槽只给极细的环状明暗（不勾线）、
+ * 两道对角高光、外缘倒角 + 中心纸标 + 轴孔。
+ *
+ * ⚠️ 转动分两层，这是"像不像在转"的关键：
+ *      音槽与分隔纹在转（刻在盘面上，跟着盘走）
+ *      高光**不转**（光源在环境里固定，盘转时反光位置基本不动）
+ *    整张一起转的话，高光会跟着甩 —— 一眼假，像贴了张图在转圈。
+ */
 .vinyl {
   position: absolute;
   top: 50%;
@@ -430,36 +438,16 @@
   aspect-ratio: 1;
   transform: translateY(-50%);
   pointer-events: none;
-  opacity: .1;
-  color: var(--text);
+  opacity: .3;
 }
 
-.vinyl::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  background:
-    radial-gradient(circle at center,
-      var(--vinyl-label) 0 9%,
-      transparent 9.4%),
-    repeating-radial-gradient(circle at center,
-      currentColor 0 1.2px,
-      transparent 1.2px 3px);
+.vinyl__art { width: 100%; height: 100%; display: block; }
+
+/* 转动层：只转纹路。transform-origin 用 viewBox 的中心（120 120，
+   viewBox 是 240×240，所以是 50% 50%）。 */
+.vinyl__spin {
+  transform-origin: 50% 50%;
   animation: vinyl-spin 26s linear infinite;
-}
-
-/* 中心标签单独一层，给一点更实的内圈 */
-.vinyl__label {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 18%;
-  aspect-ratio: 1;
-  transform: translate(-50%, -50%);
-  border-radius: 50%;
-  background: var(--vinyl-label);
-  opacity: .55;
 }
 
 /* 纯 rotate：没有任何位移，换布局时不用改它 */
@@ -471,10 +459,11 @@
 /* 滚动时停转 —— 和背景光球同一条经验：
    任何"在变"的整屏级图层都会让合成器在滚动时额外忙一遍。
    唱片面积约 380×380，滚动时旋转会明显抢帧。 */
-html[data-scrolling="on"] .vinyl::before { animation-play-state: paused; }
+html[data-scrolling="on"] .vinyl__spin { animation-play-state: paused; }
 
-/* 深色主题下唱片要更亮一点才看得见（0.1 的黑在深底上等于没有） */
-[data-theme="dark"] .vinyl { opacity: .16; }
+/* 浅色主题下唱片要更沉（0.3 的白高光在浅底上几乎看不见，需要提高不透明度） */
+[data-theme="light"] .vinyl { opacity: .34; }
+[data-theme="dark"] .vinyl { opacity: .5; }
 
 /* --------------------------------------------------------------- 磁贴 */
 /* 桌面 3 列：limit 默认 6 首，正好 2×3 铺满。
@@ -520,7 +509,10 @@ html[data-scrolling="on"] .vinyl::before { animation-play-state: paused; }
    .track__main 用 display:contents 把曲名和副标提升成网格项。 */
 .track {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  /* 序号 | 封面 | 主内容 | 按钮
+     加封面只多占了原来序号那一列的右侧一点 —— 序号本来就只有 2 个字符宽，
+     封面紧挨着它，曲名那列仍然拿到绝大部分宽度。 */
+  grid-template-columns: auto auto minmax(0, 1fr) auto;
   align-items: center;
   column-gap: 10px;
   row-gap: 1px;
@@ -553,8 +545,27 @@ html[data-scrolling="on"] .vinyl::before { animation-play-state: paused; }
 }
 
 .track__main { display: contents; }
+.track__pic {
+  grid-area: 1 / 2 / 3 / 3;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--r-xs);
+  object-fit: cover;
+  /* 封面是深色还是浅色不由我们决定，给一条极淡的描边把它和卡片分开 */
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / .08);
+  background: var(--bg-soft);
+  flex: none;
+}
+/* 没有封面时画一个音符占位块：比留空白格好看，也不用发一次注定 404 的请求 */
+.track__pic--none {
+  display: grid;
+  place-items: center;
+  color: var(--text-3);
+}
+.track__pic--none .icon { width: 15px; height: 15px; }
+
 .track__title {
-  grid-area: 1 / 2 / 2 / 3;
+  grid-area: 1 / 3 / 2 / 4;
   font-size: .92rem;
   font-weight: 500;
   letter-spacing: -.005em;
@@ -563,7 +574,7 @@ html[data-scrolling="on"] .vinyl::before { animation-play-state: paused; }
   white-space: nowrap;
 }
 .track__meta {
-  grid-area: 2 / 2 / 3 / 3;
+  grid-area: 2 / 3 / 3 / 4;
   font-size: .72rem;
   color: var(--text-3);
   overflow: hidden;
@@ -576,7 +587,7 @@ html[data-scrolling="on"] .vinyl::before { animation-play-state: paused; }
    「次」压到更小更淡，让数字自己站出来。
    落在第二行右端，不占曲名的宽度（见上面 .track 的注释）。 */
 .track__plays {
-  grid-area: 2 / 3 / 3 / 4;
+  grid-area: 2 / 4 / 3 / 5;
   justify-self: end;
   display: inline-flex;
   align-items: baseline;
@@ -601,7 +612,7 @@ html[data-scrolling="on"] .vinyl::before { animation-play-state: paused; }
 .track__idx.is-top { color: var(--accent); font-weight: 600; }
 
 .track__go {
-  grid-area: 1 / 3 / 2 / 4;
+  grid-area: 1 / 4 / 2 / 5;
   justify-self: end;
   display: grid;
   place-items: center;
@@ -613,6 +624,66 @@ html[data-scrolling="on"] .vinyl::before { animation-play-state: paused; }
 }
 .track__go .icon { width: 12px; height: 12px; }
 .track__go:hover { color: var(--text); background: var(--bg-soft); }
+
+/* ------------------------------------------------------- 播放按钮与播放态
+   只有"数据里确认可播"的曲目才会渲染成 <button>。其余是外链，
+   看起来一样但右下角的语义不同（一个播，一个跳网易云）——
+   所以可播的那个平时就带一点强调色，让人一眼知道"这个能点出声音"。 */
+.track__play {
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+.track__play .icon { width: 12px; height: 12px; margin-left: 1px; }
+.track__play:hover { color: var(--accent-fg); background: var(--accent); }
+
+/* 播放中：整块磁贴亮起来 + 左侧一条强调色竖线。
+   不做"跳动的均衡器条"——那需要 3~5 个动画元素 × 6 首常驻，
+   而这一屏本来就紧张。一条静态竖线加变色足够了。 */
+.track.is-playing {
+  border-color: var(--accent);
+  background: var(--bg-elev);
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+.track.is-playing .track__title { color: var(--text); font-weight: 600; }
+.track.is-playing .track__pic {
+  box-shadow: 0 0 0 2px var(--accent), inset 0 0 0 1px rgb(0 0 0 / .08);
+}
+.track.is-playing .track__play { color: var(--accent-fg); background: var(--accent); }
+
+/* 行内进度条：绝对定位在底边，高 2px。
+   不占布局高度 —— 一屏装 6 首的预算里没有多余的 8px 给它。
+   进度由 player.js 写成 --p（0~1），这里只负责画。 */
+.track { position: relative; }
+.track.is-playing::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 2px;
+  width: calc(100% * var(--p, 0));
+  background: var(--accent);
+  border-radius: 0 2px 2px 0;
+  transition: width .25s linear;
+}
+/* 播完或被拦下时把进度条收掉，不要留一条半截的线 */
+.track.is-blocked::after { display: none; }
+.track.is-blocked .track__go { opacity: .5; }
+
+/* 触屏上按钮要够大 —— 但**不能改布局尺寸**。
+   ⚠️ 最早写的是 `.track__go { width: 32px; height: 32px }`，
+   它把磁贴第一行从 25px 撑到 32px，六行就是 +42px，
+   393×852 上 Q2 直接从 roomy 掉到 tight（整屏留白被压）。
+   改用伪元素向外扩 4px 的热区：视觉 24px 不变，可点区变成 32px，
+   布局完全不受影响 —— 这也是 WCAG 2.5.8「目标尺寸」推荐的做法。 */
+@media (pointer: coarse) {
+  .track__go { position: relative; }
+  .track__go::after {
+    content: "";
+    position: absolute;
+    inset: -4px;
+    border-radius: var(--r-sm);
+  }
+}
 
 .listen__foot {
   position: relative;
@@ -664,6 +735,17 @@ html[data-scrolling="on"] .vinyl::before { animation-play-state: paused; }
   letter-spacing: -.01em;
   color: var(--text);
 }
+/* 试听比例。它是"解释"不是"数据"，所以比累计听歌更淡更小，
+   并且不换行 —— 一换行页脚就多 20px，320px 上会把这一屏顶出屏幕。 */
+.listen__note {
+  padding-left: 10px;
+  border-left: 1px solid var(--line);
+  font-size: .7rem;
+  color: var(--text-3);
+  white-space: nowrap;
+  /* title 里的完整说明鼠标能看到；触屏没有 hover，所以文案本身必须自解释 */
+  cursor: help;
+}
 .listen__more {
   display: inline-flex;
   align-items: center;
@@ -697,7 +779,7 @@ html[data-scrolling="on"] .vinyl::before { animation-play-state: paused; }
 /* 减少动态效果：唱片停转（CSS 动画本身也会被 motion.css 的全局规则压掉，
    这里显式写一遍是为了不依赖那层兜底） */
 @media (prefers-reduced-motion: reduce) {
-  .vinyl::before { animation: none; }
+  .vinyl__spin { animation: none; }
 }
 
 /* 手机：磁贴单列还是双列？
@@ -720,14 +802,14 @@ html[data-scrolling="on"] .vinyl::before { animation-play-state: paused; }
   .track__meta { font-size: .76rem; }
   .listen__foot { margin-top: 13px; font-size: .74rem; }
   /* 唱片缩小并挪到右下角，避免盖住磁贴文字。
-     keyframes 不需要重写 —— 旋转在 ::before 上，只有纯 rotate。 */
+     keyframes 不需要重写 —— 旋转在 .vinyl__spin 上，只有纯 rotate。 */
   .vinyl {
     top: auto;
     bottom: -30%;
     right: -26%;
     width: 240px;
     transform: none;
-    opacity: .09;
+    opacity: .22;
   }
 }
 

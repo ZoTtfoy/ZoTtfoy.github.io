@@ -49,7 +49,14 @@ ok(/quotes:\s*\[/.test(cfgSrc), 'config 含 quotes 本地列表');
 ['enabled', 'title', 'artist', 'src', 'link', 'loop', 'volume'].forEach(k => {
   ok(new RegExp(k + ':').test(cfgSrc), 'config 含 music.' + k);
 });
-ok(/music:\s*\{[\s\S]*?enabled:\s*false/.test(cfgSrc), '音乐浮窗默认关闭（避免正式场合意外出声）');
+/* ⚠️ 这一条原来断言的是「出厂默认 enabled: false」。
+   music.enabled 是编辑器里随时能改的开关 —— 用户一打开，断言就永久变红，
+   而且红了之后也指不出任何代码问题。它真正想守的约束是**不要自动出声**，
+   所以改成验那条：live.js 不设 autoplay、不预载。
+   （浏览器里另有一条 [音乐] 绝不自动播放，从行为侧再验一遍。） */
+ok(!/audio\.autoplay\s*=\s*true/.test(liveSrc) && !/\bautoplay\b/.test(liveSrc),
+  '音乐浮窗不会自动播放（代码里没有 autoplay）');
+ok(/audio\.preload\s*=\s*"none"/.test(liveSrc), '音源不预载（preload=none，不抢带宽）');
 
 /* ------------------------------------------- 3. 假 DOM 跑 live.js */
 function makeCtx(configSource, opts = {}) {
@@ -122,10 +129,20 @@ function makeCtx(configSource, opts = {}) {
    （Q1 要塞 QQ/微信 + 两张摘要卡，没有空间放这些装饰）。
    所以这里不直接跑默认配置，而是先打开它们再验功能 ——
    验的是「打开后能正常工作」，而不是「默认就是开的」。 */
+/* ⚠️ quote 的替换必须带上后文 quoteRemote 做锚点。
+   config 里 `quote: true` 出现**两次**：一次是 live 的一言开关，
+   另一次是 repair.calculator.services 里「复杂问题」的报价标记
+   （那个 true 表示"这项要单独聊，不自动报价"）。
+   不带锚点的 replace(/quote: true/, 'quote: false') 只换第一个 ——
+   也就是**把维修的业务数据改坏了**，而一言开关根本没动，断言于是失败。
+   顺带说明：这类"用字符串替换去改配置"的测试很脆，能不这么做就别这么做。 */
+const LIVE_QUOTE_ON = /quote: true,(\s*\n\s*quoteRemote)/;
+const LIVE_QUOTE_OFF = /quote: false,(\s*\n\s*quoteRemote)/;
+
 const onCfg = cfgSrc
   .replace(/clock: false/, 'clock: true')
   .replace(/progress: false/, 'progress: true')
-  .replace(/quote: false/, 'quote: true');
+  .replace(LIVE_QUOTE_OFF, 'quote: true,$1');
 const a = makeCtx(onCfg);
 vm.runInContext(onCfg, a.ctx);
 vm.runInContext(liveSrc, a.ctx, { filename: 'live.js' });
@@ -160,7 +177,7 @@ const offCfg = onCfg
   .replace(/loading: true/, 'loading: false')
   .replace(/clock: true/, 'clock: false')
   .replace(/progress: true/, 'progress: false')
-  .replace(/quote: true/, 'quote: false');
+  .replace(LIVE_QUOTE_ON, 'quote: false,$1');
 const b2 = makeCtx(offCfg, { loading: '0' });
 vm.runInContext(offCfg, b2.ctx);
 vm.runInContext(liveSrc, b2.ctx, { filename: 'live-off.js' });
@@ -177,9 +194,15 @@ rc.ctx.SITE_LIVE.init();
 ok(rc.nodes.liveQuote.hidden === false, '减少动效下仍然显示一言（只是不可点击换句）');
 ok(rc.nodes.liveQuote.getAttribute('role') === null, '减少动效下不挂 button 语义');
 
-/* --- 一言：本地列表随机且会换 --- */
-const qc = makeCtx(onCfg);
-vm.runInContext(onCfg, qc.ctx);
+/* --- 一言：本地列表随机且会换 ---
+   ⚠️ 必须先把 quoteRemote 关掉。
+   live.js 里只有「本地模式」才挂 role=button / tabindex（可点换句）；
+   远程模式（hitokoto）是被动的，点它不会换。
+   config 里 quoteRemote 默认是 true —— 不关它，这段测的就是远程分支，
+   role 当然不是 button。 */
+const noRemote = onCfg.replace(/quoteRemote:\s*true/, 'quoteRemote: false');
+const qc = makeCtx(noRemote);
+vm.runInContext(noRemote, qc.ctx);
 vm.runInContext(liveSrc, qc.ctx, { filename: 'live-q.js' });
 qc.ctx.SITE_LIVE.init();
 ok(qc.nodes.liveQuote.getAttribute('role') === 'button', '本地一言模式可点击换句');
@@ -235,15 +258,19 @@ async function browserChecks() {
     }));
     ok(second.attr === '0' && second.gone, '[浏览器] 同一会话再次访问不再出现');
 
-    /* 一言：6 屏重构后默认是关闭的（live.quote = false）——
-       Q1 要塞 QQ/微信和两张摘要卡，再加一句话就装不下了。
-       所以这里先验「关掉时确实不出现」，再临时打开验交互，两条都测。 */
+    /* 一言：默认关不关由 config 决定（Q1 要塞 QQ/微信和两张摘要卡，
+       再加一句话就可能装不下）。所以这里不写死"默认不显示"，
+       而是断言「页面状态 == 配置声明」—— 配了关就得关，配了开就得开。
+       之前写死成"默认不显示"，用户在编辑器里打开一言之后这条就永远红。 */
     await page.waitForTimeout(600);
+    const quoteCfg = await page.evaluate(() =>
+      !!((window.SITE_CONFIG || {}).live || {}).quote);
     const quoteOff = await page.evaluate(() => {
       const el = document.getElementById('liveQuote');
       return { hidden: el.hidden, visible: el.getClientRects().length > 0 };
     });
-    ok(quoteOff.hidden && !quoteOff.visible, '[浏览器] 默认配置下一言不显示（Q1 空间优先）');
+    ok(quoteCfg ? (!quoteOff.hidden && quoteOff.visible) : (quoteOff.hidden && !quoteOff.visible),
+      '[浏览器] 一言显隐与配置一致（配置 ' + (quoteCfg ? '开' : '关') + '）');
 
     const q1 = await page.evaluate(() => {
       // 临时打开，再 init 一次即可生效（live.js 的 init 是幂等的）
@@ -376,12 +403,20 @@ async function browserChecks() {
     const original = fs.readFileSync(cfgPath, 'utf8');
 
     // 形态一：有音源 → 播放按钮（用正则替换，避免换行符差异）
+    /* ⚠️ 这段原来假设 config 里是 `enabled: false` + `src: ""`（出厂默认）。
+       用户在编辑器里打开浮窗、填上地址之后，两条 replace 全部落空，
+       写进文件的还是原配置 —— 于是"有播放按钮 / 创建了 audio"必然失败。
+       改成**直接改这两个值本身**，不管原来是什么：
+         · enabled  → 一律改成 true
+         · src      → 一律换成一个真实存在的音频文件名
+       换进来的是 .mp3 扩展名，正好也验证了 live.js「按扩展名判断是不是音频」那一段。 */
     const withSrc = original
-      .replace(/music:\s*\{[\s\S]*?enabled:\s*false/, 'music: {\n    enabled: true')
-      .replace(/title:\s*"我的歌单"/, 'title: "测试曲目"')
-      .replace(/src:\s*""[^\n]*/, 'src: "./assets/audio/test.mp3",');
+      .replace(/(music:\s*\{[\s\S]*?)enabled:\s*(?:true|false)/, '$1enabled: true')
+      .replace(/(music:\s*\{[\s\S]*?)src:\s*"[^"]*"/, '$1src: "./assets/audio/test.mp3"')
+      .replace(/(music:\s*\{[\s\S]*?)title:\s*"[^"]*"/, '$1title: "测试曲目"');
     fs.writeFileSync(cfgPath, withSrc);
-    ok(/enabled:\s*true/.test(withSrc) && /test\.mp3/.test(withSrc), '[音乐] 测试配置写入成功');
+    ok(/enabled:\s*true/.test(withSrc) && /test\.mp3/.test(withSrc),
+      '[音乐] 测试配置写入成功（enabled=true，src 指向 .mp3）');
     {
       const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
       const page = await ctx.newPage();

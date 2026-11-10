@@ -166,6 +166,137 @@ function normTrack(it) {
   };
 }
 
+/* ============================================ 1.5 封面 + 可播性补全
+ *
+ *  两件事，都是为了 Q2 那个列表能"就地播放 + 显示封面"：
+ *
+ *  ① 封面。排行接口只给歌名和歌手，不给图。图在 song/detail 里
+ *     （`songs[].al.picUrl`）。一次可以批量查 100 首，所以只发一次请求。
+ *     拿到后加 `?param=120y120` —— 原图动辄 100KB+，列表里只要 40px 的小方图，
+ *     120y120 大约 3~5KB，六首加起来也不到一张截图的量。
+ *
+ *  ② 可播性。这是这一版最关键的一步，也是最容易被忽略的。
+ *     网易云有个"外链播放"地址：
+ *         https://music.163.com/song/media/outer/url?id=<id>.mp3
+ *     免费曲目会 302 到真实 mp3（audio/mpeg），而 VIP / 付费专辑版权曲
+ *     **返回的是一个 HTML 提示页**（"因版权要求无法播放"），HTTP 状态还是 200。
+ *     实测本站 100 首里 44 首能播、56 首不能 —— 你听的日系曲子大多要会员。
+ *
+ *     所以必须**提前探测**并写进数据。不探测的后果是：每首歌都挂一个播放按钮，
+ *     点下去一半没反应（<audio> 报 MEDIA_ERR_SRC_NOT_SUPPORTED），
+ *     用户会以为站点坏了。探测之后，不能播的直接渲染成"去网易云"外链，
+ *     并在 title 里说清原因 —— 点了没反应和"点了明确告诉你去哪"，差别很大。
+ *
+ *  探测方式：Range 请求只要头 2KB，看 Content-Type。
+ *  不用 HEAD —— 那条 302 链上的 CDN 对 HEAD 的响应不一致，实测有误判。
+ */
+
+/* 一首歌的外链播放地址。注意 `.mp3` 是拼在 id 后面的，
+   写成 `?id=x&ext=mp3` 不生效。 */
+function outerUrl(songId) {
+  return `https://music.163.com/song/media/outer/url?id=${songId}.mp3`;
+}
+
+/* 只读前 2KB 判断是不是真的音频。返回 true / false；
+   请求本身失败时返回 false（宁可当成不能播，也不要在页面上放一个坏按钮）。 */
+async function canPlay(songId) {
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), 12000);
+  try {
+    const r = await fetch(outerUrl(songId), {
+      signal: ctl.signal,
+      redirect: "follow",
+      headers: {
+        "user-agent": UA,
+        referer: "https://music.163.com/",
+        range: "bytes=0-2047"
+      }
+    });
+    const type = (r.headers.get("content-type") || "").toLowerCase();
+    return type.includes("audio") || type.includes("mpeg") || type.includes("octet-stream");
+  } catch {
+    return false;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/* 并发跑一批异步任务。并发数刻意压到 6：
+   对同一个域名开太多连接会被限速，实测 12 路时一半请求变成超时误判。 */
+async function mapLimit(list, limit, fn) {
+  const out = new Array(list.length);
+  let cursor = 0;
+  const workers = new Array(Math.min(limit, list.length)).fill(0).map(async () => {
+    while (cursor < list.length) {
+      const i = cursor++;
+      out[i] = await fn(list[i], i);
+    }
+  });
+  await Promise.all(workers);
+  return out;
+}
+
+function songIdOf(url) {
+  const m = /[?&]id=(\d+)/.exec(url || "");
+  return m ? m[1] : "";
+}
+
+/* 给每首曲目补 cover / playable。失败时**保留旧值**，
+   绝不清空 —— 一次网络抖动不该让页面上的封面全变回占位块。 */
+async function enrichTracks(tracks, headers, prevTracks) {
+  if (!Array.isArray(tracks) || !tracks.length) return tracks;
+
+  const prevById = {};
+  (prevTracks || []).forEach((t) => { if (t && t.url) prevById[t.url] = t; });
+
+  const ids = tracks.map((t) => songIdOf(t.url)).filter(Boolean);
+
+  /* ---- 封面：一次批量查 ---- */
+  const picById = {};
+  if (ids.length) {
+    const body = await fetchText(
+      `https://music.163.com/api/song/detail?ids=[${ids.join(",")}]`,
+      { headers }, 20000
+    );
+    const d = parseJSON(body) || {};
+    (d.songs || []).forEach((s) => {
+      const al = s.al || s.album || {};
+      if (s.id && al.picUrl) picById[String(s.id)] = al.picUrl;
+    });
+    log(`网易云：封面拿到 ${Object.keys(picById).length}/${ids.length} 张`);
+  }
+
+  /* ---- 可播性：并发探测 ---- */
+  const playableById = {};
+  if (ids.length) {
+    const results = await mapLimit(ids, 6, (id) => canPlay(id));
+    ids.forEach((id, i) => { playableById[id] = results[i]; });
+    const ok = results.filter(Boolean).length;
+    log(`网易云：可站内播放 ${ok}/${ids.length} 首（其余为会员/付费版权曲）`);
+  }
+
+  return tracks.map((t) => {
+    const id = songIdOf(t.url);
+    const prev = prevById[t.url] || {};
+    const pic = picById[id];
+
+    /* 封面：新拿到就用新的；没拿到就沿用旧值；都没有就留空，
+       前端会画一个音符占位块（比空白格好看，也不会请求不存在的图） */
+    const cover = pic
+      ? pic + "?param=120y120"
+      : (t.cover || prev.cover || "");
+
+    /* 可播性：探测有结论才写，没结论沿用旧值 */
+    const playable = typeof playableById[id] === "boolean"
+      ? playableById[id]
+      : (typeof t.playable === "boolean" ? t.playable : prev.playable);
+
+    const out = { ...t, cover };
+    if (typeof playable === "boolean") out.playable = playable;
+    return out;
+  });
+}
+
 function parseJSON(body) {
   try { return JSON.parse(body); } catch { return null; }
 }
@@ -278,6 +409,12 @@ async function syncNetease() {
   if (!finalTracks.length && !finalTotal) {
     log("网易云：什么都没有拿到，保持原样");
     return { count: 0, source: "none" };
+  }
+
+  /* 补封面与可播性。放在写入之前、三层降级之后 ——
+     只给"这次真的要显示的这份曲目"做探测，避免白跑几十个请求。 */
+  if (finalTracks.length) {
+    finalTracks = await enrichTracks(finalTracks, headers, prev.tracks || []);
   }
 
   const payload = {

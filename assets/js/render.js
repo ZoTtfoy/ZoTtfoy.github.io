@@ -226,7 +226,13 @@ window.SITE_RENDER = (function () {
 
   /* sync.js 抓来的额外信息（累计听歌 / 等级 / 数据来源 / 同步时间）。
      和曲目分开存：排行抓不到时，这几个数字照样有。 */
-  var listenMeta = { total: 0, level: 0, updated: "", live: false, source: "rank" };
+  var listenMeta = {
+    total: 0, level: 0, updated: "", live: false, source: "rank",
+    /* 这一批曲目里"能站内播"和"实际显示"各多少首。
+       页脚据此决定要不要说一句「站内试听 1/6 首 · 其余为会员曲」——
+       部分可播是最容易让人困惑的状态，必须解释。 */
+    shownCount: 0, playableCount: 0
+  };
 
   function trackHtml(t, i) {
     var meta = [t.artist, t.album].filter(Boolean).join(" · ");
@@ -242,17 +248,54 @@ window.SITE_RENDER = (function () {
        排行榜的语言本来就是"数字越小越靠前"，一个颜色就够。 */
     var top3 = i < 3 ? " is-top" : "";
 
-    return '<li class="track" style="' + delay(i, 45) + '" data-reveal>' +
+    /* 封面。sync.mjs 已带上 ?param=120y120（约 3~5KB），这里按 34px 显示，
+       2x 屏也够清晰。没有封面时画一个音符占位块 —— 比留空白格好看，
+       也避免为不存在的图发一次请求。 */
+    var cover = t.cover
+      ? '<img class="track__pic" src="' + esc(t.cover) + '" alt="" ' +
+        'width="34" height="34" loading="lazy" decoding="async" ' +
+        'referrerpolicy="no-referrer">'
+      : (window.siteIcon ? '<span class="track__pic track__pic--none">' +
+          window.siteIcon("music") + "</span>" : "");
+
+    /* 播放按钮的三种形态：
+         ① playable === true  → 站内播放按钮（player.js 接管）
+         ② playable === false → 外链，title 说明"需要会员"
+         ③ 未定义（老数据）    → 外链。保守总比放一个按不出声的按钮好。
+       ⚠️ outer/url 里的 `.mp3` 必须拼在 id 后面，写成 ?ext=mp3 不生效。 */
+    var songId = (function () {
+      var m = /[?&]id=(\d+)/.exec(t.url || "");
+      return m ? m[1] : "";
+    })();
+
+    var action = "";
+    if (t.url) {
+      if (t.playable === true && songId) {
+        action = '<button class="track__go track__play" type="button"' +
+          ' data-play="' + esc(t.url) + '"' +
+          ' data-src="https://music.163.com/song/media/outer/url?id=' + songId + '.mp3"' +
+          ' aria-pressed="false" aria-label="播放 ' + esc(t.title || "") + '">' +
+          icon("play") + "</button>";
+      } else {
+        var why = t.playable === false ? "（网易云会员 / 版权曲）" : "";
+        action = '<a class="track__go" href="' + esc(t.url) + '"' +
+          ' target="_blank" rel="noopener noreferrer"' +
+          ' title="在网易云打开' + why + '"' +
+          ' aria-label="在网易云打开 ' + esc(t.title || "") + why + '">' +
+          icon("play") + "</a>";
+      }
+    }
+
+    return '<li class="track" style="' + delay(i, 45) + '" data-reveal ' +
+             'data-idx="' + (i + 1) + '">' +
              '<span class="track__idx' + top3 + '">' + String(i + 1).padStart(2, "0") + "</span>" +
+             cover +
              '<span class="track__main">' +
                '<span class="track__title">' + esc(t.title || "") + "</span>" +
                (meta ? '<span class="track__meta">' + esc(meta) + "</span>" : "") +
              "</span>" +
              plays +
-             (t.url
-               ? '<a class="track__go" href="' + esc(t.url) + '" target="_blank" rel="noopener noreferrer"' +
-                 ' aria-label="在网易云打开 ' + esc(t.title || "") + '">' + icon("play") + "</a>"
-               : "") +
+             action +
            "</li>";
   }
 
@@ -289,8 +332,21 @@ window.SITE_RENDER = (function () {
       ? '<span class="listen__stat">累计听歌 <b>' + fmtNum(listenMeta.total) + "</b> 首</span>"
       : "";
 
+    /* 试听说明。只在"部分可播"时出现 ——
+       全可播不用解释，全不可播时的每一行本来就是外链，也不用解释。
+       偏偏"部分可播"最容易让人困惑："为什么第 4 首能放，第 1 首点了却跳走？"
+       一句话把原因（会员 / 版权）说在前面，比让用户逐个试要好。 */
+    var note = "";
+    if (listenMeta.playableCount > 0 && listenMeta.playableCount < listenMeta.shownCount) {
+      /* 文案刻意短：「1/6 可试听」。长版本（"站内试听 1/6 首 · 其余为会员曲"）
+         在 320px 上会把页脚挤成两行，多出的 20 多 px 正好顶出屏幕。
+         完整原因放进 title，鼠标悬停能看到，读屏也会念。 */
+      note = '<span class="listen__note" title="网易云的 VIP 与付费版权曲不提供外链音频，只能去客户端听">' +
+             listenMeta.playableCount + "/" + listenMeta.shownCount + " 可试听</span>";
+    }
+
     foot.innerHTML =
-      '<span class="listen__meta">' + src + stat + "</span>" +
+      '<span class="listen__meta">' + src + stat + note + "</span>" +
       /* 窄屏（≤400px）只留箭头，文字用 font-size:0 收掉 ——
          320px 下「去网易云看看」会把页脚挤成两行，多出的 29px
          正好把这一屏顶出屏幕。文字仍在 DOM 里，读屏照常念。 */
@@ -333,6 +389,15 @@ window.SITE_RENDER = (function () {
 
     ul.innerHTML = items.map(trackHtml).join("");
     ul.setAttribute("data-count", String(items.length));
+
+    /* 页脚那句「站内试听 N/M 首」要用的两个数。
+       必须在这里更新而不是在 paintListenFoot 里数 DOM ——
+       paintListenFoot 也会被"只更新页脚"那条路径调用，那时列表还是旧的，
+       数出来的是上一批曲目，页脚就会和列表对不上。 */
+    listenMeta.shownCount = items.length;
+    listenMeta.playableCount = items.filter(function (t) {
+      return t.playable === true && t.url;
+    }).length;
     /* 有真实次数时标记：手机上要换成单列，
        否则两列里每块只剩 ~100px 放"曲名 + 次数"，两样都会被截断。 */
     ul.setAttribute("data-ranked",

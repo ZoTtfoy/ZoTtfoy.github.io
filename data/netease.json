@@ -1,7 +1,7 @@
 {
-  "updated": "2026-11-10T19:15:16.447Z",
+  "updated": "2026-11-10T22:14:23.112Z",
   "uid": "1695307327",
-  "totalSongs": 77025,
+  "totalSongs": 77043,
   "level": 10,
   "source": "rank",
   "likedName": "",
@@ -31,20 +31,20 @@
       "url": "https://music.163.com/song?id=864648423"
     },
     {
+      "title": "キセキ～未来へ～",
+      "artist": "whiteeeen",
+      "album": "キセキ～未来へ～",
+      "playCount": 0,
+      "score": 50,
+      "url": "https://music.163.com/song?id=426850114"
+    },
+    {
       "title": "Somero",
       "artist": "Mich",
       "album": "Somero",
       "playCount": 0,
       "score": 50,
       "url": "https://music.163.com/song?id=414980898"
-    },
-    {
-      "title": "キセキ～未来へ～",
-      "artist": "whiteeeen",
-      "album": "キセキ～未来へ～",
-      "playCount": 0,
-      "score": 47,
-      "url": "https://music.163.com/song?id=426850114"
     },
     {
       "title": "未定",
@@ -599,6 +599,14 @@
       "url": "https://music.163.com/song?id=1942631186"
     },
     {
+      "title": "ぎゅっと。",
+      "artist": "もさを。",
+      "album": "ぎゅっと。",
+      "playCount": 0,
+      "score": 29,
+      "url": "https://music.163.com/song?id=1465933612"
+    },
+    {
       "title": "Morning Glory",
       "artist": "IA / Guiano",
       "album": "冬のライラ",
@@ -661,14 +669,6 @@
       "playCount": 0,
       "score": 26,
       "url": "https://music.163.com/song?id=1493975181"
-    },
-    {
-      "title": "ぎゅっと。",
-      "artist": "もさを。",
-      "album": "ぎゅっと。",
-      "playCount": 0,
-      "score": 26,
-      "url": "https://music.163.com/song?id=1465933612"
     },
     {
       "title": "EZ4ENCE (kannatuslaulu)",
@@ -1616,7 +1616,9 @@
       "album": "あっ、ども。おひさしぶりです。(期間限定盤)",
       "playCount": 0,
       "score": 100,
-      "url": "https://music.163.com/song?id=733149"
+      "url": "https://music.163.com/song?id=733149",
+      "cover": "https://p2.music.126.net/9gfU1kVOJUWP0k78Xwp9Cw==/109951166228000495.jpg?param=120y120",
+      "playable": false
     },
     {
       "title": "キセキ",
@@ -1624,7 +1626,9 @@
       "album": "友達のフリ",
       "playCount": 0,
       "score": 55,
-      "url": "https://music.163.com/song?id=27733050"
+      "url": "https://music.163.com/song?id=27733050",
+      "cover": "https://p2.music.126.net/lgTTAX718Mx7aUK2PcE1Zw==/5713062418024517.jpg?param=120y120",
+      "playable": false
     },
     {
       "title": "拝啓、少年よ",
@@ -1632,7 +1636,19 @@
       "album": "拝啓、少年よ",
       "playCount": 0,
       "score": 50,
-      "url": "https://music.163.com/song?id=864648423"
+      "url": "https://music.163.com/song?id=864648423",
+      "cover": "https://p2.music.126.net/tRO0Yw9l-n5VOURvn-45QQ==/109951170624201491.jpg?param=120y120",
+      "playable": false
+    },
+    {
+      "title": "キセキ～未来へ～",
+      "artist": "whiteeeen",
+      "album": "キセキ～未来へ～",
+      "playCount": 0,
+      "score": 50,
+      "url": "https://music.163.com/song?id=426850114",
+      "cover": "https://p2.music.126.net/TL5XWwmLdJzjCmlXEDNlRQ==/109951169749884214.jpg?param=120y120",
+      "playable": false
     },
     {
       "title": "Somero",
@@ -1640,15 +1656,9 @@
       "album": "Somero",
       "playCount": 0,
       "score": 50,
-      "url": "https://music.163.com/song?id=414980898"
-    },
-    {
-      "title": "キセキ～未来へ～",
-      "artist": "whiteeeen",
-      "album": "キセキ～未来へ～",
-      "playCount": 0,
-      "score": 47,
-      "url": "https://music.163.com/song?id=426850114"
+      "url": "https://music.163.com/song?id=414980898",
+      "cover": "https://p2.music.126.net/tf3x2rdJLUyJY5T6SlJE2w==/109951164445265620.jpg?param=120y120",
+      "playable": true
     },
     {
       "title": "未定",
@@ -1656,7 +1666,9 @@
       "album": "ingredients",
       "playCount": 0,
       "score": 47,
-      "url": "https://music.163.com/song?id=1966162262"
+      "url": "https://music.163.com/song?id=1966162262",
+      "cover": "https://p2.music.126.net/-o4Q5xtRonoCEfjzARg0dQ==/109951167724787454.jpg?param=120y120",
+      "playable": false
     },
     {
       "title": "YY",
@@ -1664,7 +1676,9 @@
       "album": "YY",
       "playCount": 0,
       "score": 47,
-      "url": "https://music.163.com/song?id=1862102742"
+      "url": "https://music.163.com/song?id=1862102742",
+      "cover": "https://p2.music.126.net/UHjAsIY8wZYPbLcnHj3_Yg==/109951166189424838.jpg?param=120y120",
+      "playable": false
     },
     {
       "title": "五月猫",
@@ -1672,7 +1686,9 @@
       "album": "五月猫",
       "playCount": 0,
       "score": 44,
-      "url": "https://music.163.com/song?id=3383668637"
+      "url": "https://music.163.com/song?id=3383668637",
+      "cover": "https://p2.music.126.net/jig0DedEoBdjvfRTPPbDmQ==/109951173244564266.jpg?param=120y120",
+      "playable": true
     },
     {
       "title": "Infectious",
@@ -1680,7 +1696,9 @@
       "album": "Infectious",
       "playCount": 0,
       "score": 44,
-      "url": "https://music.163.com/song?id=28830409"
+      "url": "https://music.163.com/song?id=28830409",
+      "cover": "https://p2.music.126.net/xQeIwDrMh_UeMwhZ-CrzVQ==/109951165358935018.jpg?param=120y120",
+      "playable": true
     },
     {
       "title": "Two Birds Spektor",
@@ -1688,7 +1706,9 @@
       "album": "Two Birds Spektor",
       "playCount": 0,
       "score": 44,
-      "url": "https://music.163.com/song?id=2007223151"
+      "url": "https://music.163.com/song?id=2007223151",
+      "cover": "https://p2.music.126.net/hm6peWTPY9M4OGiM9fNS6A==/109951168151729832.jpg?param=120y120",
+      "playable": true
     },
     {
       "title": "老人と海",
@@ -1696,7 +1716,9 @@
       "album": "老人と海",
       "playCount": 0,
       "score": 44,
-      "url": "https://music.163.com/song?id=1870469768"
+      "url": "https://music.163.com/song?id=1870469768",
+      "cover": "https://p2.music.126.net/5aHcGADR5i6biE5TSqf_aQ==/109951166295171725.jpg?param=120y120",
+      "playable": false
     },
     {
       "title": "泡と鎖*",
@@ -1704,7 +1726,9 @@
       "album": "ウカ*",
       "playCount": 0,
       "score": 44,
-      "url": "https://music.163.com/song?id=1318519746"
+      "url": "https://music.163.com/song?id=1318519746",
+      "cover": "https://p2.music.126.net/HiydWbNoNAkaNuBRYv2yHw==/109951163608744834.jpg?param=120y120",
+      "playable": false
     },
     {
       "title": "交响组曲「君の名は。」",
@@ -1712,7 +1736,9 @@
       "album": "ACG管弦乐企划",
       "playCount": 0,
       "score": 41,
-      "url": "https://music.163.com/song?id=539341963"
+      "url": "https://music.163.com/song?id=539341963",
+      "cover": "https://p2.music.126.net/zGYYbS37FiWrig4r7pNfhA==/109951162859350690.jpg?param=120y120",
+      "playable": true
     },
     {
       "title": "メロス",
@@ -1720,7 +1746,9 @@
       "album": "メロス",
       "playCount": 0,
       "score": 41,
-      "url": "https://music.163.com/song?id=480517736"
+      "url": "https://music.163.com/song?id=480517736",
+      "cover": "https://p2.music.126.net/hXNoy1Hf9epkvKCdTOv-5A==/18213410114658520.jpg?param=120y120",
+      "playable": false
     },
     {
       "title": "ヒッチコック (Re-Recording)",
@@ -1728,7 +1756,9 @@
       "album": "二人称",
       "playCount": 0,
       "score": 41,
-      "url": "https://music.163.com/song?id=3355479296"
+      "url": "https://music.163.com/song?id=3355479296",
+      "cover": "https://p2.music.126.net/julupzshXmt9a12XntgLSg==/109951172835515141.jpg?param=120y120",
+      "playable": false
     },
     {
       "title": "お七",
@@ -1736,7 +1766,9 @@
       "album": "クロールと逆上がり",
       "playCount": 0,
       "score": 41,
-      "url": "https://music.163.com/song?id=29378416"
+      "url": "https://music.163.com/song?id=29378416",
+      "cover": "https://p2.music.126.net/k8ltgE7KDtmRFrfAR8GZOQ==/109951167202799441.jpg?param=120y120",
+      "playable": false
     },
     {
       "title": "刹那、夏が終わっていく",
@@ -1744,7 +1776,9 @@
       "album": "刹那、夏が終わっていく",
       "playCount": 0,
       "score": 41,
-      "url": "https://music.163.com/song?id=2733685504"
+      "url": "https://music.163.com/song?id=2733685504",
+      "cover": "https://p2.music.126.net/08TU2041XzxVu3deem5KtA==/109951171783651557.jpg?param=120y120",
+      "playable": true
     },
     {
       "title": "カノジョ",
@@ -1752,7 +1786,9 @@
       "album": "Uplift Spice",
       "playCount": 0,
       "score": 41,
-      "url": "https://music.163.com/song?id=22736708"
+      "url": "https://music.163.com/song?id=22736708",
+      "cover": "https://p2.music.126.net/gbn2zo1clYhF7zb2ZV-bxQ==/866415162711526.jpg?param=120y120",
+      "playable": true
     },
     {
       "title": "玄帝宫",
@@ -1760,7 +1796,9 @@
       "album": "聲有•山天物我",
       "playCount": 0,
       "score": 41,
-      "url": "https://music.163.com/song?id=2066759969"
+      "url": "https://music.163.com/song?id=2066759969",
+      "cover": "https://p2.music.126.net/O9oHSnrhL-1zF0_jGO6uSw==/109951168763533793.jpg?param=120y120",
+      "playable": true
     },
     {
       "title": "Talking Box",
@@ -1768,7 +1806,9 @@
       "album": "檸檬の日々",
       "playCount": 0,
       "score": 41,
-      "url": "https://music.163.com/song?id=1822185427"
+      "url": "https://music.163.com/song?id=1822185427",
+      "cover": "https://p2.music.126.net/7UhyFUtAEKbx6zweu-ZNlA==/109951165749976676.jpg?param=120y120",
+      "playable": false
     },
     {
       "title": "17.",
@@ -1776,7 +1816,9 @@
       "album": "17.",
       "playCount": 0,
       "score": 38,
-      "url": "https://music.163.com/song?id=557820289"
+      "url": "https://music.163.com/song?id=557820289",
+      "cover": "https://p2.music.126.net/fU1qATTjlcRRLp0kNtYzsQ==/109951163283610667.jpg?param=120y120",
+      "playable": true
     },
     {
       "title": "革命",
@@ -1784,7 +1826,9 @@
       "album": "MOROHA Ⅱ",
       "playCount": 0,
       "score": 38,
-      "url": "https://music.163.com/song?id=39122402"
+      "url": "https://music.163.com/song?id=39122402",
+      "cover": "https://p2.music.126.net/MUXDtHd9FVJWo8XoxH8Aog==/109951169019837884.jpg?param=120y120",
+      "playable": true
     },
     {
       "title": "あのね",
@@ -1792,7 +1836,9 @@
       "album": "あのね",
       "playCount": 0,
       "score": 38,
-      "url": "https://music.163.com/song?id=3327968863"
+      "url": "https://music.163.com/song?id=3327968863",
+      "cover": "https://p2.music.126.net/PdpeitmFLH3OdM8I9LluNg==/109951172419585857.jpg?param=120y120",
+      "playable": true
     },
     {
       "title": "Artemis",
@@ -1800,7 +1846,9 @@
       "album": "Artemis",
       "playCount": 0,
       "score": 38,
-      "url": "https://music.163.com/song?id=1815899655"
+      "url": "https://music.163.com/song?id=1815899655",
+      "cover": "https://p2.music.126.net/yCMaqkxlZPeheG3J87sR4g==/109951165674075276.jpg?param=120y120",
+      "playable": true
     },
     {
       "title": "東京フラッシュ",
@@ -1808,7 +1856,9 @@
       "album": "Tokyo Flash",
       "playCount": 0,
       "score": 38,
-      "url": "https://music.163.com/song?id=1442021148"
+      "url": "https://music.163.com/song?id=1442021148",
+      "cover": "https://p2.music.126.net/hKwiLhczj1zqAi8ODkqdSA==/109951168916978236.jpg?param=120y120",
+      "playable": false
     },
     {
       "title": "Chasing Lights",
@@ -1816,7 +1866,9 @@
       "album": "Chasing Lights",
       "playCount": 0,
       "score": 35,
-      "url": "https://music.163.com/song?id=491222808"
+      "url": "https://music.163.com/song?id=491222808",
+      "cover": "https://p2.music.126.net/r8u62QS4k0uNoEPwmtiQPw==/109951163855632201.jpg?param=120y120",
+      "playable": true
     },
     {
       "title": "うそつきマカロン (feat. 重音テト)",
@@ -1824,7 +1876,9 @@
       "album": "うそつきマカロン (feat. 重音テト)",
       "playCount": 0,
       "score": 35,
-      "url": "https://music.163.com/song?id=3339091911"
+      "url": "https://music.163.com/song?id=3339091911",
+      "cover": "https://p2.music.126.net/IiBENuqV91ALNveI2U7HdA==/109951172585408384.jpg?param=120y120",
+      "playable": true
     },
     {
       "title": "Without You",
@@ -1832,7 +1886,9 @@
       "album": "Almost Okay",
       "playCount": 0,
       "score": 35,
-      "url": "https://music.163.com/song?id=2743659999"
+      "url": "https://music.163.com/song?id=2743659999",
+      "cover": "https://p2.music.126.net/6Qnzlldfq7yyoT4BW4IWnA==/109951171978915235.jpg?param=120y120",
+      "playable": true
     },
     {
       "title": "ヘイヴン",
@@ -1840,7 +1896,9 @@
       "album": "ヘイヴン",
       "playCount": 0,
       "score": 35,
-      "url": "https://music.163.com/song?id=2667637268"
+      "url": "https://music.163.com/song?id=2667637268",
+      "cover": "https://p2.music.126.net/oMmLdHcuwB3Yt44KEoPVMA==/109951170405747439.jpg?param=120y120",
+      "playable": false
     },
     {
       "title": "FLAW(LESS)",
@@ -1848,7 +1906,9 @@
       "album": "iv",
       "playCount": 0,
       "score": 35,
-      "url": "https://music.163.com/song?id=1824708582"
+      "url": "https://music.163.com/song?id=1824708582",
+      "cover": "https://p2.music.126.net/_24ztiywm6d8emR9ksEFhw==/109951166198057620.jpg?param=120y120",
+      "playable": false
     },
     {
       "title": "This Epic Life",
@@ -1856,7 +1916,9 @@
       "album": "Epic Pop",
       "playCount": 0,
       "score": 35,
-      "url": "https://music.163.com/song?id=1377501500"
+      "url": "https://music.163.com/song?id=1377501500",
+      "cover": "https://p2.music.126.net/jdKC5O7yNQo1bjdSug7trA==/109951164208722808.jpg?param=120y120",
+      "playable": true
     },
     {
       "title": "CandyStar☆",
@@ -1864,7 +1926,9 @@
       "album": "Candy☆Star",
       "playCount": 0,
       "score": 32,
-      "url": "https://music.163.com/song?id=476509463"
+      "url": "https://music.163.com/song?id=476509463",
+      "cover": "https://p2.music.126.net/3NaVu6rbwYB9_19kRg6sWA==/109951162922200813.jpg?param=120y120",
+      "playable": true
     },
     {
       "title": "夏休みの転校生",
@@ -1872,7 +1936,9 @@
       "album": "夏休みの転校生",
       "playCount": 0,
       "score": 32,
-      "url": "https://music.163.com/song?id=468517764"
+      "url": "https://music.163.com/song?id=468517764",
+      "cover": "https://p2.music.126.net/6FQXwXYX_41QZGzVxBUdeQ==/109951170990194962.jpg?param=120y120",
+      "playable": true
     },
     {
       "title": "雨のち晴れ",
@@ -1880,7 +1946,9 @@
       "album": "雨のち晴れ",
       "playCount": 0,
       "score": 32,
-      "url": "https://music.163.com/song?id=461519137"
+      "url": "https://music.163.com/song?id=461519137",
+      "cover": "https://p2.music.126.net/7eU-SREBzbCpCgI5hYcGqw==/18801648836784259.jpg?param=120y120",
+      "playable": true
     },
     {
       "title": "REFLECTION (Original Mix)",
@@ -1888,7 +1956,9 @@
       "album": "REFLECTION",
       "playCount": 0,
       "score": 32,
-      "url": "https://music.163.com/song?id=411213041"
+      "url": "https://music.163.com/song?id=411213041",
+      "cover": "https://p2.music.126.net/H0qtZBAEEDo3O4AJREfzlg==/1390882217063993.jpg?param=120y120",
+      "playable": true
     },
     {
       "title": "Spring (Wild Horseradish Jam)",
@@ -1896,7 +1966,9 @@
       "album": "Stardew Valley Original Soundtrack",
       "playCount": 0,
       "score": 32,
-      "url": "https://music.163.com/song?id=408277040"
+      "url": "https://music.163.com/song?id=408277040",
+      "cover": "https://p2.music.126.net/EHgfzkh0-cee5_7Dnk7n6g==/109951164856423757.jpg?param=120y120",
+      "playable": false
     },
     {
       "title": "Undertale",
@@ -1904,7 +1976,9 @@
       "album": "UNDERTALE Soundtrack",
       "playCount": 0,
       "score": 32,
-      "url": "https://music.163.com/song?id=39227624"
+      "url": "https://music.163.com/song?id=39227624",
+      "cover": "https://p2.music.126.net/mQcab-6L7D-w1lRxmYB7MQ==/109951168015051713.jpg?param=120y120",
+      "playable": true
     },
     {
       "title": "Trouble",
@@ -1912,7 +1986,9 @@
       "album": "Stories",
       "playCount": 0,
       "score": 32,
-      "url": "https://music.163.com/song?id=35090546"
+      "url": "https://music.163.com/song?id=35090546",
+      "cover": "https://p2.music.126.net/oB7Mf4_Aoao3DQ2diw2sqg==/109951170289966580.jpg?param=120y120",
+      "playable": false
     },
     {
       "title": "逆境破局",
@@ -1920,7 +1996,9 @@
       "album": "逆境破局",
       "playCount": 0,
       "score": 32,
-      "url": "https://music.163.com/song?id=3442632680"
+      "url": "https://music.163.com/song?id=3442632680",
+      "cover": "https://p2.music.126.net/Cg5-FhhgjQoDM3PEdfIKdg==/109951174027381915.jpg?param=120y120",
+      "playable": true
     },
     {
       "title": "19歳の未来駅 (feat. 初音ミク)",
@@ -1928,7 +2006,9 @@
       "album": "19歳の未来駅 (feat. 初音ミク)",
       "playCount": 0,
       "score": 32,
-      "url": "https://music.163.com/song?id=3429188417"
+      "url": "https://music.163.com/song?id=3429188417",
+      "cover": "https://p2.music.126.net/gdK5PrVv7y1VRNxj23gfZw==/109951173865104556.jpg?param=120y120",
+      "playable": true
     },
     {
       "title": "King of Coins",
@@ -1936,7 +2016,9 @@
       "album": "King of Coins",
       "playCount": 0,
       "score": 32,
-      "url": "https://music.163.com/song?id=3421669193"
+      "url": "https://music.163.com/song?id=3421669193",
+      "cover": "https://p2.music.126.net/uyP_-vZCDSzS96J_ni9HvQ==/109951173757246927.jpg?param=120y120",
+      "playable": true
     },
     {
       "title": "ウミユリ海底譚",
@@ -1944,7 +2026,9 @@
       "album": "ウミユリ海底譚",
       "playCount": 0,
       "score": 32,
-      "url": "https://music.163.com/song?id=3419476988"
+      "url": "https://music.163.com/song?id=3419476988",
+      "cover": "https://p2.music.126.net/ElhHbVQJr0SmBnkB_RwHoA==/109951173728916543.jpg?param=120y120",
+      "playable": true
     },
     {
       "title": "降る星のアスター",
@@ -1952,7 +2036,9 @@
       "album": "降る星のアスター",
       "playCount": 0,
       "score": 32,
-      "url": "https://music.163.com/song?id=3375781339"
+      "url": "https://music.163.com/song?id=3375781339",
+      "cover": "https://p2.music.126.net/dwgBrUbmeh-giumPP7BIew==/109951173137804203.jpg?param=120y120",
+      "playable": true
     },
     {
       "title": "Nine Point Eight",
@@ -1960,7 +2046,9 @@
       "album": "Deemo Official Soundtrack Vol.1",
       "playCount": 0,
       "score": 32,
-      "url": "https://music.163.com/song?id=32358441"
+      "url": "https://music.163.com/song?id=32358441",
+      "cover": "https://p2.music.126.net/nxVZ033DIAM7JNHvT-DRMA==/109951163598059944.jpg?param=120y120",
+      "playable": false
     },
     {
       "title": "River",
@@ -1968,7 +2056,9 @@
       "album": "River",
       "playCount": 0,
       "score": 32,
-      "url": "https://music.163.com/song?id=30854833"
+      "url": "https://music.163.com/song?id=30854833",
+      "cover": "https://p2.music.126.net/F_VyPhnTu4vfqXCT0S9gqg==/109951163456862306.jpg?param=120y120",
+      "playable": true
     },
     {
       "title": "Seeing Stars",
@@ -1976,7 +2066,9 @@
       "album": "Candy",
       "playCount": 0,
       "score": 32,
-      "url": "https://music.163.com/song?id=29732930"
+      "url": "https://music.163.com/song?id=29732930",
+      "cover": "https://p2.music.126.net/eVDdrihHLdVflj4BACJC8g==/109951167494247110.jpg?param=120y120",
+      "playable": false
     },
     {
       "title": "305",
@@ -1984,7 +2076,9 @@
       "album": "Not Even Once",
       "playCount": 0,
       "score": 32,
-      "url": "https://music.163.com/song?id=27487377"
+      "url": "https://music.163.com/song?id=27487377",
+      "cover": "https://p2.music.126.net/x8WdtCc2aEyGzMCWpu236w==/109951164854832399.jpg?param=120y120",
+      "playable": false
     },
     {
       "title": "献给风和蝉鸣",
@@ -1992,7 +2086,9 @@
       "album": "献给风和蝉鸣",
       "playCount": 0,
       "score": 32,
-      "url": "https://music.163.com/song?id=2735786306"
+      "url": "https://music.163.com/song?id=2735786306",
+      "cover": "https://p1.music.126.net/wkAXy4RBFqn_BMrlnwczKw==/109951171851330259.jpg?param=120y120",
+      "playable": true
     },
     {
       "title": "SUPERNOVA",
@@ -2000,7 +2096,9 @@
       "album": "SUPERNOVA",
       "playCount": 0,
       "score": 32,
-      "url": "https://music.163.com/song?id=2724388668"
+      "url": "https://music.163.com/song?id=2724388668",
+      "cover": "https://p1.music.126.net/K2CPVpSNRAS9eQDsKsZsKg==/109951171430692116.jpg?param=120y120",
+      "playable": false
     },
     {
       "title": "忘れ者",
@@ -2008,7 +2106,9 @@
       "album": "忘れ者",
       "playCount": 0,
       "score": 32,
-      "url": "https://music.163.com/song?id=2634217476"
+      "url": "https://music.163.com/song?id=2634217476",
+      "cover": "https://p1.music.126.net/_5oYyaUGrfBvQO22OQ_QRw==/109951170023947679.jpg?param=120y120",
+      "playable": true
     },
     {
       "title": "春に一番近い街",
@@ -2016,7 +2116,9 @@
       "album": "シンタイソクテイ",
       "playCount": 0,
       "score": 32,
-      "url": "https://music.163.com/song?id=26213690"
+      "url": "https://music.163.com/song?id=26213690",
+      "cover": "https://p1.music.126.net/2fmb8zAWuKV6GX8TPHQg0w==/2438716790432267.jpg?param=120y120",
+      "playable": true
     },
     {
       "title": "恋",
@@ -2024,7 +2126,9 @@
       "album": "Winter",
       "playCount": 0,
       "score": 32,
-      "url": "https://music.163.com/song?id=26112157"
+      "url": "https://music.163.com/song?id=26112157",
+      "cover": "https://p1.music.126.net/J1ReMsp-3wZnYVT30jBnyA==/2337561720675105.jpg?param=120y120",
+      "playable": true
     },
     {
       "title": "NEW ERA",
@@ -2032,7 +2136,9 @@
       "album": "NEW ERA",
       "playCount": 0,
       "score": 32,
-      "url": "https://music.163.com/song?id=2149019899"
+      "url": "https://music.163.com/song?id=2149019899",
+      "cover": "https://p1.music.126.net/Lw9ERU4CLH9HmIDnLxqsWg==/109951169527487695.jpg?param=120y120",
+      "playable": false
     },
     {
       "title": "海へ行こうよ",
@@ -2040,7 +2146,9 @@
       "album": "海へ行こうよ",
       "playCount": 0,
       "score": 32,
-      "url": "https://music.163.com/song?id=2144338035"
+      "url": "https://music.163.com/song?id=2144338035",
+      "cover": "https://p1.music.126.net/KsGw1Xx7vb0_h69HEpV9dg==/109951169484796145.jpg?param=120y120",
+      "playable": true
     },
     {
       "title": "再生",
@@ -2048,7 +2156,9 @@
       "album": "再生",
       "playCount": 0,
       "score": 32,
-      "url": "https://music.163.com/song?id=2133659925"
+      "url": "https://music.163.com/song?id=2133659925",
+      "cover": "https://p1.music.126.net/Pk8ghDSjckhAsv35Vy5yMA==/109951169395524776.jpg?param=120y120",
+      "playable": true
     },
     {
       "title": "Intergalactic Bound (feat. Hatsune Miku)",
@@ -2056,7 +2166,9 @@
       "album": "Intergalactic Bound",
       "playCount": 0,
       "score": 32,
-      "url": "https://music.163.com/song?id=2132233401"
+      "url": "https://music.163.com/song?id=2132233401",
+      "cover": "https://p1.music.126.net/4-BA-CXDop0g1fPGNJFqhw==/109951169385162828.jpg?param=120y120",
+      "playable": true
     },
     {
       "title": "タイムレス (feat. 茉ひる)",
@@ -2064,7 +2176,9 @@
       "album": "愛℃",
       "playCount": 0,
       "score": 32,
-      "url": "https://music.163.com/song?id=2104466148"
+      "url": "https://music.163.com/song?id=2104466148",
+      "cover": "https://p1.music.126.net/TLURlsSmlhPoxkk2Fvji_w==/109951169119240037.jpg?param=120y120",
+      "playable": true
     },
     {
       "title": "いろは",
@@ -2072,7 +2186,9 @@
       "album": "いろは",
       "playCount": 0,
       "score": 32,
-      "url": "https://music.163.com/song?id=2100031954"
+      "url": "https://music.163.com/song?id=2100031954",
+      "cover": "https://p1.music.126.net/H8dLoDCraO_CPY8b7tY8QA==/109951169057010150.jpg?param=120y120",
+      "playable": true
     },
     {
       "title": "HYPER SWEET",
@@ -2080,7 +2196,9 @@
       "album": "HYPER LOVE",
       "playCount": 0,
       "score": 32,
-      "url": "https://music.163.com/song?id=2095962292"
+      "url": "https://music.163.com/song?id=2095962292",
+      "cover": "https://p1.music.126.net/kststC9ymZprMQGmCEfyGg==/109951169025461894.jpg?param=120y120",
+      "playable": true
     },
     {
       "title": "踊り子",
@@ -2088,7 +2206,9 @@
       "album": "replica",
       "playCount": 0,
       "score": 32,
-      "url": "https://music.163.com/song?id=2095883505"
+      "url": "https://music.163.com/song?id=2095883505",
+      "cover": "https://p1.music.126.net/V1_5Eo6LYhLCSQC2Bp-B9A==/109951169024610744.jpg?param=120y120",
+      "playable": false
     },
     {
       "title": "Rainy proof (Acoustic ver.)",
@@ -2096,7 +2216,9 @@
       "album": "Rainy proof (Acoustic ver.)",
       "playCount": 0,
       "score": 32,
-      "url": "https://music.163.com/song?id=1980701213"
+      "url": "https://music.163.com/song?id=1980701213",
+      "cover": "https://p1.music.126.net/byv43jMiAsVPfsOnXA4g1g==/109951167870137443.jpg?param=120y120",
+      "playable": true
     },
     {
       "title": "うぉ",
@@ -2104,7 +2226,9 @@
       "album": "うぉ",
       "playCount": 0,
       "score": 32,
-      "url": "https://music.163.com/song?id=1941265991"
+      "url": "https://music.163.com/song?id=1941265991",
+      "cover": "https://p1.music.126.net/yCfJ4AjZmd8jDAMeC4lLOQ==/109951167338142490.jpg?param=120y120",
+      "playable": false
     },
     {
       "title": "Skyland",
@@ -2112,7 +2236,9 @@
       "album": "Skyland",
       "playCount": 0,
       "score": 32,
-      "url": "https://music.163.com/song?id=1911075425"
+      "url": "https://music.163.com/song?id=1911075425",
+      "cover": "https://p1.music.126.net/cO7ecUdEEHe4-DWrJt41Vw==/109951167749035500.jpg?param=120y120",
+      "playable": true
     },
     {
       "title": "Sky Blue",
@@ -2120,7 +2246,9 @@
       "album": "Sky Blue",
       "playCount": 0,
       "score": 32,
-      "url": "https://music.163.com/song?id=1868783050"
+      "url": "https://music.163.com/song?id=1868783050",
+      "cover": "https://p1.music.126.net/Ditko6lBR1hRE61Bsi-gvg==/109951166274103236.jpg?param=120y120",
+      "playable": true
     },
     {
       "title": "Summer Memories",
@@ -2128,7 +2256,9 @@
       "album": "Afternoon Mix",
       "playCount": 0,
       "score": 32,
-      "url": "https://music.163.com/song?id=1823381528"
+      "url": "https://music.163.com/song?id=1823381528",
+      "cover": "https://p1.music.126.net/WxNMHNMJlAXoeC8kgZEyKQ==/109951165763448014.jpg?param=120y120",
+      "playable": true
     },
     {
       "title": "クリスタライズ",
@@ -2136,7 +2266,9 @@
       "album": "Starlight Museum",
       "playCount": 0,
       "score": 32,
-      "url": "https://music.163.com/song?id=1499781983"
+      "url": "https://music.163.com/song?id=1499781983",
+      "cover": "https://p1.music.126.net/sQG2lCm3wfJRbamzM48wPQ==/109951165608405503.jpg?param=120y120",
+      "playable": false
     },
     {
       "title": "エルフの湖の不思議な宝",
@@ -2144,7 +2276,9 @@
       "album": "FORM ANOTHER WORLD",
       "playCount": 0,
       "score": 32,
-      "url": "https://music.163.com/song?id=1449614339"
+      "url": "https://music.163.com/song?id=1449614339",
+      "cover": "https://p1.music.126.net/E0OLiie9RkFVM9omr0hSew==/109951165002742905.jpg?param=120y120",
+      "playable": true
     },
     {
       "title": "Katami",
@@ -2152,7 +2286,9 @@
       "album": "Arche",
       "playCount": 0,
       "score": 32,
-      "url": "https://music.163.com/song?id=1374074895"
+      "url": "https://music.163.com/song?id=1374074895",
+      "cover": "https://p1.music.126.net/0xuFVSeaH-xiZTzQQueQ8g==/109951164173019814.jpg?param=120y120",
+      "playable": true
     },
     {
       "title": "そのいのち",
@@ -2160,7 +2296,9 @@
       "album": "AINOU",
       "playCount": 0,
       "score": 32,
-      "url": "https://music.163.com/song?id=1323535946"
+      "url": "https://music.163.com/song?id=1323535946",
+      "cover": "https://p1.music.126.net/seJn5mGh67LSiWf3BQuqjA==/109951168763496243.jpg?param=120y120",
+      "playable": true
     },
     {
       "title": "色は匂へど 散りぬるを (Full Version)",
@@ -2168,7 +2306,9 @@
       "album": "色は匂へど 散りぬるを",
       "playCount": 0,
       "score": 29,
-      "url": "https://music.163.com/song?id=869450"
+      "url": "https://music.163.com/song?id=869450",
+      "cover": "https://p1.music.126.net/70memt_g74RISXNT5XyzNQ==/109951173517546112.jpg?param=120y120",
+      "playable": false
     },
     {
       "title": "Alone",
@@ -2176,7 +2316,9 @@
       "album": "Alone",
       "playCount": 0,
       "score": 29,
-      "url": "https://music.163.com/song?id=30830713"
+      "url": "https://music.163.com/song?id=30830713",
+      "cover": "https://p1.music.126.net/m3nfNFHRZCc9hHM0SC6LwQ==/109951170303210547.jpg?param=120y120",
+      "playable": true
     },
     {
       "title": "言っちゃいけないことばっか浮かぶよな",
@@ -2184,7 +2326,9 @@
       "album": "imagine",
       "playCount": 0,
       "score": 29,
-      "url": "https://music.163.com/song?id=2082330819"
+      "url": "https://music.163.com/song?id=2082330819",
+      "cover": "https://p1.music.126.net/k6sJsG30rdYmRkfN8Z6lZA==/109951168916555109.jpg?param=120y120",
+      "playable": true
     },
     {
       "title": "スピカ",
@@ -2192,7 +2336,9 @@
       "album": "スピカ",
       "playCount": 0,
       "score": 29,
-      "url": "https://music.163.com/song?id=2053002545"
+      "url": "https://music.163.com/song?id=2053002545",
+      "cover": "https://p1.music.126.net/iJgF27jpNs2WsqjOtZz4wg==/109951168658186614.jpg?param=120y120",
+      "playable": true
     },
     {
       "title": "あのね。",
@@ -2200,7 +2346,19 @@
       "album": "あのね。",
       "playCount": 0,
       "score": 29,
-      "url": "https://music.163.com/song?id=1942631186"
+      "url": "https://music.163.com/song?id=1942631186",
+      "cover": "https://p1.music.126.net/lT4lIr6Wq-LZ2tm43NpbsQ==/109951167354012562.jpg?param=120y120",
+      "playable": false
+    },
+    {
+      "title": "ぎゅっと。",
+      "artist": "もさを。",
+      "album": "ぎゅっと。",
+      "playCount": 0,
+      "score": 29,
+      "url": "https://music.163.com/song?id=1465933612",
+      "cover": "https://p1.music.126.net/ZyDngSaZ-dWJcxY5D5yHjQ==/109951165173912088.jpg?param=120y120",
+      "playable": false
     },
     {
       "title": "Morning Glory",
@@ -2208,7 +2366,9 @@
       "album": "冬のライラ",
       "playCount": 0,
       "score": 29,
-      "url": "https://music.163.com/song?id=1316563175"
+      "url": "https://music.163.com/song?id=1316563175",
+      "cover": "https://p1.music.126.net/8ESe3tD4bmqvOnGzp1wUag==/109951163594771173.jpg?param=120y120",
+      "playable": true
     },
     {
       "title": "パプリカ",
@@ -2216,7 +2376,9 @@
       "album": "パプリカ",
       "playCount": 0,
       "score": 29,
-      "url": "https://music.163.com/song?id=1294889666"
+      "url": "https://music.163.com/song?id=1294889666",
+      "cover": "https://p1.music.126.net/73Mr8_bi4jJEvvN5AhWkRA==/109951166200175284.jpg?param=120y120",
+      "playable": false
     },
     {
       "title": "大丈夫",
@@ -2224,7 +2386,9 @@
       "album": "日常ドラマチック",
       "playCount": 0,
       "score": 26,
-      "url": "https://music.163.com/song?id=428203967"
+      "url": "https://music.163.com/song?id=428203967",
+      "cover": "https://p1.music.126.net/_iDi9b0Ze_jgjYnRU08dWQ==/109951166201686527.jpg?param=120y120",
+      "playable": false
     },
     {
       "title": "Freedom Dive",
@@ -2232,7 +2396,9 @@
       "album": "Parousia",
       "playCount": 0,
       "score": 26,
-      "url": "https://music.163.com/song?id=22791468"
+      "url": "https://music.163.com/song?id=22791468",
+      "cover": "https://p1.music.126.net/XCb39SCb8wtEB4HmDp42_g==/109951172976717269.jpg?param=120y120",
+      "playable": false
     },
     {
       "title": "Henceforth",
@@ -2240,7 +2406,9 @@
       "album": "",
       "playCount": 0,
       "score": 26,
-      "url": "https://music.163.com/song?id=2055817859"
+      "url": "https://music.163.com/song?id=2055817859",
+      "cover": "https://p1.music.126.net/mt4FOSfwGuJLzl_wgTskbA==/109951168679015094.jpg?param=120y120",
+      "playable": true
     },
     {
       "title": "Automaton Waltz",
@@ -2248,7 +2416,9 @@
       "album": "Seasons",
       "playCount": 0,
       "score": 26,
-      "url": "https://music.163.com/song?id=1991282192"
+      "url": "https://music.163.com/song?id=1991282192",
+      "cover": "https://p1.music.126.net/tMW8rCSFMCOB0Mevzv5fEQ==/109951167986519685.jpg?param=120y120",
+      "playable": false
     },
     {
       "title": "曇り空の向こうは晴れている",
@@ -2256,7 +2426,9 @@
       "album": "曇り空の向こうは晴れている (Special Edition)",
       "playCount": 0,
       "score": 26,
-      "url": "https://music.163.com/song?id=1962120904"
+      "url": "https://music.163.com/song?id=1962120904",
+      "cover": "https://p1.music.126.net/C87F_aVZvdbHBrlKvRM4SA==/109951167638105003.jpg?param=120y120",
+      "playable": false
     },
     {
       "title": "SOLROS and the Will of the Altaïr",
@@ -2264,15 +2436,9 @@
       "album": "SOLROS and the Will of the Altaïr",
       "playCount": 0,
       "score": 26,
-      "url": "https://music.163.com/song?id=1493975181"
-    },
-    {
-      "title": "ぎゅっと。",
-      "artist": "もさを。",
-      "album": "ぎゅっと。",
-      "playCount": 0,
-      "score": 26,
-      "url": "https://music.163.com/song?id=1465933612"
+      "url": "https://music.163.com/song?id=1493975181",
+      "cover": "https://p2.music.126.net/KRm6DEu9CUTEqqVc1MLnbg==/109951165454892763.jpg?param=120y120",
+      "playable": true
     },
     {
       "title": "EZ4ENCE (kannatuslaulu)",
@@ -2280,7 +2446,9 @@
       "album": "EZ4ENCE (kannatuslaulu)",
       "playCount": 0,
       "score": 26,
-      "url": "https://music.163.com/song?id=1346907833"
+      "url": "https://music.163.com/song?id=1346907833",
+      "cover": "https://p2.music.126.net/mXEv9aXxfiUGGyhjrvUm_Q==/109951163872509815.jpg?param=120y120",
+      "playable": false
     },
     {
       "title": "白猫海賊船",
@@ -2288,7 +2456,9 @@
       "album": "未来茶屋 vol.0",
       "playCount": 0,
       "score": 26,
-      "url": "https://music.163.com/song?id=1343016814"
+      "url": "https://music.163.com/song?id=1343016814",
+      "cover": "https://p2.music.126.net/mog628G4JLNEMi-GpWxccQ==/109951164647211717.jpg?param=120y120",
+      "playable": false
     },
     {
       "title": "Everywhere We Go",
@@ -2296,7 +2466,9 @@
       "album": "三角度",
       "playCount": 0,
       "score": 23,
-      "url": "https://music.163.com/song?id=65739"
+      "url": "https://music.163.com/song?id=65739",
+      "cover": "https://p2.music.126.net/hDa6w1Bw7LfUPw2VSa0HAw==/18564154325374364.jpg?param=120y120",
+      "playable": false
     },
     {
       "title": "僕はストーカーです",
@@ -2304,7 +2476,9 @@
       "album": "僕はストーカーです",
       "playCount": 0,
       "score": 23,
-      "url": "https://music.163.com/song?id=2139253055"
+      "url": "https://music.163.com/song?id=2139253055",
+      "cover": "https://p2.music.126.net/fwQp4OEI5m6WhtuGFa34Gg==/109951171863329522.jpg?param=120y120",
+      "playable": false
     },
     {
       "title": "Fluorite Eye's Song -Piano Version-",
@@ -2312,7 +2486,9 @@
       "album": "Vivy -Fluorite Eye's Song- Original Soundtrack",
       "playCount": 0,
       "score": 23,
-      "url": "https://music.163.com/song?id=1853302823"
+      "url": "https://music.163.com/song?id=1853302823",
+      "cover": "https://p2.music.126.net/JBNNcAiTuwfzkQemoZCXCg==/109951166153008322.jpg?param=120y120",
+      "playable": false
     },
     {
       "title": "Rinn Ding Dong",
@@ -2320,7 +2496,9 @@
       "album": "Rinn Ding Dong - L'avenir de la Flesvelka -",
       "playCount": 0,
       "score": 20,
-      "url": "https://music.163.com/song?id=569214129"
+      "url": "https://music.163.com/song?id=569214129",
+      "cover": "https://p2.music.126.net/ZfbQFUQZdb9lNCk-RPtA_g==/109951163322583625.jpg?param=120y120",
+      "playable": true
     },
     {
       "title": "烟袋斜街",
@@ -2328,7 +2506,9 @@
       "album": "烟袋斜街",
       "playCount": 0,
       "score": 20,
-      "url": "https://music.163.com/song?id=464863017"
+      "url": "https://music.163.com/song?id=464863017",
+      "cover": "https://p2.music.126.net/tTRaVql9l0ZwQ2Y3oSZ9pQ==/109951162874838750.jpg?param=120y120",
+      "playable": true
     },
     {
       "title": "活得自在",
@@ -2336,7 +2516,9 @@
       "album": "新青年",
       "playCount": 0,
       "score": 20,
-      "url": "https://music.163.com/song?id=29796799"
+      "url": "https://music.163.com/song?id=29796799",
+      "cover": "https://p2.music.126.net/uT33BU2wpBI4HmsdmA7vwg==/109951164545926687.jpg?param=120y120",
+      "playable": false
     },
     {
       "title": "芒果花开",
@@ -2344,7 +2526,9 @@
       "album": "芒果花开",
       "playCount": 0,
       "score": 20,
-      "url": "https://music.163.com/song?id=2696002694"
+      "url": "https://music.163.com/song?id=2696002694",
+      "cover": "https://p2.music.126.net/Ier-sAPSaGxM8h4hKMVvng==/109951173694653958.jpg?param=120y120",
+      "playable": false
     },
     {
       "title": "千本桜",
@@ -2352,7 +2536,9 @@
       "album": "千本桜",
       "playCount": 0,
       "score": 20,
-      "url": "https://music.163.com/song?id=26096272"
+      "url": "https://music.163.com/song?id=26096272",
+      "cover": "https://p2.music.126.net/Eez3bqyDCuzHd9pqXH6TUw==/109951164270676617.jpg?param=120y120",
+      "playable": false
     },
     {
       "title": "没那种命",
@@ -2360,7 +2546,9 @@
       "album": "绝对收藏",
       "playCount": 0,
       "score": 20,
-      "url": "https://music.163.com/song?id=25642694"
+      "url": "https://music.163.com/song?id=25642694",
+      "cover": "https://p2.music.126.net/0wKSjHaHoSArmeNRVTcjKw==/755364488324199.jpg?param=120y120",
+      "playable": false
     },
     {
       "title": "戏说",
@@ -2368,7 +2556,9 @@
       "album": "戏说",
       "playCount": 0,
       "score": 20,
-      "url": "https://music.163.com/song?id=2162921106"
+      "url": "https://music.163.com/song?id=2162921106",
+      "cover": "https://p2.music.126.net/imJiPRseJ0tHM96APsBsng==/109951169652010061.jpg?param=120y120",
+      "playable": false
     },
     {
       "title": "王维说",
@@ -2376,7 +2566,9 @@
       "album": "王维说",
       "playCount": 0,
       "score": 20,
-      "url": "https://music.163.com/song?id=2115966555"
+      "url": "https://music.163.com/song?id=2115966555",
+      "cover": "https://p2.music.126.net/hK_NPhDxXVNkLCROC5pMGA==/109951169248010397.jpg?param=120y120",
+      "playable": true
     },
     {
       "title": "Rose Girl's Prayer",
@@ -2384,7 +2576,9 @@
       "album": "Sunset Rose garden",
       "playCount": 0,
       "score": 20,
-      "url": "https://music.163.com/song?id=2025682911"
+      "url": "https://music.163.com/song?id=2025682911",
+      "cover": "https://p2.music.126.net/iGBwzbMGWFy6VXKxPkZrTw==/109951168294600931.jpg?param=120y120",
+      "playable": true
     },
     {
       "title": "クリームソーダとシャンデリア",
@@ -2392,7 +2586,9 @@
       "album": "クリームソーダとシャンデリア",
       "playCount": 0,
       "score": 20,
-      "url": "https://music.163.com/song?id=1877070976"
+      "url": "https://music.163.com/song?id=1877070976",
+      "cover": "https://p2.music.126.net/e-FuiMbRWAKh5X3OnjXgEA==/109951166372077112.jpg?param=120y120",
+      "playable": true
     },
     {
       "title": "キミマツ",
@@ -2400,7 +2596,9 @@
       "album": "うれD",
       "playCount": 0,
       "score": 17,
-      "url": "https://music.163.com/song?id=551337458"
+      "url": "https://music.163.com/song?id=551337458",
+      "cover": "https://p2.music.126.net/28iwEj222aULOt2NCU646Q==/109951166095625565.jpg?param=120y120",
+      "playable": false
     },
     {
       "title": "When I saw you I fell in love",
@@ -2408,7 +2606,9 @@
       "album": "When I saw you I fell in love",
       "playCount": 0,
       "score": 17,
-      "url": "https://music.163.com/song?id=527554410"
+      "url": "https://music.163.com/song?id=527554410",
+      "cover": "https://p2.music.126.net/xTyEVJTBDJxwZ22ZP3Js4Q==/109951163097124501.jpg?param=120y120",
+      "playable": true
     }
   ]
 }
