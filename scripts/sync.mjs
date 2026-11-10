@@ -35,6 +35,12 @@ const UA =
 /* ------------------------------------------------------------------ 工具 */
 function log(...a) { console.log("[sync]", ...a); }
 
+/* 大数字加千分位：77025 → 77,025。
+   六位数直接印出来很难一眼读出量级，加个逗号立刻可读。 */
+function fmtCount(n) {
+  return String(Math.round(Number(n) || 0)).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+}
+
 async function readJSON(p, fallback) {
   try { return JSON.parse(await fs.readFile(p, "utf8")); }
   catch { return fallback; }
@@ -99,16 +105,54 @@ function decodeEntities(s) {
 void decodeEntities;
 
 /* ============================================================ 1. 网易云 */
-/* 接口：GET /api/v1/play/record?uid={uid}&type=1
- *   type=1 → 最近一周（本脚本用这个）
- *   type=0 → 所有时间
- * 返回：{ code, weekData: [{ playCount, song: { name, ar[], al{}, id } }] }
- * 没有 cookie 时通常返回 weekData: []，属于正常情况。 */
+/* 要两样东西，来源是两个不同的接口 —— 这一点很关键：
+ *
+ *   A. 累计听歌数 + 等级
+ *      GET /api/v1/user/detail/{uid}      ← 不需要登录
+ *      返回 { listenSongs: 77025, level: 10, profile: {...} }
+ *      ⚠️ 旧文档里的 /api/user/detail?uid= 已经 404，只有这个路径还在。
+ *
+ *   B. 听歌排行（带每首歌的播放次数）
+ *      GET /api/v1/play/record?uid={uid}&type=1     ← 需要 MUSIC_U cookie
+ *          type=1 → weekData（最近一周）   type=0 → allData（所有时间）
+ *      返回 { weekData: [ { playCount, song: { name, ar[], al{}, id } } ] }
+ *      没 cookie 时返回 { code: -2, msg: "无权限访问" }。
+ *
+ * 为什么把 A 和 B 拆开抓：
+ *   以前只抓 B。一旦 cookie 过期或没配，整个 JSON 就写不出来，
+ *   页面上一片示例数据 —— 而 A 根本不需要登录，白丢了。
+ *   现在 A 拿到就写 A，B 拿到就写 B，互不牵连。
+ */
+const USER_DETAIL = (uid) =>
+  `https://music.163.com/api/v1/user/detail/${encodeURIComponent(uid)}`;
+const PLAY_RECORD = (uid, type) =>
+  `https://music.163.com/api/v1/play/record?uid=${encodeURIComponent(uid)}&type=${type}`;
+
+/* 把接口返回的一条记录拍平成页面要的形状。
+   字段名在不同接口/不同年代之间飘过好几次（song / ar / artists / al / album），
+   所以这里宁可多写几个兜底，也不要让某一首因为少一个字段就整条丢掉。 */
+function normTrack(it) {
+  const s = (it && it.song) || it || {};
+  const ar = Array.isArray(s.ar) ? s.ar : Array.isArray(s.artists) ? s.artists : [];
+  const al = s.al || s.album || {};
+  return {
+    title: s.name || s.title || "",
+    artist: ar.map((a) => (a && a.name) || "").filter(Boolean).join(" / "),
+    album: (al && al.name) || "",
+    playCount: Number(it && (it.playCount ?? it.score)) || 0,
+    url: s.id ? `https://music.163.com/song?id=${s.id}` : ""
+  };
+}
+
+function parseJSON(body) {
+  try { return JSON.parse(body); } catch { return null; }
+}
+
 async function syncNetease() {
   const uid = (process.env.NETEASE_UID || await pickFromConfig("neteaseUid") || "").trim();
   const cookie = (process.env.NETEASE_COOKIE || "").trim();
   const outPath = path.join(DATA_DIR, "netease.json");
-  const prev = await readJSON(outPath, { tracks: [] });
+  const prev = await readJSON(outPath, {});
 
   if (!uid || uid === "000000000") {
     log("网易云：还没有填 UID，跳过");
@@ -122,42 +166,64 @@ async function syncNetease() {
   };
   if (cookie) headers.cookie = cookie;
 
-  const url = `https://music.163.com/api/v1/play/record?uid=${encodeURIComponent(uid)}&type=1`;
-  const body = await fetchText(url, { headers });
+  /* ---------------------------------------- A. 累计听歌（不需要登录） */
+  const detail = parseJSON(await fetchText(USER_DETAIL(uid), { headers })) || {};
+  const totalSongs = Number(detail.listenSongs) || 0;
+  const level = Number(detail.level) || 0;
+  const nickname = (detail.profile && detail.profile.nickname) || "";
+  if (totalSongs) {
+    log(`网易云：累计听歌 ${totalSongs} 首${level ? "，Lv." + level : ""}${nickname ? "（" + nickname + "）" : ""}`);
+  } else {
+    log("网易云：没拿到累计听歌数（接口结构可能又变了）");
+  }
 
-  let json = null;
-  try { json = JSON.parse(body); } catch { /* 不是 JSON 就当失败 */ }
+  /* ------------------------------------ B. 本周 / 全部 听歌排行 */
+  const week = parseJSON(await fetchText(PLAY_RECORD(uid, 1), { headers })) || {};
+  const all = parseJSON(await fetchText(PLAY_RECORD(uid, 0), { headers })) || {};
 
-  const raw = json && (json.weekData || json.allData);
-  if (!Array.isArray(raw) || !raw.length) {
-    log("网易云：没拿到播放记录。检查 ① cookie 是否过期 ② 听歌排行是否公开");
-    // 保留上一次成功的数据，不要把已有的歌单擦成空
-    if (Array.isArray(prev.tracks) && prev.tracks.length) {
-      log("网易云：沿用上一次的数据（" + prev.tracks.length + " 首）");
-    }
+  const pick = (resp) => {
+    const raw = resp && (resp.weekData || resp.allData);
+    if (!Array.isArray(raw)) return null;          // null = 没抓到，区别于"抓到了但为空"
+    return raw.map(normTrack).filter((t) => t.title);
+  };
+
+  const weekTracks = pick(week);
+  const allTracks = pick(all);
+
+  if (weekTracks === null && allTracks === null) {
+    log("网易云：没拿到听歌排行。检查 ① NETEASE_COOKIE 是否配了 / 过期 ② 听歌排行是否公开");
+    if (week && week.code === -2) log("网易云：接口回的是「无权限访问」—— 这就是缺 cookie 的症状");
+  }
+
+  /* 排行抓不到就沿用上一次的，别把已经有内容的列表擦成空。
+     累计听歌是这次新拿到的，照样要写进去。 */
+  const finalWeek = weekTracks && weekTracks.length ? weekTracks : (prev.week || prev.tracks || []);
+  const finalAll = allTracks && allTracks.length ? allTracks : (prev.allTime || []);
+  const finalTotal = totalSongs || Number(prev.totalSongs) || 0;
+  const finalLevel = level || Number(prev.level) || 0;
+
+  if (!finalWeek.length && !finalTotal) {
+    log("网易云：什么都没有拿到，保持原样");
     return 0;
   }
 
-  const tracks = raw.slice(0, 12).map((it) => {
-    const s = it.song || {};
-    const artists = Array.isArray(s.ar) ? s.ar.map((a) => a.name).filter(Boolean).join(" / ") : "";
-    return {
-      title: s.name || "",
-      artist: artists,
-      album: (s.al && s.al.name) || "",
-      url: s.id ? `https://music.163.com/song?id=${s.id}` : ""
-    };
-  }).filter((t) => t.title);
-
-  if (!tracks.length) { log("网易云：解析后没有有效曲目，跳过"); return 0; }
-
-  await writeJSON(outPath, {
+  const payload = {
     updated: new Date().toISOString(),
     uid,
-    tracks
-  });
-  log(`网易云：已同步 ${tracks.length} 首`);
-  return tracks.length;
+    totalSongs: finalTotal,
+    level: finalLevel,
+    week: finalWeek,
+    allTime: finalAll,
+    /* tracks = week，留给还没有升级的前端 / 旧缓存 */
+    tracks: finalWeek
+  };
+  await writeJSON(outPath, payload);
+
+  if (finalWeek.length) log(`网易云：听歌排行已同步 ${finalWeek.length} 首（带播放次数）`);
+  if (!totalSongs && finalTotal) log("网易云：累计听歌沿用上次的值");
+  /* 返回"这次真的抓到几首"。以前这里写 `|| 1`，本意是"写成功就算有进展"，
+     结果 empty 的排行会被下游当成"本周在听 1 首"写进摘要卡 —— 一个假数字。 */
+  return finalWeek.length;
 }
 
 /* ==================================================== 2. 摘要卡的真实数据 */
@@ -183,29 +249,47 @@ async function syncPreviewStats(trackCount) {
   const outPath = path.join(DATA_DIR, "previews.json");
   const prev = await readJSON(outPath, { items: {} });
   const items = { ...(prev.items || {}) };
+  const listen = await readJSON(path.join(DATA_DIR, "netease.json"), {});
+  const totalSongs = Number(listen.totalSongs) || 0;
 
-  if (!trackCount) {
-    log("摘要：这次没有播放记录，不动摘要卡");
+  if (!trackCount && !totalSongs) {
+    log("摘要：这次没有可用的网易云数据，不动摘要卡");
     return;
   }
 
   // 只补 stats，**不碰** title / meta / cover ——
   // 那三样是你手写的，自动数据没有资格覆盖。
+  const stats = [];
+  // 累计听歌是这张卡最有分量的一格：一个六位数的数字，比"本周 N 首"更像"我听了多少年"
+  if (totalSongs) stats.push({ label: "累计听歌", value: fmtCount(totalSongs) + " 首" });
+  if (trackCount) stats.push({ label: "本周在听", value: trackCount + " 首" });
+  if (!stats.length) return;
+
   items.netease = {
     ...(items.netease || {}),
-    stats: [
-      { label: "本周在听", value: trackCount + " 首" },
+    stats: stats.concat([
       { label: "同步于", value: new Date().toISOString().slice(5, 10).replace("-", "/") }
-    ]
+    ])
   };
 
   await writeJSON(outPath, { updated: new Date().toISOString(), items });
-  log("摘要：已为网易云卡片补上真实统计（" + trackCount + " 首）");
+  log("摘要：已为网易云卡片补上真实统计（" + stats.map((s) => s.label + "=" + s.value).join("，") + "）");
 }
 
 /* --------------------------------------------------------------- 入口 */
 async function main() {
   log("开始同步", new Date().toISOString());
+
+  /* Actions 里给"配漏了"一个显眼提示。
+     这一步只在 GitHub 上生效（本地跑没有 GITHUB_ACTIONS），
+     作用是让人在 Actions 页面直接看到黄色的 annotation，
+     而不是滚半天日志才发现"原来一直没配 cookie"。 */
+  const annotate = (msg) => {
+    if (process.env.GITHUB_ACTIONS) console.log("::warning::" + msg);
+  };
+  if (!process.env.NETEASE_COOKIE) {
+    annotate("没有配置 NETEASE_COOKIE，听歌排行抓不到（累计听歌不受影响）。见 README 第五节。");
+  }
 
   let count = 0;
   try { count = await syncNetease(); }

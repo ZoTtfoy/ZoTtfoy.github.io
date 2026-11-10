@@ -47,9 +47,9 @@ zotrod-homepage/
 ├── themes.html                   # ★ 风格总览：14 种组合并排真实预览
 ├── .nojekyll                     # 让 GitHub Pages 不跳过下划线目录
 ├── .github/workflows/deploy.yml  # 推送后自动部署，一般不用动
-├── .github/workflows/sync.yml    # 每天抓一次网易云「最近在听」（见第五节）
+├── .github/workflows/sync.yml    # 每天抓一次网易云听歌排行 + 累计听歌（见第五节）
 ├── data/
-│   ├── netease.json              # 同步产物：最近播放（自动生成）
+│   ├── netease.json              # 同步产物：听歌排行 + 累计听歌（自动生成）
 │   └── previews.json             # 同步产物：摘要卡统计（自动生成）
 ├── scripts/
 │   └── sync.mjs                  # 同步脚本：网易云播放记录（Node 原生，无依赖）
@@ -100,6 +100,7 @@ zotrod-homepage/
 │   ├── verify-devices.js         # 15 种手机比例适配
 │   ├── verify-calc.js            # 维修估价器：跳转 / 重算 / 回改 / 键盘
 │   ├── verify-copy.js            # 四个复制入口：反馈不许动 DOM、Toast 不回显账号
+│   ├── verify-listen.js          # 听歌排行：次数 / 累计听歌 / 一屏容量
 │   ├── verify-swipe.js           # 手势翻页
 │   ├── verify-visual.js          # 可选：Chromium 真机式布局验证
 │   ├── verify-dom.js             # 可选：jsdom 真实 DOM 深度验证
@@ -403,9 +404,20 @@ Toast 只说「已复制 QQ」，不回显账号。`tools/verify-copy.js` 逐条
 
 ### 为什么需要一个仓库里的定时任务
 
-网易云**没有**公开的「最近播放」接口。私有接口要求两件事，而这两件浏览器都做不到：
+这一屏要两样东西，来自**两个不同的接口**，权限要求也不一样：
 
-1. 带 `MUSIC_U` 登录 cookie（跨域请求会被拦）
+| 要什么 | 接口 | 要不要登录 |
+| --- | --- | --- |
+| 累计听歌数、等级 | `GET /api/v1/user/detail/{uid}` | **不用** |
+| 听歌排行（含每首播放次数） | `GET /api/v1/play/record?uid=&type=1` | 要 `MUSIC_U` cookie |
+
+> 旧文档里的 `/api/user/detail?uid=` 已经 404，只剩上面那个 `{uid}` 路径写法。
+> `type=1` 是最近一周，`type=0` 是所有时间。
+
+排行接口带登录态才能读（不带 cookie 会回 `{"code":-2,"msg":"无权限访问"}`），
+而浏览器端做不到两件事：
+
+1. 带 `MUSIC_U` cookie（跨域请求会被拦）
 2. 请求体做 AES + RSA 加密（`weapi` / `eapi` 协议）
 
 GitHub Pages 是纯静态托管，没有服务端能替你转发和加密。所以流程是：
@@ -429,6 +441,47 @@ GitHub Actions（每天 10:10）→ 用你的 cookie 抓 → 写 data/netease.js
 - **网格**：桌面 3 列（6 首正好两行）、平板 2 列、手机 1 列。
   手机上若用 2 列，每块只有 165px，曲名会被截成 8 个字 —— 而曲名是这一屏的正文。
 - **落单的磁贴通栏**：4 首或 5 首时最后一格横跨整行，避免右边留缺口。
+
+### 一块磁贴的排版：两行网格
+
+```
+┌──────┬────────────────────┬────┐
+│      │ 反方向的钟          │ ▷  │   ← 第一行：曲名拿到全部宽度
+│  01  ├────────────────────┼────┤
+│      │ 周杰伦 · 范特西     │128次│  ← 第二行：副标左、次数右
+└──────┴────────────────────┴────┘
+```
+
+播放次数**放在第二行右侧**，不挤进第一行 —— 320px 的两列里每块只有 123px，
+再分给次数 34px，曲名连四个字都放不下。序号跨两行居中，竖排仍然整齐。
+`.track__main` 用 `display: contents` 把曲名和副标提升成网格项，DOM 不用改。
+
+> ⚠️ 手机块里那条 `.track { padding: 9px 11px; column-gap: 10px; row-gap: 1px; }`
+> **必须分开写 column-gap / row-gap**。写成 `gap: 10px` 会同时把行距设成 10px，
+> 两行文字之间空出 10px，六行就是白白多出 60px —— 390×844 立刻从 roomy 掉到 tight。
+
+### 一屏放几首，是按高度算出来的
+
+真实排行有 6 首，而示例数据只有 3 首 —— 这个差别藏了很久：
+320×568 上六行单列会把第二屏撑到 787px（超屏 219px），
+paged.js 只好把**整站**降级成可滚动。
+
+所以曲目数不是写死的 `limit`，而是 `render.js` 里 `trackCap()` 按视口倒推：
+
+```
+rows = round((视口高度 - 350) / 84)     // 350 = 页头 + 卡片内边距 + 页脚
+曲目数 = rows × 列数                     // 列数由宽度决定（1 / 2 / 3）
+```
+
+350 和 84（磁贴 75px + 间距 8px）都是在真浏览器里量出来的。
+**改了磁贴的内边距、字号或行距，这两个数要重新量** —— 否则又会撑破一屏。
+
+| 机型 | 曲目数 | 档位 |
+| --- | --- | --- |
+| 1440×900 桌面 | 6（3 列 × 2 行） | roomy |
+| 390×844 | 6 | roomy |
+| 375×667 | 4 | roomy |
+| 320×568 | 3 | snug |
 
 想微调：`blocks.css` 里的 `.vinyl`（大小/位置/透明度）和 `.track`（磁贴外观）。
 改主题色后唱片中心会自动跟随。
@@ -459,9 +512,13 @@ GitHub Actions（每天 10:10）→ 用你的 cookie 抓 → 写 data/netease.js
 
 | 情况 | 表现 |
 | --- | --- |
-| 没配 cookie / cookie 过期 | 脚本写日志后正常退出（退出码 0），保留上一次的数据 |
-| 从来没成功过 | `data/netease.json` 里 `tracks` 为空，前端用 `config.js` 的 `listen.fallback` |
+| 没配 cookie / cookie 过期 | 排行沿用上一次的数据；**累计听歌照常更新**（它不需要登录） |
+| 从来没成功过 | `data/netease.json` 里 `tracks` 为空，前端用 `config.js` 的 `listen.fallback`，页脚照样显示累计听歌 |
 | 网络错误 / JSON 损坏 | `sync.js` 静默降级，控制台不报错 |
+
+脚本会把两个接口分别处理：**累计听歌拿到就写，排行拿到就写，互不牵连**。
+早先只有一个接口，cookie 一缺整个 JSON 都写不出来，页面上是一片示例数据 ——
+而累计听歌本来不需要登录，白丢了。
 
 cookie 大约 3~12 个月会失效。失效后页面会停在最后一次成功的数据上，
 底部状态会从「已同步」显示成「示例数据」，这时重新存一次 cookie 即可。
@@ -935,6 +992,7 @@ node tools/verify-devices.js  # 15 种机型：字号下限 / 不超屏 / 每屏
 
 # 可选：真实浏览器验证布局与交互（需 npm install playwright-core --no-save && npx playwright install chromium）
 node tools/verify-calc.js     # 估价器：选完自动跳转 / 价格算法 / 回改 / 触控高度 / 键盘
+node tools/verify-listen.js   # 听歌排行：播放次数 / 累计听歌 / 各机型一屏装得下（--sample 用样本）
 node tools/verify-copy.js     # 四个复制入口：反馈不动 DOM / Toast 不回显账号 / 剪贴板对账
 node tools/verify-swipe.js    # 手势翻页：竖向拦截 / 横向让位 / 多指忽略
 node tools/verify-visual.js   # 一屏一页 / 页码不压内容 / 吸附落位 / 光效 / 触屏

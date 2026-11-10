@@ -5,7 +5,7 @@
  *    网易云的「最近播放」没法从浏览器直连（要 MUSIC_U cookie + weapi 加密），
  *    所以由仓库里的 GitHub Actions 定时抓取，写成两个 JSON 文件：
  *
- *      data/netease.json   →  { tracks: [ { title, artist, album, url } ] }
+ *      data/netease.json   →  { totalSongs, level, week: [ { title, artist, album, playCount, url } ], tracks }
  *      data/previews.json  →  { items: { netease: { title, meta, cover, stats } } }
  *
  *    这个脚本只做一件事：fetch 这两个文件，成功就覆盖页面上的占位内容，
@@ -46,26 +46,57 @@
     if (el && value) el.textContent = String(value);
   }
 
-  /* ------------------------------------------------- Q2：最近在听 */
+  /* ------------------------------------------------- Q2：听歌排行 */
+  /* 两种半成品都要能用：
+       · 只有排行、没有累计听歌（旧缓存） → 画排行，页脚不显示总数
+       · 只有累计听歌、没有排行（没配 cookie） → 排行保持兜底，页脚照样有总数
+     以前这里一上来就 `if (!tracks.length) return false`，把第二种情况直接丢了。 */
   function applyTracks(data) {
-    if (!data || !Array.isArray(data.tracks) || !data.tracks.length) return false;
-    if (!window.SITE_RENDER || typeof window.SITE_RENDER.setTracks !== "function") return false;
+    if (!data) return false;
+    if (!window.SITE_RENDER) return false;
+
+    var meta = {
+      totalSongs: Number(data.totalSongs) || 0,
+      level: Number(data.level) || 0,
+      updated: typeof data.updated === "string" ? data.updated : "",
+      live: true
+    };
+    var hasMeta = meta.totalSongs > 0;
 
     // 只接受长得对的条目，脏数据直接跳过而不是把整列表画崩
-    var clean = data.tracks.filter(function (t) {
+    var raw = Array.isArray(data.tracks) && data.tracks.length ? data.tracks
+            : Array.isArray(data.week) && data.week.length ? data.week
+            : [];
+    var clean = raw.filter(function (t) {
       return t && typeof t.title === "string" && t.title.trim();
     }).map(function (t) {
       return {
         title: t.title,
         artist: t.artist || "",
         album: t.album || "",
+        playCount: Number(t.playCount) || 0,
         url: typeof t.url === "string" && /^https?:\/\//.test(t.url) ? t.url : ""
       };
     });
 
-    if (!clean.length) return false;
-    window.SITE_RENDER.setTracks(clean, "live");
-    return true;
+    if (clean.length) {
+      window.SITE_RENDER.setTracks(clean, "live", meta);
+      return true;
+    }
+
+    /* 没有排行：至少把累计听歌写在页脚，而不是什么都不做。
+       ⚠️ 这里**不能**带 live:true —— 页面上还是兜底曲目，
+       页脚却写"已同步"，那就是拿一个真数字给一排假歌背书。
+       交给 render 去显示「排行待同步」。 */
+    if (hasMeta && typeof window.SITE_RENDER.setListenMeta === "function") {
+      window.SITE_RENDER.setListenMeta({
+        totalSongs: meta.totalSongs,
+        level: meta.level,
+        updated: meta.updated
+      });
+      return false;
+    }
+    return false;
   }
 
   /* --------------------------------------- Q1 / Q4：外链摘要卡回填 */

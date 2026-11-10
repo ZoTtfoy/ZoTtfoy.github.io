@@ -1,5 +1,17 @@
 {
-  "_comment": "由 .github/workflows/sync.yml 自动生成，请勿手动编辑。items 里的每个键对应 config.js 中 previews[].id / repair.xianyu.id。抓不到数据的键会保持缺席，前端用 config.js 里的文字兜底。",
-  "updated": null,
-  "items": {}
+  "updated": "2026-11-10T08:24:30.156Z",
+  "items": {
+    "netease": {
+      "stats": [
+        {
+          "label": "累计听歌",
+          "value": "77,025 首"
+        },
+        {
+          "label": "同步于",
+          "value": "11/10"
+        }
+      ]
+    }
+  }
 }

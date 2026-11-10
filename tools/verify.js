@@ -246,6 +246,33 @@ check(typeof ctx.SITE_SYNC === 'object' && typeof ctx.SITE_SYNC.applyTracks === 
   check(H('trackList').includes('A'), '脏数据不会覆盖已有列表');
   ctx.SITE_SYNC.applyTracks(null);
   check(H('trackList').includes('A'), 'null 不会导致崩溃');
+
+  /* 听歌排行：播放次数要印出来，而且要有千分位 */
+  ctx.SITE_SYNC.applyTracks({
+    totalSongs: 77025,
+    week: [
+      { title: '反方向的钟', artist: '周杰伦', album: '范特西', playCount: 128 },
+      { title: '海底', artist: '一支榴莲', playCount: 1200 }
+    ],
+    tracks: [
+      { title: '反方向的钟', artist: '周杰伦', album: '范特西', playCount: 128 },
+      { title: '海底', artist: '一支榴莲', playCount: 1200 }
+    ]
+  });
+  check(H('trackList').includes('track__plays'), '排行带播放次数');
+  check(H('trackList').includes('128'), '播放次数写入页面');
+  check(H('trackList').includes('1,200'), '播放次数有千分位');
+  check(byId.get('trackList')?.attrs?.['data-ranked'] === '1',
+    '带次数时标记 data-ranked（供手机单列用）');
+  check(H('listenFoot').includes('累计听歌'), '页脚显示累计听歌');
+  check(H('listenFoot').includes('77,025'), '累计听歌有千分位');
+
+  /* 只有累计听歌、没有排行（没配 cookie 的常见情况）：
+     排行保持兜底，页脚照样要更新 —— 这是以前被丢掉的一半数据。 */
+  const keep = H('trackList');
+  ctx.SITE_SYNC.applyTracks({ totalSongs: 66000, tracks: [] });
+  check(H('trackList') === keep, '没有排行时不擦掉已有列表');
+  check(H('listenFoot').includes('66,000'), '只有累计听歌时也更新页脚');
   void before;
 }
 

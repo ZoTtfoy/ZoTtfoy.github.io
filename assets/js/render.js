@@ -204,15 +204,33 @@ window.SITE_RENDER = (function () {
   /* ========================================================== Q2 · 在听 */
   /* 一首歌 = 一块磁贴。磁贴吸附在主卡片的唱片底纹上：
      序号、曲名、歌手、播放入口，四样都在一块里，不再是一行行的表格。
-     序号用等宽数字 —— 01~06 竖向对齐时，列表看起来才整齐。 */
+     序号用等宽数字 —— 01~06 竖向对齐时，列表看起来才整齐。
+
+     ⚠️ 2026-11-10 从「最近在听」改成「听歌排行」：
+     以前只显示歌名，其实网易云那边每首歌都有播放次数，只是被脚本丢掉了。
+     现在每块右侧印出「N 次」，这一屏才真的回答了"你最近在听什么"——
+     不是"有哪些歌"，而是"哪几首听得最多、听了几遍"。 */
+  function fmtNum(n) {
+    return String(Math.round(Number(n) || 0)).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  }
+
+  /* sync.js 抓来的额外信息（累计听歌 / 等级 / 同步时间）。
+     和曲目分开存：排行抓不到时（缺 cookie），这几个数字照样有。 */
+  var listenMeta = { total: 0, level: 0, updated: "", live: false };
+
   function trackHtml(t, i) {
     var meta = [t.artist, t.album].filter(Boolean).join(" · ");
+    var plays = Number(t.playCount) > 0
+      ? '<span class="track__plays">' + fmtNum(t.playCount) +
+        '<span class="track__plays-unit">次</span></span>'
+      : "";
     return '<li class="track" style="' + delay(i, 45) + '" data-reveal>' +
              '<span class="track__idx">' + String(i + 1).padStart(2, "0") + "</span>" +
              '<span class="track__main">' +
                '<span class="track__title">' + esc(t.title || "") + "</span>" +
                (meta ? '<span class="track__meta">' + esc(meta) + "</span>" : "") +
              "</span>" +
+             plays +
              (t.url
                ? '<a class="track__go" href="' + esc(t.url) + '" target="_blank" rel="noopener noreferrer"' +
                  ' aria-label="在网易云打开 ' + esc(t.title || "") + '">' + icon("play") + "</a>"
@@ -220,30 +238,84 @@ window.SITE_RENDER = (function () {
            "</li>";
   }
 
-  /* 把"最近在听"画出来。sync.js 抓到真实数据后也会调用它。 */
-  function setTracks(list, source) {
+  /* 页脚：数据来源 + 累计听歌 + 外链。
+     累计听歌是这一屏唯一一个"总量"指标，所以给它单独一个位置和字号，
+     而不是和"已同步"挤在同一行小字里。 */
+  function paintListenFoot() {
+    var foot = $("listenFoot");
+    if (!foot) return;
+    var d = C.listen || {};
+    var uid = d.neteaseUid || "";
+    var link = uid && uid !== "000000000"
+      ? "https://music.163.com/#/user/home?id=" + encodeURIComponent(uid)
+      : "https://music.163.com/";
+
+    /* 三种状态，页脚说三种话：
+         · 排行已同步        → 已同步
+         · 只有累计听歌      → 排行待同步（数字是真的，歌还是兜底，不能写"已同步"）
+         · 什么都没有        → 示例数据 · 等待首次同步 */
+    var src = listenMeta.live
+      ? '<span class="listen__src is-live"><span class="live-dot" aria-hidden="true"></span>已同步</span>'
+      : listenMeta.total
+        ? '<span class="listen__src is-pending">排行待同步</span>'
+        : '<span class="listen__src">示例数据 · 等待首次同步</span>';
+
+    var stat = listenMeta.total
+      ? '<span class="listen__stat">累计听歌 <b>' + fmtNum(listenMeta.total) + "</b> 首</span>"
+      : "";
+
+    foot.innerHTML =
+      '<span class="listen__meta">' + src + stat + "</span>" +
+      '<a class="listen__more" href="' + esc(link) + '" target="_blank" rel="noopener noreferrer">' +
+        "去网易云看看" + icon("arrow-up-right") + "</a>";
+  }
+
+  /* 一屏最多放几首？
+     从可用高度倒推，而不是写死 limit —— 320×568 上六行单列会把这一屏
+     撑到 787px（超屏 219px），paged.js 只好把整站降级成可滚动。
+     以前没暴露：示例数组只有 3 首，恰好装得下；真实排行有 6 首，立刻溢出。
+
+     常数是实测的：390×844 下单列磁贴 75px 高 + 8px 间距，
+     页头/卡片内边距/页脚共约 350px。350 和 84(75+8) 是在真浏览器里
+     量出来的，不是猜的 —— 改磁贴的内边距或字号，这两个数要跟着重测。 */
+  function trackCap() {
+    var w = window.innerWidth || 400;
+    var h = window.innerHeight || 800;
+    var cols = w <= 680 ? 1 : w <= 900 ? 2 : 3;
+    var rows = Math.max(2, Math.round((h - 350) / 84));
+    return rows * cols;
+  }
+
+  /* 把"听歌排行"画出来。sync.js 抓到真实数据后也会调用它。 */
+  function setTracks(list, source, meta) {
     var d = C.listen || {};
     var ul = $("trackList");
     if (!ul) return;
-    var items = arr(list).slice(0, d.limit || 6);
+
+    if (source) listenMeta.live = source === "live";
+    if (meta) {
+      if (Number(meta.totalSongs) > 0) listenMeta.total = Number(meta.totalSongs);
+      if (Number(meta.level) > 0) listenMeta.level = Number(meta.level);
+      if (meta.updated) listenMeta.updated = meta.updated;
+    }
+
+    var items = arr(list).slice(0, Math.min(d.limit || 6, trackCap()));
     ul.innerHTML = items.map(trackHtml).join("");
     ul.setAttribute("data-count", String(items.length));
+    /* 有播放次数时加这个标记：手机上要换成单列，
+       否则两列里每块只剩 ~100px 放"曲名 + 次数"，两样都会被截断。 */
+    ul.setAttribute("data-ranked", items.some(function (t) { return Number(t.playCount) > 0; }) ? "1" : "0");
+    paintListenFoot();
+  }
 
-    var foot = $("listenFoot");
-    if (foot) {
-      var uid = d.neteaseUid || "";
-      var link = uid && uid !== "000000000"
-        ? "https://music.163.com/#/user/home?id=" + encodeURIComponent(uid)
-        : "https://music.163.com/";
-      foot.innerHTML =
-        '<span class="listen__src">' +
-          (source === "live"
-            ? '<span class="live-dot" aria-hidden="true"></span>已同步'
-            : "示例数据 · 等待首次同步") +
-        "</span>" +
-        '<a class="listen__more" href="' + esc(link) + '" target="_blank" rel="noopener noreferrer">' +
-          "去网易云看看" + icon("arrow-up-right") + "</a>";
-    }
+  /* 只更新页脚（累计听歌变了、但排行没变时用） */
+  function setListenMeta(meta) {
+    if (!meta) return;
+    if (Number(meta.totalSongs) > 0) listenMeta.total = Number(meta.totalSongs);
+    if (Number(meta.level) > 0) listenMeta.level = Number(meta.level);
+    if (meta.updated) listenMeta.updated = meta.updated;
+    if (meta.live) listenMeta.live = true;
+    paintListenFoot();
   }
 
   function renderListen() {
@@ -496,6 +568,7 @@ window.SITE_RENDER = (function () {
     icon: icon,
     applyAccent: applyAccent,
     setTracks: setTracks,      // sync.js 用：抓到真实播放记录后重画
+    setListenMeta: setListenMeta, // sync.js 用：只更新累计听歌 / 同步状态
     previewCard: previewCard   // sync.js 用
   };
 })();
