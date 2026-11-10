@@ -266,7 +266,11 @@ window.SITE_RENDER = (function () {
 
     foot.innerHTML =
       '<span class="listen__meta">' + src + stat + "</span>" +
-      '<a class="listen__more" href="' + esc(link) + '" target="_blank" rel="noopener noreferrer">' +
+      /* 窄屏（≤400px）只留箭头，文字用 font-size:0 收掉 ——
+         320px 下「去网易云看看」会把页脚挤成两行，多出的 29px
+         正好把这一屏顶出屏幕。文字仍在 DOM 里，读屏照常念。 */
+      '<a class="listen__more" href="' + esc(link) + '" target="_blank" rel="noopener noreferrer"' +
+        ' aria-label="去网易云看看" title="去网易云看看">' +
         "去网易云看看" + icon("arrow-up-right") + "</a>";
   }
 

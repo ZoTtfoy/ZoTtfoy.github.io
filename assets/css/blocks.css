@@ -664,6 +664,17 @@ html[data-scrolling="on"] .vinyl::before { animation-play-state: paused; }
 .listen__more .icon { width: 13px; height: 13px; }
 .listen__more:hover { color: var(--text); }
 
+/* 窄屏：页脚必须留在一行。
+   320px 的卡片只有 246px，而「排行待同步 + 累计听歌 77,025 首 + 去网易云看看」
+   加起来约 307px —— 折成两行就是多 29px，正好把这一屏顶出屏幕
+   （实测 590 > 568，paged.js 于是把整站降级成可滚动）。
+   这里把外链文字收掉、只留箭头，页脚回到 231px，一行放得下。
+   文字用 font-size:0 隐藏，元素和可访问名都还在，读屏不受影响。 */
+@media (max-width: 400px) {
+  .listen__more { font-size: 0; gap: 0; }
+  .listen__more .icon { width: 16px; height: 16px; }
+}
+
 /* 同步成功的绿点：静态就好，不做呼吸动画 */
 .live-dot {
   width: 6px;
