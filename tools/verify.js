@@ -329,6 +329,25 @@ check(count('mobileNavList', /<li>/g) === enabledKeys.length, '移动导航与�
 /* 导航编号从 02 起（01 是首屏 Q1，不占导航项） */
 check(!H('navList').includes('>01<') || enabledKeys.length === 0,
   '导航编号从 02 开始（01 留给首屏）');
+/* 导航里不能有点不动的项：config.sections 多写一个屏就是一条死链 ——
+   render.js 现在按"页面上有没有这一屏"过滤，这里守的是同一条线 */
+{
+  const navHrefs = (H('navList').match(/href="#[^"]+"/g) || []).map(a => a.slice(7, -1));
+  check(navHrefs.length > 0, '导航渲染出了链接（' + navHrefs.length + ' 条）');
+  check(navHrefs.every(id => byId.has(id)), '导航链接都指向真实存在的屏');
+  check(navHrefs.length === enabledKeys.length,
+    '导航条数与启用模块一致（导航 ' + navHrefs.length + ' / 配置 ' + enabledKeys.length + '）');
+}
+/* 首屏两个按钮的 target 必须是真实存在的锚点。
+   6 屏重构删掉了 about / services 等旧屏，配置里的 #services 就成了死按钮 ——
+   点了没反应，比没有按钮更糟。 */
+for (const key of ['heroPrimary', 'heroSecondary']) {
+  const el = byId.get(key);
+  const href = el ? el.getAttribute('href') : null;
+  check(!!href && href.charAt(0) === '#' && byId.has(href.slice(1)),
+    key + ' 指向真实存在的屏（' + href + '）');
+}
+
 /* 六个页面 id 必须都在 DOM 里，否则翻页引擎会漏页 */
 for (const id of ['top', 'listen', 'gaming', 'repair', 'links', 'contact']) {
   check(byId.has(id), '页面存在: #' + id);

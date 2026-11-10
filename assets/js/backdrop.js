@@ -53,7 +53,15 @@ window.SITE_BACKDROP = (function () {
 
     var blur = clamp(num(B.imageBlur, 0), 0, 40);
     var opacity = clamp(num(B.imageOpacity, 0.35), 0, 1);
-    var scrim = clamp(num(B.scrim, 0.65), 0.15, 0.95);   // 下限 0.15：再低文字就没保障了
+    var scrim = clamp(num(B.scrim, 0.65), 0.15, 0.95);
+    /* 可读性下限：图片最终露出来的比例 = opacity × (1 - scrim)。
+       纯黑 / 纯白这种最坏图下，比例超过 0.12 正文对比度就压不到 4.5
+       （verify-backdrop 会拿最坏图逐套主题量）。用户把图调得很实，
+       就把遮罩自动补上去 —— 宁可图淡，不可字糊。 */
+    var MAX_VIS = 0.12;
+    if (opacity * (1 - scrim) > MAX_VIS) {
+      scrim = Math.min(0.95, 1 - MAX_VIS / Math.max(opacity, 0.01));
+    }
     var gridSize = clamp(num(B.gridSize, 64), 24, 200);
     var starsOpacity = clamp(num(B.bdStarsOpacity, 0.5), 0.05, 1);
 

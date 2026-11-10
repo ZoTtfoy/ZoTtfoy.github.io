@@ -390,24 +390,33 @@ window.SITE_RENDER = (function () {
   }
 
   /* ---------- 导航 + 模块开关 / 排序 ---------- */
+  function pad2(n) { return (n < 10 ? "0" : "") + n; }
+
   function renderSections() {
     var conf = C.sections || {};
+    var wrap = $("sections");
+    /* 只认页面上真实存在的屏。
+       旧草稿里的 about / services / interests / social 会一直留在 config.sections 里，
+       照着渲染就会变成四个点不动的死链，编号还会被顶到「010」——
+       配置是数据，导航不能拿数据当事实，得拿页面当事实。 */
     var list = Object.keys(conf)
-      .filter(function (k) { return conf[k] && conf[k].enabled !== false; })
+      .filter(function (k) {
+        return conf[k] && conf[k].enabled !== false &&
+          (!wrap || wrap.querySelector('[data-section="' + k + '"]'));
+      })
       .sort(function (a, b) { return (conf[a].order || 0) - (conf[b].order || 0); });
 
     var navHtml = "", mNavHtml = "";
     list.forEach(function (key, i) {
       var label = esc(conf[key].label || key);
       navHtml += '<li><a class="nav__link" href="#' + key + '" data-nav="' + key + '">' +
-                 '<span class="nav__num">0' + (i + 2) + "</span>" + label + "</a></li>";
+                 '<span class="nav__num">' + pad2(i + 2) + "</span>" + label + "</a></li>";
       mNavHtml += '<li><a href="#' + key + '" data-mnav="' + key + '">' +
                   "<span>" + label + "</span>" + icon("arrow-up-right") + "</a></li>";
     });
     set("navList", navHtml);
     set("mobileNavList", mNavHtml);
 
-    var wrap = $("sections");
     if (!wrap) return;
     Object.keys(conf).forEach(function (key) {
       var el = wrap.querySelector('[data-section="' + key + '"]');

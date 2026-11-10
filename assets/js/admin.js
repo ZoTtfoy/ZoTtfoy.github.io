@@ -177,6 +177,10 @@ window.ADMIN = {
   function pruneDraft(d) {
     if (!d || typeof d !== "object") return d;
     DROPPED_KEYS.forEach(function (k) { delete d[k]; });
+    /* sections 里也留着一份：老草稿的 sections.about / services / interests / social
+       会被原样写回 config，页面照着渲染就是四个点不动的死链，编号还会被顶到「010」。
+       两处一起删，别只删顶层。 */
+    if (d.sections) DROPPED_KEYS.forEach(function (k) { delete d.sections[k]; });
     if (d.site) DROPPED_SITE.forEach(function (k) { delete d.site[k]; });
     return d;
   }
