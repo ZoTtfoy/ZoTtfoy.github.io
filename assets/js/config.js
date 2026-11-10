@@ -520,7 +520,7 @@ window.SITE_CONFIG = {
           stars: true
         },
       gridSize: 64,
-      starsOpacity: 0.5,
+      starsOpacity: 0.6,
       image: "assets/backdrop/mesh.svg",
       imageOpacity: 1,
       imageBlur: 24,
@@ -533,7 +533,7 @@ window.SITE_CONFIG = {
       clock: true,
       progress: true,
       quote: true,
-      quoteRemote: false
+      quoteRemote: true
     },
   quotes: [
       "把复杂的东西，做得简单一点。",
@@ -557,8 +557,8 @@ window.SITE_CONFIG = {
       enabled: true,
       title: "我的歌单",
       artist: "网易云音乐",
-      src: "",
-      link: "https://music.163.com/",
+      src: "https://music.163.com/#/song?id=733149",
+      link: "https://music.163.com/#/user/home?id=1695307327",
       loop: true,
       volume: 0.6
     },
