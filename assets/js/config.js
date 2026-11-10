@@ -502,7 +502,7 @@ window.SITE_CONFIG = {
               label: "邮箱",
               handle: "写信给我",
               url: "",
-              copy: "zotrod"
+              copy: "Zotrod@163.com"
             }
         ]
     },
