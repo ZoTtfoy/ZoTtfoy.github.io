@@ -47,10 +47,11 @@
   display: block;
   width: clamp(72px, 9vw, 92px);
   height: clamp(72px, 9vw, 92px);
+  border: 0;                 /* 同顶栏头像：深色下不要那圈浅色描边 */
   border-radius: 50%;
+  background: transparent;
   object-fit: cover;
-  background: var(--bg-soft);
-  border: 1px solid var(--line);
+  object-position: 50% 42%;
 }
 
 .profile__greet {
@@ -378,92 +379,147 @@
 }
 
 /* ============================================================ Q2 · 在听 */
-/* 这一屏从「两列文字列表」改成了「唱片 + 磁贴」：
- *
- *   ┌─────────────────────────────────────────┐
- *   │        ╭──────╮   ← 黑胶在转（底纹）      │
- *   │       │  ◉   │                          │
- *   │  ┌────────┐ ┌────────┐   ╰──────╯       │
- *   │  │01 曲名  │ │02 曲名  │                 │
- *   │  │  歌手   │ │  歌手   │                 │
- *   │  └────────┘ └────────┘                 │
- *   │  ┌────────┐ ┌────────┐                 │
- *   │  │03 曲名  │ │04 曲名  │   已同步 · 去网易云│
- *   │  └────────┘ └────────┘                 │
- *   └─────────────────────────────────────────┘
- *
- * 两个刻意的决定：
- *   1. 唱片是**底纹**不是主体（opacity 很低）。做成实心大唱片会把磁贴挤到边上，
- *      而这一屏真正要读的是「最近听了什么」。
- *   2. 磁贴半透明（86%）让唱片纹路透出来一点，这就是「吸附」的观感来源 ——
- *      磁贴像是贴在唱片上，而不是飘在另一个平面上。
- *      不用 backdrop-filter：它是整屏级的模糊，滚动时会掉帧（前面 backdrop.css
- *      已经踩过同样的坑，一次掉帧从 0 涨到 4/110）。 */
+/* 2026-11-11：底层从「纯 CSS 黑胶」换成「这周听的 100 首专辑封面」。
+   6 行，1/3/5 行左移、2/4/6 行右移，每周按 ISO 周轮换一批。
+   结构、缩放与循环公式见 assets/js/albumwall.js 的顶注。 */
 
+/* 专辑墙是 #listen 的直接子元素，铺满整屏；内容压在它上面。 */
+#listen { position: relative; isolation: isolate; }
+#listen > .container { position: relative; z-index: 1; }
+
+/* 容器本身必须透明 —— 它是一整块底板的话，再漂亮的封面也只能从边缘露出来。
+   可读性交给每张磁贴自己的实底 + 标题/页脚的光晕。 */
 .listen-card {
   position: relative;
-  overflow: hidden;
   padding: clamp(20px, 3vw, 30px);
-  border: 1px solid var(--line);
+  border: 1px solid var(--line-strong);
   border-radius: var(--r-lg);
-  background: var(--bg-elev);
+  background: transparent;
 }
 
 .listen-card__body { position: relative; z-index: 1; }
 
-/* ------------------------------------------------------------- 黑胶唱片 */
-/* 2026-11-11 重做：从「纯 CSS 同心圆」换成内联 SVG。
- *
- * 为什么换 —— 原来那版确实假，原因很具体：
- *   1. `repeating-radial-gradient` 3px 间隔画音槽。但真实唱片的槽距在
- *      一张 380px 的图上是**亚像素级**的，人眼根本分不出圈，只会读成
- *      "一片均匀的深灰"。画出看得见的圈 = 立刻露出"这是代码画的"。
- *   2. 没有高光。黑胶之所以像黑胶，靠的是盘面上那两道对角反光扇区 ——
- *      光滑表面反射环境光的结果。没有它，再密的纹路也只是一个灰色圆盘。
- *   3. 没有厚度。少了外缘的倒角亮边与内侧暗边，看着像贴纸不像实体。
- *
- * 现在 SVG 里做的三件事：音槽只给极细的环状明暗（不勾线）、
- * 两道对角高光、外缘倒角 + 中心纸标 + 轴孔。
- *
- * ⚠️ 转动分两层，这是"像不像在转"的关键：
- *      音槽与分隔纹在转（刻在盘面上，跟着盘走）
- *      高光**不转**（光源在环境里固定，盘转时反光位置基本不动）
- *    整张一起转的话，高光会跟着甩 —— 一眼假，像贴了张图在转圈。
- */
-.vinyl {
+/* --------------------------------------------------- 专辑封面拼贴背景 */
+.albumwall {
   position: absolute;
-  top: 50%;
-  right: clamp(-90px, -6vw, -40px);
-  width: clamp(260px, 34vw, 380px);
-  aspect-ratio: 1;
-  transform: translateY(-50%);
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  contain: paint;
   pointer-events: none;
-  opacity: .3;
 }
 
-.vinyl__art { width: 100%; height: 100%; display: block; }
-
-/* 转动层：只转纹路。transform-origin 用 viewBox 的中心（120 120，
-   viewBox 是 240×240，所以是 50% 50%）。 */
-.vinyl__spin {
-  transform-origin: 50% 50%;
-  animation: vinyl-spin 26s linear infinite;
+/* 固定 2400×2400 实例，只靠一个 scale 适配所有设备。
+   不旋转（行是水平的），所以 scale = max(W/2400, H/2400) × 1.05 就够了。 */
+.albumwall__grid {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: var(--aw-inst, 2400px);
+  height: var(--aw-inst, 2400px);
+  display: grid;
+  grid-template-rows: repeat(6, var(--aw-tile, 400px));
+  gap: 0;
+  transform: translate(-50%, -50%) scale(var(--aw-scale, 1));
+  transform-origin: center;
 }
 
-/* 纯 rotate：没有任何位移，换布局时不用改它 */
-@keyframes vinyl-spin {
-  from { transform: rotate(0deg); }
-  to   { transform: rotate(360deg); }
+/* 一行 = 两份完全相同的 6 张封面（4800px 宽）。
+   X 位移限制在 [-2400, 0]，内容始终盖住实例 [0,2400]。 */
+.albumwall__row {
+  position: relative;
+  display: flex;
+  gap: 0;
+  width: calc(var(--aw-period, 2400px) * 2);
+  height: var(--aw-tile, 400px);
+  will-change: transform;
+  /* 纯合成器动画：主线程一帧都不用管。
+     @keyframes 由 albumwall.js 按常量注入（aw-move-left / aw-move-right），
+     时长由每行的 --aw-dur（已按倍率算好）决定。
+     linear + infinite = 匀速、首尾相接（两份内容相同，归位处画面一致）。 */
+  animation-name: aw-move-left;
+  animation-duration: var(--aw-dur, 80s);
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+.albumwall__row[data-dir="right"] { animation-name: aw-move-right; }
+
+/* 离屏 / 标签页隐藏 / 减少动效：暂停。
+   ⚠️ 用 animation-play-state 而不是把 animation 设成 none ——
+     后者会把动画重置到起点，用户切回来时墙会"跳一下"。 */
+.albumwall[data-paused] .albumwall__row { animation-play-state: paused; }
+@media (prefers-reduced-motion: reduce) {
+  .albumwall__row { animation: none; }
+}
+/* 行与行的交接：一条 6px 的向下羽化带，从透明到极淡的暗。
+   不做成实线（那会变成"条纹"），而是让上一行的底边轻轻压进下一行，
+   硬切就变成了过渡。同时它也盖住了上下相邻两图之间可能存在的 1px 缝。 */
+.albumwall__row::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -3px;
+  height: 9px;
+  background: linear-gradient(to bottom, transparent, rgb(0 0 0 / 0.11));
+  pointer-events: none;
 }
 
-/* 滚动时停转 —— 和背景光球同一条经验：
-   任何"在变"的整屏级图层都会让合成器在滚动时额外忙一遍。
-   唱片面积约 380×380，滚动时旋转会明显抢帧。 */
-html[data-scrolling="on"] .vinyl__spin { animation-play-state: paused; }
+/* ⚠️ 缝隙处理（用户专门点名的「图片交接」和「上下交接处」）：
+     · display:block 去掉 <img> 的 inline 基线缝；
+     · gap:0 去掉 flex/grid 的间隙；
+     · 每格宽高比标称多 1px，再用 margin-right:-1px 把占位收回去 ——
+       相邻格**重叠 1px**，缩放产生的亚像素白缝被盖住，
+       而占位仍精确 400px，循环周期不会一点点漂移；
+     · 高度多出的 1px 溢出到下一行顶部，盖住「上下交接处」。
+   不用负 margin 让所有格子整体位移那种做法 —— 累积到行尾会错位。 */
+.albumwall__row img {
+  display: block;
+  flex: 0 0 auto;
+  /* 重叠从 1px 加到 2px：整体缩放后 1px 会被插值成半像素，
+     在部分缩放比下仍会透出一条亮线；2px 才稳。
+     margin 把占位收回去，所以循环周期仍精确等于 6×400 = 2400。 */
+  width: calc(var(--aw-tile, 400px) + 2px);
+  height: calc(var(--aw-tile, 400px) + 2px);
+  margin-right: -2px;
+  object-fit: cover;
+  filter: saturate(.86);
+  background: var(--bg-soft);
+}
+/* CDN 临时故障不能开天窗 */
+.albumwall__row img.is-broken {
+  background: linear-gradient(135deg, var(--bg-soft), var(--bg-elev));
+}
 
-/* 浅色主题下唱片要更沉（0.3 的白高光在浅底上几乎看不见，需要提高不透明度） */
-[data-theme="light"] .vinyl { opacity: .34; }
-[data-theme="dark"] .vinyl { opacity: .5; }
+/* 遮罩：边缘压实（和前后两屏接得上），中间只留 40% ——
+   第一版压到 58~76%，截图里整面墙几乎全白，等于白做了。
+   文字可读性靠光晕和磁贴实底，不靠把背景压没。 */
+.albumwall__scrim {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(to bottom,
+      color-mix(in srgb, var(--bg) 88%, transparent) 0%,
+      color-mix(in srgb, var(--bg) 64%, transparent) 12%,
+      color-mix(in srgb, var(--bg) 40%, transparent) 35%,
+      color-mix(in srgb, var(--bg) 40%, transparent) 65%,
+      color-mix(in srgb, var(--bg) 66%, transparent) 88%,
+      color-mix(in srgb, var(--bg) 88%, transparent) 100%);
+}
+@supports not (background: color-mix(in srgb, red 50%, transparent)) {
+  .albumwall__scrim { background: var(--bg); opacity: .68; }
+}
+
+/* 标题与页脚直接压在彩色封面上，不能垫底板（会挡住背景），
+   用和 Q3 一样的三层光晕把字周围的封面推开。var(--bg) 会跟主题走。 */
+#listen .section__head > *,
+#listen .listen__foot,
+#listen .listen__foot * {
+  text-shadow: 0 0 6px var(--bg), 0 0 16px var(--bg), 0 0 30px var(--bg);
+}
+#listen .section__lead,
+#listen .eyebrow,
+#listen .listen__foot { color: var(--text); font-weight: 500; }
 
 /* --------------------------------------------------------------- 磁贴 */
 /* 桌面 3 列：limit 默认 6 首，正好 2×3 铺满。
@@ -523,7 +579,7 @@ html[data-scrolling="on"] .vinyl__spin { animation-play-state: paused; }
   /* 半透明让底下的唱片纹路透出来 —— "吸附"的观感就来自这里。
      86% 是实测值：再低文字对比度不够（唱片纹路会干扰阅读），
      再高就完全看不见底纹了。 */
-  background: color-mix(in srgb, var(--bg-elev) 86%, transparent);
+  background: color-mix(in srgb, var(--bg-elev) 94%, transparent);
   transition: border-color var(--t-fast) var(--ease),
               background-color var(--t-fast) var(--ease);
 }
@@ -776,11 +832,7 @@ html[data-scrolling="on"] .vinyl__spin { animation-play-state: paused; }
   flex: none;
 }
 
-/* 减少动态效果：唱片停转（CSS 动画本身也会被 motion.css 的全局规则压掉，
-   这里显式写一遍是为了不依赖那层兜底） */
-@media (prefers-reduced-motion: reduce) {
-  .vinyl__spin { animation: none; }
-}
+/* 减少动态效果：封面墙静止由 albumwall.js 停掉 rAF，CSS 这边不用再写。 */
 
 /* 手机：磁贴单列还是双列？
    双列在 390px 下每块只有 165px，曲名会被截成 8 个字 —— 而曲名是这一屏的正文，
@@ -801,16 +853,8 @@ html[data-scrolling="on"] .vinyl__spin { animation-play-state: paused; }
   .track__title { font-size: .95rem; }
   .track__meta { font-size: .76rem; }
   .listen__foot { margin-top: 13px; font-size: .74rem; }
-  /* 唱片缩小并挪到右下角，避免盖住磁贴文字。
-     keyframes 不需要重写 —— 旋转在 .vinyl__spin 上，只有纯 rotate。 */
-  .vinyl {
-    top: auto;
-    bottom: -30%;
-    right: -26%;
-    width: 240px;
-    transform: none;
-    opacity: .22;
-  }
+  /* 封面墙不做手机特例：实例固定，JS 的 scale 已经按 max(宽,高) 等比缩好。
+     为窄屏另配一套行高只会让"填满"重新变得不可控。 */
 }
 
 /* ============================================================ Q4 · 维修 */

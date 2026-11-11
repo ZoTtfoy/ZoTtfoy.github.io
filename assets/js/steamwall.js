@@ -78,6 +78,7 @@ window.SITE_STEAMWALL = (function () {
 
   var wall = null, grid = null;
   var colsEls = [];
+  var io = null;              // 可见性裁决者（模块级，异步换数据后要复用）
   var apps = [];
   var portraitOnly = false;      // 是否只用了探测过的竖版封面
   var scale = 1;
@@ -272,6 +273,19 @@ window.SITE_STEAMWALL = (function () {
       portraitOnly = !!(d.portraitApps && d.portraitApps.length >= 6);
       build(apps);
       paint();
+      /* ⚠️ 数据回来后必须重新裁决一次要不要跑。
+         如果 config 里没有 fallback，第一次 build 没执行，init 末尾的
+         start() 会被空 colsEls 挡掉；这里填上 colsEls 后若什么都不做，
+         rAF 永远不启动（实测：72 张图全加载、方向也对，phase 恒为 0）。
+         但不能无脑 start() —— 那会让离屏很远的屏也常驻 rAF，
+         把 IntersectionObserver 的优化整个抵消掉。
+         重新 observe 一次，让 IO 按"此刻真实可见性"决定 start / stop。 */
+      if (io) {
+        var sec = document.getElementById("gaming");
+        if (sec) { io.unobserve(sec); io.observe(sec); }
+      } else {
+        start();
+      }
     });
 
     window.addEventListener("scroll", onScroll, { passive: true });
@@ -290,7 +304,7 @@ window.SITE_STEAMWALL = (function () {
           ⚠️ 不能留一整屏：gaming 是第三屏，留 100% 会让它在用户还停在
           首页时也算"可见"，rAF 照样常驻，等于没优化。 */
     if (typeof IntersectionObserver === "function") {
-      var io = new IntersectionObserver(function (entries) {
+      io = new IntersectionObserver(function (entries) {
         var visible = entries.some(function (e) { return e.isIntersecting; });
         if (visible) start(); else stopLoop();
       }, { rootMargin: "30% 0px" });

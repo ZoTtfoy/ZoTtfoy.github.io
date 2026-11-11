@@ -23,20 +23,25 @@
 .brand__mark--sm { width: 26px; height: 26px; border-radius: 8px; font-size: .75rem; }
 .brand__name { font-size: 1rem; }
 
-/* 图片头像：与字母方块同一尺寸，视觉上可以直接替换。
-   圆角跟设计刻度走：大号用 --r-sm(10)，小号用 --r-xs(4)。
-   ⚠️ 小号原来是写死的 8px —— 它不在 token 刻度上（4/10/16/22），
-   和其它所有圆角都对不齐，verify-unify 会把它当成"游离值"报出来。 */
+/* 图片头像：和首屏大头像统一成**圆形**裁剪。
+   ⚠️ 2026-11-11 修掉深色主题下的"白边"，根因是两条叠加：
+     1) `border: 1px solid var(--line)` —— 深色下 --line 是
+        rgba(255,255,255,.10)，在深色顶栏上就是一圈明显的浅色描边；
+     2) `border-radius: 10px` 的方角 + `background: var(--bg-soft)`，
+        图片四角被裁掉后露出一块方形底色，看着像没裁干净。
+   现在：无边框、圆形、透明底，图本身就是唯一的边界。
+   object-fit: cover + object-position 让偏上的角色不被裁掉下巴。 */
 .brand__avatar {
   display: block;
   width: 34px;
   height: 34px;
-  border-radius: var(--r-sm);
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
   object-fit: cover;
-  background: var(--bg-soft);
-  border: 1px solid var(--line);
+  object-position: 50% 42%;
 }
-.brand__avatar--sm { width: 26px; height: 26px; border-radius: var(--r-xs); }
+.brand__avatar--sm { width: 26px; height: 26px; }
 
 /* 首页头像：只在配置了图片时出现 */
 .hero__avatar { margin-bottom: clamp(22px, 3.4vh, 32px); }

@@ -277,7 +277,10 @@ async function browserChecks() {
 
     /* 一屏约束 */
     const layout = await page.evaluate(() => {
-      const pages = [...document.querySelectorAll('.hero, .section')];
+      const pages = [...document.querySelectorAll('.hero, .section')].filter(el => !el.hidden);
+      /* ⚠️ 必须滤掉 hidden 的屏：config.sections 可以把某屏设成 enabled:false
+         （2026-11-11 下掉的维修屏），那种 section 还在 DOM 里。
+         不滤的话 pages[i] 与 .pager__dot 的索引会整体错位一格。 */
       const g = document.getElementById('gaming');
       const rail = document.getElementById('gameRail');
       const cards = [...rail.querySelectorAll('.game')];
@@ -298,7 +301,10 @@ async function browserChecks() {
       };
     });
 
-    ok(layout.count === 6, tag + '共 6 章（含游戏）');
+    /* 章节数不再写死 6：2026-11-11 下掉维修屏后是 5 章。
+       写死数字等于每增删一屏就要改这里，而且改错了也指不出真问题。
+       真正要守的是"游戏页在其中、且每章都装得进一屏"（下面几条）。 */
+    ok(layout.count >= 4, tag + '共 ' + layout.count + ' 章（含游戏）');
     ok(layout.tall.length === 0, tag + '没有页面被迫放弃吸附' + (layout.tall.length ? '（' + layout.tall + '）' : ''));
     ok(layout.allFit, tag + '每页都在一屏内');
     ok(layout.gamingFit, tag + '游戏页在一屏内');
@@ -312,7 +318,7 @@ async function browserChecks() {
 
     /* 跳到游戏页（按 DOM 实际位置找，不写死索引） */
     const gameIdx = await page.evaluate(() => {
-      const pages = [...document.querySelectorAll('.hero, .section')];
+      const pages = [...document.querySelectorAll('.hero, .section')].filter(el => !el.hidden);
       return pages.findIndex(p => p.id === 'gaming');
     });
     await page.evaluate(i => {
@@ -323,7 +329,7 @@ async function browserChecks() {
     const onGame = await page.evaluate(() => {
       const dots = [...document.querySelectorAll('.pager__dot')];
       const i = dots.findIndex(d => d.classList.contains('is-current'));
-      const pages = [...document.querySelectorAll('.hero, .section')];
+      const pages = [...document.querySelectorAll('.hero, .section')].filter(el => !el.hidden);
       return { i, id: pages[i] && pages[i].id, label: dots[i] && dots[i].getAttribute('aria-label') };
     });
     ok(onGame.id === 'gaming', tag + '点对应页码能到游戏页（' + onGame.id + '）');
@@ -373,26 +379,26 @@ async function browserChecks() {
        注意用「最后一页的前一页」而非最后一页 —— 最后一页再往下会滚到页脚，
        落点不是页顶，视口守卫可能判定它不在视口内，那样测的就不是入场动画了。 */
     await page.evaluate(() => {
-      const pages = [...document.querySelectorAll('.hero, .section')];
+      const pages = [...document.querySelectorAll('.hero, .section')].filter(el => !el.hidden);
       pages.forEach(p => p.classList.remove('is-entering'));
       const dots = document.querySelectorAll('.pager__dot');
       dots[Math.max(1, dots.length - 2)].click();
     });
     /* 平滑滚动 + 停稳判定需要时间，轮询等入场标记出现（最多 1.6s） */
     await page.waitForFunction(() => {
-      const pages = [...document.querySelectorAll('.hero, .section')];
+      const pages = [...document.querySelectorAll('.hero, .section')].filter(el => !el.hidden);
       const i = [...document.querySelectorAll('.pager__dot')].findIndex(d => d.classList.contains('is-current'));
       return pages[i] && pages[i].classList.contains('is-entering');
     }, null, { timeout: 2500 }).catch(() => {});
     const during = await page.evaluate(() => ({
       n: document.querySelectorAll('.is-entering').length,
       onActive: (() => {
-        const pages = [...document.querySelectorAll('.hero, .section')];
+        const pages = [...document.querySelectorAll('.hero, .section')].filter(el => !el.hidden);
         const i = [...document.querySelectorAll('.pager__dot')].findIndex(d => d.classList.contains('is-current'));
         return pages[i] && pages[i].classList.contains('is-entering');
       })(),
       animName: (() => {
-        const pages = [...document.querySelectorAll('.hero, .section')];
+        const pages = [...document.querySelectorAll('.hero, .section')].filter(el => !el.hidden);
         const i = [...document.querySelectorAll('.pager__dot')].findIndex(d => d.classList.contains('is-current'));
         const first = pages[i] && pages[i].querySelector('.container > *');
         return first ? getComputedStyle(first).animationName : '-';

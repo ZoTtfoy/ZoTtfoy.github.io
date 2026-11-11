@@ -27,7 +27,10 @@ window.SITE_CONFIG = {
           label: "游戏"
         },
       repair: {
-          enabled: true,
+          /* 2026-11-11 下掉维修这一屏。
+             保留配置与代码（以后想恢复只要把这里改回 true），
+             render.js 会把它从导航里去掉、paged.js 会跳过隐藏的 section。 */
+          enabled: false,
           order: 3,
           label: "维修"
         },
@@ -321,7 +324,7 @@ window.SITE_CONFIG = {
         }
     },
   links: {
-      eyebrow: "05 / ELSEWHERE",
+      eyebrow: "04 / ELSEWHERE",
       title: "其他账号",
       lead: "挑一个你顺手的方式。",
       items: [
@@ -365,7 +368,7 @@ window.SITE_CONFIG = {
         ]
     },
   contact: {
-      eyebrow: "06 / MAIL",
+      eyebrow: "05 / MAIL",
       title: "写信给我",
       lead: "邮件是我最稳定的联系方式。",
       hint: "有项目、有问题，或者只是想聊两句？"

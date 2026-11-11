@@ -104,15 +104,30 @@ s = await state();
 ok(s.active === before3 + 1,
   "连滑两下（间隔 40ms）只翻一页（" + before3 + " → " + s.active + "）");
 
-/* ----------------------------------------------- 4. 间隔够久则各翻一页 */
-const before4 = s.active;
-await swipe(700, 400, 4, 6);
-await page.waitForTimeout(420);
-await swipe(700, 400, 4, 6);
-await page.waitForTimeout(1000);
-s = await state();
-ok(s.active === before4 + 2,
-  "间隔 420ms 的两下各翻一页（" + before4 + " → " + s.active + "）");
+/* ----------------------------------------------- 4. 间隔够久则各翻一页
+   ⚠️ 必须先确保后面还有**两屏**。
+   早先写死了"翻两页"，靠着全站 6 屏才成立；2026-11-11 下掉维修屏后只剩 5 屏，
+   跑到这一步时已经在第 3 屏，第二下直接撞到底 —— 断言变成"永远失败"，
+   而真实的锁时长一点问题都没有。所以先把位置退回到后面确实还有两屏的地方。 */
+{
+  const total = s.pages;
+  if (s.active + 2 > total - 1) {
+    await page.evaluate(() => window.SITE_PAGED.goTo(1));
+    await page.waitForTimeout(900);
+    s = await state();
+  }
+  ok(s.active + 2 <= s.pages - 1,
+    "第 4 组起点后面还有两屏可翻（第 " + s.active + " 屏 / 共 " + s.pages + " 屏）");
+
+  const before4 = s.active;
+  await swipe(700, 400, 4, 6);
+  await page.waitForTimeout(420);
+  await swipe(700, 400, 4, 6);
+  await page.waitForTimeout(1000);
+  s = await state();
+  ok(s.active === before4 + 2,
+    "间隔 420ms 的两下各翻一页（" + before4 + " → " + s.active + "）");
+}
 
 /* ------------------------------------------------------- 5. 下滑回上一页 */
 const before5 = s.active;

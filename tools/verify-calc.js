@@ -37,6 +37,20 @@ const ok = (c, m) => c ? notes.push('OK  ' + m) : fails.push(m);
   }));
   await page.goto(SITE, { waitUntil: 'load' });
   await page.waitForTimeout(900);
+  /* 2026-11-11 起维修屏在 config 里设成了 enabled:false（用户下掉了这一屏），
+     DOM 还在但 hidden。这个脚本验的是**计算器代码**，不是它当前有没有上架 ——
+     代码仍保留、以后可能恢复，所以照样要测。临时把这一屏显示出来即可，
+     不改配置、不影响导航（paged 已经 init 完了）。
+     ⚠️ 必须做成函数并**每次 goto 之后都调**：下面 Tab 测试为了清掉浏览器的
+        "顺序聚焦起点"会重新导航一次，重载后 render.js 会再把 hidden 设回来，
+        第一次展开就白做了。 */
+  const showRepair = () => page.evaluate(() => {
+    const r = document.getElementById('repair');
+    if (!r || !r.hidden) return false;
+    r.hidden = false;
+    return true;
+  });
+  if (await showRepair()) notes.push('--  维修屏当前已下掉，本轮临时展开以验证计算器代码');
   await page.locator('#repair').scrollIntoViewIfNeeded();
   await page.waitForTimeout(400);
 
@@ -170,6 +184,7 @@ const ok = (c, m) => c ? notes.push('OK  ' + m) : fails.push(m);
      blur() 清不掉这个起点，只有重新导航才行。 */
   await page.goto(SITE, { waitUntil: 'load' });
   await page.waitForTimeout(2200);
+  await showRepair();          /* 重载后 hidden 会被 render.js 重新设上 */
   await page.locator('#repair').scrollIntoViewIfNeeded();
   await page.waitForTimeout(400);
   /* 键盘可达性分三步验，不用"从页面顶部盲按 Tab"——

@@ -257,14 +257,27 @@ async function testTouch(browser) {
   await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
   await p.waitForTimeout(200);
 
-  /* 拖拽期间的帧率 */
-  const fps = await p.evaluate(async () => {
+  /* 拖拽期间的帧率 —— 改成**相对比较**，不再用绝对阈值。
+   *
+   *  为什么改（2026-11-11）：
+   *    原来的断言是 p50 ≤ 18ms（约 55fps），隐含假设"这一屏除了光效没有别的
+   *    大面积合成"。给「在听」页加了 6 行全屏专辑封面背景之后，无头浏览器
+   *    （没有 GPU，纯软件合成）在这一屏的静止帧率就是 33.3ms。
+   *
+   *    实测证据：把封面墙的动画暂停，仍然是 33.3ms；只渲染 3 行才回到 16.7ms
+   *    —— 说明开销来自"6 层全屏图片的静态合成"，与光效、与动画都无关，
+   *    更不是本次代码退化。用绝对阈值量出来的其实是运行环境的显卡能力。
+   *
+   *  现在量的是这条断言**本来要证明的事**：光效本身有没有额外开销。
+   *  同一页面、同一时刻，比较「光效显示」与「光效 display:none」两种状态的 p50。
+   *  这样在有 GPU 的机器上量到 16.7ms、在无头软件合成下量到 33.3ms，都成立。 */
+  const measure = () => p.evaluate(async () => {
     const t = [];
     let run = true;
     function tick(n) { t.push(n); if (run) requestAnimationFrame(tick); }
     requestAnimationFrame(n => { t.push(n); requestAnimationFrame(tick); });
     const t0 = performance.now();
-    while (performance.now() - t0 < 1000) {
+    while (performance.now() - t0 < 900) {
       await new Promise(r => requestAnimationFrame(r));
     }
     run = false;
@@ -272,9 +285,27 @@ async function testTouch(browser) {
     for (let i = 1; i < t.length; i++) d.push(t[i] - t[i - 1]);
     const c = d.slice(3);
     const s = [...c].sort((a, b) => a - b);
-    return { p50: +s[Math.floor(s.length / 2)].toFixed(1), over: c.filter(x => x > 20).length };
+    return +s[Math.floor(s.length / 2)].toFixed(1);
   });
-  ok(fps.p50 <= 18, tag + '拖拽光效未拖慢渲染（p50 ' + fps.p50 + 'ms）');
+
+  const glow = await p.evaluate(() => !!document.getElementById('dragGlow'));
+  ok(glow, tag + '存在拖拽光效层（#dragGlow）');
+
+  const p50With = await measure();
+  await p.evaluate(() => {
+    const g = document.getElementById('dragGlow');
+    if (g) g.style.display = 'none';
+  });
+  const p50Without = await measure();
+  await p.evaluate(() => {
+    const g = document.getElementById('dragGlow');
+    if (g) g.style.display = '';
+  });
+
+  /* 允许 30% + 2ms 的抖动：软件合成下帧时间本来就在 16.7/33.3 之间跳。 */
+  ok(p50With <= p50Without * 1.3 + 2,
+    tag + '拖拽光效未拖慢渲染（带光效 ' + p50With + 'ms vs 无光效 ' +
+    p50Without + 'ms）');
 
   if (errs.length) fails.push(tag + '控制台错误: ' + JSON.stringify(errs.slice(0, 3)));
   await ctx.close();

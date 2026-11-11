@@ -310,128 +310,27 @@ const skip = (m) => notes.push('--  ' + m);
     await page.evaluate(() => window.SITE_PLAYER.stop());
   }
 
-  /* ------------------------------------------------ 5. 黑胶 SVG */
-  const vinyl = await page.evaluate(() => {
-    const svg = document.querySelector('.vinyl__art');
-    if (!svg) return null;
-    const spin = svg.querySelector('.vinyl__spin');
-    const cs = spin ? getComputedStyle(spin) : null;
-    const box = svg.getBoundingClientRect();
-    return {
-      hasSvg: true,
-      circles: svg.querySelectorAll('circle').length,
-      hasSpin: !!spin,
-      spinAnim: cs ? cs.animationName : '',
-      /* 高光层**不在** .vinyl__spin 里 —— 盘转、光不转，这是像不像的关键 */
-      sheenOutsideSpin: (function () {
-        const ell = svg.querySelector('ellipse');
-        return !!ell && !spin.contains(ell);
-      })(),
-      /* 音槽不是画出来的一圈圈线（那会立刻显假），而是渐变起伏：
-         检查纹路组里没有密集的 stroke-width 描边圆 */
-      /* 分隔纹的 stroke 写在父级 <g> 上（继承），circle 自己没这个属性 ——
-         所以要按 g[stroke] 里的 circle 数，不然永远是 0。 */
-      grooveCircles: spin ? spin.querySelectorAll('g[stroke] circle').length : -1,
-      size: Math.round(box.width),
-      aspect: +(box.width / box.height).toFixed(2),
-      opacity: +getComputedStyle(document.querySelector('.vinyl')).opacity
-    };
-  });
+  /* ------------------------------------------------ 5. 背景：黑胶已下架
+     2026-11-11 用户要求去掉黑胶，换成整屏专辑封面墙。
+     详细的墙结构/方向/每周轮换/无缝断言在 verify-albumwall.js。
+     这里只守一条"别把黑胶加回来"，顺带确认新墙确实挂上了。 */
+  const bg = await page.evaluate(() => ({
+    vinyl: document.querySelectorAll('.vinyl, .vinyl__art').length,
+    wall: !!document.getElementById('albumWall'),
+    rows: document.querySelectorAll('.albumwall__row').length
+  }));
+  ok(bg.vinyl === 0, '黑胶已移除（DOM 里没有 .vinyl）');
+  ok(bg.wall && bg.rows === 6, '换成 6 行专辑封面墙（' + bg.rows + ' 行）');
 
-  ok(!!vinyl, '黑胶是 SVG（可跟随尺寸缩放，不用位图）');
-  if (vinyl) {
-    ok(vinyl.circles >= 10, '有足够的结构层（' + vinyl.circles + ' 个圆：盘体/音槽/分隔纹/纸标/轴孔）');
-    ok(vinyl.hasSpin && vinyl.spinAnim === 'vinyl-spin', '音槽层在转（动画名 vinyl-spin）');
-    ok(vinyl.sheenOutsideSpin, '高光不跟着转（光源固定，这是真实感的来源）');
-    ok(vinyl.grooveCircles >= 4 && vinyl.grooveCircles <= 12,
-      '分隔纹是少量可见的，不是密到像刻度的假纹路（' + vinyl.grooveCircles + ' 圈）');
-    ok(vinyl.aspect > 0.95 && vinyl.aspect < 1.05, '是正圆（' + vinyl.aspect + '）');
-    ok(vinyl.size > 100, '尺寸撑开了（' + vinyl.size + 'px）');
-    ok(vinyl.opacity > 0.05 && vinyl.opacity < 0.7,
-      '透明度当底纹用（' + vinyl.opacity + '，够看得见又不抢文字）');
-  }
-
-  /* ------------------------------------------------- 5b. 黑胶到底像不像
-     "像不像黑胶"这件事看起来只能靠眼睛，其实可以量化。
-     把 SVG 画进 canvas 采像素，验三件事：
-
-       ① 有没有**高光**：真实黑胶之所以是黑胶，靠盘面上那两道反光扇区。
-          没有它，再密的纹路也只是一个灰色圆盘（旧版就是这么假的）。
-          判据：最亮处至少是盘面均值的 1.8 倍。
-       ② 盘面是不是**不平**：纯色填充的圆盘亮度方差接近 0。
-       ③ 形状对不对：圆外必须是透明的（不是画了个方块）。
-
-     这一组断言的价值在于：以后谁把高光删了、或者把 SVG 换成一张纯色图，
-     数字会立刻变，不用等肉眼发现"好像变假了"。 */
-  const pixels = await page.evaluate(async () => {
-    const svg = document.querySelector('.vinyl__art');
-    if (!svg) return null;
-    const clone = svg.cloneNode(true);
-    clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
-    const url = 'data:image/svg+xml;charset=utf-8,' +
-      encodeURIComponent(new XMLSerializer().serializeToString(clone));
-
-    const im = new Image();
-    im.src = url;
-    try { await im.decode(); } catch (e) { return { error: 'decode' }; }
-
-    const S = 240;
-    const cv = document.createElement('canvas');
-    cv.width = S; cv.height = S;
-    const cx = cv.getContext('2d');
-    cx.drawImage(im, 0, 0, S, S);
-    const d = cx.getImageData(0, 0, S, S).data;
-
-    /* 亮度按 alpha 加权：SVG 里很多层是半透明白，直接取 RGB 会忽略叠加效果 */
-    const lum = (x, y) => {
-      const i = (y * S + x) * 4;
-      const a = d[i + 3] / 255;
-      return (0.2126 * d[i] + 0.7152 * d[i + 1] + 0.0722 * d[i + 2]) * a;
-    };
-
-    const vals = [];
-    for (let y = 0; y < S; y += 3) {
-      for (let x = 0; x < S; x += 3) {
-        const dx = x - 120, dy = y - 120;
-        if (dx * dx + dy * dy < 110 * 110) vals.push(lum(x, y));
-      }
-    }
-    const avg = vals.reduce((a, v) => a + v, 0) / vals.length;
-    const max = Math.max.apply(null, vals);
-    const min = Math.min.apply(null, vals);
-    const sd = Math.sqrt(vals.reduce((a, v) => a + (v - avg) * (v - avg), 0) / vals.length);
-    /* 圆外一点：SVG 是圆的，这里应该完全透明 */
-    const cornerAlpha = d[(5 * S + 5) * 4 + 3];
-    /* 轴孔（正中）与纸标（r≈25）：孔该很暗、纸标该比盘面亮 */
-    const hole = lum(120, 120);
-    const label = lum(120 + 25, 120);
-
-    return { avg, max, min, sd, cornerAlpha, hole, label };
-  });
-
-  ok(!!pixels && !pixels.error, '黑胶能栅格化（SVG 结构合法）');
-  if (pixels && !pixels.error) {
-    ok(pixels.max / (pixels.avg || 1) > 1.8,
-      '盘面上有高光（最亮处是均值的 ' + (pixels.max / pixels.avg).toFixed(2) + ' 倍）');
-    ok(pixels.sd > 8,
-      '盘面有明暗层次，不是纯色圆盘（亮度标准差 ' + pixels.sd.toFixed(1) + '）');
-    ok(pixels.cornerAlpha === 0, '圆外透明（是圆不是方块）');
-    ok(pixels.hole < pixels.avg,
-      '轴孔比盘面暗（' + Math.round(pixels.hole) + ' < ' + Math.round(pixels.avg) + '）');
-    ok(pixels.label > pixels.avg,
-      '中心纸标比盘面亮（' + Math.round(pixels.label) + ' > ' + Math.round(pixels.avg) + '）');
-  }
-
-  /* 减少动效：不该转 */
+  /* 减少动效：专辑墙不流动 */
   const rm = await ctx.newPage();
   await rm.emulateMedia({ reducedMotion: 'reduce' });
   await rm.goto(SITE, { waitUntil: 'load' });
-  await rm.waitForTimeout(1800);
-  const rmAnim = await rm.evaluate(() => {
-    const s = document.querySelector('.vinyl__spin');
-    return s ? getComputedStyle(s).animationName : 'none';
-  });
-  ok(rmAnim === 'none', '减少动效时黑胶不转（' + rmAnim + '）');
+  await rm.waitForTimeout(2200);
+  const r0 = await rm.evaluate(() => window.SITE_ALBUMWALL.phase());
+  await rm.waitForTimeout(1000);
+  const r1 = await rm.evaluate(() => window.SITE_ALBUMWALL.phase());
+  ok(Math.abs(r1 - r0) < 0.01, '减少动效时专辑墙静止（图还在，只是不流动）');
   await rm.close();
 
   ok(errs.length === 0, '没有 JS 报错' + (errs.length ? '：' + errs[0] : ''));

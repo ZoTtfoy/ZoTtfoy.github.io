@@ -100,6 +100,7 @@
   <script defer src="assets/js/backdrop.js"></script>
   <script defer src="assets/js/live.js"></script>
   <script defer src="assets/js/steamwall.js"></script>
+  <script defer src="assets/js/albumwall.js"></script>
   <script defer src="assets/js/player.js"></script>
   <script defer src="assets/js/paged.js"></script>
   <script defer src="assets/js/readability.js"></script>
@@ -270,6 +271,15 @@
 
       <!-- ====================================================== Q2 · 在听 -->
       <section class="section" id="listen" data-section="listen" aria-labelledby="listenTitle">
+        <!-- 整屏的专辑封面墙：6 行，1/3/5 行左移、2/4/6 行右移，每周轮换。
+             必须是 section 的直接子元素才能铺满一整屏 —— 放在 listen-card 里
+             只会盖住卡片那一小块（第一版就是这么错的）。
+             结构由 albumwall.js 填充，这里只留骨架。 -->
+        <div class="albumwall" id="albumWall" aria-hidden="true">
+          <div class="albumwall__grid" id="albumWallGrid"></div>
+          <div class="albumwall__scrim"></div>
+        </div>
+
         <div class="container">
           <header class="section__head" data-reveal>
             <p class="eyebrow" data-field="eyebrow"></p>
@@ -277,99 +287,8 @@
             <p class="section__lead" data-field="lead"></p>
           </header>
 
-          <!-- 主卡片：黑胶唱片在底层缓慢转动，歌曲磁贴吸附其上 -->
+          <!-- 主卡片：容器本身透明，让整屏封面透出来；磁贴各自带实底保证可读 -->
           <div class="listen-card" id="listenCard">
-            <!-- 真·黑胶：分隔纹与盘体一起转，**高光不转**（光源固定）。
-                 这一条是"像不像"的关键，见 blocks.css 里的说明。 -->
-            <span class="vinyl" aria-hidden="true">
-              <svg class="vinyl__art" viewBox="0 0 240 240" focusable="false">
-                <defs>
-                  <!-- 盘体：中心略亮、边缘收暗，模拟光斜射到一张哑光盘面上 -->
-                  <radialGradient id="vinylDisc" cx="42%" cy="36%" r="72%">
-                    <stop offset="0" stop-color="#2a2a2c"/>
-                    <stop offset=".55" stop-color="#1b1b1d"/>
-                    <stop offset="1" stop-color="#0d0d0e"/>
-                  </radialGradient>
-                  <!-- 音槽：真实的槽距在屏幕上是亚像素级，画成一圈圈反而假。
-                       这里只做极细的环状明暗起伏，让盘面"不平"，但不勾线。 -->
-                  <radialGradient id="vinylGroove" cx="50%" cy="50%" r="50%">
-                    <stop offset=".30" stop-color="#fff" stop-opacity="0"/>
-                    <stop offset=".34" stop-color="#fff" stop-opacity=".045"/>
-                    <stop offset=".38" stop-color="#fff" stop-opacity="0"/>
-                    <stop offset=".43" stop-color="#fff" stop-opacity=".038"/>
-                    <stop offset=".48" stop-color="#fff" stop-opacity="0"/>
-                    <stop offset=".54" stop-color="#fff" stop-opacity=".034"/>
-                    <stop offset=".60" stop-color="#fff" stop-opacity="0"/>
-                    <stop offset=".67" stop-color="#fff" stop-opacity=".030"/>
-                    <stop offset=".73" stop-color="#fff" stop-opacity="0"/>
-                    <stop offset=".80" stop-color="#fff" stop-opacity=".026"/>
-                    <stop offset=".86" stop-color="#fff" stop-opacity="0"/>
-                    <stop offset=".93" stop-color="#fff" stop-opacity=".022"/>
-                    <stop offset=".97" stop-color="#fff" stop-opacity="0"/>
-                  </radialGradient>
-                  <!-- 高光带：两道对角，主光强、副光弱。真实唱片上就是这两条。 -->
-                  <linearGradient id="vinylSheen" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0" stop-color="#fff" stop-opacity="0"/>
-                    <stop offset=".45" stop-color="#fff" stop-opacity=".16"/>
-                    <stop offset=".55" stop-color="#fff" stop-opacity=".16"/>
-                    <stop offset="1" stop-color="#fff" stop-opacity="0"/>
-                  </linearGradient>
-                  <linearGradient id="vinylSheen2" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0" stop-color="#fff" stop-opacity="0"/>
-                    <stop offset=".45" stop-color="#fff" stop-opacity=".07"/>
-                    <stop offset=".55" stop-color="#fff" stop-opacity=".07"/>
-                    <stop offset="1" stop-color="#fff" stop-opacity="0"/>
-                  </linearGradient>
-                  <radialGradient id="vinylLabel" cx="38%" cy="34%" r="70%">
-                    <stop offset="0" stop-color="#ffffff" stop-opacity=".55"/>
-                    <stop offset="1" stop-color="#ffffff" stop-opacity=".2"/>
-                  </radialGradient>
-                  <clipPath id="vinylRound"><circle cx="120" cy="120" r="118"/></clipPath>
-                  <filter id="vinylBlur" x="-30%" y="-30%" width="160%" height="160%">
-                    <feGaussianBlur stdDeviation="9"/>
-                  </filter>
-                  <filter id="vinylBlur2" x="-30%" y="-30%" width="160%" height="160%">
-                    <feGaussianBlur stdDeviation="14"/>
-                  </filter>
-                </defs>
-
-                <!-- 盘体 -->
-                <circle cx="120" cy="120" r="118" fill="url(#vinylDisc)"/>
-
-                <!-- 会转的部分：音槽起伏 + 可见的分隔纹 -->
-                <g class="vinyl__spin">
-                  <circle cx="120" cy="120" r="118" fill="url(#vinylGroove)"/>
-                  <!-- 曲目之间的分隔纹。间隔刻意不等 —— 等距就是"刻度的"假纹路。 -->
-                  <g fill="none" stroke="#fff" stroke-opacity=".11" stroke-width=".7">
-                    <circle cx="120" cy="120" r="112"/>
-                    <circle cx="120" cy="120" r="99"/>
-                    <circle cx="120" cy="120" r="86"/>
-                    <circle cx="120" cy="120" r="74"/>
-                    <circle cx="120" cy="120" r="62"/>
-                    <circle cx="120" cy="120" r="51"/>
-                  </g>
-                </g>
-
-                <!-- 不转的部分：高光。光源固定，盘面转的时候反光位置基本不动。 -->
-                <g clip-path="url(#vinylRound)">
-                  <ellipse cx="120" cy="46" rx="150" ry="34" fill="url(#vinylSheen)"
-                           filter="url(#vinylBlur)" transform="rotate(-40 120 120)"/>
-                  <ellipse cx="120" cy="46" rx="150" ry="26" fill="url(#vinylSheen2)"
-                           filter="url(#vinylBlur2)" transform="rotate(140 120 120)"/>
-                </g>
-
-                <!-- 外缘倒角：上沿一条细亮边，下沿收暗 —— 有厚度才像一张实体的盘 -->
-                <circle cx="120" cy="120" r="118" fill="none" stroke="#fff" stroke-opacity=".14" stroke-width="1"/>
-                <circle cx="120" cy="120" r="116.4" fill="none" stroke="#000" stroke-opacity=".45" stroke-width="2.2"/>
-
-                <!-- 中心纸标 + 轴孔 -->
-                <circle cx="120" cy="120" r="37" fill="url(#vinylLabel)"/>
-                <circle cx="120" cy="120" r="37" fill="none" stroke="#000" stroke-opacity=".35" stroke-width="1.2"/>
-                <circle cx="120" cy="120" r="3" fill="#0c0c0d"/>
-                <circle cx="120" cy="120" r="3" fill="none" stroke="#fff" stroke-opacity=".25" stroke-width=".8"/>
-              </svg>
-            </span>
-
             <div class="listen-card__body">
               <ul class="track-list" id="trackList" aria-label="最近在听"></ul>
               <p class="listen__foot" id="listenFoot"></p>

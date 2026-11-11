@@ -123,7 +123,11 @@ function contrast(a, b) {
         intersectArea: area,
         contentBottom: Math.round(maxBottom),
         dotCount: dots.length,
-        pageCount: document.querySelectorAll('.hero, .section').length,
+        /* 只数**可见**的屏。config.sections 里可以把某屏设成 enabled:false
+           （比如 2026-11-11 下掉的维修屏），那种 section 只是 hidden，
+           DOM 还在。数它会让 pageCount=6 而页码只有 5，永远对不上。 */
+        pageCount: [...document.querySelectorAll('.hero, .section')]
+          .filter(el => !el.hidden).length,
         listVisible: getComputedStyle(list).display !== 'none',
         trackVisible: getComputedStyle(track).display !== 'none',
         dotSize: dots.length ? Math.round(dots[0].width) + 'x' + Math.round(dots[0].height) : '-'

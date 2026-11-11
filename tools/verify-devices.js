@@ -111,7 +111,13 @@ const META_SEL = [
 
     const r = await p.evaluate(({ BODY_SEL, META_SEL, TABLE_SEL }) => {
       const vh = innerHeight;
-      const pages = [...document.querySelectorAll('.hero, .section')].map(el => {
+      /* 只量**当前启用**的屏。
+         ⚠️ config.sections 里可以把某屏设成 enabled:false（比如 2026-11-11
+         下掉的维修屏）。那种 section 只是 hidden，DOM 还在、offsetHeight = 0，
+         不过滤的话"每章高度 = 屏高"和"内容未贴到页底"会在每个机型上各报一次。 */
+      const pages = [...document.querySelectorAll('.hero, .section')]
+        .filter(el => !el.hidden)
+        .map(el => {
         const inner = el.querySelector('.container') || el.querySelector('.hero__inner');
         const box = el.getBoundingClientRect();
         const ib = inner ? inner.getBoundingClientRect() : null;

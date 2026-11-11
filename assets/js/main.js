@@ -44,6 +44,8 @@
       /* 游戏屏的 Steam 拼贴背景：纯装饰，放最后初始化，
          它挂了也不影响任何功能。 */
       if (window.SITE_STEAMWALL) window.SITE_STEAMWALL.init();
+      /* 在听页的专辑封面墙：同样是纯装饰，放最后，挂了不影响任何功能 */
+      if (window.SITE_ALBUMWALL) window.SITE_ALBUMWALL.init();
       if (window.SITE_EFFECTS) window.SITE_EFFECTS.init();
       /* 站内播放器：只挂事件委托，不改布局，所以放最后。
          它必须在 render 之后 —— 委托节点 #trackList 那时才存在。 */
