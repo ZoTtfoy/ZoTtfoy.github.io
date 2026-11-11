@@ -514,6 +514,38 @@ async function browserChecks() {
     ok(stripInfo.hidden || stripInfo.covered === 0,
        tag + '「查看全部」没有压住任何完整行（压住 ' + stripInfo.covered + ' 行，条高 ' + stripInfo.strip + '）');
 
+    /* 封面墙的几何中心必须落在**屏幕正中心**。
+       这里是实测过 1px 偏差的：区块有 `border-top: 1px`，而绝对定位的包含块是
+       内边距盒，整面墙被那道边框顶下去 1px，旋转后的中心就不再是视口中心。
+       修法是给墙 `inset: -1px 0 0`（只补上方 1px）。这条断言守的就是它。 */
+    const center = await page.evaluate(() => {
+      const out = {};
+      [['#gaming .steamwall__grid', 'steam'], ['.albumwall__grid', 'album']].forEach(([sel, k]) => {
+        const el = document.querySelector(sel);
+        if (!el) return;
+        const r = el.getBoundingClientRect();
+        /* ⚠️ 以"所在区块"为基准，不是以窗口为基准：
+           测这条时可能停在别的屏上（听歌墙就在上一屏，差整整一屏高度）。
+           区块在翻页吸附到位时与视口等高等宽，所以两者等价。 */
+        const sec = (el.closest('.hero, .section') || document.body).getBoundingClientRect();
+        out[k] = {
+          dx: Math.round((r.left + r.width / 2) - (sec.left + sec.width / 2)),
+          dy: Math.round((r.top + r.height / 2) - (sec.top + sec.height / 2)),
+          w: Math.round(r.width), h: Math.round(r.height),
+          vw: Math.round(sec.width), vh: Math.round(sec.height)
+        };
+      });
+      return out;
+    });
+    ['steam', 'album'].forEach(k => {
+      const c = center[k];
+      if (!c) return;
+      ok(Math.abs(c.dx) <= 1 && Math.abs(c.dy) <= 1,
+         tag + ' ' + (k === 'steam' ? '游戏墙' : '听歌墙') + '中心对齐屏幕中心（偏移 ' + c.dx + ',' + c.dy + '）');
+      ok(c.w >= c.vw && c.h >= c.vh,
+         tag + ' ' + (k === 'steam' ? '游戏墙' : '听歌墙') + '盖满视口（' + c.w + '×' + c.h + ' vs ' + c.vw + '×' + c.vh + '）');
+    });
+
     /* 渲染行数上限 30：数据端和渲染端两处都要守，否则一边改另一边就白改 */
     const rowCount = await page.evaluate(() => document.querySelectorAll('.gb-row').length);
     ok(rowCount <= 30, tag + '渲染行数不超过 30 条（实际 ' + rowCount + '）');

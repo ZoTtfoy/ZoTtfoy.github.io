@@ -411,7 +411,9 @@
 /* --------------------------------------------------- 专辑封面拼贴背景 */
 .albumwall {
   position: absolute;
-  inset: 0;
+  /* 同 .steamwall：上下各外扩 1px，抵消区块那道 border-top（见 gaming.css 注释），
+     否则整面墙整体下移 1px，中心对不上屏幕中心。 */
+  inset: -1px 0 0;   /* 上 -1 / 右 0 / 下 0 / 左 0 */
   z-index: 0;
   overflow: hidden;
   contain: paint;
