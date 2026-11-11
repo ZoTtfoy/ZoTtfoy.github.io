@@ -46,22 +46,19 @@ async function coverage(page, shotOn, shotOff) {
     const A = await pixels(a), B = await pixels(b);
     const W = A.w, H = A.h;
 
-    /* 顶栏 / 页码条 / 卡片 / 战绩列表都是**不透明内容**，不随墙变化，取样要避开。
-       ⚠️ 2026-11-11 改了下半部分的两个采样区：
-          这一屏现在多了一块战绩列表（整宽、实底），原来的 左下/右下
-          （x 2%~22% / 78%~98%）有一大半落在列表上，测出来只有 48%，
-          看上去像"墙没盖满"，其实是被列表挡住了。
-          现在下半部分只取**容器外面**的窄条：容器最大 1180，1440 视口下
-          左右各留 130px，取 x 0.5%~3.5% 与 96.5%~99.5% 一定在外侧；
-          y 到 90% 为止，避开右下角固定的"回到顶部"按钮（y>92%）。 */
+    /* 顶栏 / 页码条 / 卡片 / 战绩板都是**不透明内容**，不随墙变化，取样必须避开。
+       ⚠️ 2026-11-12 重定采样区：
+          之前用的是 8 块区域（四角 + 左中/右中 + 正中）。战绩板变高之后，
+          「正中」整块落在板子里、「左中/右中」压在板子左/右边缘 ——
+          那三块永远测不出差异，于是固定失败 3 条（看上去像墙没盖满）。
+       现在只取**容器外侧的窄条**：容器最大 1180，1440 视口下左右各留 130px，
+       取 x 0.5%~3.5% 与 96.5%~99.5% 一定在所有内容之外；
+       y 分上下两段（避开位于中部的战绩板与右下角的回顶按钮）。 */
     const zones = {
-      '左上': [0.02, 0.10, 0.22, 0.30],
-      '右上': [0.78, 0.10, 0.98, 0.30],
-      '左中': [0.02, 0.42, 0.20, 0.60],
-      '右中': [0.80, 0.42, 0.98, 0.60],
-      '左下': [0.005, 0.70, 0.035, 0.90],
-      '右下': [0.965, 0.70, 0.995, 0.90],
-      '正中': [0.42, 0.42, 0.58, 0.58]
+      '左上': [0.005, 0.12, 0.035, 0.45],
+      '右上': [0.965, 0.12, 0.995, 0.45],
+      '左下': [0.005, 0.55, 0.035, 0.88],
+      '右下': [0.965, 0.55, 0.995, 0.88]
     };
     function ratio(box) {
       const x0 = Math.floor(box[0] * W), x1 = Math.floor(box[2] * W);
@@ -222,7 +219,8 @@ async function coverage(page, shotOn, shotOff) {
     /* 四角是纯背景区，要求 ≥85%；三处"中"带里有卡片（有墙无墙都不变），
        阈值放宽到 55% —— 不是放水，是明确区分"该被封面盖住的区域"和
        "本来就摆着不透明卡片、看不出背景的区域"。 */
-    const need = k.indexOf('中') >= 0 ? 0.55 : 0.85;
+    /* 所有采样区都在容器外侧，墙必须完全盖住 → 统一按 85% 要求 */
+    const need = 0.85;
     ok(cov[k] > need, '填充[' + k + '] ' + (cov[k] * 100).toFixed(1) +
       '% 像素被封面覆盖（需 >' + (need * 100) + '%）');
   });
@@ -233,11 +231,20 @@ async function coverage(page, shotOn, shotOff) {
   const t1 = await page.evaluate(() => window.SITE_STEAMWALL.phase());
   ok(t1 > t0 + 20, '停留不动时相位也在推进（' + t0.toFixed(1) + ' → ' + t1.toFixed(1) + ' px）');
 
-  const shifts = await page.evaluate(() =>
-    [...document.querySelectorAll('.steamwall__col')].map(c => {
-      const m = /translate3d\(\s*([-\d.]+)px\s*,\s*([-\d.]+)px/.exec(c.style.transform || '');
+  const shifts = await page.evaluate(() => {
+    /* 读"计算后"的位移：墙现在由 Web Animations 驱动，style.transform 是空的，
+       真正的偏移在 getComputedStyle 的 matrix 里（tx=索引4，ty=索引5）。 */
+    const tyOf = (el) => {
+      const mm = /matrix\(([^)]+)\)/.exec(getComputedStyle(el).transform || '');
+      if (!mm) return null;
+      const v = mm[1].split(',').map(Number);
+      return [null, v[4], v[5]];
+    };
+    return [...document.querySelectorAll('.steamwall__col')].map(c => {
+      const m = tyOf(c);
       return m ? { x: +m[1], y: +m[2] } : null;
-    }));
+    });
+  });
   ok(shifts.every(v => v && v.x === 0), '位移的 X 恒为 0（只沿图片自身垂直方向滑）');
   ok(new Set(shifts.map(v => v && v.y)).size === shifts.length,
     '同一时刻每列位移互不相同（' + shifts.map(v => v && v.y.toFixed(0)).join('/') + '）');
@@ -272,13 +279,18 @@ async function coverage(page, shotOn, shotOff) {
   /* 循环无缝：推进整整一个周期，位移仍被取模在合法区间，
      不会"越滑越远"把列底露出来。 */
   const loop = await page.evaluate((P) => {
+    /* 读"计算后"的位移：墙现在由 Web Animations 驱动，style.transform 是空的，
+       真正的偏移在 getComputedStyle 的 matrix 里（tx=索引4，ty=索引5）。 */
+    const tyOf = (el) => {
+      const mm = /matrix\(([^)]+)\)/.exec(getComputedStyle(el).transform || '');
+      if (!mm) return null;
+      const v = mm[1].split(',').map(Number);
+      return [null, v[4], v[5]];
+    };
     window.SITE_STEAMWALL.step(P);
     return [...document.querySelectorAll('.steamwall__col')].map(c => {
-      /* ⚠️ 读 style.transform 时浏览器已经把它规范化成
-         "translate3d(0px, 1485px, 0px)" —— 源码里写的 "0" 会变成 "0px"。
-         按源码格式写 /translate3d\(0,/ 会全部匹配不上，误判成 -1。 */
-      const m = /translate3d\(\s*[-\d.]+px\s*,\s*([-\d.]+)px/.exec(c.style.transform || '');
-      return m ? +m[1] : -1;
+      const m = tyOf(c);
+      return m ? +m[2] : -1;
     });
   }, PERIOD);
   ok(loop.every(y => y >= 0 && y < PERIOD),

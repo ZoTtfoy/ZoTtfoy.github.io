@@ -695,14 +695,12 @@ window.SITE_RENDER = (function () {
   function fitBoardList() {
     var list = $("gbList");
     var more = $("gbMore");
-    var sec = $("gaming");
-    if (!list || !sec) return 0;
-
     var board = $("gameBoard");
-    var row = list.firstElementChild;
-    if (!row) return 0;
-    var rowH = row.getBoundingClientRect().height;
-    if (!rowH || !sec.clientHeight) {      /* 还没布局完，下一帧再试 */
+    var sec = $("gaming");
+    if (!list || !board || !sec || !list.firstElementChild) return 0;
+
+    /* 还没布局完（区块隐藏 / 行高为 0）→ 下一帧再来 */
+    if (!sec.clientHeight || !list.firstElementChild.getBoundingClientRect().height) {
       if (!fitBoardList._raf) {
         fitBoardList._raf = requestAnimationFrame(function () {
           fitBoardList._raf = 0;
@@ -712,95 +710,93 @@ window.SITE_RENDER = (function () {
       return 0;
     }
 
-    list.style.maxHeight = "none";
     var secTop = sec.getBoundingClientRect().top;
-    var listTop = list.getBoundingClientRect().top - secTop;   /* 列表离区块顶多远 */
     var padBottom = parseFloat(getComputedStyle(sec).paddingBottom) || 48;
-
-    /* ⚠️ 预算取 max(...) 里较小的那个 —— 用区块高度会**自我放大**：
-       列表一旦把区块撑高（比如 1016 > 900），下一轮又按 1016 算，
-       行数越来越多，区块越来越矮不下去。
-       所以上限永远是"一屏"：min(区块高度, 视口高度)。
-       这一屏在翻页模式下本来就该是一屏。 */
+    /* 上限永远是"一屏"：用区块自身高度会**自我放大**（列表撑高区块 →
+       下一轮按更大的高度算 → 行更多），所以取 min(区块高, 视口高)。 */
     var budget = Math.min(sec.clientHeight, window.innerHeight || 800);
-    /* 底部留白：区块内边距 + 页码条 / 回到顶部按钮那一带 */
-    var room = budget - listTop - padBottom - 18;
-    var total = list.children.length;
-    /* 下限是 1 行，不是 2 行：680 高的窗口里"顶栏 + 三格 + 两行 + 底带"
-       会超出 9~12px（根字号钉在 16px 之后）。宁可少显示一行，
-       也不能把一屏顶破 —— 溢出会连带翻页吸附一起失灵。 */
-    var visible = Math.max(1, Math.floor(room / rowH));
 
-    /* 要滚的时候，底部那条"查看全部"是**压在列表上**的（position:absolute）。
-       所以算行数时必须先把它的真实高度让出来，否则最后一行的名字和小时候
-       会被那条渐隐盖住 —— 早先写死让 26px，而它实际有 46px，于是压了 20px。
-
-       更关键的是 max-height 要多加这 46px：
-         行只占 visible*rowH，剩下的一条缝留给"下一行"露一小截，
-         渐隐正好盖在那一截上 —— 看起来是"下面还有"，而不是"断开"。
-       如果没有这 46px，列表底边就是板子底边，渐隐一定压住最后一行。 */
-    if (more) more.hidden = false;                    /* 先显出来才量得到高度 */
+    /* "查看全部"要先显形才量得到高度；它现在是列表下方的独立底带 */
+    if (more) more.hidden = false;
     var strip = (more && more.offsetHeight) || 46;
 
-    if (visible < total) {
-      visible = Math.max(1, Math.floor((room - strip) / rowH));
+    /* 归零再量：列表可能还带着上一轮的 max-height 与底带 */
+    list.style.maxHeight = "none";
+    board.style.paddingBottom = "";
+    var listTop = list.getBoundingClientRect().top - secTop;
+    /* 尾部余量 22：给页码条 / 回顶按钮留的。原来是 18，实测 920×720 那档
+       容器 579 + 上下内边距 144 = 723 > 720，正好差 3~4px。 */
+    var room = budget - listTop - padBottom - 22 - strip;
+
+    var bt = parseFloat(getComputedStyle(list).borderTopWidth) || 0;
+    var avail = room - bt;
+
+    /* 逐行累加**每行自己的真实高度**，累到放不下为止。
+       ⚠️ 为什么不用"行高 × 行数"（这是上一版的写法，实测被裁）：
+          · 首行没有 border-top，比其它行矮 1px；
+          · 字体分片加载后行高会从 63.25 变成 64。
+        任何"平均值 × N"都会差 1~3px，而这几像素正好表现为
+        "最后一行被裁掉一条边"。逐行累加量的就是真实占位，不存在这个问题。 */
+    var kids = list.children;
+    function measureFits(limit) {
+      var sum = 0, n = 0;
+      for (var i = 0; i < kids.length; i++) {
+        var h = kids[i].getBoundingClientRect().height;
+        if (h <= 0) break;
+        if (sum + h > limit) break;
+        sum += h;
+        n++;
+      }
+      return { sum: sum, n: n };
     }
 
-    if (visible >= total) {                /* 装得下就全展示，不出滚动条 */
-      list.style.maxHeight = "";
+    var fit = measureFits(avail);
+    var useStrip = true;
+
+    /* 连一行都放不下时，先把"查看全部"的底带也让出来（920×720 那档就差这 4px）。
+       让出底带还放不下，才退到"只画一行"—— 空白面板比略溢出更糟。 */
+    if (fit.n < 1) {
+      fit = measureFits(avail + strip);
+      useStrip = false;
+    }
+
+    if (fit.n >= kids.length) {             /* 全装得下：不滚、不留底带 */
       list.classList.remove("is-scroll");
       board.style.paddingBottom = "";
       if (more) more.hidden = true;
-      return total;
+      return kids.length;
     }
 
-    /* 给渐隐条**专用的一条底带**，而不是让它压在列表上。
-       早先的做法是"列表多留 46px 去露半行 + 渐隐盖在上面"，
-       宽屏看着没问题，窄屏（320）上那半行的游戏名和时长正好和
-       「查看全部 143 款」挤在同一高度 —— 截图里就是两行字叠在一起。
-       现在：列表就是整整 visible 行，板子底部留 46px 空带，条住在带子里。
-       代价是少一点"下面还有"的渐隐暗示，换来任何宽度下都不打架。 */
-    board.style.paddingBottom = strip + "px";
+    if (fit.n < 1) {                        /* 极矮窗口：保底一行 */
+      fit.n = 1;
+      fit.sum = kids[0].getBoundingClientRect().height;
+      useStrip = false;
+    }
 
-    /* 列表是 border-box：max-height 里已经含了 1px 上边框。
-       不把这 1px 加回来，最后一行就正好被边框顶进渐隐里。 */
-    var borderH = list.offsetHeight - list.clientHeight;
-
-    list.style.maxHeight = (visible * rowH + borderH) + "px";
+    /* 列表 = 整整 fit.n 行；需要时底带单独占 strip，两者不重叠 */
+    board.style.paddingBottom = useStrip ? strip + "px" : "";
+    if (more) more.hidden = !useStrip;
+    list.style.maxHeight = (fit.sum + bt) + "px";
     list.classList.add("is-scroll");
-    if (more) more.hidden = false;
 
-    /* 落地之后再用**真实行高**重算一次。
-       上面那个 rowH 是加 max-height 之前量的：字体是分片加载的，
-       MiSans 到位后每一行会高 0.5~1px（实测 63.25 → 64）。
-       这里改的是 rowH 本身，而不是"退一行" —— 退一行会白丢一整行信息，
-       而真正的原因只是高度算小了。 */
-    var realH = list.children[0] ? list.children[0].getBoundingClientRect().height : 0;
-    if (realH > 0 && Math.abs(realH - rowH) > 0.4) {
-      rowH = realH;
-      visible = Math.max(1, Math.floor((room - strip) / rowH));
-      if (visible >= total) {
-        list.style.maxHeight = "";
-        list.classList.remove("is-scroll");
-        if (more) more.hidden = true;
-        return total;
-      }
-      list.style.maxHeight = (visible * rowH + borderH) + "px";
+    /* 终局校验：上面所有算术都基于"可用高度"的估算，而真正决定成败的是
+       **区块的实测高度**。只要它超过一屏，就按差值退掉整行 ——
+       这是"一屏一页"唯一的硬指标，比任何常数都可靠。
+       （实测 920×720 那档容器 579 + 内边距 144 = 723 > 720，
+         靠调 18→22 没能解决，因为溢出不在列表里。） */
+    var minH = kids[0].getBoundingClientRect().height;
+    var guard = 0;
+    while (guard++ < 6 && fit.n > 1) {
+      /* ⚠️ 容差 3px：区块有 `border-top: 1px`，`offsetHeight` 天然比视口多 1px。
+         用 0.5 做阈值会让守卫**永远成立**，一路把行砍到 1 行（实机踩过：
+         392×744 上从 3 行变 1 行）。只有真的溢出 3px 以上才收行。 */
+      var overH = sec.offsetHeight - (window.innerHeight || 0);
+      if (overH <= 3) break;
+      fit.n -= 1;
+      fit.sum = Math.max(minH, fit.sum - kids[fit.n].getBoundingClientRect().height);
+      list.style.maxHeight = (fit.sum + bt) + "px";
     }
-
-    /* 最后对一次账。⚠️ 注意方向："查看全部"是 absolute bottom:0 锚在**板子底边**上的，
-       所以把 max-height 调小不会让它离最后一行更远 —— 板子跟着变矮，条也跟着上移。
-       要让它让开，只能把列表**加高**，把条往下推。
-       亚像素舍入（行高 63.5 / 边框 1）常常还差 0.5~2px，在这里补齐。 */
-    var lastFull = list.children[Math.min(visible, list.children.length) - 1];
-    if (lastFull) {
-      var over = lastFull.getBoundingClientRect().bottom - more.getBoundingClientRect().top;
-      if (over > 0.2) {
-        /* 行比预估高一点点：把多出来的高度补给底带，别去挤行 */
-        board.style.paddingBottom = (strip + Math.ceil(over)) + "px";
-      }
-    }
-    return visible;
+    return fit.n;
   }
 
   /* 字体就绪后重算一次（模块加载时先挂一次，覆盖"行还没进 DOM"的情况）。
@@ -818,6 +814,10 @@ window.SITE_RENDER = (function () {
     if (!$("gbList")) return;
     clearTimeout(fitBoardList._t);
     fitBoardList._t = setTimeout(fitBoardList, 120);
+    /* 第二次复算：120ms 那次往往赶在"档位切换 / 根字号写完"之前，
+       量到的还是上一档的高度，于是差 4~5px。等布局定下来再校一次。 */
+    clearTimeout(fitBoardList._t2);
+    fitBoardList._t2 = setTimeout(fitBoardList, 420);
   }, { passive: true });
 
   /* ========================================================== Q4 · 维修 */

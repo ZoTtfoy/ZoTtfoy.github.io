@@ -336,7 +336,11 @@ async function browserChecks() {
       // config.js 先于本脚本执行，等它加载完再改
       Object.defineProperty(window, '__forceLive', { value: true, configurable: true });
     });
-    await page.goto(URL, { waitUntil: 'networkidle' });
+    /* ⚠️ 不能用 networkidle：这一页有 150+ 张外链封面，
+       "网络静默 500ms" 永远不会成立，goto 会一直等到超时。
+       改成 DOM 就绪 + 等脚本初始化完成。 */
+    await page.goto(URL, { waitUntil: 'domcontentloaded' });
+    await page.waitForFunction(() => !!window.SITE_LIVE, { timeout: 20000 }).catch(() => {});
     await page.evaluate(() => {
       const L = window.SITE_CONFIG && window.SITE_CONFIG.live;
       if (!L) return;
