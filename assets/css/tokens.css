@@ -4,10 +4,21 @@
  * ========================================================================== */
 
 :root {
-  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
-               "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", sans-serif;
+  /* ⚠️ 2026-11-11 全站换成 MiSans（用户要求）。
+     字体文件在 assets/css/fonts.css 里按 unicode-range 分片，
+     浏览器只下载页面真正用到的那几片；没网 / CDN 不通时自动落到后面这串
+     系统字体上 —— 它们的中宫和字重梯度和 MiSans 接近，不会突然垮版面。
+     之所以还把 "Inter" 留在列表里：MiSans 缺的少数字形（比如某些数学符号）
+     会往前找，而 Inter 的等高线比系统无衬线更规整。 */
+  --font-sans: "MiSans", "MiSans VF", "Inter", -apple-system, BlinkMacSystemFont,
+               "Segoe UI", "HarmonyOS Sans SC", "PingFang SC", "Hiragino Sans GB",
+               "Microsoft YaHei", "Noto Sans SC", sans-serif;
   --font-display: inherit;          /* 由主题覆盖；纸本主题会换成衬线 */
-  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
+  /* 等宽也走 MiSans：项目里 --font-mono 承担的其实是「数字 + 小标签」，
+     不是源码。MiSans 的数字有 tabular 特性（见 typography.css 里的
+     font-variant-numeric），对齐照样成立，而字形和正文统一。
+     真正的等宽字体留在回退位，只负责 MiSans 没有的字形。 */
+  --font-mono: "MiSans", ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
                "Liberation Mono", monospace;
 
   --w: 1180px;

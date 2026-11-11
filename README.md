@@ -82,6 +82,8 @@ zotrod-homepage/
 │   │   ├── effects.css           # 追光 / 卡片光斑 / 触控涟漪
 │   │   ├── gallery.css           # 风格总览页
 │   │   ├── motion.css            # 入场动画、悬停反馈、背景动效
+│   │   ├── fonts.css             # ★ MiSans 的 @font-face（按 unicode-range 分片）
+│   │   ├── typography.css        # ★ 字重阶梯：400 / 600 / 700 三档
 │   │   └── admin.css             # 编辑器专用样式
 │   └── js/
 │       ├── config.js             # ★★ 所有文案、链接、模块开关（内容都在这里）
@@ -980,6 +982,21 @@ node scripts/sync-steam.mjs        # 需 playwright-core + 本地 chromium
 ---
 ## 三之二·八、背景系统
 
+### 两条封面墙的缩放：量的是区块，不是窗口
+
+Q2「专辑墙」和 Q3「游戏墙」都是"固定实例 + 等比缩放"，`scale` 按
+`max(宽, 高)` 反推。**这个宽高必须取自背景层自己的盒子**
+（`wall.clientWidth/clientHeight`），不能取 `window.innerWidth/innerHeight`：
+
+- 背景层是 `position: absolute; inset: 0`，跟的是区块的 CSS 高度（100vh / 100dvh）；
+- `innerHeight` 是"当前可见高度"。iOS Safari 地址栏展开时它比 100vh 小 60~120px，
+  安卓 WebView、"这一屏内容比视口高"的降级布局里也一样。
+
+用小的那个数算 scale，实例就撑不满区块 —— 底部露一条底色。
+2026-11-11 就是这条把手机上的两屏背景判成了"错"的。修完顺带加了
+`visualViewport` 的 resize 监听：地址栏伸缩只改它，不一定发 window.resize。
+
+
 背景是分层叠出来的，每一层都能单独开关：
 
 ```
@@ -1132,6 +1149,53 @@ node scripts/sync-steam.mjs        # 需 playwright-core + 本地 chromium
 `無名の主页` 有实时天气，需要「高德开放平台」的 Key。这台是纯静态站点，Key 只能写在前端代码里，**等于公开**（拿到就能刷你的配额）。免费第三方天气接口又经常挂。为了一个社交场合基本用不上的信息去牺牲安全性，不划算。
 
 真需要的话，正确做法是加一个自己的服务端转发 Key——那就不叫纯静态站了，成本远大于收益。
+
+---
+
+## 三之五、字体：MiSans
+
+全站字体是 **MiSans**（小米，免费商用）。
+
+### 为什么分两个文件
+
+| 文件 | 管什么 |
+| --- | --- |
+| `assets/css/fonts.css` | `@font-face` 声明，300 条（3 个字重 × 100 个 unicode 分片） |
+| `assets/css/typography.css` | 字重阶梯：谁能用 700、谁只能 600、谁必须 400 |
+
+`fonts.css` 是从 [misans](https://github.com/dsrkafuu/misans)（Apache-2.0）的
+分片 CSS 生成的，**改了字重的标定**：那个包里每个字重写着 MiSans 的原生重量
+（Regular 330 / Semibold 520 / Bold 630），而 CSS 里写 `font-weight:600` 时
+浏览器按"就近取大"会挑 630、写 500 会挑 520 —— 整套映射全乱。这里统一改成
+**400 / 600 / 700**，一个数字一层。
+
+woff2 仍然按 `unicode-range` 分片从 jsDelivr 取：浏览器只下载页面真正用到的
+那十几片（实测首屏 35 片、约 300KB），新加的字（比如下周换歌单里的生僻字）
+会自动按需取片，不需要重新打包。分片声明的代价是 CSS 本身有 88KB（gzip），
+这是"换字体"这件事的固定成本。
+
+### 字重只有三档
+
+```
+700  标题 / 首屏名字 / 主数字        —— 一眼定层级
+600  卡片标题 / 按钮 / 导航 / 小标签 —— 交互与"能点的东西"
+400  正文 / 说明 / 副标题            —— 只负责读
+```
+
+规则写在 `typography.css` 里，一处能看全。原来散在 8 个文件里的 500 会落到
+600（MiSans 在 400/600 之间的灰度差比 Inter 小，500 会糊成一片）。
+
+`--font-mono` 也指向 MiSans：项目里它承担的其实是"数字 + 小标签"，不是源码。
+MiSans 的数字有 `tnum` 特性，`typography.css` 给这些位置统一开了
+`font-variant-numeric: tabular-nums`，竖排列表里 01…10 照样对齐。
+唯一的例外是「终端」主题：那里的等宽就是它的性格，保留真等宽。
+
+### 主题里的字体写在 JS 里
+
+⚠️ `themes.js` 会把 7 套风格的 `--font-sans / --font-display / --font-mono`
+**内联**写到 `<html>` 上，内联优先级高于样式表。所以换字体要改 `themes.js`
+（7 × 3 条），只改 `tokens.css` 是不生效的 —— `tokens.css` 里那份只是
+JS 没加载时的兜底。
 
 ---
 

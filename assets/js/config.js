@@ -69,15 +69,29 @@ window.SITE_CONFIG = {
               title: "我的音乐主页",
               meta: "歌单 · 红心 · 最近在听",
               cover: "",
-              stats: [],
+              /* 这三格是 data/previews.json 的快照。
+                 ⚠️ 留在这里不是为了"编数据"，而是为了**首屏就有内容**：
+                    sync.js 拿到 json 之前的那 100~300ms 里，卡片不能空着半截
+                    （空着的那一下正好是用户视线落在页面上的时候）。
+                    抓取成功后 sync.js 会用真数据覆盖，两边本来就一致。 */
+              stats: [
+                  { label: "累计听歌", value: "77,063 首" },
+                  { label: "本周在听", value: "100 首" },
+                  { label: "同步于", value: "11/11" }
+                ],
               accent: "#c20c0c"
             },
           {
               id: "xiaoheihe",
-              icon: "box",
+              /* 官方标志（六边形双人字）。路径是从 xiaoheihe.cn 的 favicon
+                 逐像素描出来的 —— 这个品牌不在 Simple Icons 里，没有现成 SVG。 */
+              icon: "xiaoheihe",
               platform: "小黑盒",
               url: "https://www.xiaoheihe.cn/app/user/profile/54034751",
               title: "小黑盒",
+              /* 它的个人主页没有公开接口，抓不到"游戏数 / 时长"这类数字。
+                 与其编三个假数字，不如把这张卡的三个入口说清楚 —— 
+                 副标题会在没有 stats 时自动顶到第二行（见 blocks.css）。 */
               meta: "游戏库 · 时长 · 日常",
               cover: "",
               stats: [],

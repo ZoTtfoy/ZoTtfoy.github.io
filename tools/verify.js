@@ -218,7 +218,9 @@ check(count('heroContacts', /class="ccard"/g) === (C.profile.contacts || []).len
 check((C.profile.contacts || []).every(c =>
   H('heroContacts').includes('data-copy="' + ctx.SITE_RENDER.esc(c.value) + '"')),
   '每个联系方式都带 data-copy（点一下能复制）');
-check(count('heroPreviews', /class="preview"/g) === (C.profile.previews || []).length,
+/* 计数用的正则要容忍修饰类：没有数据可摆的卡会多一个 .is-statless
+   （黑盒这类"只有副标题"的卡），所以不能匹配 class="preview" 的精确串。 */
+check(count('heroPreviews', /class="preview(?:\s|")/g) === (C.profile.previews || []).length,
   'Q1 主页摘要卡数量与配置一致');
 check((C.profile.previews || []).every(p => H('heroPreviews').includes('data-preview-id="' + p.id + '"')),
   '每张摘要卡都有 data-preview-id（供 sync.js 回填）');
@@ -295,7 +297,7 @@ check(!/undefined|NaN/.test(H('gameRail')), '游戏卡片没有 undefined / NaN 
 check(games.every(g => !g.color || /^#[0-9a-f]{3,8}$/i.test(g.color)), '品牌色都是合法色值');
 
 /* ============================================================ Q4 · 维修 */
-check(count('repairPreview', /class="preview"/g) === (C.repair?.xianyu ? 1 : 0),
+check(count('repairPreview', /class="preview(?:\s|")/g) === (C.repair?.xianyu ? 1 : 0),
   'Q4 闲鱼摘要卡渲染');
 const quoteRows = (C.repair?.quote?.rows || []);
 check(count('repairQuote', /class="quote__row"/g) === quoteRows.length,

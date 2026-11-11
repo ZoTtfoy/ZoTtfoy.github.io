@@ -74,7 +74,11 @@
 /* 这两个是历史上手写的近似值，和 --r-sm(10) / --r-xs(4) 差 2~3px。
    差值本身没意义，但会让"按 10px 网格设计"这件事变成假的。 */
 .icon-btn.icon-btn--xs { border-radius: var(--r-xs); }
-.brand__mark.brand__mark--sm { border-radius: var(--r-sm); }
+/* ⚠️ 必须排掉 .is-photo：图片头像的外壳是圆形裁切框，不是字母方块。
+   这条规则和 components.css 里的 `.brand__mark.is-photo` 同权重，
+   而本文件后加载 —— 不排除的话页脚那颗头像会被改回 10px 圆角，
+   表现就是「左上角/页脚的头像变成圆角矩形」。 */
+.brand__mark.brand__mark--sm:not(.is-photo) { border-radius: var(--r-sm); }
 
 /* 主题色块是"左右各一半"的药丸形，四个角本来就该不同 ——
    但值应当从 token 派生，而不是写死 7px / 4px。 */

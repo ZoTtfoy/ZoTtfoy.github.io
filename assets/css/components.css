@@ -36,27 +36,49 @@
    .brand__mark 的底色是 var(--text)，深色主题下接近纯白。
    它是字母方块的底，图片头像复用了同一个外壳 —— 于是圆图后面永远垫着
    一个白色圆角方块，四个角露在外面，看着就是"白边"。
-   之前只改 img 的 border/radius 治不到根上。 */
-.brand__mark.is-photo {
+   之前只改 img 的 border/radius 治不到根上。
+
+   ⚠️ 2026-11-11 第二轮（用户说"还是圆角矩形"）—— 这次找到两个真凶：
+     1) unify.css 里 `.brand__mark.brand__mark--sm { border-radius: var(--r-sm) }`
+        与本条**同权重**(0,2,0)，而 unify.css 后加载 → 页脚那颗 26px 头像
+        被改回 10px 圆角，就是"圆角矩形"。这里把选择器抬到 (0,3,0)，
+        顺序再也翻不了盘。
+     2) img 上挂着 `transform: scale(1.08)`。带变换的子元素会被提升成
+        独立合成层，Safari 与部分 Chromium 版本在这种情况下会**跳过父级的
+        圆角裁剪**，于是圆形外壳里画出一个方形图片 —— 角落是方的。
+        改成用 width/height + 负 margin 放大，纯布局，不生成图层。
+     另外补一层 clip-path：它是"裁剪"本身，不像 overflow+border-radius
+     那样依赖实现细节，两者同时存在互为保险。 */
+.brand .brand__mark.is-photo,
+.footer__brand .brand__mark.is-photo {
   border-radius: 50%;
   background: transparent;
   overflow: hidden;
+  -webkit-clip-path: circle(50%);
+  clip-path: circle(50%);
   /* 裁切交给外壳，img 自己的圆角就没用了 */
   padding: 0;
 }
 
 .brand__avatar {
   display: block;
-  width: 100%;
-  height: 100%;
+  /* 放大 8%：原图边缘有一圈浅色过渡（角色白衣 / 浅蓝底），
+     圆形裁切后会在边上留一道亮环。用 width/height 而不是 transform ——
+     理由见上。多出来的部分被外壳裁掉，视觉上是"往里推了一点"。
+     ⚠️ max-width/-height 必须显式放开：tokens.css 里有一条
+     `img, svg { max-width: 100% }` 的重置，会把 108% 硬压回 100%
+     —— 宽被压、高没压，结果是一个 34×36.7 的椭圆被裁，右边缺一块。 */
+  width: 108%;
+  height: 108%;
+  max-width: none;
+  max-height: none;
+  margin: -4%;
   border: 0;
-  border-radius: 0;
+  /* 图片自己也圆：万一外层裁剪被跳过，边界依然是圆的 */
+  border-radius: 50%;
   background: transparent;
   object-fit: cover;
   object-position: 50% 45%;
-  /* 轻微放大：原图边缘有一圈浅色过渡（角色白衣/浅蓝底），
-     圆形裁切后会在边上留一道亮环，放大 8% 正好把它裁掉。 */
-  transform: scale(1.08);
 }
 /* 没有 .is-photo 外壳（比如未来别处单独用 img）时仍要是个干净的圆 */
 .brand__avatar:not(.brand__mark.is-photo *) {
@@ -64,7 +86,10 @@
   height: 34px;
   border-radius: 50%;
 }
-.brand__avatar--sm { width: 26px; height: 26px; }
+/* 页脚那颗 26px。⚠️ 必须排除 .is-photo 外壳内的 img ——
+   否则这条会把上面 108% + 负 margin 的放大比例改回固定 26px，
+   图就只盖住外壳的中间一块，边上露出底色（等于又回到"白边"）。 */
+.brand__avatar--sm:not(.brand__mark.is-photo *) { width: 26px; height: 26px; }
 
 /* 首页头像：只在配置了图片时出现 */
 .hero__avatar { margin-bottom: clamp(22px, 3.4vh, 32px); }

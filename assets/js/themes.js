@@ -26,9 +26,9 @@ window.SITE_THEMES = {
       desc: "黑白灰配一点墨绿。克制、中性，怎么用都不会出错。",
       swatch: ["#fbfbf9", "#17191b", "#2f6b5b"],
       base: {
-        "font-sans": '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", sans-serif',
-        "font-display": "inherit",
-        "font-mono": 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace',
+        "font-sans": '"MiSans", "MiSans VF", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", sans-serif',
+        "font-display": '"MiSans", "MiSans VF", "Inter", -apple-system, "PingFang SC", sans-serif',
+        "font-mono": '"MiSans", ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace',
         "r-sm": "10px", "r-md": "16px", "r-lg": "22px",
         "tracking-title": "-.035em",
         "border-w": "1px"
@@ -66,9 +66,9 @@ window.SITE_THEMES = {
       desc: "暖米纸色、宋体标题、直角边框。像一本摊开的书。",
       swatch: ["#f6f1e6", "#241f18", "#9a6b3f"],
       base: {
-        "font-sans": '-apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", "Noto Sans SC", sans-serif',
-        "font-display": 'Georgia, "Songti SC", "Source Han Serif SC", "Noto Serif SC", SimSun, serif',
-        "font-mono": '"SF Mono", ui-monospace, Menlo, Consolas, "Courier New", monospace',
+        "font-sans": '"MiSans", "MiSans VF", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", sans-serif',
+        "font-display": '"MiSans", "MiSans VF", "Inter", -apple-system, "PingFang SC", sans-serif',
+        "font-mono": '"MiSans", ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace',
         "r-sm": "2px", "r-md": "3px", "r-lg": "4px",
         "tracking-title": "-.015em",
         "border-w": "1px"
@@ -106,9 +106,9 @@ window.SITE_THEMES = {
       desc: "高对比黑白配一抹暗红。硬朗、像时尚杂志内页。",
       swatch: ["#f5f5f6", "#0b0b0c", "#b03a2e"],
       base: {
-        "font-sans": '"Helvetica Neue", Inter, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif',
-        "font-display": '"Helvetica Neue", Inter, "PingFang SC", sans-serif',
-        "font-mono": 'ui-monospace, "SF Mono", Menlo, Consolas, monospace',
+        "font-sans": '"MiSans", "MiSans VF", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", sans-serif',
+        "font-display": '"MiSans", "MiSans VF", "Inter", -apple-system, "PingFang SC", sans-serif',
+        "font-mono": '"MiSans", ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace',
         "r-sm": "3px", "r-md": "5px", "r-lg": "7px",
         "tracking-title": "-.045em",
         "border-w": "1px"
@@ -146,9 +146,9 @@ window.SITE_THEMES = {
       desc: "青与紫的渐变光晕，大圆角、柔和发光。偏未来感。",
       swatch: ["#f3f7f9", "#101b21", "#4fd0d8"],
       base: {
-        "font-sans": '"Inter", -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif',
-        "font-display": '"Inter", -apple-system, "PingFang SC", sans-serif',
-        "font-mono": 'ui-monospace, "SF Mono", Menlo, Consolas, monospace',
+        "font-sans": '"MiSans", "MiSans VF", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", sans-serif',
+        "font-display": '"MiSans", "MiSans VF", "Inter", -apple-system, "PingFang SC", sans-serif',
+        "font-mono": '"MiSans", ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace',
         "r-sm": "14px", "r-md": "22px", "r-lg": "30px",
         "tracking-title": "-.03em",
         "border-w": "1px"
@@ -186,8 +186,8 @@ window.SITE_THEMES = {
       desc: "磷光绿字、全站等宽、直角边框。给爱看命令行的人。",
       swatch: ["#f1f6f1", "#0c1f11", "#3ddc84"],
       base: {
-        "font-sans": 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", "Courier New", monospace',
-        "font-display": 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace',
+        "font-sans": '"MiSans", "MiSans VF", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", sans-serif',
+        "font-display": '"MiSans", "MiSans VF", "Inter", -apple-system, "PingFang SC", sans-serif',
         "font-mono": 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace',
         "r-sm": "0px", "r-md": "2px", "r-lg": "3px",
         "tracking-title": "-.02em",
@@ -226,9 +226,9 @@ window.SITE_THEMES = {
       desc: "暖灰底、赭红点缀、大圆角软阴影。有人情味。",
       swatch: ["#f7f3ef", "#201a16", "#b4552f"],
       base: {
-        "font-sans": '"Inter", -apple-system, "PingFang SC", "Microsoft YaHei", "Noto Sans SC", sans-serif',
-        "font-display": '"Inter", -apple-system, "PingFang SC", sans-serif',
-        "font-mono": 'ui-monospace, "SF Mono", Menlo, Consolas, monospace',
+        "font-sans": '"MiSans", "MiSans VF", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", sans-serif',
+        "font-display": '"MiSans", "MiSans VF", "Inter", -apple-system, "PingFang SC", sans-serif',
+        "font-mono": '"MiSans", ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace',
         "r-sm": "16px", "r-md": "24px", "r-lg": "34px",
         "tracking-title": "-.03em",
         "border-w": "1px"
@@ -266,9 +266,9 @@ window.SITE_THEMES = {
       desc: "清透冷白配薄荷绿，细线大圆角。干净、轻盈。",
       swatch: ["#f4faf7", "#0f2019", "#0f9d76"],
       base: {
-        "font-sans": '"Inter", -apple-system, "PingFang SC", "Microsoft YaHei", "Noto Sans SC", sans-serif',
-        "font-display": '"Inter", -apple-system, "PingFang SC", sans-serif',
-        "font-mono": 'ui-monospace, "SF Mono", Menlo, Consolas, monospace',
+        "font-sans": '"MiSans", "MiSans VF", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", sans-serif',
+        "font-display": '"MiSans", "MiSans VF", "Inter", -apple-system, "PingFang SC", sans-serif',
+        "font-mono": '"MiSans", ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace',
         "r-sm": "12px", "r-md": "20px", "r-lg": "28px",
         "tracking-title": "-.032em",
         "border-w": "1px"

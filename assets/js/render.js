@@ -186,10 +186,15 @@ window.SITE_RENDER = (function () {
     var statsHtml = stats.map(function (s) {
       return '<span class="preview__stat"><b>' + esc(s.value) + "</b>" + esc(s.label || "") + "</span>";
     }).join("");
+    /* 没有数据可摆的卡（当前是黑盒）：把副标题顶到第二行，
+       否则右半边永远空着，看着像没加载出来。
+       判据只看"有没有渲染出数据"，不看 id —— 以后谁配了 stats 谁就自动变回来。 */
+    var statless = !statsHtml && !!String(p.meta || "").trim();
 
     var style = (p.accent ? "--pc:" + esc(p.accent) + ";" : "") + delay(i, 80);
 
-    return '<a class="preview' + (cover ? " preview--cover" : "") + '"' +
+    return '<a class="preview' + (cover ? " preview--cover" : "") +
+             (statless ? " is-statless" : "") + '"' +
              ' href="' + esc(p.url || "#") + '" target="_blank" rel="noopener noreferrer"' +
              ' data-preview-id="' + esc(p.id || "") + '"' +
              ' style="' + style + '" data-reveal>' +

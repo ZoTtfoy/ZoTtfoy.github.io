@@ -7,8 +7,10 @@
 body {
   background: #f4f4f2;
   color: #17191b;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
-               "Microsoft YaHei", "Noto Sans SC", sans-serif;
+  /* 走 tokens.css 的字体变量：这一页也要是 MiSans。
+     原来这里硬编码了一条系统字体栈，改 tokens 改不到它 —— 全站换字体时
+     最容易漏的就是这种"自己写一套"的文件。 */
+  font-family: var(--font-sans, -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif);
   padding: 0 24px 80px;
 }
 
@@ -24,7 +26,7 @@ body {
   margin: 0 auto;
 }
 .g-eyebrow {
-  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-family: var(--font-mono, ui-monospace, Menlo, Consolas, monospace);
   font-size: .7rem;
   letter-spacing: .16em;
   color: #8a8a86;

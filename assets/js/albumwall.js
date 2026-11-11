@@ -113,9 +113,24 @@ window.SITE_ALBUMWALL = (function () {
   /* ------------------------------------------------------------- 适配 */
   function fit() {
     if (!grid) return;
-    var w = window.innerWidth || 1280;
-    var h = window.innerHeight || 800;
-    scale = Math.max(w / INST, h / INST) * SAFETY;
+    /* ⚠️ 2026-11-11 修「手机上看背景是错的」。
+       根因不是尺寸算错，是**量错了对象**：
+         · .albumwall 是 position:absolute; inset:0，高度跟的是 #listen 的
+           CSS 高度（100vh / 100dvh）；
+         · 这里原来读的是 window.innerHeight —— 那是"当前可见高度"。
+       iOS Safari 地址栏展开时，innerHeight 比 100vh 小 60~120px；
+       安卓 WebView、以及"这一屏内容比视口高"的降级布局里也一样。
+       用小的那个数算 scale，实例就撑不满区块 —— 底部露一条空白，
+       而且因为 scale 偏小，封面看起来也比桌面"缩水"了。
+       clientWidth/clientHeight 是布局尺寸，不受浏览器 chrome 影响。
+       只有在元素还没布局（0×0）时才退回窗口尺寸。 */
+    var w = wall ? wall.clientWidth : 0;
+    var h = wall ? wall.clientHeight : 0;
+    if (!w || !h) { w = window.innerWidth || 1280; h = window.innerHeight || 800; }
+    /* 行是无限长的（每行两份 6 格循环），所以横向只要一个周期盖住宽度；
+       纵向是实打实的 6 行，必须 6×400×scale ≥ h。
+       两个约束取大者 —— 任何一边不满足都会露白。 */
+    scale = Math.max(w / PERIOD, h / INST) * SAFETY;
     grid.style.setProperty("--aw-scale", scale.toFixed(4));
     grid.style.setProperty("--aw-inst", INST + "px");
     grid.style.setProperty("--aw-tile", TILE + "px");
@@ -267,6 +282,13 @@ window.SITE_ALBUMWALL = (function () {
     });
 
     window.addEventListener("resize", function () { fit(); }, { passive: true });
+    /* iOS / 安卓的地址栏伸缩只改 visualViewport，不一定发 window.resize；
+       而它一变，section 的 100dvh 就跟着变 —— 不重算 scale 就会露边。
+       fit() 只读布局尺寸，重复调用是幂等的，不需要节流。 */
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener("resize", function () { fit(); }, { passive: true });
+    }
+    window.addEventListener("orientationchange", function () { fit(); }, { passive: true });
     document.addEventListener("visibilitychange", function () {
       if (document.hidden) stopLoop(); else start();
     });

@@ -1,0 +1,144 @@
+/* ==========================================================================
+ *  typography.css —— 全站字体与字重
+ * --------------------------------------------------------------------------
+ *  2026-11-11 用户要求：「整个项目的字体全部换成 MiSans，该加粗的地方加粗，
+ *  符合现代设计逻辑」。
+ *
+ *  ── 为什么单独一个文件 ───────────────────────────────────────────────
+ *  字体族由 tokens.css 的 --font-sans / --font-mono 统一决定，
+ *  但真正生效的是 themes.js —— 那 7 套主题会把 --font-* 作为**内联变量**
+ *  写到 <html> 上，内联优先级高于任何样式表。所以换字体两头都要改。
+ *  而「字重」在这套样式里是散在 8 个文件里的字面量（500 / 600 混用），
+ *  把字重抬升集中到这里，好处是：
+ *    · 一眼能看出整套**字重阶梯**，而不是靠翻文件猜；
+ *    · 以后换字体只要改这一个文件的数值，不用满仓库搜 font-weight。
+ *
+ *  ── 加载顺序 ─────────────────────────────────────────────────────────
+ *  放在 unify.css **之前**：unify 的职责是"最后一层收口"，自检脚本按这个
+ *  不变量断言（verify-unify：unify.css 必须是最后一张）。
+ *  unify.css 里没有任何 font-weight / font-family，所以先后无所谓；
+ *  真正需要压过的那些字面量在 blocks / layout / components / gaming 里，
+ *  都在本文件之前加载 —— 同权重、后者胜。
+ *
+ *  ── 字重阶梯（现代 UI 的通用做法：只留三档，别用五档）───────────────
+ *    700 Heavy    标题 / 主数字 / 名字         —— 一眼定层级
+ *    600 Semibold 卡片标题 / 按钮 / 导航 / 标签 —— 交互与"可点的东西"
+ *    400 Regular  正文 / 说明 / 副标题           —— 只负责读
+ *  三个文件正好对应这三档（fonts.css 里已把 MiSans 的原生 330/520/630
+ *  重新标定为 400/600/700）。原来那些 500 会落到 600 上，视觉上更"立"，
+ *  也更符合 MiSans 这种偏几何的无衬线字体 —— 它在 400 和 600 之间的
+ *  灰度差比 Inter 小，500 会糊成一片。
+ * ========================================================================== */
+
+:root {
+  --fw-regular: 400;
+  --fw-semibold: 600;
+  --fw-bold: 700;
+}
+
+/* ------------------------------------------------------- 一、标题与名字 */
+/* 首屏名字、屏标题、邮箱大字：全站仅有的三处"大字号"，统一 700。
+   600 在大字号上会显得发虚 —— 笔画粗细没跟上字号，看起来像没加载完。 */
+.profile__name,
+.section__title,
+.mailbox__mail,
+.splash__name {
+  font-weight: var(--fw-bold);
+}
+
+/* --------------------------------------------------- 二、可点的东西 */
+/* 按钮 / 导航 / 卡片标题：600。判据很简单 —— 它要么能被点，
+   要么是那块区域的名字。这两类都需要比正文"实"一档。 */
+.btn,
+.nav__link,
+.mobile-nav__list a,
+.ccard__label,
+.card__title,
+.game__name,
+.track__title,
+.preview__platform,
+.quote__title,
+.calc__title,
+.social__label,
+.xy__title,
+.interest__text h3 {
+  font-weight: var(--fw-semibold);
+}
+
+/* 导航项原本是 400，只有悬停变白。加半档是为了在 MiSans 下保持
+   顶栏的"重量"，否则 14px 的 MiSans Regular 在深色背景上会飘。 */
+.nav__link { font-weight: var(--fw-semibold); }
+.nav__num { font-weight: var(--fw-semibold); }
+
+/* ------------------------------------------------------- 三、数字 */
+/* 数据是这套页面的主角（听歌 77,063 首 / 游戏时长 / 报价），
+   颜色已经用 --text 提亮过一档，字重再给 700，读起来才有"数值感"。 */
+.preview__stat b,
+.listen__stat b,
+.calc__price,
+.calc__price--ask,
+.quote__price,
+.xy__price,
+.track__plays-unit,
+.game__uid-value,
+.brand__mark {
+  font-weight: var(--fw-bold);
+}
+
+/* 序号 01~06 是"排版记号"不是数据，600 足够；前三名的强调交给颜色。 */
+.track__idx { font-weight: var(--fw-semibold); }
+.track__idx.is-top { font-weight: var(--fw-bold); }
+
+/* ------------------------------------------- 四、等宽位置改用等宽数字 */
+/* --font-mono 现在指向 MiSans（见 tokens.css 的说明）。
+   MiSans 的比例数字在竖排列表里会让 01/02/…/10 的宽度不一致，
+   所以凡是"上下要对齐"的数字统一打开 tabular-nums。
+   （MiSans 自带 tnum 特性，不需要额外字体文件。） */
+.eyebrow,
+.nav__num,
+.track__idx,
+.track__plays,
+.listen__stat b,
+.preview__stat b,
+.calc__price,
+.quote__price,
+.xy__price,
+.game__uid-value,
+.footer__note,
+.hero__scroll,
+.pager__label {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+/* ------------------------------------------------- 五、全大写小标签 */
+/* 「02 / LISTENING」这类 kicker：MiSans 的小写字母全大写后笔画偏细，
+   600 + .14em 字距才能在小字号下站住。 */
+.eyebrow,
+.footer__note,
+.hero__scroll,
+.preview__stats,
+.mobile-nav__foot {
+  font-weight: var(--fw-semibold);
+}
+
+/* ------------------------------------------------ 六、正文里该加粗的 */
+/* 卡片副标题（歌单 · 红心 · 最近在听）保持 400：它是解释，不是标题。
+   只把"重音"的地方提一档 —— <strong>、.is-em 这类。 */
+strong,
+b { font-weight: var(--fw-semibold); }
+
+/* -------------------------------------------------- 七、数字不参与斜体 */
+/* 曲线救国：MiSans 没有真斜体，某些浏览器会给 <i>/<em> 做 12° 倾斜合成，
+   在中文里非常难看。项目里 <i> 只当图标占位用（.calc__label i 等），
+   这里直接压掉倾斜。 */
+i, em, .calc__label i { font-style: normal; }
+
+/* ----------------------------------------- 八、加载期间的兜底字重 */
+/* MiSans 没到位时（首屏 / 离线），系统字体的 600 在 Windows 上会被合成加粗，
+   比 MiSans 的 Semibold 明显更黑。用 font-synthesis 关掉合成加粗，
+   让回退字体只用它自带的字重 —— 宁可细一点，也不要糊成一块。 */
+html {
+  font-synthesis-weight: none;
+  font-synthesis-style: none;
+}

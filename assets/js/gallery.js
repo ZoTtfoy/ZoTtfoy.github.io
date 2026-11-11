@@ -42,8 +42,17 @@
     var isDark = mode === "dark";
     var accent = t[mode].accent;
     var radius = t.base["r-md"];
-    var fontName = /serif/i.test(t.base["font-display"]) ? "宋 / Serif" :
-                   /mono/i.test(t.base["font-sans"]) ? "等宽" : "无衬线";
+    /* ⚠️ 原来写的是 /serif/i.test(font-display) —— 而 "sans-serif" 里也有
+       "serif"，于是每一套无衬线主题都被标成「宋 / Serif」。
+       全站换 MiSans 之后所有主题的 display 都带 sans-serif，
+       这个 bug 就变成"全表都写着宋体"，必须一起修。
+       先把 sans-serif 从字符串里剔掉，剩下的 serif 才是真的衬线。 */
+    var disp = String(t.base["font-display"] || "");
+    var sans = String(t.base["font-sans"] || "");
+    var fontName = /serif/i.test(disp.replace(/sans-serif/gi, "")) ? "宋 / Serif"
+                 : /mono/i.test(sans) ? "等宽"
+                 : /MiSans/i.test(sans) ? "MiSans"
+                 : "无衬线";
 
     return '' +
       '<button class="g-card" type="button" data-skin="' + t.id + '" data-mode="' + mode + '" ' +

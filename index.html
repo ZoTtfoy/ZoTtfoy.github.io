@@ -108,6 +108,10 @@
   <script defer src="assets/js/motion.js"></script>
   <script defer src="assets/js/main.js"></script>
 
+  <!-- 字体必须第一个：@font-face 越早被解析，首屏文字越快用上 MiSans。
+       里面是按 unicode-range 分片的 woff2 声明，浏览器只下用得着的片。 -->
+  <link rel="stylesheet" href="assets/css/fonts.css">
+  <link rel="preconnect" href="https://fastly.jsdelivr.net" crossorigin>
   <link rel="stylesheet" href="assets/css/tokens.css">
   <link rel="stylesheet" href="assets/css/backdrop.css">
   <link rel="stylesheet" href="assets/css/layout.css">
@@ -122,6 +126,12 @@
   <link rel="stylesheet" href="assets/css/motion.css">
   <!-- 视口密度分级：缩到某个阈值就让装饰退场，放大再回来 -->
   <link rel="stylesheet" href="assets/css/density.css">
+  <!-- 字体与字重：覆盖前面散落的 font-weight 字面量。
+       ⚠️ 必须在 unify.css **之前** —— unify 的职责是"最后一层收口"，
+          自检脚本（verify-unify）也是按这个不变量断言的。
+          unify.css 里没有任何 font-weight / font-family，
+          所以放到它前面不会丢掉本文件的字重规则。 -->
+  <link rel="stylesheet" href="assets/css/typography.css">
   <!-- 必须最后加载：它定义的是"白卡"这件事的最终值，
        前面几个文件里分散的圆角 / 阴影 / hover 写法会被它统一覆盖。 -->
   <link rel="stylesheet" href="assets/css/unify.css">

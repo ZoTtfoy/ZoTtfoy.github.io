@@ -128,8 +128,17 @@ window.SITE_STEAMWALL = (function () {
   /* ------------------------------------------------------------- 适配 */
   function fit() {
     if (!grid) return;
-    var w = window.innerWidth || 1280;
-    var h = window.innerHeight || 800;
+    /* ⚠️ 2026-11-11 改用**背景层自己的盒子**，不再读 window.innerHeight。
+       手机浏览器（iOS Safari / 部分安卓 WebView）里 innerHeight 是"当前可见高度"
+       —— 地址栏滑出滑入时它比 CSS 的 100vh 小 60~120px，而这一层是
+       position:absolute; inset:0，跟的是 section 的 100vh。
+       用小的那个数去算 scale，结果就是：页面越高、背景越盖不满，
+       用户看到的是"游戏界面背景错了一截"。
+       clientWidth/clientHeight 是布局尺寸，不受浏览器 chrome 影响。
+       取不到（display:none / 还没布局）时才退回窗口尺寸。 */
+    var w = wall ? wall.clientWidth : 0;
+    var h = wall ? wall.clientHeight : 0;
+    if (!w || !h) { w = window.innerWidth || 1280; h = window.innerHeight || 800; }
     /* 旋转 45° 后，S×S 正方形的轴对齐内接正方形边长是 S/√2。
        把它撑到至少 max(w,h)×SAFETY，视口四角就都在实例里。 */
     scale = Math.SQRT2 * Math.max(w, h) * SAFETY / INST;
@@ -290,6 +299,12 @@ window.SITE_STEAMWALL = (function () {
 
     window.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("resize", function () { fit(); }, { passive: true });
+    /* 同 albumwall：地址栏伸缩改的是 visualViewport，不是 window 尺寸，
+       而背景层的 100dvh 会跟着变 —— 不重算就露边。 */
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener("resize", function () { fit(); }, { passive: true });
+    }
+    window.addEventListener("orientationchange", function () { fit(); }, { passive: true });
     document.addEventListener("visibilitychange", function () {
       lastT = 0;
       if (document.hidden) stopLoop(); else start();

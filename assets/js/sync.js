@@ -157,6 +157,10 @@
             return wrap.outerHTML;
           }).join("");
         box.hidden = false;
+        /* 数据一到，这张卡就不再是"只有副标题"的空卡 ——
+           把 render.js 打的 .is-statless 摘掉，否则副标题会和数据抢同一行
+           （CSS 里 .is-statless 专门放开了副标题的 display）。 */
+        node.classList.remove("is-statless");
       }
     }
 
