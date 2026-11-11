@@ -5,9 +5,9 @@
  *    六屏的卡片样式散在 blocks / components / gaming / motion / fit 五个文件里，
  *    同一种"内容卡"却有三套圆角、三套 hover 反馈：
  *
- *      圆角   .ccard 16  .game 16  .social 16  .calc 16  .track 10  ← 磁贴莫名小一圈
- *      阴影   .ccard 有  .game 无  .social 无  .calc 无               ← 只有 Q1 的卡浮着
- *      hover  .ccard 描边+阴影+上浮  .game 只描边  .social 描边+图标变色
+ *      圆角   .ccard 16  .game-board 16  .social 16  .calc 16  .track 10  ← 磁贴莫名小一圈
+ *      阴影   .ccard 有  .game-board 无  .social 无  .calc 无               ← 只有 Q1 的卡浮着
+ *      hover  .ccard 描边+阴影+上浮  .game-board 只描边  .social 描边+图标变色
  *
  *    结果就是"元素太不统一"：同样是白卡，Q1 的浮起来、Q3/Q5 的贴平；
  *    同样是内容块，Q2 的磁贴圆角比别处小 6px。
@@ -22,7 +22,7 @@
  *    · 实心抬升底：background 用 --bg-elev
  *    · 1px 细线：border 用 --line
  *    · 可点击：整块是 button / a，或有 hover 反馈
- *  按这三条筛出来的就是 .ccard / .game / .social / .calc。
+ *  按这三条筛出来的就是 .ccard / .game-board / .social / .calc。
  *  反例（有意不纳入）：
  *    · .preview —— 次要卡，底色 --bg-soft（下沉），本就该比白卡轻一档
  *    · .track   —— 磁贴，一屏要放六个，内边距与圆角服务于"紧凑"，见下方单独说明
@@ -30,7 +30,7 @@
 
 /* ---------------------------------------------------------- 一、卡片家族 */
 .ccard,
-.game,
+.game-board,
 .social,
 .calc {
   border: 1px solid var(--line);
@@ -54,7 +54,7 @@
    点完一张卡它就永远停在抬起状态，看起来像选中了。 */
 @media (hover: hover) {
   .ccard:hover,
-  .game:hover,
+  .game-board:hover,
   .social:hover {
     /* .calc 不加：它是表单容器，鼠标划过不该跳一下 */
     border-color: var(--line-strong);
@@ -65,7 +65,7 @@
 
 /* 按下时立刻回位，给一个"按到了"的确认 */
 .ccard:active,
-.game:active,
+.game-board:active,
 .social:active {
   transform: translateY(0);
 }
@@ -101,10 +101,10 @@
 .social__handle,
 .preview__meta { font-size: .75rem; }
 
-/* 游戏卡里的 "博士 ID / Riot ID" 标签原本是 .56rem = 8.96px，
-   手机上虽然会隐藏，但桌面上确实小到要凑近看。
-   抬到 .7rem = 11.2px，正好越过 11px 这条可读下限。 */
-.game__uid-label { font-size: .7rem; }
+/* 游戏模块的「好友码」标签：早先是 .game__uid-label（.56rem = 8.96px），
+   现在是战绩板顶栏的 .gb-head__id i（.68rem ≈ 10.9px），仍然压着 11px 这条线。
+   抬到 .7rem = 11.2px，正好越过下限 —— 这个标签要给人照着输，不能靠凑近看。 */
+.gb-head__id i { font-size: .7rem; }
 
 /* ------------------------------------------------------ 四、磁贴（.track） */
 /* 磁贴是卡片家族的紧凑版本，不是另一种东西，所以圆角跟家族一致（16px）。

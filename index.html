@@ -4,6 +4,11 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="color-scheme" content="light dark">
+  <!-- 隐私：不给任何第三方（Steam / 网易云的封面 CDN）发 Referer。
+       默认策略（strict-origin-when-cross-origin）虽然不带路径，但仍会告诉
+       对方"你是从 zottfoy.github.io 来的"。这一站没有依赖 Referer 的功能，
+       所以直接关掉 —— 外链封面只应该看到"有人要这张图"。 -->
+  <meta name="referrer" content="no-referrer">
   <meta name="description" content="Zotrod 的个人主页 —— 联系方式、最近在听、在玩的游戏，以及维修报价。">
   <meta name="theme-color" content="#fbfbf9">
 
@@ -322,10 +327,15 @@
             <h2 class="section__title" id="gamingTitle" data-field="title"></h2>
             <p class="section__lead" data-field="lead"></p>
           </header>
-          <div class="game-rail" id="gameRail"></div>
-          <!-- 游戏战绩：时长 + 成就进度（sync.js 读 data/steam.json 后填充）。
-               数据来自 Steam 公开资料页，没有就整块不渲染 —— 不留空壳。 -->
-          <div class="game-stats" id="gameStats" hidden></div>
+          <!-- 游戏模块：**整块是一个链接**（点哪都进 Steam 主页）。
+               render.js 分两半填：
+                 #gameRail  → 顶栏（平台名 / 公开库存 / 好友码）
+                 #gameStats → 三格数据 + 游戏列表（可滚动，行数按可用高度算）
+               数据来自 data/steam.json；抓不到时整块不渲染，不留空壳。 -->
+          <a class="game-board" id="gameBoard" hidden target="_blank" rel="noopener noreferrer">
+            <div class="game-rail" id="gameRail"></div>
+            <div class="game-stats" id="gameStats" hidden></div>
+          </a>
         </div>
       </section>
 

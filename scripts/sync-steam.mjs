@@ -29,6 +29,10 @@
 
 import fs from "node:fs/promises";
 import path from "node:path";
+/* 「最近入库」的差集记账逻辑独立成一个纯函数模块（scripts/lib/steam-added.mjs）：
+   那块逻辑没有网络、没有文件、没有时钟，所以可以被 tools/verify-steam-added.js
+   用假数据直接断言。这个脚本只负责"取数据 + 写文件"。 */
+import { diffRecentlyAdded } from "./lib/steam-added.mjs";
 
 const ROOT = path.resolve(process.cwd());
 const OUT = path.join(ROOT, "data", "steam.json");
@@ -48,9 +52,18 @@ async function loadChromium() {
   }
 }
 
+/* SteamID 的三种给法，优先级从高到低：
+ *   ① 命令行里任意位置的 17 位数字（`--api-only` 这种开关不会误伤）
+ *   ② 环境变量 STEAM_ID（CI 里用 repository variable 传）
+ *   ③ config.js 里那张 Steam 卡的 steam.steamId（本地默认，永远兜得住）
+ * 这样 CI 不必再存一份 ID，本地也不用每次敲。 */
 async function pickSteamId() {
-  const arg = (process.argv[2] || "").trim();
-  if (/^[0-9]{17}$/.test(arg)) return arg;
+  const argvHit = (process.argv.slice(2).find((a) => /^[0-9]{17}$/.test(a)) || "").trim();
+  if (argvHit) return argvHit;
+
+  const envHit = (process.env.STEAM_ID || "").trim();
+  if (/^[0-9]{17}$/.test(envHit)) return envHit;
+
   try {
     const cfg = await fs.readFile(path.join(ROOT, "assets/js/config.js"), "utf8");
     const at = cfg.indexOf('steamId: "');
@@ -94,8 +107,35 @@ const UA =
 
 /* 横版头图（460×215）。列表里的缩略图用它，别用 2:3 的竖版封面 ——
    竖版塞进 16:9 的框里会被裁掉一半。 */
+const CDN = "https://cdn.akamai.steamstatic.com/steam/apps";
 function headerUrl(appid) {
-  return `https://cdn.akamai.steamstatic.com/steam/apps/${appid}/header.jpg`;
+  return `${CDN}/${appid}/header.jpg`;
+}
+
+/* ⚠️ 有的 appid 在静态 CDN 上一张图都没有（新作 / 分区限定）。
+   实测「深空当铺」4348910 的 header / capsule / library 全是 404，
+   页面上就是一个空黑框 —— 用户专门圈出来过。
+   所以在这里按"横图优先"挨个探一遍，全挂了就返回空串，
+   让前端走兜底图标（那是有意为之的空态，比碎图好看）。 */
+const COVER_CANDIDATES = [
+  "header.jpg",          // 460×215，列表用的就是它
+  "capsule_616x353.jpg",
+  "library_600x900.jpg", // 竖版，兜底时会被 object-fit 裁一下
+  "capsule_231x87.jpg"
+];
+
+async function pickCover(appid) {
+  for (const f of COVER_CANDIDATES) {
+    const url = `${CDN}/${appid}/${f}`;
+    try {
+      const ctl = new AbortController();
+      const t = setTimeout(() => ctl.abort(), 8000);
+      const r = await fetch(url, { method: "HEAD", signal: ctl.signal });
+      clearTimeout(t);
+      if (r.ok) return url;
+    } catch { /* 试下一个 */ }
+  }
+  return "";
 }
 
 async function readApiKey() {
@@ -139,7 +179,10 @@ async function collectViaApi(steamId, key) {
   const games = Array.isArray(body.games) ? body.games : [];
   if (!games.length) return null;
 
-  const ROWS = 8;                     // 页面上一屏能放下的行数（多出来的不渲染）
+  /* 取多少行：页面上一屏只放得下 4~6 行，其余靠滚动。
+     取 20 行 = 滚动两屏多一点，既有"库"的分量，又不会让 JSON 和
+     成就请求（每款一次）膨胀得太离谱。 */
+  const ROWS = 20;
   const sorted = games.slice().sort((a, b) => (b.playtime_forever || 0) - (a.playtime_forever || 0));
   const minutes = games.reduce((s, g) => s + (g.playtime_forever || 0), 0);
 
@@ -151,7 +194,8 @@ async function collectViaApi(steamId, key) {
       hours: +(((g.playtime_forever || 0) / 60).toFixed(1)),
       hours2w: +(((g.playtime_2weeks || 0) / 60).toFixed(1)),
       last: "",
-      cover: headerUrl(g.appid),
+      cover: await pickCover(g.appid),
+      coverFallback: "",
       ach: await achViaApi(key, steamId, g.appid)
     });
   }
@@ -163,8 +207,52 @@ async function collectViaApi(steamId, key) {
     perfect: rows.filter((r) => r.ach && r.ach.have >= r.ach.total).length,
     /* API 拿到的是全库，所以"游戏时长"就是真的总时长 */
     partial: false,
-    rows
+    rows,
+    /* 「最近入库」要靠**两次同步的差集**算 —— Steam 的接口里没有
+       "购买时间"这个字段（GetOwnedGames 只有 rtime_last_played = 最后游玩）。
+       所以这里把全库 appid 快照存下来，下次同步拿它做基线。 */
+    owned: games.map((g) => ({ appid: g.appid, name: g.name || String(g.appid) }))
   };
+}
+
+/* --------------------------------------------------- 补充：徽章页的游戏时长
+ *  公开资料页只给"最近玩过"的几款（实测 3 款）。徽章页 /badges/ 上，
+ *  每个**游戏徽章**行都带一句「总时数 X 小时」，一页能多捞几款 ——
+ *  而且同样是公开可读，不需要 key。
+ *  能捞到多少取决于这人有多少套卡牌（有卡牌才有游戏徽章），
+ *  但总比只有 3 款强；有 API key 时这条路跳过（API 给的是全库）。
+ * ------------------------------------------------------------------------- */
+async function collectViaBadges(page, base) {
+  const r = await page.goto(base + "badges/", { waitUntil: "domcontentloaded", timeout: 30000 });
+  if (!r || r.status() !== 200) return [];
+  await page.waitForTimeout(1200);
+
+  return await page.evaluate(() => {
+    const out = [];
+    document.querySelectorAll(".badge_row").forEach((el) => {
+      const txt = el.innerText.replace(/\s+/g, " ");
+      const hm = /总时数\s*([\d,.]+)\s*小时/.exec(txt);
+      if (!hm) return;                                  // 年限 / 活动徽章没有时长
+      /* 游戏徽章的浮层链接是 /gamecards/<appid>/，appid 就在里面 */
+      const ov = el.querySelector("a.badge_row_overlay");
+      const am = /\/(?:gamecards|badges)\/(\d+)/.exec((ov && ov.getAttribute("href")) || "");
+      if (!am) return;
+      const nameEl = el.querySelector(".badge_title");
+      const name = nameEl ? nameEl.textContent.replace(/查看详情/g, "").trim() : "";
+      if (!name) return;
+      out.push({
+        appid: Number(am[1]),
+        name,
+        hours: Number(hm[1].replace(/,/g, "")),
+        hours2w: 0,
+        last: "",
+        cover: "https://cdn.akamai.steamstatic.com/steam/apps/" + am[1] + "/header.jpg",
+        coverFallback: "",
+        ach: null
+      });
+    });
+    return out;
+  });
 }
 
 /* ------------------------------------------------------- 路线② 公开资料页 */
@@ -211,8 +299,9 @@ async function collectViaPage(chromium, steamId, fallbackCount) {
                  /Last played on\s*(.+)$/i.exec(g.detail);
 
       /* 缩略图换成横版头图：公开页给的 capsule_184x69 是 2.67:1，
-         在 16:9 的框里会裁掉两边；header.jpg 比例刚好。 */
-      const cover = g.appid ? headerUrl(g.appid) : g.cover;
+         在 16:9 的框里会裁掉两边；header.jpg 比例刚好。
+         探不到横图时退回页面给的那张（至少不是空）。 */
+      const cover = (g.appid && (await pickCover(g.appid))) || g.cover;
 
       let ach = null;
       if (g.appid) {
@@ -240,16 +329,29 @@ async function collectViaPage(chromium, steamId, fallbackCount) {
       });
     }
 
-    const totalHours = rows.reduce((s, r) => s + (r.hours || 0), 0);
+    /* 再用徽章页补几款（复用同一个 page，省一次启动浏览器）。
+       最近玩过的那几款优先，徽章页只补它没有的。 */
+    const fromBadges = await collectViaBadges(page, base);
+    const seen = {};
+    const merged = [];
+    rows.forEach((r) => { if (r.appid && !seen[r.appid]) { seen[r.appid] = 1; merged.push(r); } });
+    fromBadges.forEach((r) => {
+      if (!r.appid || seen[r.appid]) return;
+      seen[r.appid] = 1;
+      merged.push(r);
+    });
+    merged.sort((a, b) => (b.hours || 0) - (a.hours || 0));
+
+    const totalHours = merged.reduce((s, r) => s + (r.hours || 0), 0);
     return {
       source: "page",
+      rows: merged,
       totalGames: fallbackCount || 0,
       totalHours: Math.round(totalHours),
       perfect: rows.filter((r) => r.ach && r.ach.have >= r.ach.total).length,
-      /* ⚠️ 公开页只给最近几款，这个"总时长"只是这几款之和 —— 
-         前端要据此把标签写成「近 N 款」，不能写成「游戏时长」。 */
-      partial: rows.length < (fallbackCount || 0),
-      rows
+      /* ⚠️ 公开页只给最近几款 + 有卡牌的几款，这个"总时长"只是这几款之和 ——
+         前端据此把标签写成「近 N 款」，不能写成「游戏时长」。 */
+      partial: merged.length < (fallbackCount || 0)
     };
   } finally {
     await browser.close();
@@ -281,8 +383,15 @@ function extractApps(descriptions) {
 async function main() {
   const log = (...a) => console.log("[steam]", ...a);
 
-  const chromium = await loadChromium();
-  if (!chromium) {
+  /* --api-only：只用 Web API，不开浏览器。
+     库存那条路必须用真实浏览器（TLS 指纹），CI 里跑不了；但只要有 API key，
+     游戏库统计 + 最近入库这两件事不需要浏览器，所以给它留一个纯 API 模式：
+       node scripts/sync-steam.mjs --api-only
+     这时 apps / portraitApps（封面墙）沿用上一次本机抓的结果，不会被清空。 */
+  const API_ONLY = process.argv.includes("--api-only");
+
+  const chromium = API_ONLY ? null : await loadChromium();
+  if (!API_ONLY && !chromium) {
     console.error("[steam] 需要 playwright-core（npm install playwright-core --no-save）");
     process.exit(0);   // 不阻断 CI
   }
@@ -295,6 +404,10 @@ async function main() {
 
   log("目标 SteamID", steamId);
 
+  /* ---- 以下整段是"库存反推游戏库"，必须真实浏览器；--api-only 时跳过 ---- */
+  let descriptions = [];
+  let total = 0;
+  if (!API_ONLY) {
   const browser = await chromium.launch();
   const ctx = await browser.newContext({
     /* 中文界面能让 market_hash_name 的 type 直接是中文游戏名，
@@ -306,7 +419,6 @@ async function main() {
   });
   const page = await ctx.newPage();
 
-  const descriptions = [];
   let lastAsset = null;
   let rounds = 0;
   let total = 0;
@@ -344,9 +456,14 @@ async function main() {
   } finally {
     await browser.close();
   }
+  } /* ← if (!API_ONLY) 结束 */
 
   const found = extractApps(descriptions);
-  if (!found.length) {
+
+  /* --api-only：库存那份沿用上次结果（封面墙用），这里不重算 */
+  if (API_ONLY) {
+    log("--api-only：跳过库存抓取，沿用 data/steam.json 里已有的封面墙数据");
+  } else if (!found.length) {
     log("没有从库存里提取到任何 appid");
     log("可能原因：① 库存是私密的 ② 库存里没有卡牌/表情（全新账号常见）");
     process.exit(0);
@@ -379,16 +496,20 @@ async function main() {
      ⚠️ 不能用 Promise.all + 递增 setTimeout 错开起点 ——
         那只是把 45 个请求错开几十毫秒，仍然全部同时在线，
         照样会被 CDN 限速、然后把超时误判成"没有封面"。 */
+  /* --api-only 时 games 是空的（没跑库存），这一整块直接跳过，
+     写文件时沿用旧 JSON 里的封面墙数据，别把墙清空。 */
   const portraitApps = [];
-  for (let i = 0; i < games.length; i += 6) {
-    const batch = games.slice(i, i + 6);
-    const res = await Promise.all(batch.map((g) => hasPortrait(g.appid)));
-    res.forEach((ok, k) => { if (ok) portraitApps.push(batch[k].appid); });
+  if (!API_ONLY) {
+    for (let i = 0; i < games.length; i += 6) {
+      const batch = games.slice(i, i + 6);
+      const res = await Promise.all(batch.map((g) => hasPortrait(g.appid)));
+      res.forEach((ok, k) => { if (ok) portraitApps.push(batch[k].appid); });
+    }
+    portraitApps.sort((a, b) => a - b);
+    log(`竖版封面 ${portraitApps.length}/${games.length} 张可用` +
+        (games.length - portraitApps.length
+          ? `（剔除 ${games.length - portraitApps.length} 个 404）` : ""));
   }
-  portraitApps.sort((a, b) => a - b);
-  log(`竖版封面 ${portraitApps.length}/${games.length} 张可用` +
-      (games.length - portraitApps.length
-        ? `（剔除 ${games.length - portraitApps.length} 个 404）` : ""));
 
   /* 战绩：优先 API（全库），没有 key 就退回公开资料页（最近几款）。
      抓不到不影响库存那条主线 —— board 为 null 时前端整块不渲染。 */
@@ -400,6 +521,10 @@ async function main() {
   } else {
     log("战绩：没有 STEAM_API_KEY / steam-key.txt，只能读公开资料页（最近几款）");
     log("      想要「全库时长 + 游戏数量」，去 https://steamcommunity.com/dev/apikey 领一把（免费）");
+  }
+  if (!board && API_ONLY) {
+    log("--api-only 但没有拿到 API 数据（key 无效 / 网络失败），这次不写文件");
+    process.exit(0);
   }
   if (!board) board = await collectViaPage(chromium, steamId, games.length);
 
@@ -414,6 +539,29 @@ async function main() {
     log("战绩：没抓到，前端会跳过这一块");
   }
 
+  /* ---------------- 最近入库：拿上一次的全库快照做差集 ----------------
+     具体规则（首次只建基线、空库不清记录、累积上限 12 条）都在
+     scripts/lib/steam-added.mjs 里，那是纯函数，tools/verify-steam-added.js
+     用假数据覆盖了全部分支。这里只负责把结果落盘。 */
+  let prev = null;
+  try {
+    prev = JSON.parse(await fs.readFile(OUT, "utf8"));
+  } catch { /* 第一次跑 */ }
+
+  const today = new Date().toISOString().slice(0, 10);
+  const ownedNow = (board && Array.isArray(board.owned)) ? board.owned : [];
+  const diff = diffRecentlyAdded(prev, ownedNow, today);
+  const added = diff.added;
+  const ownedSince = diff.ownedSince;
+
+  if (diff.baseline) {
+    log("最近入库：首次同步，只建基线（从现在起记录新入库）");
+  } else if (diff.fresh.length) {
+    log(`最近入库：${diff.fresh.length} 款 —— ` + diff.fresh.map((g) => g.name).join(" / "));
+  } else if (ownedNow.length) {
+    log("最近入库：没有新游戏");
+  }
+
   await fs.mkdir(path.dirname(OUT), { recursive: true });
   await fs.writeFile(
     OUT,
@@ -422,16 +570,19 @@ async function main() {
         updated: new Date().toISOString(),
         steamId,
         source: "inventory",
-        inventoryTotal: total,
-        /* apps 只放真游戏 —— 活动 appid 的封面大多 404，铺上去会是空白格 */
-        apps: games.map((g) => g.appid),
+        inventoryTotal: API_ONLY && prev ? prev.inventoryTotal : total,
+        /* apps 只放真游戏 —— 活动 appid 的封面大多 404，铺上去会是空白格。
+           --api-only 时沿用上一次本机抓的那份（不然封面墙会被清空）。 */
+        apps: API_ONLY && prev ? (prev.apps || []) : games.map((g) => g.appid),
         /* portraitApps 是逐张探测过、一定能加载的竖版封面，
            前端的封面墙只用这一份。apps 保留完整清单供别处引用。 */
         portraitBase: PORTRAIT("{id}"),
-        portraitApps,
-        portraitChecked: games.length,
-        games: games.slice(0, 24).map((g) => ({ appid: g.appid, name: g.name })),
-        events: events.map((e) => e.appid),
+        portraitApps: API_ONLY && prev ? (prev.portraitApps || []) : portraitApps,
+        portraitChecked: API_ONLY && prev ? prev.portraitChecked : games.length,
+        games: API_ONLY && prev
+          ? (prev.games || [])
+          : games.slice(0, 24).map((g) => ({ appid: g.appid, name: g.name })),
+        events: API_ONLY && prev ? (prev.events || []) : events.map((e) => e.appid),
         /* lib：顶部那条数据（游戏数量 / 总时长 / 完美通关）
            + rows：列表里的几行（duration / 2w / 成就 / 封面）
            partial=true 表示"总时长"只统计了列表里这几款，不是全库。 */
@@ -442,7 +593,13 @@ async function main() {
           perfect: board.perfect,
           partial: board.partial
         } : null,
-        recent: board ? board.rows : []
+        recent: board ? board.rows : [],
+        /* owned：全库 appid 快照（下次同步的基线，目前没在前端用）
+           added：最近入库（新 → 旧，最多 12 条，带日期）
+           ownedSince：基线建立的日期（前端在 empty 状态下用它说话） */
+        owned: (board && board.owned) || (prev && prev.owned) || [],
+        added,
+        ownedSince
       },
       null,
       2

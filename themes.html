@@ -4,6 +4,11 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="color-scheme" content="light dark">
+  <!-- 隐私：不给任何第三方（Steam / 网易云的封面 CDN）发 Referer。
+       默认策略（strict-origin-when-cross-origin）虽然不带路径，但仍会告诉
+       对方"你是从 zottfoy.github.io 来的"。这一站没有依赖 Referer 的功能，
+       所以直接关掉 —— 外链封面只应该看到"有人要这张图"。 -->
+  <meta name="referrer" content="no-referrer">
   <meta name="robots" content="noindex, nofollow">
   <title>风格总览 · Zotrod</title>
 

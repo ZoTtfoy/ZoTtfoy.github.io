@@ -285,11 +285,21 @@ check(typeof ctx.SITE_SYNC === 'object' && typeof ctx.SITE_SYNC.applyTracks === 
 const games = (C.gaming?.items || []).filter((g) => g && !g.hidden);
 /* ⚠️ 匹配要精确到 class="game " 或 class="game" 开头，不能用 /class="game"/
    —— Steam 卡带 game--steam 修饰类，宽匹配会把同一张卡数两次。 */
-check(count('gameRail', /class="game[ "]/g) === games.length,
-  'Q3 游戏卡片数量正确（配置 ' + games.length + '，渲染 ' +
-  count('gameRail', /class="game[ "]/g) + '）');
-check(count('gameRail', /data-copy="/g) === games.filter(g => g.uid || g.copy).length,
-  '每张游戏卡都有可复制的 ID');
+/* ⚠️ 2026-11-11：Q3 改成"一个整块模块"（顶栏 + 三格数据 + 可滚动的游戏列表），
+   下面这两条旧断言不再成立：
+     · 卡片数量 —— 现在只有一块 .game-board，里面是 .gb-head + .gb-row
+     · 每张卡都能复制 ID —— 好友码已经改成纯文本，点击整块进 Steam 主页
+   所以改成守"新结构"的不变量：模块存在、整块可点、好友码不再是按钮。 */
+const steamGame = games.filter(g => g.steam && g.steam.steamId)[0];
+/* 注：这套自检用的是极简 DOM 桩，`H('gaming')` 只回显 JS 写进去的 innerHTML，
+   静态标记要查源文件本身（html）。 */
+check(/class="game-board"/.test(html), 'Q3 是单块游戏模块（game-board）');
+check(!!steamGame && /steamcommunity\.com\/profiles\//.test(steamGame.steam.profileUrl || ''),
+  '配置里有 Steam 主页地址（整块模块的 href 来自这里）');
+check(count('gameRail', /gb-head__id/g) === 1,
+  '好友码只作为文字展示（gb-head__id）');
+check(count('gameRail', /data-copy="/g) === 0,
+  '游戏模块里不再有"复制 UID"按钮');
 check(!/game__stats|game__note/.test(H('gameRail')), 'Q3 卡片不含介绍性内容（只有图标/名称/ID）');
 games.forEach(g => {
   if (!g.iconImage) check(!!ctx.SITE_ICONS[g.icon], '游戏图标存在: ' + g.name + ' → ' + g.icon);

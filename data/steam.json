@@ -1,5 +1,5 @@
 {
-  "updated": "2026-11-11T12:01:07.048Z",
+  "updated": "2026-11-11T13:08:51.434Z",
   "steamId": "76561199120970154",
   "source": "inventory",
   "inventoryTotal": 280,
@@ -221,45 +221,842 @@
     3334340
   ],
   "lib": {
-    "source": "page",
-    "totalGames": 45,
-    "totalHours": 2603,
-    "perfect": 1,
-    "partial": true
+    "source": "api",
+    "totalGames": 143,
+    "totalHours": 3786,
+    "perfect": 4,
+    "partial": false
   },
   "recent": [
     {
-      "appid": 3009140,
-      "name": "Salt Player for Windows",
-      "hours": 109,
-      "hours2w": 0,
-      "last": "11 月 10 日",
-      "cover": "https://cdn.akamai.steamstatic.com/steam/apps/3009140/header.jpg",
-      "ach": null
-    },
-    {
       "appid": 1172470,
       "name": "Apex Legends",
-      "hours": 2491,
-      "hours2w": 0,
-      "last": "11 月 7 日",
+      "hours": 2490.7,
+      "hours2w": 27.7,
+      "last": "",
       "cover": "https://cdn.akamai.steamstatic.com/steam/apps/1172470/header.jpg",
+      "coverFallback": "",
       "ach": {
         "have": 12,
         "total": 12
       }
     },
     {
-      "appid": 4348910,
-      "name": "深空当铺：可能是偷的",
-      "hours": 2.7,
+      "appid": 553850,
+      "name": "HELLDIVERS™ 2",
+      "hours": 210.8,
       "hours2w": 0,
-      "last": "11 月 3 日",
-      "cover": "https://cdn.akamai.steamstatic.com/steam/apps/4348910/header.jpg",
+      "last": "",
+      "cover": "https://cdn.akamai.steamstatic.com/steam/apps/553850/header.jpg",
+      "coverFallback": "",
       "ach": {
-        "have": 1,
+        "have": 38,
+        "total": 38
+      }
+    },
+    {
+      "appid": 960170,
+      "name": "DJMAX RESPECT V",
+      "hours": 132.4,
+      "hours2w": 0,
+      "last": "",
+      "cover": "https://cdn.akamai.steamstatic.com/steam/apps/960170/header.jpg",
+      "coverFallback": "",
+      "ach": {
+        "have": 51,
+        "total": 288
+      }
+    },
+    {
+      "appid": 1293830,
+      "name": "Forza Horizon 4",
+      "hours": 118.2,
+      "hours2w": 0,
+      "last": "",
+      "cover": "https://cdn.akamai.steamstatic.com/steam/apps/1293830/header.jpg",
+      "coverFallback": "",
+      "ach": {
+        "have": 55,
+        "total": 178
+      }
+    },
+    {
+      "appid": 3009140,
+      "name": "Salt Player for Windows",
+      "hours": 109.3,
+      "hours2w": 13.9,
+      "last": "",
+      "cover": "https://cdn.akamai.steamstatic.com/steam/apps/3009140/header.jpg",
+      "coverFallback": "",
+      "ach": null
+    },
+    {
+      "appid": 431960,
+      "name": "Wallpaper Engine",
+      "hours": 104.4,
+      "hours2w": 0,
+      "last": "",
+      "cover": "https://cdn.akamai.steamstatic.com/steam/apps/431960/header.jpg",
+      "coverFallback": "",
+      "ach": {
+        "have": 13,
+        "total": 17
+      }
+    },
+    {
+      "appid": 1426210,
+      "name": "It Takes Two",
+      "hours": 63.6,
+      "hours2w": 0,
+      "last": "",
+      "cover": "https://cdn.akamai.steamstatic.com/steam/apps/1426210/header.jpg",
+      "coverFallback": "",
+      "ach": {
+        "have": 20,
+        "total": 20
+      }
+    },
+    {
+      "appid": 787480,
+      "name": "Phoenix Wright: Ace Attorney Trilogy",
+      "hours": 37,
+      "hours2w": 0,
+      "last": "",
+      "cover": "https://cdn.akamai.steamstatic.com/steam/apps/787480/header.jpg",
+      "coverFallback": "",
+      "ach": {
+        "have": 7,
+        "total": 30
+      }
+    },
+    {
+      "appid": 275850,
+      "name": "No Man's Sky",
+      "hours": 36.7,
+      "hours2w": 0,
+      "last": "",
+      "cover": "https://cdn.akamai.steamstatic.com/steam/apps/275850/header.jpg",
+      "coverFallback": "",
+      "ach": {
+        "have": 16,
+        "total": 27
+      }
+    },
+    {
+      "appid": 952040,
+      "name": "MUSYNX",
+      "hours": 30.6,
+      "hours2w": 0,
+      "last": "",
+      "cover": "https://cdn.akamai.steamstatic.com/steam/apps/952040/header.jpg",
+      "coverFallback": "",
+      "ach": {
+        "have": 15,
+        "total": 27
+      }
+    },
+    {
+      "appid": 413150,
+      "name": "Stardew Valley",
+      "hours": 22.5,
+      "hours2w": 0,
+      "last": "",
+      "cover": "https://cdn.akamai.steamstatic.com/steam/apps/413150/header.jpg",
+      "coverFallback": "",
+      "ach": {
+        "have": 6,
+        "total": 49
+      }
+    },
+    {
+      "appid": 1038740,
+      "name": "Fluffy Store",
+      "hours": 19.1,
+      "hours2w": 0,
+      "last": "",
+      "cover": "https://cdn.akamai.steamstatic.com/steam/apps/1038740/header.jpg",
+      "coverFallback": "",
+      "ach": {
+        "have": 8,
+        "total": 13
+      }
+    },
+    {
+      "appid": 391220,
+      "name": "Rise of the Tomb Raider",
+      "hours": 18.2,
+      "hours2w": 0,
+      "last": "",
+      "cover": "https://cdn.akamai.steamstatic.com/steam/apps/391220/header.jpg",
+      "coverFallback": "",
+      "ach": {
+        "have": 28,
+        "total": 143
+      }
+    },
+    {
+      "appid": 3339420,
+      "name": "your wife",
+      "hours": 17.7,
+      "hours2w": 0,
+      "last": "",
+      "cover": "https://cdn.akamai.steamstatic.com/steam/apps/3339420/header.jpg",
+      "coverFallback": "",
+      "ach": {
+        "have": 100,
+        "total": 100
+      }
+    },
+    {
+      "appid": 1222140,
+      "name": "Detroit: Become Human",
+      "hours": 17.3,
+      "hours2w": 0,
+      "last": "",
+      "cover": "https://cdn.akamai.steamstatic.com/steam/apps/1222140/header.jpg",
+      "coverFallback": "",
+      "ach": {
+        "have": 23,
+        "total": 48
+      }
+    },
+    {
+      "appid": 1422450,
+      "name": "Deadlock",
+      "hours": 17.2,
+      "hours2w": 0,
+      "last": "",
+      "cover": "https://cdn.akamai.steamstatic.com/steam/apps/1422450/header.jpg",
+      "coverFallback": "",
+      "ach": null
+    },
+    {
+      "appid": 1817230,
+      "name": "Hi-Fi RUSH",
+      "hours": 17.1,
+      "hours2w": 0,
+      "last": "",
+      "cover": "https://cdn.akamai.steamstatic.com/steam/apps/1817230/header.jpg",
+      "coverFallback": "",
+      "ach": {
+        "have": 30,
+        "total": 71
+      }
+    },
+    {
+      "appid": 1078920,
+      "name": "Main Assembly",
+      "hours": 16,
+      "hours2w": 0,
+      "last": "",
+      "cover": "https://cdn.akamai.steamstatic.com/steam/apps/1078920/header.jpg",
+      "coverFallback": "",
+      "ach": {
+        "have": 7,
         "total": 21
       }
+    },
+    {
+      "appid": 4001890,
+      "name": "How to Fish",
+      "hours": 15.8,
+      "hours2w": 0,
+      "last": "",
+      "cover": "",
+      "coverFallback": "",
+      "ach": {
+        "have": 24,
+        "total": 31
+      }
+    },
+    {
+      "appid": 220,
+      "name": "Half-Life 2",
+      "hours": 15.6,
+      "hours2w": 0,
+      "last": "",
+      "cover": "https://cdn.akamai.steamstatic.com/steam/apps/220/header.jpg",
+      "coverFallback": "",
+      "ach": {
+        "have": 21,
+        "total": 69
+      }
     }
-  ]
+  ],
+  "owned": [
+    {
+      "appid": 70,
+      "name": "Half-Life"
+    },
+    {
+      "appid": 220,
+      "name": "Half-Life 2"
+    },
+    {
+      "appid": 320,
+      "name": "Half-Life 2: Deathmatch"
+    },
+    {
+      "appid": 360,
+      "name": "Half-Life Deathmatch: Source"
+    },
+    {
+      "appid": 400,
+      "name": "Portal"
+    },
+    {
+      "appid": 550,
+      "name": "Left 4 Dead 2"
+    },
+    {
+      "appid": 620,
+      "name": "Portal 2"
+    },
+    {
+      "appid": 730,
+      "name": "Counter-Strike 2"
+    },
+    {
+      "appid": 1250,
+      "name": "Killing Floor"
+    },
+    {
+      "appid": 49520,
+      "name": "Borderlands 2"
+    },
+    {
+      "appid": 105600,
+      "name": "Terraria"
+    },
+    {
+      "appid": 107600,
+      "name": "Waves"
+    },
+    {
+      "appid": 218620,
+      "name": "PAYDAY 2"
+    },
+    {
+      "appid": 223470,
+      "name": "POSTAL 2"
+    },
+    {
+      "appid": 223850,
+      "name": "3DMark"
+    },
+    {
+      "appid": 232090,
+      "name": "Killing Floor 2"
+    },
+    {
+      "appid": 236390,
+      "name": "War Thunder"
+    },
+    {
+      "appid": 242760,
+      "name": "The Forest"
+    },
+    {
+      "appid": 246620,
+      "name": "Plague Inc: Evolved"
+    },
+    {
+      "appid": 249050,
+      "name": "Dungeon of the ENDLESS™"
+    },
+    {
+      "appid": 250900,
+      "name": "The Binding of Isaac: Rebirth"
+    },
+    {
+      "appid": 264710,
+      "name": "Subnautica"
+    },
+    {
+      "appid": 268910,
+      "name": "Cuphead"
+    },
+    {
+      "appid": 275850,
+      "name": "No Man's Sky"
+    },
+    {
+      "appid": 282140,
+      "name": "SOMA"
+    },
+    {
+      "appid": 282800,
+      "name": "100% Orange Juice"
+    },
+    {
+      "appid": 286690,
+      "name": "Metro 2033 Redux"
+    },
+    {
+      "appid": 287700,
+      "name": "METAL GEAR SOLID V: THE PHANTOM PAIN"
+    },
+    {
+      "appid": 289130,
+      "name": "ENDLESS Legend™"
+    },
+    {
+      "appid": 311340,
+      "name": "METAL GEAR SOLID V: GROUND ZEROES"
+    },
+    {
+      "appid": 322330,
+      "name": "Don't Starve Together"
+    },
+    {
+      "appid": 322450,
+      "name": "FRAMED Collection"
+    },
+    {
+      "appid": 323190,
+      "name": "Frostpunk"
+    },
+    {
+      "appid": 365450,
+      "name": "Hacknet"
+    },
+    {
+      "appid": 383270,
+      "name": "Hue"
+    },
+    {
+      "appid": 391220,
+      "name": "Rise of the Tomb Raider"
+    },
+    {
+      "appid": 392280,
+      "name": "The Franz Kafka Videogame"
+    },
+    {
+      "appid": 394510,
+      "name": "HELLDIVERS™"
+    },
+    {
+      "appid": 406150,
+      "name": "Refunct"
+    },
+    {
+      "appid": 412020,
+      "name": "Metro Exodus"
+    },
+    {
+      "appid": 413150,
+      "name": "Stardew Valley"
+    },
+    {
+      "appid": 414340,
+      "name": "Hellblade: Senua's Sacrifice"
+    },
+    {
+      "appid": 418670,
+      "name": "Pankapu"
+    },
+    {
+      "appid": 431960,
+      "name": "Wallpaper Engine"
+    },
+    {
+      "appid": 443910,
+      "name": "TGV Voyages Train Simulator"
+    },
+    {
+      "appid": 475150,
+      "name": "Titan Quest Anniversary Edition"
+    },
+    {
+      "appid": 489630,
+      "name": "Warhammer 40,000: Gladius - Relics of War"
+    },
+    {
+      "appid": 493340,
+      "name": "Planet Coaster"
+    },
+    {
+      "appid": 518790,
+      "name": "theHunter: Call of the Wild™"
+    },
+    {
+      "appid": 526870,
+      "name": "Satisfactory"
+    },
+    {
+      "appid": 553640,
+      "name": "ICEY"
+    },
+    {
+      "appid": 553850,
+      "name": "HELLDIVERS™ 2"
+    },
+    {
+      "appid": 571310,
+      "name": "SteamWorld Dig 2"
+    },
+    {
+      "appid": 578080,
+      "name": "PUBG: BATTLEGROUNDS"
+    },
+    {
+      "appid": 582160,
+      "name": "Assassin's Creed Origins"
+    },
+    {
+      "appid": 601360,
+      "name": "Portal: Revolution"
+    },
+    {
+      "appid": 615610,
+      "name": "Orbt XL"
+    },
+    {
+      "appid": 619700,
+      "name": "Steel Rats"
+    },
+    {
+      "appid": 621830,
+      "name": "WRC 7"
+    },
+    {
+      "appid": 629520,
+      "name": "Soundpad"
+    },
+    {
+      "appid": 638000,
+      "name": "When Ski Lifts Go Wrong "
+    },
+    {
+      "appid": 646910,
+      "name": "The Crew 2"
+    },
+    {
+      "appid": 660160,
+      "name": "Field of Glory II"
+    },
+    {
+      "appid": 684410,
+      "name": "Bridge Constructor Portal"
+    },
+    {
+      "appid": 698780,
+      "name": "Doki Doki Literature Club"
+    },
+    {
+      "appid": 714010,
+      "name": "Aimlabs"
+    },
+    {
+      "appid": 747350,
+      "name": "Hellblade: Senua's Sacrifice VR Edition"
+    },
+    {
+      "appid": 750920,
+      "name": "Shadow of the Tomb Raider"
+    },
+    {
+      "appid": 753640,
+      "name": "Outer Wilds"
+    },
+    {
+      "appid": 774171,
+      "name": "Muse Dash"
+    },
+    {
+      "appid": 787480,
+      "name": "Phoenix Wright: Ace Attorney Trilogy"
+    },
+    {
+      "appid": 801480,
+      "name": "Agent A: A puzzle in disguise"
+    },
+    {
+      "appid": 843380,
+      "name": "Super Animal Royale"
+    },
+    {
+      "appid": 844930,
+      "name": "Fox Hime Zero"
+    },
+    {
+      "appid": 940710,
+      "name": "Colt Canyon"
+    },
+    {
+      "appid": 952040,
+      "name": "MUSYNX"
+    },
+    {
+      "appid": 960170,
+      "name": "DJMAX RESPECT V"
+    },
+    {
+      "appid": 969760,
+      "name": "Omno"
+    },
+    {
+      "appid": 986800,
+      "name": "AVICII Invector"
+    },
+    {
+      "appid": 990630,
+      "name": "The Last Campfire"
+    },
+    {
+      "appid": 993090,
+      "name": "Lossless Scaling"
+    },
+    {
+      "appid": 1016930,
+      "name": "The Great Perhaps"
+    },
+    {
+      "appid": 1038740,
+      "name": "Fluffy Store"
+    },
+    {
+      "appid": 1078920,
+      "name": "Main Assembly"
+    },
+    {
+      "appid": 1082430,
+      "name": "Before Your Eyes"
+    },
+    {
+      "appid": 1139900,
+      "name": "Ghostrunner"
+    },
+    {
+      "appid": 1144400,
+      "name": "Senren＊Banka"
+    },
+    {
+      "appid": 1172470,
+      "name": "Apex Legends"
+    },
+    {
+      "appid": 1191900,
+      "name": "Say No! More"
+    },
+    {
+      "appid": 1200580,
+      "name": "One Gun Guy"
+    },
+    {
+      "appid": 1203220,
+      "name": "NARAKA: BLADEPOINT"
+    },
+    {
+      "appid": 1205170,
+      "name": "Super Magbot"
+    },
+    {
+      "appid": 1222140,
+      "name": "Detroit: Become Human"
+    },
+    {
+      "appid": 1237970,
+      "name": "Titanfall® 2"
+    },
+    {
+      "appid": 1238810,
+      "name": "Battlefield™ V"
+    },
+    {
+      "appid": 1238820,
+      "name": "Battlefield 3™ "
+    },
+    {
+      "appid": 1238840,
+      "name": "Battlefield™ 1"
+    },
+    {
+      "appid": 1278060,
+      "name": "FPV.SkyDive"
+    },
+    {
+      "appid": 1281930,
+      "name": "tModLoader"
+    },
+    {
+      "appid": 1293830,
+      "name": "Forza Horizon 4"
+    },
+    {
+      "appid": 1325860,
+      "name": "VTube Studio"
+    },
+    {
+      "appid": 1377360,
+      "name": "Vampires' Melody"
+    },
+    {
+      "appid": 1422450,
+      "name": "Deadlock"
+    },
+    {
+      "appid": 1426210,
+      "name": "It Takes Two"
+    },
+    {
+      "appid": 1449560,
+      "name": "Metro Exodus Enhanced Edition"
+    },
+    {
+      "appid": 1477590,
+      "name": "EZ2ON REBOOT : R"
+    },
+    {
+      "appid": 1483870,
+      "name": "Draw & Guess"
+    },
+    {
+      "appid": 1507190,
+      "name": "Machinika Museum"
+    },
+    {
+      "appid": 1512940,
+      "name": "Malody V"
+    },
+    {
+      "appid": 1517290,
+      "name": "Battlefield™ 2042"
+    },
+    {
+      "appid": 1714320,
+      "name": "Find Love or Die Trying"
+    },
+    {
+      "appid": 1761390,
+      "name": "Hatsune Miku: Project DIVA Mega Mix+"
+    },
+    {
+      "appid": 1817230,
+      "name": "Hi-Fi RUSH"
+    },
+    {
+      "appid": 1827180,
+      "name": "Toram Online"
+    },
+    {
+      "appid": 1927720,
+      "name": "Monument Valley"
+    },
+    {
+      "appid": 1927740,
+      "name": "Monument Valley 2"
+    },
+    {
+      "appid": 1928420,
+      "name": "Farlight 84"
+    },
+    {
+      "appid": 1966720,
+      "name": "Lethal Company"
+    },
+    {
+      "appid": 2000950,
+      "name": "Call of Duty®: Modern Warfare®"
+    },
+    {
+      "appid": 2073850,
+      "name": "THE FINALS"
+    },
+    {
+      "appid": 2144740,
+      "name": "Ghostrunner 2"
+    },
+    {
+      "appid": 2225070,
+      "name": "Trackmania"
+    },
+    {
+      "appid": 2237980,
+      "name": "Outpath: First Journey"
+    },
+    {
+      "appid": 2281730,
+      "name": "Combat Master"
+    },
+    {
+      "appid": 2296990,
+      "name": "We Were Here Expeditions: The FriendShip"
+    },
+    {
+      "appid": 2313250,
+      "name": "Travellin Cats in Paris"
+    },
+    {
+      "appid": 2325290,
+      "name": "Sky: Children of the Light"
+    },
+    {
+      "appid": 2357570,
+      "name": "Overwatch®"
+    },
+    {
+      "appid": 2487070,
+      "name": "Anonymous Hacker Simulator: Prologue"
+    },
+    {
+      "appid": 2529130,
+      "name": "URBO: Dream One"
+    },
+    {
+      "appid": 2704110,
+      "name": "Aliya: Timelink"
+    },
+    {
+      "appid": 2967990,
+      "name": "Train Sim World® 5"
+    },
+    {
+      "appid": 3009140,
+      "name": "Salt Player for Windows"
+    },
+    {
+      "appid": 3081410,
+      "name": "Battlefield™ 6 Open Beta"
+    },
+    {
+      "appid": 3183350,
+      "name": "Fantasy Aquarium"
+    },
+    {
+      "appid": 3241660,
+      "name": "R.E.P.O."
+    },
+    {
+      "appid": 3339420,
+      "name": "your wife"
+    },
+    {
+      "appid": 3419430,
+      "name": "Bongo Cat"
+    },
+    {
+      "appid": 3527290,
+      "name": "PEAK"
+    },
+    {
+      "appid": 3921360,
+      "name": "DEFLATE"
+    },
+    {
+      "appid": 4001890,
+      "name": "How to Fish"
+    },
+    {
+      "appid": 4348910,
+      "name": "Probably Stolen"
+    },
+    {
+      "appid": 4656000,
+      "name": "BOMBANANA!"
+    }
+  ],
+  "added": [],
+  "ownedSince": "2026-11-11"
 }

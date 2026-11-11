@@ -60,12 +60,16 @@ zotrod-homepage/
 ├── themes.html                   # ★ 风格总览：14 种组合并排真实预览
 ├── .nojekyll                     # 让 GitHub Pages 不跳过下划线目录
 ├── .github/workflows/deploy.yml  # 推送后自动部署，一般不用动
-├── .github/workflows/sync.yml    # 每天抓一次网易云听歌排行 + 累计听歌（见第五节）
+├── .github/workflows/sync.yml    # 每天抓一次：网易云听歌 + Steam 战绩 / 最近入库（见第五节）
 ├── data/
 │   ├── netease.json              # 同步产物：听歌排行 + 累计听歌（自动生成）
+│   ├── steam.json                # 同步产物：游戏库 / 战绩 / 最近入库 / 封面墙（自动生成）
 │   └── previews.json             # 同步产物：摘要卡统计（自动生成）
 ├── scripts/
-│   └── sync.mjs                  # 同步脚本：网易云播放记录（Node 原生，无依赖）
+│   ├── sync.mjs                  # 同步脚本：网易云播放记录（Node 原生，无依赖）
+│   ├── sync-steam.mjs            # 同步脚本：Steam 库存 + 战绩（--api-only 可免浏览器）
+│   └── lib/
+│       └── steam-added.mjs       # 「最近入库」差集记账（纯函数，可离线测试）
 ├── assets/
 │   ├── backdrop/                 # 4 套内置 SVG 背景（每个不到 1KB）
 │   ├── css/
@@ -77,7 +81,7 @@ zotrod-homepage/
 │   │   ├── backdrop.css          # 背景：图片/遮罩/光晕/网格/微粒/噪点
 │   │   ├── fit.css               # 多比例适配：按屏分档，只压留白不压字号
 │   │   ├── blocks.css            # 6 屏新模块：身份区/摘要卡/在听/报价表/估价器/邮箱
-│   │   ├── gaming.css            # 游戏卡片（网格，只有图标+名称+ID）
+│   │   ├── gaming.css            # 游戏战绩板（顶栏 / 三格汇总 / 列表 / 最近入库）
 │   │   ├── live.css              # 载入动画 / 时钟 / 进度条 / 音乐浮窗
 │   │   ├── effects.css           # 追光 / 卡片光斑 / 触控涟漪
 │   │   ├── gallery.css           # 风格总览页
@@ -109,6 +113,7 @@ zotrod-homepage/
 │   ├── verify-paged.js           # 翻页与光效逻辑
 │   ├── verify-live.js            # 首页细节（时钟/进度/一言/音乐/载入动画）
 │   ├── verify-gaming.js          # 游戏模块 + 章节衔接动画
+│   ├── verify-steam-added.js     # 最近入库：差集记账纯函数（离线，不用联网）
 │   ├── verify-backdrop.js        # 背景分层 + 7 主题可读性
 │   ├── verify-backdrop-admin.js  # 编辑器背景面板
 │   ├── verify-perf.js            # 性能回归（帧耗时 / 合成层 / 布局读取）
@@ -674,6 +679,20 @@ rows = round((视口高度 - 350) / 84)     // 350 = 页头 + 卡片内边距 + 
 
 之后每天自动跑一次。
 
+### 同一个工作流里的 Steam 那一步
+
+`sync.yml` 除了网易云，还会跑一次 Steam 的 API-only 同步（`node scripts/sync-steam.mjs --api-only`），
+用来更新游戏战绩和「最近入库」。要开它只需一个 Secret：
+
+- **Secret** `STEAM_API_KEY` — Steam Web API 密钥（免费领：<https://steamcommunity.com/dev/apikey>）
+
+没配也不会失败：那一步会打一行提示后跳过，`data/steam.json` 保持上一次本机抓取的结果。
+封面墙（`apps` / `portraitApps`）只能在本机用真实浏览器抓，CI 不碰那两块 ——
+详见「三之二·六」里的两种跑法对照表。
+
+> 为什么密钥要放 Secret 而不是写进代码：提交进 git 历史里的密钥等于公开。
+> 本机跑的时候用 `steam-key.txt` 或环境变量，那个文件已经在 `.gitignore` 里。
+
 ### 抓不到会怎样
 
 **页面不会坏。** 三层保护：
@@ -705,19 +724,23 @@ cookie 大约 3~12 个月会失效。失效后页面会停在最后一次成功�
 
 ---
 
-## 三之二·六、Q3「游戏」：Steam 卡 + 游戏战绩 + 一面会动的封面墙
+## 三之二·六、Q3「游戏」：一块战绩板 + 一面会动的封面墙
 
 分三块，各管一件事：
 
 | 块 | 谁渲染 | 数据从哪来 |
 | --- | --- | --- |
-| Steam 横卡（好友码，点一下复制） | `render.js` 的 `renderGaming()` | `config.js` 的 `gaming.items` |
-| **战绩列表**（游戏数量 / 时长 / 两周内 / 成就） | `render.js` 的 `renderGameStats()` | `data/steam.json` 的 `lib` + `recent[]` |
+| **战绩板**（顶栏 + 三格汇总 + 游戏列表 + 最近入库） | `render.js` 的 `renderGaming()` / `renderGameStats()` | `config.js` 的 `gaming.items` + `data/steam.json` 的 `lib` / `recent[]` / `added[]` |
 | 斜 45° 封面墙 | `steamwall.js` | `data/steam.json` 的 `portraitApps` |
 
 > 2026-11-11 用户要求：**只留 Steam**（明日方舟 / 无畏契约先下线），
 > 并且要像小黑盒那样显示「游戏时长 + 成就」。下线用的是 `hidden: true`，
 > 数据都还在，把那一行删掉就回来。
+>
+> 同一轮还定了一件事：**整块战绩板是一个 `<a>`**，点哪都进 Steam 主页。
+> 早先那个「点一下复制好友码」的按钮已经删掉 —— 好友码只剩展示。
+> 因为整块是链接，板子里**不能再套任何交互元素**（嵌套 `<a>` 是非法结构，
+> 点击会打架）。`verify-gaming.js` 有一条断言专门守这个。
 
 ### 战绩列表：数据怎么来的（以及怎么变成全量）
 
@@ -746,6 +769,62 @@ node scripts/sync-steam.mjs
 > 为什么公开页只给几款：`/profiles/<id>/games?tab=all` 现在要登录才给看，
 > 而不登录能看到的是资料页的「最新动态」—— 就几款。
 
+### 两种跑法：本机全量 / CI 只跑 API
+
+库存抓取（`apps` / `portraitApps`，封面墙用的那两份）**必须真实浏览器**：
+裸 TLS 请求会被挡，差异在 TLS 指纹不在 IP。所以那条路只能在有 Chromium 的机器上跑。
+
+但「游戏库统计 + 最近入库」只依赖 Web API，不需要浏览器。为此有第二个模式：
+
+```bash
+node scripts/sync-steam.mjs --api-only
+```
+
+| | `node scripts/sync-steam.mjs` | `--api-only` |
+| --- | --- | --- |
+| 需要 Chromium | 是 | 否 |
+| 抓库存 / 封面墙 | ✅ | 跳过，**沿用上次结果** |
+| 战绩（数量 / 时长 / 成就） | ✅ | ✅ |
+| 最近入库（差集） | ✅ | ✅ |
+| 能跑在 GitHub Actions | ❌ | ✅ |
+
+CI 里就是这样跑的（`.github/workflows/sync.yml`，Secret `STEAM_API_KEY`）。
+`--api-only` 拿不到数据时**直接退出、不写文件** —— 宁可这一天没更新，
+也不能把已有的封面墙和 `added` 记录冲成空。
+
+### 「最近入库」：为什么需要自己记账
+
+Steam 的 `IPlayerService/GetOwnedGames` 里**没有"购买时间"字段**。
+唯一沾时间的是 `rtime_last_played`，那是"最后游玩"。所以要回答
+「最近入库了什么游戏」，只能靠**两次同步的 appid 差集**：
+
+```
+第 1 次同步 → 全库 appid 存成基线（owned），不产出任何记录
+第 N 次同步 → 本次全库 − 基线 = 这期间新入库的 → 追加到 added（新的在前）
+            → 基线换成本次全库，下次继续比
+```
+
+这意味着两件事：
+
+1. **必须按天跑**。断一天，那天入库的游戏要等到下一次同步才会被发现
+   （它不会丢，只是日期记成发现那天）。
+2. **第一次跑只有基线**。不这么做的话，143 款会一次性全变成"新入库"，
+   页面变成一堵墙。
+
+这条逻辑独立在 `scripts/lib/steam-added.mjs`，是**纯函数**（没有网络、没有文件、
+没有时钟，`today` 由调用方传入），所以能被 `tools/verify-steam-added.js`
+用假数据把全部分支跑完：首次建基线 / 无变化 / 新增一款 / 连续累积 /
+超 12 条截断 / 重复 appid / 空库不清记录 / 旧版 JSON 缺字段。
+
+| 字段 | 含义 |
+| --- | --- |
+| `owned[]` | 上一次的全库 appid 快照（下次同步的基线，前端不用） |
+| `added[]` | 最近入库，`{appid, name, at}`，新 → 旧，最多 12 条 |
+| `ownedSince` | 基线建立日期。`added` 为空时前端用它说"从 X 日起没添新游戏" |
+
+前端只把 `added` 铺成一条横向封面带（最多 8 个 + `+N`）。封面的取法和列表一样
+走 `cover` 字段，抓不到就退到色相渐变块，不会出现空黑框。
+
 ### 战绩列表的版式（改之前先读这段）
 
 ```
@@ -763,12 +842,16 @@ node scripts/sync-steam.mjs
 - 抓不到数据时整块 `hidden`，不留空标题。
 
 
-这一屏的用途很单一：**在社交场合让对方抄 ID**。所以卡片只保留三样东西。
+这一屏的用途很单一：**让人一眼看到我在玩什么、玩了多久，顺手点进 Steam**。
 
 早先每张卡有 `note`（一句备注）+ `stats`（三项「可展现资产」）+ 区服段位，
 一屏只能放 4 个游戏，而且没人会读简介。2026-11-11 又收了一次：
 Apex / DJMAX / Phigros / 中二节奏 四张卡合进一张 Steam 卡 ——
 访客真正会做的事只有两件：加手游好友、翻我的 Steam。
+
+现在板子里只剩顶栏那一行：图标 + 平台名 + 平台标签 + 好友码 + 箭头。
+好友码是**纯文字**，不是按钮 —— 要加好友的人自己会复制，不需要一个"复制成功"
+的 toast 来打断浏览。
 
 ### 每个字段的作用
 
@@ -778,7 +861,7 @@ Apex / DJMAX / Phigros / 中二节奏 四张卡合进一张 Steam 卡 ——
 | `iconImage` | **自定义图标图片地址**，填了就用图片，忽略 `icon` |
 | `name` | 游戏名 |
 | `uidLabel` | ID 的标签，如「博士 ID」「Riot ID」「好友码」 |
-| `uid` | ID 本身，卡片上做成「点一下复制」 |
+| `uid` | ID 本身。Steam 板子里是**纯文字**（整块是链接，不能再套按钮）；Q1 的联系方式卡仍是「点一下复制」 |
 | `server` | 区服标签，如「官服」「亚服」「公开库存」 |
 | `color` | 卡片顶部细条的品牌色，留空则用主题主色 |
 | `link` | 可选，外部主页链接（显示为右上角小箭头） |
@@ -793,11 +876,12 @@ Apex / DJMAX / Phigros / 中二节奏 四张卡合进一张 Steam 卡 ——
 
 ### 怎么加游戏
 
-`config.js` 的 `gaming.items` 里加一项即可，网格会自动排。
-当前是固定 **3 列**，3 张卡正好一行。加到 4~6 个会变成两行
-（那一屏可能就装不下一屏了，`paged.js` 会自动把它降级成可滚动页，不会把内容压变形）。
+`config.js` 的 `gaming.items` 里加一项即可。**第一项会被渲染成整块战绩板的顶栏**
+（图标 / 名字 / 标签 / 好友码 / 箭头），第二项起进了 `hidden` 就不会上屏。
+2026-11-11 之后 Q3 不再是「每款游戏一张卡」，所以不存在"加卡把一屏撑破"的问题 ——
+游戏是 `data/steam.json` 里的行，行数由屏幕高度决定（详见上面的版式一节）。
 
-> 当前的 UID 都是示例，请换成你自己的。留空 `uid` 的卡片不会出现复制按钮。
+> 当前的 UID 都是示例，请换成你自己的。留空 `uid` 时顶栏不显示好友码那一段。
 
 ### Steam 卡：`steam` 字段
 
@@ -1475,6 +1559,7 @@ node tools/verify-backdrop.js # 背景分层 / 7 主题 × 2 明暗的图片可�
 node tools/verify-perf.js     # 性能：帧耗时 / 合成层 / 布局读取 / 传输体积
 node tools/verify-drag.js     # 拖拽光效：桌面鼠标 + 触屏真实手势
 node tools/verify-devices.js  # 15 种机型：字号下限 / 不超屏 / 每屏各取档位
+node tools/verify-steam-added.js # 最近入库：首次建基线 / 累积 / 上限 / 空库不清记录
 
 # 可选：真实浏览器验证布局与交互（需 npm install playwright-core --no-save && npx playwright install chromium）
 node tools/verify-calc.js     # 估价器：选完自动跳转 / 价格算法 / 回改 / 触控高度 / 键盘

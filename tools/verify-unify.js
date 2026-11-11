@@ -6,13 +6,13 @@
  *  起因是一次真实反馈：「元素太不统一了」。量了一遍才发现有多散：
  *    · 圆角  10/16/22 之外还有 7px、8px、1px 的手写近似值
  *    · 阴影  只有 .ccard 有，Q3/Q5 同样是白卡却贴平
- *    · hover .ccard 描边+阴影+上浮 / .game 只描边 / .social 描边+图标变色
+ *    · hover .ccard 描边+阴影+上浮 / .game-board 只描边 / .social 描边+图标变色
  *    · 字号  同一个「卡片副标题」角色出现 11.36 / 11.52 / 12.32 三种值
- *    · 小标签 .game__uid-label 只有 8.96px，低于 11px 可读下限
+ *    · 小标签 .game__uid-label（现已改名 .gb-head__id i）只有 8.96px，低于 11px 可读下限
  *
  *  统一的做法是新增 unify.css（最后加载），只在那一处定义"白卡"的最终值。
  *  这个脚本负责三件事：
- *    1. 白卡家族（.ccard/.game/.social/.calc）的圆角 / 边框 / 底色 / 阴影一致
+ *    1. 白卡家族（.ccard/.game-board/.social/.calc）的圆角 / 边框 / 底色 / 阴影一致
  *    2. hover 在桌面端一致（悬停时三件事一起做）
  *    3. 同角色字号一致，且没有低于可读下限的辅助文字
  *
@@ -35,7 +35,9 @@ const notes = [], fails = [];
 const ok = (c, m) => c ? notes.push('OK  ' + m) : fails.push(m);
 
 /* 白卡家族：实心抬升底 + 1px 细线 + 可点击 */
-const FAMILY = ['.ccard', '.game', '.social', '.calc'];
+/* ⚠️ Q3 从「每款游戏一张卡」改成了「整块一块战绩板」，所以进家族的是
+   .game-board（那一整块 <a>），不再是已经不存在的 .game。 */
+const FAMILY = ['.ccard', '.game-board', '.social', '.calc'];
 
 (async () => {
   const browser = await chromium.launch();
@@ -96,7 +98,7 @@ const FAMILY = ['.ccard', '.game', '.social', '.calc'];
   /* ---------------------------------------------- 2. hover 语言一致 */
   /* 桌面端悬停时，家族里除了 .calc（表单容器）之外都应同时
      加深描边 + 抬阴影 + 上浮 1px。用 CDP 之外的办法：读规则不如真悬停。 */
-  const hoverables = ['.ccard', '.game', '.social'];
+  const hoverables = ['.ccard', '.game-board', '.social'];
   for (const sel of hoverables) {
     const el = page.locator(sel).first();
     if (!(await el.count())) continue;
@@ -165,7 +167,7 @@ const FAMILY = ['.ccard', '.game', '.social', '.calc'];
     const g = s => { const el = document.querySelector(s); return el ? parseFloat(getComputedStyle(el).fontSize) : null; };
     return {
       titles: {
-        '.game__name': g('.game__name'),
+        '.gb-head__name': g('.gb-head__name'),
         '.social__label': g('.social__label'),
         '.preview__title': g('.preview__title')
       },
@@ -174,7 +176,7 @@ const FAMILY = ['.ccard', '.game', '.social', '.calc'];
         '.preview__meta': g('.preview__meta')
       },
       tiny: {
-        '.game__uid-label': g('.game__uid-label'),
+        '.gb-head__id i': g('.gb-head__id i'),
         '.track__meta': g('.track__meta'),
         '.ccard__hint': g('.ccard__hint')
       }

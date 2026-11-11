@@ -460,79 +460,67 @@ window.SITE_RENDER = (function () {
   }
 
   /* ========================================================== Q3 · 游戏 */
-  /* 只保留 图标 + 名称 + ID。介绍性文字全部去掉 —— 这一屏的用途是
-     "在社交场合让对方抄 ID"，多一行字就少一个游戏能露出来。 */
-  function renderGaming() {
-    var d = C.gaming || {};
-    var grid = $("gameRail");
-    if (!grid) return;
-
-    var items = arr(d.items).filter(function (g) { return g && !g.hidden; });
-    grid.classList.toggle("is-single", items.length === 1);
-    grid.innerHTML = items.map(function (g, i) {
-      var color = g.color ? "--game:" + esc(g.color) + ";" : "";
-      var img = String(g.iconImage || "").trim();
-      var glyph = img
-        ? '<img class="game__logo" src="' + esc(img) + '" alt="" loading="lazy" decoding="async">'
-        : icon(g.icon);
-
-      var uid = g.uid || g.copy || "";
-      var uidBlock = uid
-        ? '<button class="game__uid" type="button" data-copy="' + esc(uid) + '"' +
-          ' data-copy-toast="已复制 ' + esc(g.uidLabel || "ID") + '"' +
-          ' aria-label="复制 ' + esc(g.name) + " 的 " + esc(g.uidLabel || "ID") + "：" + esc(uid) + '">' +
-            '<span class="game__uid-label">' + esc(g.uidLabel || "ID") + "</span>" +
-            '<span class="game__uid-value">' + esc(uid) + "</span>" +
-            '<span class="game__uid-copy">' + icon("copy") + "</span>" +
-          "</button>"
-        : "";
-
-      /* 外链：优先 g.link；Steam 卡没有 link，但有 steam.profileUrl ——
-         它本来就该能点进档案，否则"公开库存"这句话是死的。 */
-      var href = g.link || (g.steam && g.steam.profileUrl) || "";
-      var isSteam = !!(g.steam && g.steam.steamId);
-
-      return '<article class="game' + (isSteam ? " game--steam" : "") + '" data-reveal' +
-               ' style="' + color + delay(i, 50) + '"' +
-               (isSteam ? ' data-steam="' + esc(g.steam.steamId) + '"' : "") + ">" +
-               '<span class="game__icon">' + glyph + "</span>" +
-               '<h3 class="game__name">' + esc(g.name) + "</h3>" +
-               uidBlock +
-               (href
-                 ? '<a class="game__link" href="' + esc(href) + '" target="_blank" rel="noopener noreferrer"' +
-                   ' aria-label="打开 ' + esc(g.name) + ' 主页">' + icon("arrow-up-right") + "</a>"
-                 : "") +
-             "</article>";
-    }).join("");
+  /* 这一屏只有**一个模块**（用户的明确要求）：
+       ┌ 顶栏：平台名 · 公开库存 · 好友码 ………… ↗ ┐   ← 整块
+       │ 三格数据：游戏数量 / 时长 / 完美通关      │      点哪都进
+       │ ─────────────────────────────────────── │      Steam 主页
+       │ 游戏列表（可滚动，行数按可用高度算）        │
+       └─────────────────────────────────────────┘
+     DOM 分两半填：
+       #gameRail  ← renderGaming()     顶栏
+       #gameStats ← renderGameStats()  数据 + 列表
+     外层 <a id="gameBoard"> 由 renderGaming() 设 href（来自 config 的 steam.profileUrl）。
+     所以**不再有"复制好友码"这个动作** —— 点模块就是去主页，好友码只作为文字展示。
+  */
+  function steamItem() {
+    return arr((C.gaming || {}).items).filter(function (g) {
+      return g && !g.hidden && g.steam && g.steam.steamId;
+    })[0] || null;
   }
 
-  /* ---------- Q3 战绩：游戏时长 / 两周内 / 成就 ----------
-     版式参考用户给的小黑盒截图（不是拍脑袋定的）：
-       ┌────────┬──────────────────────────────────────┬────────┐
-       │ 封面   │ 游戏名                                │  🌟    │
-       │ 16:9   │ 2,491h ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓░░░░  28 h     │ 12/12  │
-       └────────┴──────────────────────────────────────┴────────┘
-     一行三段：封面 / 主区（名字 + 时长条 + 两周内）/ 成就。行与行之间一条细线，
-     不画卡片 —— 小黑盒也是这么排的，卡片会让 6 行变成 6 块砖。
+  function renderGaming() {
+    var rail = $("gameRail");
+    var board = $("gameBoard");
+    if (!rail) return;
 
-     数据来自 data/steam.json：
+    var g = steamItem();
+    if (!g) {                       /* 没有 Steam 卡就整块不显示 */
+      if (board) { board.hidden = true; board.removeAttribute("href"); }
+      rail.innerHTML = "";
+      return;
+    }
+
+    var href = (g.steam && g.steam.profileUrl) || g.link || "#";
+    if (board) {
+      board.hidden = false;
+      board.href = href;
+      board.setAttribute("aria-label", "打开我的 " + (g.name || "Steam") + " 主页");
+    }
+
+    /* 顶栏：左边是身份，右边是好友码。
+       ⚠️ 好友码不再是按钮：它现在是模块的说明文字，点击由外层链接接管。 */
+    rail.innerHTML =
+      '<span class="gb-head">' +
+        '<span class="gb-head__icon">' + icon(g.icon || "steam") + "</span>" +
+        '<span class="gb-head__name">' + esc(g.name || "Steam") + "</span>" +
+        (g.server ? '<span class="gb-head__meta">' + esc(g.server) + "</span>" : "") +
+        (g.uid
+          ? '<span class="gb-head__id"><i>' + esc(g.uidLabel || "好友码") + "</i>" +
+            "<b>" + esc(g.uid) + "</b></span>"
+          : "") +
+        '<span class="gb-head__go">' + icon("arrow-up-right") + "</span>" +
+      "</span>";
+  }
+
+  /* ---------- 三格数据 + 游戏列表 ---------- */
+  /* 数据来自 data/steam.json：
        lib    { totalGames, totalHours, perfect, partial, source }
        recent [{ appid, name, hours, hours2w, cover, ach:{have,total} }]
-     ⚠️ 这一块是**可选**的：抓不到就整块不渲染（不留空标题）。
-
-     ⚠️ 三个刻意的决定：
-       1. 时长条按 **√ 归一化**，不是线性。库里 2491h 和 2.7h 差 900 倍，
-          线性归一化会让除第一名以外全塌成 1px。√ 之后 109h→21%、2.7h→3%，
-          长短关系还看得出，页面也不至于只剩一根条。
-       2. 条的颜色按 appid 哈希出色相（见 hueOf），每款一个色 ——
-          这是小黑盒的做法：颜色不承载信息，只是让相邻两行能分开。
-       3. 只有**全成就**才给那枚星章（16px 的 award 图标）+ 强调色数字。
-          没打满就只写 x/y，不给任何装饰 —— 稀缺，才有意义。
-  */
-  /* appid → 色相。用 Knuth 乘法散列再乘黄金角：
-     相邻两行是"随机"的 appid，纯线性映射（appid*N % 360）在 appid 相差
-     360/gcd 的倍数时会撞成同色；散列 + 黄金角把撞色摊平。
-     颜色不承载信息，只负责让相邻两行分得开 —— 小黑盒也是这么做的。 */
+     三个刻意的决定：
+       1. 时长条按 **√ 归一化**：库里 2491h 和 2.7h 差 900 倍，
+          线性会让除第一名以外全塌成 1px。
+       2. 条的颜色按 appid 哈希出色相（同小黑盒：颜色不承载信息，只分开相邻行）。
+       3. 只有**全成就**才挂奖章 + 强调色数字。没打满只写 x/y。 */
   function hueOf(appid) {
     var x = ((Number(appid) || 0) * 2654435761) % 4294967296;
     return Math.round(x * 0.6180339887) % 360;
@@ -545,86 +533,198 @@ window.SITE_RENDER = (function () {
     return (Math.round(v * 10) / 10).toString();
   }
 
-  /* 顶部三格数据。partial=true 时把"总时长"写成「近 N 款时长」——
-     公开页只给了最近几款，把部分和的标签写成「游戏时长」是撒谎。 */
-  function boardSummaryHtml(lib) {
+  function boardSummaryHtml(lib, rowCount) {
     if (!lib) return "";
-    var items = [];
-    items.push('<span class="gb-sum__item"><b>' +
-      esc(lib.totalGames ? lib.totalGames.toLocaleString("en-US") : "—") +
-      "</b><i>游戏数量</i></span>");
-    items.push('<span class="gb-sum__item"><b>' +
-      (lib.totalHours ? esc(fmtH(lib.totalHours)) + '<small>h</small>' : "—") +
-      "</b><i>" + (lib.partial ? "近 " + (lib.rows || 0) + " 款时长" : "游戏时长") + "</i></span>");
-    items.push('<span class="gb-sum__item"><b>' +
-      esc(String(lib.perfect || 0)) + "</b><i>完美通关</i></span>");
-    return '<div class="gb-sum">' + items.join("") + "</div>";
+    var hours = lib.totalHours
+      ? '<b>' + esc(fmtH(lib.totalHours)) + "<small>h</small></b>"
+      : "<b>—</b>";
+    /* partial=true 时不能写"游戏时长"：那只是列表里这几款之和 */
+    var hoursLabel = lib.partial ? "近 " + rowCount + " 款" : "游戏时长";
+    return '<span class="gb-sum">' +
+        '<span class="gb-sum__item"><b>' +
+          esc(lib.totalGames ? lib.totalGames.toLocaleString("en-US") : "—") +
+          "</b><i>游戏数量</i></span>" +
+        '<span class="gb-sum__item">' + hours + "<i>" + hoursLabel + "</i></span>" +
+        '<span class="gb-sum__item"><b>' + esc(String(lib.perfect || 0)) +
+          "</b><i>完美通关</i></span>" +
+      "</span>";
+  }
+
+  /* ---------- 最近入库 ----------
+     Steam 的 Web API **没有"购买时间"** 这个字段（GetOwnedGames 只给
+     rtime_last_played = 最后游玩）。所以这条是"记账"算出来的：
+     每次同步把全库 appid 存进 data/steam.json，下次对比，新出现的即新入库。
+     第一次同步只建基线（ownedSince 记下日期），之后才会陆续有内容。
+     ⚠️ 没有数据时整条不渲染 —— 空标题比没有更难看。 */
+  function recentlyAddedHtml(added, since) {
+    var list = arr(added).filter(function (g) { return g && g.appid; });
+    if (!list.length) return "";
+
+    var MAX = 8;
+    var head = list.slice(0, MAX).map(function (g) {
+      var url = "https://cdn.akamai.steamstatic.com/steam/apps/" + g.appid + "/header.jpg";
+      return '<span class="gb-new__item" title="' + esc(g.name || "") +
+               (g.at ? "（" + esc(g.at) + " 入库）" : "") + '">' +
+               '<img src="' + esc(url) + '" alt="" loading="lazy" decoding="async"' +
+               ' onerror="this.style.visibility=\'hidden\'">' +
+             "</span>";
+    }).join("");
+
+    return '<span class="gb-new">' +
+        '<span class="gb-new__label">最近入库' +
+          (since ? '<i>' + esc(String(since).slice(5).replace("-", "/")) + " 起</i>" : "") +
+        "</span>" +
+        '<span class="gb-new__row">' + head +
+          (list.length > MAX ? '<b class="gb-new__more">+' + (list.length - MAX) + "</b>" : "") +
+        "</span>" +
+      "</span>";
+  }
+
+  /* 列表里一行。封面挂了就换下一个源，全挂了露兜底图标 ——
+     绝不出现"空黑框"（深空当铺的 header.jpg 就是 404）。 */
+  function rowHtml(g, i, maxH) {
+    var cover = String(g.cover || "").trim();
+    var fb = String(g.coverFallback || "").trim();
+    var ach = g.ach && g.ach.total > 0 ? g.ach : null;
+    var done = ach && ach.have >= ach.total;
+    var pct = Math.max(4, Math.round(Math.sqrt((Number(g.hours) || 0) / maxH) * 100));
+    var hue = hueOf(g.appid);
+
+    return '<span class="gb-row' + (done ? " is-done" : "") + '" data-reveal' +
+             ' style="' + delay(i, 45) + "--c:hsl(" + hue + " 72% 56%);" + '">' +
+             '<span class="gb-row__cover' + (cover ? "" : " is-blank") + '">' +
+               '<i class="gb-row__ph">' + icon("gamepad") + "</i>" +
+               (cover
+                 ? '<img src="' + esc(cover) + '" alt="" loading="lazy" decoding="async"' +
+                   (fb ? ' data-fb="' + esc(fb) + '"' : "") +
+                   ' onerror="var f=this.dataset.fb;if(f){this.removeAttribute(\'data-fb\');this.src=f}else{this.parentNode.classList.add(\'is-blank\');this.remove()}">'
+                 : "") +
+             "</span>" +
+             '<span class="gb-row__main">' +
+               '<span class="gb-row__name">' + esc(g.name || "") + "</span>" +
+               '<span class="gb-row__stats">' +
+                 '<b class="gb-row__hours">' + fmtH(g.hours) + "<small>h</small></b>" +
+                 '<span class="gb-row__bar" aria-hidden="true"><i style="width:' + pct + '%"></i></span>' +
+                 (g.hours2w > 0
+                   ? '<span class="gb-row__w" title="最近两周">' + fmtH(g.hours2w) + "<small>h</small></span>"
+                   : '<span class="gb-row__w is-empty"></span>') +
+               "</span>" +
+             "</span>" +
+             (ach
+               ? '<span class="gb-row__ach">' +
+                   (done ? '<span class="gb-row__medal">' + icon("award") + "</span>" : "") +
+                   '<span class="gb-row__ach-num"><b>' + ach.have + "</b>/" + ach.total + "</span>" +
+                 "</span>"
+               : '<span class="gb-row__ach is-none">—/—</span>') +
+           "</span>";
   }
 
   function renderGameStats(data) {
     var box = $("gameStats");
     if (!box) return 0;
 
-    /* 兼容两种入参：直接给行数组（旧的调用方式）/ 给 { lib, recent } */
     var lib = !Array.isArray(data) && data ? data.lib : null;
+    var added = !Array.isArray(data) && data ? data.added : null;
+    var since = !Array.isArray(data) && data ? data.ownedSince : "";
     var rows = arr(Array.isArray(data) ? data : (data && data.recent))
       .filter(function (g) { return g && (g.hours > 0 || (g.ach && g.ach.total > 0)); });
 
-    if (!rows.length) { box.hidden = true; box.innerHTML = ""; return 0; }
+    if (!rows.length) { box.hidden = true; box.innerHTML = ""; fitBoardList(); return 0; }
 
-    /* 时长条的分母：列表里最长的那款。√ 归一化见上方注释。 */
     var maxH = rows.reduce(function (m, g) { return Math.max(m, Number(g.hours) || 0); }, 0) || 1;
-    if (lib) lib.rows = rows.length;
 
-    var list = rows.map(function (g, i) {
-      var cover = String(g.cover || "").trim();
-      var ach = g.ach && g.ach.total > 0 ? g.ach : null;
-      var done = ach && ach.have >= ach.total;
-      var pct = Math.max(4, Math.round(Math.sqrt((Number(g.hours) || 0) / maxH) * 100));
-      var hue = hueOf(g.appid);
+    box.innerHTML =
+      boardSummaryHtml(lib, rows.length) +
+      recentlyAddedHtml(added, since) +
+      '<span class="gb-list" id="gbList">' +
+        rows.map(function (g, i) { return rowHtml(g, i, maxH); }).join("") +
+      "</span>" +
+      /* 列表被截断时，底部给一条渐隐 + 一句"查看全部" —— 
+         不然滚到一半的人不知道下面还有。 */
+      '<span class="gb-more" id="gbMore" hidden>' +
+        '<span class="gb-more__fade"></span>' +
+        '<span class="gb-more__txt">查看全部' +
+          (lib && lib.totalGames ? " " + lib.totalGames + " 款" : "") +
+          icon("arrow-up-right") + "</span>" +
+      "</span>";
 
-      return '<article class="gb-row' + (done ? " is-done" : "") + '" data-reveal' +
-               ' style="' + delay(i, 55) + "--c:hsl(" + hue + " 72% 56%);" + '">' +
-               '<span class="gb-row__cover' + (cover ? "" : " is-blank") + '">' +
-                 /* 图标常驻，只是默认不显示：header.jpg 挂了的时候
-                    由 CSS 把 .is-blank 打开，露出它 —— 否则那一格是个空黑框。 */
-                 '<i class="gb-row__ph">' + icon("gamepad") + "</i>" +
-                 (cover
-                   ? '<img src="' + esc(cover) + '" alt="" loading="lazy" decoding="async"' +
-                     ' onerror="this.parentNode.classList.add(\'is-blank\');this.remove()">'
-                   : "") +
-               "</span>" +
-               '<span class="gb-row__main">' +
-                 '<span class="gb-row__name">' + esc(g.name || "") + "</span>" +
-                 '<span class="gb-row__stats">' +
-                   '<b class="gb-row__hours">' + fmtH(g.hours) + "<small>h</small></b>" +
-                   '<span class="gb-row__bar" aria-hidden="true"><i style="width:' + pct + '%"></i></span>' +
-                   /* 两周内为 0 时**留空**，不画破折号：
-                      否则它和右边"没有成就"的 —/— 挨在一起，
-                      看起来像同一个数字（手机截图里格外明显）。 */
-                   (g.hours2w > 0
-                     ? '<span class="gb-row__w" title="最近两周">' + fmtH(g.hours2w) + "<small>h</small></span>"
-                     : '<span class="gb-row__w is-empty"></span>') +
-                 "</span>" +
-               "</span>" +
-               (ach
-                 ? '<span class="gb-row__ach">' +
-                     (done ? '<span class="gb-row__medal">' + icon("award") + "</span>" : "") +
-                     '<span class="gb-row__ach-num"><b>' + ach.have + "</b>/" + ach.total + "</span>" +
-                   "</span>"
-                 : '<span class="gb-row__ach is-none">—/—</span>') +
-             "</article>";
-    }).join("");
-
-    box.innerHTML = boardSummaryHtml(lib) + '<div class="gb-list">' + list + "</div>";
     box.hidden = false;
-    /* ⚠️ 重绘之后必须重新挂一次入场观察器，否则行会永远停在 opacity:0
-       （数据在 DOM 里、屏幕上是空的）。和 setTracks 的处理保持一致。 */
     if (window.SITE_MOTION && typeof window.SITE_MOTION.revealScan === "function") {
       window.SITE_MOTION.revealScan(box);
     }
+    fitBoardList();
     return rows.length;
   }
+
+  /* 列表高度 = 可用高度能放几行。
+     ⚠️ 为什么不写死 max-height：全站有一层等比缩放（scale.js 改根字号），
+        行高会跟着 rem 变；而且桌面/平板/手机的可视高度差得很远。
+        直接量第一行的实际高度再算行数，缩放变了自然跟着变。
+
+     ⚠️ 为什么用"区块内的相对位置"而不是 window.innerHeight - list.top：
+        这个函数在数据到达时就会跑一次，那时 Q3 还在屏幕外（list.top ≈ 1700），
+        拿视口算出来是负数 → 只放 2 行，而且滚到这一屏也不会重算。
+        改成两者都减区块的 top，差值就是**布局内**的位置，与滚动无关。 */
+  function fitBoardList() {
+    var list = $("gbList");
+    var more = $("gbMore");
+    var sec = $("gaming");
+    if (!list || !sec) return 0;
+
+    var row = list.firstElementChild;
+    if (!row) return 0;
+    var rowH = row.getBoundingClientRect().height;
+    if (!rowH || !sec.clientHeight) {      /* 还没布局完，下一帧再试 */
+      if (!fitBoardList._raf) {
+        fitBoardList._raf = requestAnimationFrame(function () {
+          fitBoardList._raf = 0;
+          fitBoardList();
+        });
+      }
+      return 0;
+    }
+
+    list.style.maxHeight = "none";
+    var secTop = sec.getBoundingClientRect().top;
+    var listTop = list.getBoundingClientRect().top - secTop;   /* 列表离区块顶多远 */
+    var padBottom = parseFloat(getComputedStyle(sec).paddingBottom) || 48;
+
+    /* ⚠️ 预算取 max(...) 里较小的那个 —— 用区块高度会**自我放大**：
+       列表一旦把区块撑高（比如 1016 > 900），下一轮又按 1016 算，
+       行数越来越多，区块越来越矮不下去。
+       所以上限永远是"一屏"：min(区块高度, 视口高度)。
+       这一屏在翻页模式下本来就该是一屏。 */
+    var budget = Math.min(sec.clientHeight, window.innerHeight || 800);
+    /* 底部留白：区块内边距 + 页码条 / 回到顶部按钮那一带 */
+    var room = budget - listTop - padBottom - 18;
+    var total = list.children.length;
+    var visible = Math.max(2, Math.floor(room / rowH));
+
+    /* 要滚的时候，底部那条"查看全部"是压在列表上的 ——
+       得先给它让出高度，否则最后一行的小时数会被渐隐盖住（实测就压住了 132.4h）。 */
+    if (visible < total) {
+      visible = Math.max(2, Math.floor((room - 26) / rowH));
+    }
+
+    if (visible >= total) {                /* 装得下就全展示，不出滚动条 */
+      list.style.maxHeight = "";
+      list.classList.remove("is-scroll");
+      if (more) more.hidden = true;
+      return total;
+    }
+
+    list.style.maxHeight = (visible * rowH) + "px";
+    list.classList.add("is-scroll");
+    if (more) more.hidden = false;
+    return visible;
+  }
+
+  /* 窗口变了 / 档位变了都要重算行数 —— 导出给外部调 */
+  window.addEventListener("resize", function () {
+    if (!$("gbList")) return;
+    clearTimeout(fitBoardList._t);
+    fitBoardList._t = setTimeout(fitBoardList, 120);
+  }, { passive: true });
 
   /* ========================================================== Q4 · 维修 */
   /* 报价单 → 闲鱼在售物品（2026-11-11 改版）
@@ -844,6 +944,8 @@ window.SITE_RENDER = (function () {
     setTracks: setTracks,      // sync.js 用：抓到真实播放记录后重画
     setListenMeta: setListenMeta, // sync.js 用：只更新累计听歌 / 同步状态
     previewCard: previewCard,  // sync.js 用
-    renderGameStats: renderGameStats // sync.js 用：读 data/steam.json 后画战绩
+    renderGameStats: renderGameStats, // sync.js 用：读 data/steam.json 后画模块
+    fitBoardList: fitBoardList, // sync.js / 翻页完成后重算可见行数
+    recentlyAddedHtml: recentlyAddedHtml
   };
 })();

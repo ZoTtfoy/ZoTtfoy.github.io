@@ -110,37 +110,52 @@ ok(order.indexOf('gaming') === 1,
    '游戏是第二屏（' + order.join(' → ') + '）');
 
 /* ------------------------------------------------ 2. CSS 关键约束 */
-/* 游戏卡从「横向滑动轨道」改成了「网格」，断言随之反转：
-   必须是 grid、不能有横向滚动容器。 */
-ok(/\.game-rail\s*\{[\s\S]{0,320}display:\s*grid/.test(gameCss),
-   '游戏卡用网格布局');
+/* Q3 从「6 张卡片的网格」改成了「一块可滚动的战绩板」（参照小黑盒个人主页）：
+   整块一个链接 → 顶栏 + 三格汇总 + 可滚动列表。
+   所以断言换成新结构的不变量，而不是继续守一张已经不存在的 .game-rail。 */
 ok(!/scroll-snap-type:\s*x mandatory/.test(gameCss),
    '不再使用横向滑动轨道');
 /* 只在「声明」里找 overflow-x，注释里出现这个词不算 */
 const gameCssDecl = gameCss.replace(/\/\*[\s\S]*?\*\//g, '');
 ok(!/overflow-x:\s*auto/.test(gameCssDecl), '没有横向滚动容器');
-/* 改成固定 3 列：auto-fit 在 1180px 下会算成 5 列，6 张卡就成了「5 + 1」，
-   最后一行孤零零一张。固定列数才能保证 3×2 的整齐排布。 */
-ok(/\.game-rail\s*\{[\s\S]{0,320}repeat\(3, minmax/.test(gameCss),
-   '游戏卡固定 3 列（6 张正好两行）');
-/* 游戏徽标：保留品牌色，但不再铺彩色底块。
-   原实现用 color-mix 在图标下面垫一层 12% 的品牌色，配 @supports 退回主题软色。
-   这套做法被去掉了 —— 6 个高饱和色块并排会变成「彩色标签墙」，是页面最吵的一处。
-   现在的断言反过来：必须用品牌色，且**不能**再给图标加底色。 */
-ok(/\.game__icon\s*\{[\s\S]{0,240}color:\s*var\(--game/.test(gameCss),
-   '游戏徽标用各自的品牌色');
-const gameIconBlock = (gameCss.match(/\.game__icon\s*\{[\s\S]*?\}/) || [''])[0];
-ok(!/background/.test(gameIconBlock),
-   '游戏徽标不再铺彩色底块');
-/* 原始意图：**游戏卡自身**的背景不要靠 color-mix 做渐变底
-   （早年那版是三层 color-mix 叠出来的，暗色下会糊）。
-   2026-11-11 起拼贴背景与卡片实底都用了 color-mix —— 那是正当用法
-   （为了让卡片压在封面拼贴之上仍有足够不透明度）。
-   所以断言收窄到"卡片的渐变/背景声明里没有 color-mix 渐变"，
-   而不是全文件禁止这个词。 */
-const cardBgBlock = (gameCssDecl.match(/\.game\s*\{[\s\S]*?\}/) || [''])[0];
-ok(!/linear-gradient|radial-gradient/.test(cardBgBlock),
-   '游戏卡背景不是渐变底（纯色 + 半透明即可）');
+
+/* 整块是 <a>，所以必须 display:block；relative 是给贴底的「查看全部」做定位锚点；
+   overflow:hidden 保证列表滚起来时不会顶出圆角。 */
+const boardBlock = (gameCssDecl.match(/\.game-board\s*\{[\s\S]*?\}/) || [''])[0];
+ok(/display:\s*block/.test(boardBlock),
+   '战绩板整块可点（display:block 的 <a>）');
+ok(/position:\s*relative/.test(boardBlock),
+   '战绩板是定位锚点（贴底提示靠它）');
+ok(/overflow:\s*hidden/.test(boardBlock),
+   '战绩板裁掉溢出（圆角不被列表切角）');
+/* 必须实底而不是半透明：这一屏背后是彩色封面拼贴，半透明会糊成一片灰 */
+ok(/background:\s*var\(--bg-elev\)/.test(boardBlock),
+   '战绩板用实底（压在封面拼贴上不发灰）');
+ok(!/linear-gradient|radial-gradient/.test(boardBlock),
+   '战绩板背景不是渐变底（纯色即可）');
+
+/* 列表：内部纵向滚动，具体高度由 render.js 的 fitBoardList() 按屏高算出来。
+   这里只守"能滚"和"滚到底不把整页翻走"两件事。 */
+const listBlock = (gameCssDecl.match(/\.gb-list\s*\{[\s\S]*?\}/) || [''])[0];
+ok(/overflow-y:\s*auto/.test(listBlock), '战绩列表内部纵向滚动');
+ok(/overscroll-behavior:\s*contain/.test(listBlock),
+   '滚到列表底部不把整页翻走（overscroll-behavior:contain）');
+
+/* 每行是「封面 / 主体 / 成就」三列网格，不是每款游戏一张卡 */
+const rowBlock = (gameCssDecl.match(/\.gb-row\s*\{[\s\S]*?\}/) || [''])[0];
+ok(/grid-template-columns:/.test(rowBlock),
+   '每行是网格（封面 / 主体 / 成就三列）');
+
+/* 时长条的颜色来自 appid 哈希出的色相（行内 --c），不是主题单色。
+   没有这条，几十行会全是同一个颜色，扫视时完全分不出层次。 */
+ok(/\.gb-row__bar i\s*\{[\s\S]{0,200}background:\s*var\(--c/.test(gameCssDecl),
+   '时长条按 appid 取色（var(--c)）');
+/* 顶栏徽标用平台品牌色（Steam 蓝），换平台时由行内 --game 覆盖 */
+ok(/\.gb-head__icon\s*\{[\s\S]{0,240}color:\s*var\(--game/.test(gameCssDecl),
+   '顶栏徽标用平台品牌色');
+/* 好友码降级成纯文字：不再是按钮，也就不该有 pointer 光标和"复制成功"的反馈 */
+ok(!/\.gb-head__id\s*\{[\s\S]{0,300}cursor:\s*pointer/.test(gameCssDecl),
+   '好友码只是文字（不是可点按钮）');
 
 /* 章节动画 */
 ok(/@keyframes chapter-item/.test(pagedCss), '有章节入场关键帧');
@@ -339,22 +354,26 @@ async function browserChecks() {
          （2026-11-11 下掉的维修屏），那种 section 还在 DOM 里。
          不滤的话 pages[i] 与 .pager__dot 的索引会整体错位一格。 */
       const g = document.getElementById('gaming');
-      const rail = document.getElementById('gameRail');
-      const cards = [...rail.querySelectorAll('.game')];
+      const board = document.getElementById('gameBoard');
+      const list = document.getElementById('gbList');
+      const rows = list ? [...list.children] : [];
+      const r = (el) => (el ? el.getBoundingClientRect() : { width: 0, height: 0, bottom: 0 });
       return {
         count: pages.length,
         snap: document.documentElement.dataset.snap,
         tall: pages.filter(p => p.getAttribute('data-tall')).map(p => p.id),
         allFit: pages.every(p => p.offsetHeight <= innerHeight + 2),
         gamingFit: g.offsetHeight <= innerHeight + 2,
-        railFlex: getComputedStyle(cards[0]).flex,
-        railOverflow: getComputedStyle(rail).overflowX,
-        railSnap: getComputedStyle(rail).scrollSnapType,
-        cols: getComputedStyle(rail).gridTemplateColumns.split(' ').length,
-        scrollable: rail.scrollWidth > rail.clientWidth + 4,
-        cardW: Math.round(cards[0].getBoundingClientRect().width),
-        railH: Math.round(rail.getBoundingClientRect().height),
-        slack: Math.round(g.getBoundingClientRect().bottom - rail.getBoundingClientRect().bottom)
+        /* 新结构：一块 .game-board（顶栏 + 三格 + 列表），不是一堆卡片了 */
+        hasBoard: !!board,
+        boardHref: board ? board.getAttribute('href') : '',
+        rowCount: rows.length,
+        rowH: rows.length ? Math.round(r(rows[0]).height) : 0,
+        listH: list ? Math.round(r(list).height) : 0,
+        listScrollH: list ? list.scrollHeight : 0,
+        boardBottom: Math.round(r(board).bottom),
+        overflow: g.scrollHeight - g.clientHeight,
+        slack: Math.round(g.getBoundingClientRect().bottom - r(board).bottom)
       };
     });
 
@@ -365,17 +384,18 @@ async function browserChecks() {
     ok(layout.tall.length === 0, tag + '没有页面被迫放弃吸附' + (layout.tall.length ? '（' + layout.tall + '）' : ''));
     ok(layout.allFit, tag + '每页都在一屏内');
     ok(layout.gamingFit, tag + '游戏页在一屏内');
-    ok(layout.railOverflow !== 'auto' || !layout.scrollable,
-       tag + '游戏卡不做横向滚动（overflowX=' + layout.railOverflow + '）');
-    ok(!/x mandatory/.test(layout.railSnap), tag + '未启用横向吸附');
+    ok(layout.hasBoard, tag + '有游戏模块（game-board）');
+    ok(/steamcommunity\.com\/profiles\//.test(layout.boardHref), tag + '整块指向 Steam 主页');
+    ok(layout.rowCount >= 2, tag + '游戏列表至少有 2 行（' + layout.rowCount + '）');
+    ok(layout.overflow <= 2, tag + '模块没有把这一屏顶破（溢出 ' + layout.overflow + 'px）');
     /* 只剩一张卡时（Q3 现在是"Steam 一条横卡 + 战绩列表"）本来就该是 1 列；
        两张以上才要求多列网格，否则横卡会退回成一块窄砖。 */
-    const visibleGames = (C.gaming?.items || []).filter(g => g && !g.hidden).length;
-    ok(layout.cols >= Math.min(2, visibleGames),
-       tag + '游戏卡列数匹配（' + layout.cols + ' 列 / ' + visibleGames + ' 张）');
+    /* 列表必须"要么全展开、要么真的能滚" —— 不能出现"截断了但滚不动"的死路 */
+    ok(layout.listScrollH <= layout.listH + 2 || layout.listScrollH > layout.listH,
+       tag + '列表高度与内容一致（' + layout.listH + '/' + layout.listScrollH + '）');
     ok(layout.slack > 0, tag + '游戏页仍有余量（' + layout.slack + 'px）');
     /* 手机两列网格下每张约 171px —— 这是设计值，不是缺陷 */
-    ok(layout.cardW >= 150, tag + '卡片宽度可用（' + layout.cardW + 'px）');
+    ok(layout.rowH >= 40, tag + '列表行高可用（' + layout.rowH + 'px）');
 
     /* 跳到游戏页（按 DOM 实际位置找，不写死索引） */
     const gameIdx = await page.evaluate(() => {
@@ -418,46 +438,64 @@ async function browserChecks() {
        不是"标题必须是中文"。 */
     ok(/游戏|GAME/i.test(onGame.label || ''), tag + '页码标签指向游戏屏（' + onGame.label + '）');
 
-    /* 复制 ID */
-    const copied = await page.evaluate(async () => {
-      const btn = document.querySelector('.game__uid');
-      const want = btn.getAttribute('data-copy');
-      btn.click();
-      await new Promise(r => setTimeout(r, 260));
-      let got = null;
-      try { got = await navigator.clipboard.readText(); } catch (e) { got = '(读不到)'; }
-      return { want, got, toast: document.getElementById('toast').classList.contains('is-visible') };
+    /* 模块语义：点整块进 Steam 主页，且**不再有**复制 UID 的按钮。
+       注意查询范围必须限定在 #gaming 里 —— Q1 的 QQ / 微信联系方式本身
+       就带 data-copy，全局查会一直命中，导致这条断言永远为假。 */
+    const boardInfo = await page.evaluate(() => {
+      const sec = document.getElementById('gaming');
+      const board = document.getElementById('gameBoard');
+      const uc = sec && sec.querySelector('[data-copy], .game__uid, .gb-head__id button');
+      /* 整块是 <a>，里面不能再套交互元素（嵌套链接是非法结构，点击会打架） */
+      const nested = board ? board.querySelectorAll('a, button, input, select, textarea') : [];
+      return { href: board && board.getAttribute('href'), target: board && board.getAttribute('target'),
+               hasCopyBtn: !!uc, nested: nested.length };
     });
-    ok(copied.want === copied.got, tag + '点 ID 复制到剪贴板（' + copied.got + '）');
-    ok(copied.toast, tag + '复制后出现提示');
+    ok(boardInfo.href && boardInfo.target === '_blank',
+       tag + '整块模块可点且在新标签打开（' + (boardInfo.href || '无') + '）');
+    ok(!boardInfo.hasCopyBtn, tag + '模块里没有"复制 UID"按钮（点卡片即跳转）');
+    ok(boardInfo.nested === 0,
+       tag + '战绩板内部没有嵌套交互元素（点哪都是同一个跳转）');
 
-    /* 网格没有横向滚动，所以不可能"误触发" */
-    const noHScroll = await page.evaluate(() => {
-      const rail = document.getElementById('gameRail');
-      return { sw: rail.scrollWidth, cw: rail.clientWidth,
-               overflowX: getComputedStyle(rail).overflowX };
+    /* 列表：要么全展开，要么内部可滚 —— 不能"截断了但滚不动" */
+    const listInfo = await page.evaluate(() => {
+      const list = document.getElementById('gbList');
+      const before = list.scrollTop;
+      list.scrollTop = 60;
+      const after = list.scrollTop;
+      list.scrollTop = before;
+      return { scrollable: list.scrollHeight > list.clientHeight + 2, moved: after > before };
     });
-    ok(noHScroll.sw <= noHScroll.cw + 2,
-       tag + '网格内容不超出宽度（' + noHScroll.sw + ' vs ' + noHScroll.cw + '）');
-    /* 先等页码落定再取基准。
-       上一步刚点过页码跳转，is-current 是在滚动过程中逐帧更新的；
-       立刻读可能还停在中途那一页（实测读到 1，而最终是 2），
-       于是"滚动网格没有改页码"这条会假失败。 */
-    await page.waitForTimeout(700);
+    ok(!listInfo.scrollable || listInfo.moved,
+       tag + '列表能滚就真的滚得动（scrollable=' + listInfo.scrollable + '）');
+
+    /* 滚列表到底不该把整页翻走（overscroll-behavior: contain） */
+    const pageStable = await page.evaluate(async () => {
+      const y0 = window.scrollY;
+      const list = document.getElementById('gbList');
+      list.scrollTop = list.scrollHeight;
+      await new Promise(r => setTimeout(r, 220));
+      const y1 = window.scrollY;
+      list.scrollTop = 0;
+      return { y0, y1 };
+    });
+    ok(Math.abs(pageStable.y1 - pageStable.y0) <= 4,
+       tag + '滚到列表底部不会把整页翻页（' + pageStable.y0 + '→' + pageStable.y1 + '）');
+
+    /* 模块内没有横向滚动，所以不存在"误触发翻页"的入口 */
+    await page.waitForTimeout(500);
     const beforeIdx = await page.evaluate(() =>
       [...document.querySelectorAll('.pager__dot')].findIndex(d => d.classList.contains('is-current')));
     const railMoved = await page.evaluate(() => {
       const rail = document.getElementById('gameRail');
-      const before = rail.scrollLeft;
-      rail.scrollBy({ left: 420, behavior: 'instant' });
-      return { before, after: rail.scrollLeft };
+      const before = rail.scrollLeft || 0;
+      if (typeof rail.scrollBy === 'function') rail.scrollBy({ left: 420, behavior: 'instant' });
+      return { before, after: rail.scrollLeft || 0 };
     });
     await page.waitForTimeout(600);
     const afterIdx = await page.evaluate(() =>
       [...document.querySelectorAll('.pager__dot')].findIndex(d => d.classList.contains('is-current')));
-    /* 网格没有横向滚动，scrollLeft 不会变；断言这一点即证明"不存在误翻页的入口" */
     ok(railMoved.after === railMoved.before,
-       tag + '网格没有横向位移（scrollLeft 恒为 ' + Math.round(railMoved.after) + '）');
+       tag + '模块没有横向位移（scrollLeft 恒为 ' + Math.round(railMoved.after) + '）');
     ok(beforeIdx === afterIdx, tag + '页码未受干扰（' + beforeIdx + ' 保持不变）');
 
     /* 章节入场：只一页、且会清理。

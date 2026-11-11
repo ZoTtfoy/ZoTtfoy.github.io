@@ -1,214 +1,18 @@
 /* ==========================================================================
- *  gaming.css —— 游戏卡片（Q3）
+ *  gaming.css —— Q3「游戏」
  * --------------------------------------------------------------------------
- *  这一屏的用途很单一：**在社交场合让对方抄 ID**。
- *  所以卡片只保留三样东西：图标 / 名称 / 可点击复制的 ID。
+ *  两块，都在这个文件里：
+ *    ① .steamwall*  斜 45° 的 Steam 封面墙（背景层）
+ *    ② .game-board* 游戏模块：顶栏 + 三格数据 + 可滚动的游戏列表
  *
- *  砍掉的内容（原先是 note + stats 三格 + server/rank 元信息）：
- *    一张卡有 6 行文字时，屏幕一屏只能放 4 个游戏，而且没人会读简介。
- *    现在一张卡约 96px 高，6 个游戏两行就排完，剩下的空间留给呼吸感。
- *
- *  想加游戏：config.js → gaming.items 里加一项即可，布局会自动排。
- *  想用自定义图标：填 iconImage（图片地址），优先级高于 icon（内置图标名）。
+ *  ⚠️ 2026-11-11 第二次改版：原来这里是"每张游戏卡一个格子"的网格
+ *     （icon + 名称 + 可复制的 ID）。用户要求照小黑盒的个人主页重做：
+ *       · 顶栏（平台 / 好友码）与下面的游戏库**合成一块**，整块点进 Steam 主页
+ *       · 好友码不再可复制，只作为文字展示
+ *       · 桌面要放更多游戏，列表内部滚动，行数按可用高度自适应
+ *     所以 .game / .game__* 那一整套样式已经删除；要找回"一卡一游戏"的旧版，
+ *     看 git 历史里 56df0ab 之前的 gaming.css。
  * ========================================================================== */
-
-/* 网格：桌面 3 列 → 6 个正好 2 行；平板 2 列；窄屏 2 列。
-   用固定列数而不是 auto-fit：auto-fit 在 1180px 下会算成 5 列，
-   6 个卡片就变成 "5 + 1"，最后一行孤零零一张，很难看。 */
-.game-rail {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
-  align-items: stretch;
-}
-
-/* 只剩一张卡时（Q3 现在是"Steam + 战绩列表"）：把它压成一条横卡，
-   否则 repeat(3) 会让它占 1/3 宽、右边空出 2/3，像少渲染了两块。 */
-.game-rail.is-single { grid-template-columns: minmax(0, 1fr); }
-.game-rail.is-single .game {
-  display: grid;
-  /* 图标 / 名字 / 好友码 / 外链箭头。好友码紧跟在名字后面 ——
-     原来把 1fr 给了名字列，1200px 下好友码被推到最右边、
-     离名字一千像素，看着像另一块内容。最后那列留给箭头贴右。 */
-  grid-template-columns: auto max-content max-content minmax(0, 1fr);
-  align-items: center;
-  gap: 14px;
-  padding: 13px 16px;
-}
-.game-rail.is-single .game__icon { margin-bottom: 0; }
-.game-rail.is-single .game__uid { width: auto; min-width: 240px; margin-top: 0; }
-.game-rail.is-single .game__name { white-space: nowrap; }
-.game-rail.is-single .game__link { justify-self: end; }
-
-@media (max-width: 900px) {
-  .game-rail { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  /* 横卡在窄屏退回"图标 + ID"两行，别把 ID 挤成省略号 */
-  .game-rail.is-single { grid-template-columns: minmax(0, 1fr); }
-  .game-rail.is-single .game {
-    grid-template-columns: auto minmax(0, 1fr) auto;
-    grid-template-rows: auto auto;
-    gap: 4px 10px;
-    padding: 12px 14px;
-  }
-  .game-rail.is-single .game__icon { grid-row: 1 / 3; }
-  .game-rail.is-single .game__name { grid-column: 2; }
-  .game-rail.is-single .game__uid {
-    grid-column: 2 / 4;
-    width: 100%;
-    min-width: 0;
-    margin-top: 4px;
-  }
-  .game-rail.is-single .game__link { grid-row: 1; grid-column: 3; }
-}
-
-/* ---------------------------------------------------------------- 卡片本体 */
-.game {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  padding: 16px;
-  border: 1px solid var(--line);
-  border-radius: var(--r-md);
-  background: var(--bg-elev);
-  overflow: hidden;
-  transition: border-color var(--t) var(--ease);
-}
-
-/* 顶部品牌色细条：整张卡唯一的彩色信息，其余走主题变量 */
-.game::after {
-  content: "";
-  position: absolute;
-  inset: 0 0 auto 0;
-  height: 2px;
-  background: var(--game, var(--accent));
-  opacity: .85;
-}
-
-/* 徽标：内置图标走品牌色；自定义图片则按原样显示 */
-.game__icon {
-  flex: none;
-  display: grid;
-  place-items: center;
-  width: 32px;
-  height: 32px;
-  margin-bottom: 10px;
-  color: var(--game, var(--accent));
-}
-.game__icon .icon { width: 19px; height: 19px; }
-
-.game__logo {
-  width: 100%;
-  height: 100%;
-  border-radius: calc(var(--r-sm) * .55);
-  object-fit: cover;
-  background: var(--bg-soft);
-}
-
-.game__name {
-  font-family: var(--font-display, var(--font-sans));
-  font-size: .95rem;
-  font-weight: 600;
-  letter-spacing: -.01em;
-  line-height: 1.35;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* ------------------------------------------------------------------ ID 行 */
-.game__uid {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  width: 100%;
-  margin-top: 9px;
-  padding: 7px 9px;
-  border: 1px dashed var(--line-strong);
-  border-radius: var(--r-sm);
-  background: var(--bg-soft);
-  text-align: left;
-  transition: border-color var(--t-fast) var(--ease), background-color var(--t-fast) var(--ease);
-}
-.game__uid:hover {
-  border-color: var(--game, var(--accent));
-  border-style: solid;
-  background: var(--bg);
-}
-.game__uid-label {
-  flex: none;
-  font-family: var(--font-mono);
-  /* 原 .56rem(8.96px) 低于可读下限；这是 ID 的类型标签，缩小它省不下多少空间 */
-  font-size: .7rem;
-  letter-spacing: .06em;
-  text-transform: uppercase;
-  color: var(--text-3);
-}
-.game__uid-value {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  font-family: var(--font-mono);
-  font-size: .76rem;
-  font-weight: 600;
-  color: var(--text);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.game__uid-copy {
-  flex: none;
-  display: grid;
-  place-items: center;
-  width: 20px;
-  height: 20px;
-  border-radius: calc(var(--r-sm) * .55);
-  color: var(--text-3);
-  transition: color var(--t-fast) var(--ease);
-}
-.game__uid-copy .icon { width: 12px; height: 12px; }
-.game__uid:hover .game__uid-copy { color: var(--game, var(--accent)); }
-
-/* 主页链接（可选）：做成右上角的小箭头，不占纵向空间 */
-.game__link {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  display: grid;
-  place-items: center;
-  width: 24px;
-  height: 24px;
-  border-radius: calc(var(--r-sm) * .55);
-  color: var(--text-3);
-  transition: color var(--t-fast) var(--ease), background-color var(--t-fast) var(--ease);
-}
-.game__link .icon { width: 13px; height: 13px; }
-.game__link:hover { color: var(--text); background: var(--bg-soft); }
-
-/* ---------------------------------------------------------- 悬停反馈 */
-/* 不做位移、不加阴影 —— 和摘要素描卡保持同一套节制规则 */
-@media (hover: hover) and (pointer: fine) {
-  .game:hover { border-color: var(--line-strong); }
-}
-/* 触屏按压反馈统一在 motion.css 里（那一处集中管理所有可点组件），
-   这里不要重复写 .game:active，否则会覆盖那边的数值。 */
-
-/* ------------------------------------------------------------ 小屏
-   这里的下限与 blocks.css 手机端一致：正文 ≥ .86rem、辅助 ≥ .72rem。
-   早先压到 .88rem / .72rem 是为了两列并排时塞下长游戏名，
-   现在两列宽度足够（每格约 165px），字号可以回到正常尺度。 */
-@media (max-width: 680px) {
-  .game { padding: 14px; }
-  .game__icon { width: 28px; height: 28px; margin-bottom: 9px; }
-  .game__icon .icon { width: 18px; height: 18px; }
-  .game__name { font-size: .94rem; }
-  .game__uid { margin-top: 8px; padding: 6px 9px; }
-  .game__uid-label { display: none; }        /* 手机上标签让位给 ID 本身 */
-  .game__uid-value { font-size: .82rem; }
-}
-
-/* 减少动态效果：不做位移 */
-@media (prefers-reduced-motion: reduce) {
-  .game:hover { transform: none; }
-}
 
 /* ==========================================================================
  *  Steam 竖版封面拼贴背景（#gaming 专属）
@@ -381,30 +185,100 @@
 @media (prefers-reduced-motion: reduce) {
   .steamwall__grid { transition: none; }
 }
+/* ==========================================================================
+ *  游戏模块（Q3 唯一的一块内容）
+ * --------------------------------------------------------------------------
+ *  版式照用户给的小黑盒个人主页截图：
+ *    ┌───────────────────────────────────────────────┐
+ *    │ [icon] Steam  公开库存      好友码 7656…   ↗ │ ← 顶栏
+ *    │ 45          2,812h          1                 │ ← 三格数据
+ *    │ ─────────────────────────────────────────────  │
+ *    │ [封面] 名字                                  │ ← 列表（内部滚动）
+ *    │        2,491h ▓▓▓▓▓▓▓▓▓▓▓▓▓▓░  28h    12/12  │
+ *    └───────────────────────────────────────────────┘
+ *  整块是一个 <a>（点哪都进 Steam 主页），所以这里不能出现第二个交互元素。
+ * ========================================================================== */
 
-/* 不支持 color-mix 时 game 卡也要有底 */
+.game-board {
+  display: block;
+  position: relative;
+  margin-top: clamp(20px, 3vh, 30px);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  /* 和别的白卡一样用实底：这一屏的背景是彩色封面，半透明会糊 */
+  background: var(--bg-elev);
+  overflow: hidden;
+  color: inherit;
+  text-decoration: none;
+  transition: border-color var(--t-fast) var(--ease);
+}
+.game-board:hover { border-color: var(--line-strong); }
+.game-board[hidden] { display: none; }
 
-/* ================================================== 游戏战绩（时长 / 成就）
-   版式参照小黑盒的游戏库列表（用户指定）：
-     顶部三格数据  →  一行一款游戏：封面 / 名字 + 时长条 / 成就
-   数据在 data/steam.json 的 lib + recent[]，抓不到整块 hidden（见 render.js）。
-   ⚠️ 这里刻意**不用卡片**：六行卡片会让这一屏变成六块砖，
-      而列表（细线分隔）才像"游戏库"。 */
+/* ------------------------------------------------------------ ① 顶栏 */
+.gb-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 13px 16px;
+  border-bottom: 1px solid var(--line);
+}
+.gb-head__icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 22px;
+  height: 22px;
+  /* Steam 的品牌蓝；换成别的平台时由内联 --game 覆盖 */
+  color: var(--game, #66c0f4);
+}
+.gb-head__icon .icon { width: 18px; height: 18px; }
+.gb-head__name { font-size: .95rem; font-weight: 600; letter-spacing: -.01em; }
+.gb-head__meta {
+  padding: 1px 7px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-xs);
+  font-size: .7rem;
+  color: var(--text-3);
+}
+/* 好友码：只是文字，不再是"点一下复制"的按钮 */
+.gb-head__id {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: .76rem;
+  color: var(--text-2);
+  white-space: nowrap;
+}
+.gb-head__id i { font-style: normal; font-size: .68rem; color: var(--text-3); }
+.gb-head__id b { font-weight: 600; color: var(--text); }
+.gb-head__go {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  margin-left: 4px;
+  color: var(--text-3);
+  transition: transform var(--t) var(--ease), color var(--t) var(--ease);
+}
+.gb-head__go .icon { width: 14px; height: 14px; }
+.game-board:hover .gb-head__go { color: var(--text); transform: translate(2px, -2px); }
 
-.game-stats { margin-top: 18px; }
-
-/* ---------------------------------------------------- 顶部三格数据 */
+/* ------------------------------------------------------------ ② 三格数据 */
+.game-stats { display: block; }
 .gb-sum {
   display: flex;
   align-items: baseline;
-  gap: clamp(28px, 6vw, 64px);
-  /* 上和 Steam 卡、下和列表都要留出呼吸：这两处在深色底上很容易糊成一片 */
-  margin: 6px 2px 18px;
+  gap: clamp(26px, 5vw, 60px);
+  padding: 14px 16px 12px;
 }
 .gb-sum__item { display: flex; flex-direction: column; gap: 2px; }
 .gb-sum__item b {
   font-family: var(--font-mono);
-  font-size: clamp(1.4rem, 2.4vw, 1.9rem);
+  font-size: clamp(1.3rem, 2.2vw, 1.7rem);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   letter-spacing: -.02em;
@@ -417,48 +291,55 @@
   font-weight: 600;
   color: var(--text-2);
 }
-.gb-sum__item i {
-  font-style: normal;
-  font-size: .7rem;
-  letter-spacing: .02em;
-  color: var(--text-3);
-}
+.gb-sum__item i { font-style: normal; font-size: .7rem; color: var(--text-3); }
 
-/* ------------------------------------------------------------ 列表 */
+/* ------------------------------------------------------------ ③ 列表 */
+/* max-height 由 render.js 的 fitBoardList() 按"可用高度 ÷ 行高"算出来，
+   这里只负责滚动本身。行数自适应 = 桌面放得多、手机放得少。 */
 .gb-list {
-  display: flex;
-  flex-direction: column;
-  /* 列表压在彩色封面墙上：给一层实底，字才稳（和 .game 同一条规矩） */
-  border: 1px solid var(--line);
-  border-radius: var(--r-md);
-  background: var(--bg-elev);
-  overflow: hidden;
+  display: block;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border-top: 1px solid var(--line);
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-strong) transparent;
+}
+.gb-list::-webkit-scrollbar { width: 6px; }
+.gb-list::-webkit-scrollbar-thumb {
+  background: var(--line-strong);
+  border-radius: 999px;
+}
+.gb-list::-webkit-scrollbar-track { background: transparent; }
+/* 能滚的时候，底部 28px 渐隐 —— 提示"下面还有"，比画一条硬边干净 */
+.gb-list.is-scroll {
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 28px), transparent);
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 28px), transparent);
+  padding-bottom: 8px;
 }
 
 .gb-row {
   display: grid;
-  grid-template-columns: 116px minmax(0, 1fr) 64px;
+  grid-template-columns: 116px minmax(0, 1fr) 62px;
   align-items: center;
   gap: 16px;
   padding: 10px 16px;
-  /* 行间细线：用 border-top 而不是 gap，最后一行不会多出一条 */
+  /* 行间细线用 border-top：最后一行不会多出一条 */
   border-top: 1px solid var(--line);
 }
 .gb-row:first-child { border-top: 0; }
 
 .gb-row__cover {
+  display: grid;
+  place-items: center;
   width: 116px;
   aspect-ratio: 16 / 9;
   overflow: hidden;
   border-radius: var(--r-sm);
   background: var(--bg-soft);
-  display: grid;
-  place-items: center;
   color: var(--text-3);
 }
-.gb-row__cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
-/* 占位图标：默认不占位（display:none），图挂了才由 .is-blank 打开。
-   用两层叠着而不是 JS 重建节点 —— onerror 里只能写一句话，越简单越不会错。 */
+.gb-row__cover img { display: block; width: 100%; height: 100%; object-fit: cover; }
+/* 占位图标默认不占位，图挂了才由 .is-blank 打开（详见 render.js 的 rowHtml） */
 .gb-row__ph { display: none; }
 .gb-row__cover.is-blank .gb-row__ph { display: grid; place-items: center; }
 .gb-row__ph .icon { width: 22px; height: 22px; }
@@ -474,10 +355,10 @@
   white-space: nowrap;
 }
 
-/* 时长 / 条 / 两周内 —— 三者一行，条吃满中间的余量 */
+/* 时长 / 条 / 两周内：一行三格，条吃掉中间的余量 */
 .gb-row__stats {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) 52px;
+  grid-template-columns: auto minmax(0, 1fr) 54px;
   align-items: center;
   gap: 12px;
 }
@@ -491,10 +372,9 @@
   white-space: nowrap;
 }
 .gb-row__hours small,
-.gb-row__w small { font-size: .72em; font-weight: 600; color: var(--text-3); margin-left: 1px; }
+.gb-row__w small { margin-left: 1px; font-size: .72em; font-weight: 600; color: var(--text-3); }
 
-/* 条的颜色来自 --c（appid 哈希出的色相，JS 写在内联 style 上）。
-   轨道用 --line，填充用 --c —— 小黑盒就是这么做的。 */
+/* 条的颜色来自 --c（appid 哈希出的色相，JS 写在内联 style 上） */
 .gb-row__bar {
   height: 6px;
   overflow: hidden;
@@ -517,9 +397,8 @@
   text-align: right;
   white-space: nowrap;
 }
-.gb-row__w.is-empty { color: var(--text-3); }
 
-/* 成就：全成就才有勋章 + 强调色 */
+/* 成就：全成就才有奖章 + 强调色 */
 .gb-row__ach {
   display: flex;
   flex-direction: column;
@@ -527,11 +406,7 @@
   gap: 3px;
   text-align: center;
 }
-.gb-row__medal {
-  display: grid;
-  place-items: center;
-  color: var(--accent);
-}
+.gb-row__medal { display: grid; place-items: center; color: var(--accent); }
 .gb-row__medal .icon { width: 17px; height: 17px; }
 .gb-row__ach-num {
   font-family: var(--font-mono);
@@ -543,20 +418,53 @@
 .gb-row__ach-num b { font-weight: 700; color: var(--text); }
 .gb-row.is-done .gb-row__ach-num,
 .gb-row.is-done .gb-row__ach-num b { color: var(--accent); }
-.gb-row__ach.is-none { color: var(--text-3); font-size: .78rem; }
+.gb-row__ach.is-none { font-size: .78rem; color: var(--text-3); }
 
-/* --------------------------------------------------------- 窄屏 */
+/* ------------------------------------------------------- ④ "查看全部" */
+/* 列表被截断时贴在卡片底部：一条渐隐 + 一句提示。
+   整块是个链接，所以这里 pointer-events: none —— 点它等于点卡片。 */
+.gb-more {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 46px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 7px;
+  background: linear-gradient(to bottom, transparent, var(--bg-elev) 62%);
+  pointer-events: none;
+}
+.gb-more[hidden] { display: none; }
+.gb-more__fade { display: none; }   /* 渐变交给父级，占位留着不影响结构 */
+.gb-more__txt {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: .72rem;
+  color: var(--text-2);
+}
+.gb-more__txt .icon { width: 12px; height: 12px; }
+
+/* --------------------------------------------------------------- 窄屏 */
 @media (max-width: 680px) {
-  .gb-sum { gap: 22px; padding-bottom: 10px; }
-  .gb-sum__item b { font-size: 1.25rem; }
+  .game-board { margin-top: 16px; }
+  .gb-head { gap: 8px; padding: 11px 12px; }
+  .gb-head__name { font-size: .88rem; }
+  .gb-head__id { font-size: .7rem; gap: 4px; }
+  .gb-head__id i { display: none; }      /* 手机上"好友码"三个字换行，只留号码 */
+  .gb-head__meta { display: none; }
+
+  .gb-sum { gap: 22px; padding: 12px 12px 10px; }
+  .gb-sum__item b { font-size: 1.15rem; }
   .gb-sum__item i { font-size: .64rem; }
 
   .gb-row {
-    /* 手机上封面缩到 84px，成就列收到 44px —— 
-       再宽游戏名就只剩「深空当铺：可能…」了 */
+    /* 封面缩到 84px、成就列 44px —— 再宽游戏名就只剩「深空当铺：可能…」 */
     grid-template-columns: 84px minmax(0, 1fr) 44px;
     gap: 10px;
-    padding: 8px 11px;
+    padding: 8px 12px;
   }
   .gb-row__cover { width: 84px; border-radius: var(--r-xs); }
   .gb-row__main { gap: 5px; }
@@ -569,27 +477,20 @@
   .gb-row__ach-num { font-size: .7rem; }
 }
 
-/* ---------------------------------------------- 矮窗口：先缩行，再缩封面
-   320×568 实测这一屏多出 27px（战绩列表是新增的，把原先刚好的高度顶破了）。
-   档位（html[data-vp]）是全站通用的那套判断（density.js 按视口高度 + 宽度惩罚算），
-   这里只在 tight / mini 两级收尺寸 —— 不去动内容的"有没有"，只动"多大"。
-   ⚠️ 选择器带 [data-vp]，特异性比 @media 里的 .gb-row 高，所以放在文件末尾之外
-      也不会被上面的手机规则盖回去。 */
+/* ---------------------------------------------- 矮窗口：先缩行，再缩封面 */
+/* 档位（html[data-vp]）是全站通用的判断（density.js）。这里只动"多大"，
+   不动"有没有"。320×568 实测这一屏最容易顶破，缩两档就够。 */
+html[data-vp="tight"] .gb-head,
+html[data-vp="mini"] .gb-head { padding: 9px 12px; }
 html[data-vp="tight"] .gb-sum,
-html[data-vp="mini"] .gb-sum {
-  margin: 2px 2px 10px;
-  gap: 24px;
-}
+html[data-vp="mini"] .gb-sum { padding: 10px 12px 8px; gap: 24px; }
 html[data-vp="tight"] .gb-sum__item b,
-html[data-vp="mini"] .gb-sum__item b { font-size: 1.1rem; }
-html[data-vp="tight"] .gb-sum__item i,
-html[data-vp="mini"] .gb-sum__item i { font-size: .62rem; }
-
+html[data-vp="mini"] .gb-sum__item b { font-size: 1.05rem; }
 html[data-vp="tight"] .gb-row,
 html[data-vp="mini"] .gb-row {
   grid-template-columns: 76px minmax(0, 1fr) 44px;
   gap: 9px;
-  padding: 6px 10px;
+  padding: 6px 12px;
 }
 html[data-vp="tight"] .gb-row__cover,
 html[data-vp="mini"] .gb-row__cover { width: 76px; }
@@ -597,7 +498,64 @@ html[data-vp="tight"] .gb-row__main,
 html[data-vp="mini"] .gb-row__main { gap: 4px; }
 html[data-vp="tight"] .gb-row__name,
 html[data-vp="mini"] .gb-row__name { font-size: .82rem; }
-html[data-vp="tight"] .gb-row__stats,
-html[data-vp="mini"] .gb-row__stats { grid-template-columns: auto minmax(0, 1fr) 38px; gap: 7px; }
 html[data-vp="tight"] .gb-row__hours,
 html[data-vp="mini"] .gb-row__hours { font-size: .8rem; }
+
+/* 这一屏的标题区比别处收得紧：列表要多放一行。
+   （别处的 .section__head 下边距是 clamp(40px,6vw,72px)，一屏里占掉 72px。） */
+#gaming .section__head { margin-bottom: clamp(18px, 2.4vw, 28px); }
+
+/* ------------------------------------------------------- ⑤ 最近入库 */
+/* 一条横向的封面带，放在三格数据下面、列表上面。
+   数据来自"两次同步的差集"（Steam 接口没有购买时间，见 render.js 的注释）。
+   没有新入库时整条不渲染，所以这里不需要 :empty 之类的兜底。 */
+.gb-new {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 16px 12px;
+  min-width: 0;
+}
+.gb-new__label {
+  flex: none;
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  font-size: .72rem;
+  color: var(--text-2);
+  white-space: nowrap;
+}
+.gb-new__label i {
+  font-style: normal;
+  font-size: .66rem;
+  color: var(--text-3);
+}
+.gb-new__row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  overflow: hidden;
+}
+.gb-new__item {
+  flex: none;
+  display: block;
+  width: 64px;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border-radius: var(--r-xs);
+  background: var(--bg-soft);
+}
+.gb-new__item img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.gb-new__more {
+  font-family: var(--font-mono);
+  font-size: .7rem;
+  font-weight: 600;
+  color: var(--text-3);
+}
+
+@media (max-width: 680px) {
+  .gb-new { gap: 8px; padding: 0 12px 10px; }
+  .gb-new__label i { display: none; }
+  .gb-new__item { width: 48px; }
+}

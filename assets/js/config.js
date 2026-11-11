@@ -121,7 +121,9 @@ window.SITE_CONFIG = {
   gaming: {
       eyebrow: "03 / GAMES",
       title: "MY GAME'S",
-      lead: "想一起玩的话，ID 都在这里，点一下就能复制。",
+      /* ⚠️ 2026-11-11：Steam 好友码不再可复制（整块点进 Steam 主页），
+         所以这句话跟着改 —— 别再承诺一个不存在的动作。 */
+      lead: "我的游戏库：时长、最近两周、成就进度。点一下进 Steam 主页。",
       /* 顺序按用户要求：Steam 在最前，然后明日方舟、无畏契约。
          图标全部换成作品/平台的官方标识（见 icons.js 顶部注释）：
            steam    → 官方 Steam 徽标

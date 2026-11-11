@@ -1,16 +1,25 @@
 name: Sync external data
 
 # 抓取站外数据写进 data/*.json，然后提交回仓库。
-# 抓不到不会导致失败 —— 页面会继续用 config.js 里的兜底内容。
+# 抓不到不会导致失败 —— 页面会继续用上一次的结果 / config.js 里的兜底内容。
 #
-# 首次使用需要配置两样东西（仓库 Settings → Secrets and variables → Actions）：
-#   Secret   NETEASE_COOKIE  浏览器里 music.163.com 的完整 Cookie
-#   Variable NETEASE_UID     你的数字 UID（或直接改 config.js 的 listen.neteaseUid）
-#   Variable STEAM_ID        17 位 SteamID64（不填则读 config.js 里那张 Steam 卡）
-#   注意：Steam 库存抓取需要本机浏览器（TLS 指纹），Actions 里跑不了，
-#        所以这里只校验/沿用已有的 data/steam.json，不联网抓取。
+# 首次使用需要配置（仓库 Settings → Secrets and variables → Actions）：
+#   Secret   NETEASE_COOKIE    浏览器里 music.163.com 的完整 Cookie
+#   Secret   STEAM_API_KEY     Steam Web API 密钥（免费领：steamcommunity.com/dev/apikey）
+#   Variable NETEASE_UID       你的数字 UID（或直接改 config.js 的 listen.neteaseUid）
+#   Variable STEAM_ID          17 位 SteamID64（不填则读 config.js 里那张 Steam 卡）
 #
-# 不配置也能跑：会跳过网易云，只尝试抓外链摘要。
+# 关于 Steam 的两条路：
+#   · 库存抓取（封面墙用的 apps / portraitApps）必须真实浏览器 —— 裸 fetch 会被
+#     TLS 指纹挡住，Actions 里跑不了。所以这条只在本机跑：
+#         node scripts/sync-steam.mjs
+#   · 但「游戏库统计 + 最近入库」只需要 Web API，不需要浏览器。它跑的是：
+#         node scripts/sync-steam.mjs --api-only
+#     --api-only 会沿用上一次本机抓的封面墙数据，只更新战绩与 owned 快照。
+#     「最近入库」靠两次同步的 appid 差集算出来（Steam 接口没有购买时间字段），
+#     所以这条必须每天跑 —— 断一天，那天入库的游戏就要等到下一次才被发现。
+#
+# 不配置也能跑：没配的项自动跳过，其余照旧。
 
 on:
   schedule:
@@ -28,6 +37,13 @@ concurrency:
 jobs:
   sync:
     runs-on: ubuntu-latest
+    # 放到 job 层，是为了能在 step 的 if 里判断"密钥配了没"——
+    # 按 GitHub 的规则，secrets 不能直接写进 if 表达式。
+    env:
+      NETEASE_UID: ${{ vars.NETEASE_UID }}
+      NETEASE_COOKIE: ${{ secrets.NETEASE_COOKIE }}
+      STEAM_ID: ${{ vars.STEAM_ID }}
+      STEAM_API_KEY: ${{ secrets.STEAM_API_KEY }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -37,14 +53,19 @@ jobs:
         with:
           node-version: "20"
 
+      # 先跑 Steam：它只依赖 API，最稳；而且「最近入库」每天都可能变，
+      # 万一后面网易云那条挂了，这一条不该被牵连。
+      - name: Sync Steam 战绩与最近入库（API only）
+        if: env.STEAM_API_KEY != ''
+        timeout-minutes: 10
+        run: node scripts/sync-steam.mjs --api-only
+
+      - name: Skip notice
+        if: env.STEAM_API_KEY == ''
+        run: echo "没有配置 STEAM_API_KEY，跳过 Steam 同步（页面继续用仓库里已有的 data/steam.json）"
+
       - name: Run sync
-        env:
-          NETEASE_UID: ${{ vars.NETEASE_UID }}
-          NETEASE_COOKIE: ${{ secrets.NETEASE_COOKIE }}
-          # Steam：这里不联网抓（库存接口对裸 TLS 超时，必须用真实浏览器），
-          # 只沿用仓库里 data/steam.json 的抓取结果。抓取在本机跑：
-          #     node scripts/sync-steam.mjs
-          STEAM_ID: ${{ vars.STEAM_ID }}
+        timeout-minutes: 10
         run: node scripts/sync.mjs
 
       - name: Commit if changed
@@ -55,6 +76,6 @@ jobs:
           if git diff --staged --quiet; then
             echo "数据没有变化，跳过提交"
           else
-            git commit -m "chore(sync): 更新最近在听与主页摘要"
+            git commit -m "chore(sync): 更新在听 / 游戏战绩 / 最近入库"
             git push
           fi
