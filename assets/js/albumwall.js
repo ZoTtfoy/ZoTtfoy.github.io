@@ -175,6 +175,11 @@ window.SITE_ALBUMWALL = (function () {
              和游戏墙同一个理由 —— 别用近白底色，几块白瓦片
              会让整面墙看起来像"没渲染完"。 */
           cells += '<img src="' + seq[j] + '" alt="" decoding="async" ' +
+            /* 6 行 × 12 格 × 2 份 = 144 个 <img>，首屏一上来就要抢带宽和解码。
+               试过 loading="lazy"，但被 .albumwall 的 overflow:hidden 裁掉的
+               瓦片会被判成"还不需要"，永远不加载，墙面就花了 —— 撤掉。
+               只保留 fetchpriority="low"：不影响加载，只把优先级排到内容后面。 */
+            'fetchpriority="low" ' +
             'width="' + TILE + '" height="' + TILE + '" ' +
             'style="--h:' + hueOf(seq[j]) + '" ' +
             'onerror="this.classList.add(\'is-broken\')">';

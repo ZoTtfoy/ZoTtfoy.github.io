@@ -441,7 +441,11 @@
   gap: 0;
   width: calc(var(--aw-period, 2400px) * 2);
   height: var(--aw-tile, 400px);
-  will-change: transform;
+  /* ⚠️ 刻意不写 will-change：
+     这一行本来就是**纯合成器动画**（animation 只改 transform），
+     浏览器会自己把它提到合成层 —— will-change 在这里只多做了一件事：
+     让这一层在离屏状态下也常驻。6 行 × 两倍周期 = 一大笔显存在空转。
+     去掉它不改变任何帧的表现，离屏时省下这部分预算。 */
   /* 纯合成器动画：主线程一帧都不用管。
      @keyframes 由 albumwall.js 按常量注入（aw-move-left / aw-move-right），
      时长由每行的 --aw-dur（已按倍率算好）决定。

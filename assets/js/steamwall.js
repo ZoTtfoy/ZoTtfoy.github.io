@@ -206,7 +206,16 @@ window.SITE_STEAMWALL = (function () {
            看起来像没渲染完。 */
         cells += '<span class="steamwall__tile" style="--dim:' + dim.toFixed(2) +
           ';--h:' + hueOf(appid) + '">' +
+          /* ⚠️ 这里**不能**加 loading="lazy"（实测过，然后又撤了）：
+             整面墙 = 48 个 <img>，其中只有一部分落在视口内，
+             其余被 .steamwall 的 overflow:hidden 裁掉。
+             Chrome 的懒加载按"是否接近视口"判定，被裁掉的那些会被判成
+             "还不需要"，于是永远不加载 —— 实测只有 20/48 张到位，
+             剩下 28 格露出 --h 纯色块，墙看起来是花的。
+             画面比性能重要，所以只在请求优先级上让路（fetchpriority="low"）：
+             它不影响加不加载，只让背景图排在首屏数据后面。 */
           '<img src="' + cdnUrl(appid, CDN_HOSTS[0]) + '" alt="" decoding="async" ' +
+          'fetchpriority="low" ' +
           'width="' + TILE_W + '" height="' + TILE_H + '" ' +
           'data-appid="' + appid + '" data-host="0">' +
           "</span>";

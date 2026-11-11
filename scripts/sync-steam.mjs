@@ -180,9 +180,11 @@ async function collectViaApi(steamId, key) {
   if (!games.length) return null;
 
   /* 取多少行：页面上一屏只放得下 4~6 行，其余靠滚动。
-     取 20 行 = 滚动两屏多一点，既有"库"的分量，又不会让 JSON 和
-     成就请求（每款一次）膨胀得太离谱。 */
-  const ROWS = 20;
+     上限 30 行 —— 和前端 render.js 的 ROW_LIMIT 对齐：
+       页面只渲染前 30 条，再多就是白抓。
+     为什么不取全库 143 行：成就要一款一次请求，143 次会把同步拖到几分钟，
+     而 JSON 也会从 40KB 涨到 200KB+。30 行足够撑出"库"的分量。 */
+  const ROWS = 30;
   const sorted = games.slice().sort((a, b) => (b.playtime_forever || 0) - (a.playtime_forever || 0));
   const minutes = games.reduce((s, g) => s + (g.playtime_forever || 0), 0);
 

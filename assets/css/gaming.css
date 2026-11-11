@@ -74,6 +74,10 @@
   display: flex;
   flex-direction: column;
   gap: 0;
+  /* ⚠️ will-change 在这里是**冗余的**：JS 每帧写的是 translate3d(0,y,0)，
+     3D 变换本身就会把这一列提成合成层。实测把 will-change 去掉、或让它
+     常驻，CDP 的层树读数一模一样 —— 所以不要靠它省显存，那是个假优化。
+     真要省，得从"离屏时少解码图片"下手（见 steamwall.js 的 loading="lazy"）。 */
   will-change: transform;
 }
 
@@ -558,6 +562,14 @@ html[data-vp="mini"] .gb-row__hours { font-size: .8rem; }
   font-family: var(--font-mono);
   font-size: .7rem;
   font-weight: 600;
+  color: var(--text-3);
+}
+/* 空态：还没有新入库。
+   不是"这块没做"，而是"从哪天开始记账" —— 所以字要比记录淡一档，
+   位置仍占着那条 30px，避免这一行忽有忽无导致下面的列表跳动。 */
+.gb-new.is-empty { min-height: 28px; }
+.gb-new__hint {
+  font-size: .72rem;
   color: var(--text-3);
 }
 

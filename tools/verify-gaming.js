@@ -169,6 +169,29 @@ ok(/--h:/.test(newHtmlBlock) && /hueOf\(/.test(newHtmlBlock),
 ok(/onerror="this\.style\.display=\\?'none\\?'"/.test(newHtmlBlock),
    '最近入库的图挂了是 display:none（visibility:hidden 会留空位）');
 
+/* 空态：一条入库记录都没有时，那一行不能凭空消失（会让下方列表跳一下）。
+   渲染端给出"从哪天开始记账"，数据端的 ownedSince 就是那个日期。 */
+ok(/gb-new is-empty/.test(renderSrc) && /还没有新入库/.test(renderSrc),
+   '最近入库有空态（没有记录时也占住那一行）');
+ok(/\.gb-new\.is-empty/.test(gameCssDecl) && /\.gb-new__hint/.test(gameCssDecl),
+   '空态有对应样式（.gb-new.is-empty / .gb-new__hint）');
+
+/* 行数上限：数据端抓 30、渲染端也只画 30。两处任一漏掉，另一端就白做。 */
+const syncSrc = fs.readFileSync(path.join(ROOT, 'scripts/sync-steam.mjs'), 'utf8');
+ok(/const ROWS = 30\b/.test(syncSrc), '同步端只抓 30 行（sync-steam.mjs）');
+ok(/ROW_LIMIT = 30\b/.test(renderSrc) && /slice\(0, ROW_LIMIT\)/.test(renderSrc),
+   '渲染端也只画 30 行（ROW_LIMIT）');
+
+/* 滚动容器与翻页手势的隔离：
+   paged.js 必须在 window 上接管手势前，先问一句"这里有没有能滚的东西"。 */
+const pagedJSSrc = fs.readFileSync(path.join(ROOT, 'assets/js/paged.js'), 'utf8');
+ok(/function scrollOwnerOf/.test(pagedJSSrc), 'paged.js 有可滚动祖先探测');
+ok(/function canScrollBy/.test(pagedJSSrc), 'paged.js 能判断容器还能不能朝手势方向滚');
+ok(/canScrollBy\(scrollOwnerOf\(e\.target\), e\.deltaY\)/.test(pagedJSSrc),
+   '滚轮：起点在可滚动容器里就放行');
+ok(/canScrollBy\(owner, dy\)/.test(pagedJSSrc),
+   '触摸：起点在可滚动容器里就放行');
+
 /* 章节动画 */
 ok(/@keyframes chapter-item/.test(pagedCss), '有章节入场关键帧');
 ok(/\.section\.is-entering > \.container > \*/.test(pagedCss), '入场作用在页面直接子元素');
@@ -467,6 +490,30 @@ async function browserChecks() {
     ok(!boardInfo.hasCopyBtn, tag + '模块里没有"复制 UID"按钮（点卡片即跳转）');
     ok(boardInfo.nested === 0,
        tag + '战绩板内部没有嵌套交互元素（点哪都是同一个跳转）');
+
+    /* 「查看全部」是绝对定位压在列表底部的，所以必须**一行都不许压住**。
+       这里的判据是"完全落在列表可视区内的行，其底边不能越过渐隐顶边"：
+       只压到下一行（被裁掉的那一行）是设计如此，压到完整行就是 bug。
+       曾经写死让 26px 而它实际高 46px，于是每屏都压掉 20px。 */
+    const stripInfo = await page.evaluate(() => {
+      const list = document.getElementById('gbList');
+      const more = document.getElementById('gbMore');
+      const listR = list.getBoundingClientRect();
+      if (more.hidden) return { hidden: true, covered: 0, strip: 0 };
+      const moreR = more.getBoundingClientRect();
+      const fully = [...list.children]
+        .map(el => el.getBoundingClientRect())
+        .filter(b => b.top >= listR.top - 1 && b.bottom <= listR.bottom + 1);
+      const covered = fully.filter(b => b.bottom > moreR.top + 1).length;
+      return { hidden: false, covered, strip: Math.round(moreR.height),
+               maxH: list.style.maxHeight, fullyVisible: fully.length };
+    });
+    ok(stripInfo.hidden || stripInfo.covered === 0,
+       tag + '「查看全部」没有压住任何完整行（压住 ' + stripInfo.covered + ' 行，条高 ' + stripInfo.strip + '）');
+
+    /* 渲染行数上限 30：数据端和渲染端两处都要守，否则一边改另一边就白改 */
+    const rowCount = await page.evaluate(() => document.querySelectorAll('.gb-row').length);
+    ok(rowCount <= 30, tag + '渲染行数不超过 30 条（实际 ' + rowCount + '）');
 
     /* 列表：要么全展开，要么内部可滚 —— 不能"截断了但滚不动" */
     const listInfo = await page.evaluate(() => {

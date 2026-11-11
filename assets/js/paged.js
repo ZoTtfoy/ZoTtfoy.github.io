@@ -544,9 +544,55 @@ window.SITE_PAGED = (function () {
     return true;
   }
 
+  /* ============================================================ 滚动容器放行
+     背景：翻页接管的是**整个窗口**的竖向手势（滚轮 + 触摸）。
+     但页面里存在自己会滚的容器 —— 目前只有 Q3 的战绩列表（.gb-list），
+     它 overflow-y:auto + max-height，行数被截断时靠内部滚动看剩下的。
+
+     不处理会怎样（实测行为）：
+       · 触摸：手指按在列表上往上划 → 我们的 touchmove 判定为竖向 →
+         preventDefault() → 浏览器既没滚列表，也没翻页；
+         手指抬起时 touchend 又把它当翻页 → **整页跳走**。
+         用户想滚列表，结果翻到了下一屏。
+       · 滚轮：wheel 冒泡到 window 后被 preventDefault，
+         列表纹丝不动，页面反而翻页。
+     两件事的根因是同一个：接管得太早，没有问过"这里是不是有东西能滚"。
+
+     修法：手势力图滚动的方向，如果起点的可滚动祖先还能朝那个方向滚，
+     就整段放行（不 preventDefault、不记位移、不翻页），交给浏览器原生滚动。
+     已经滚到底/顶了才轮到翻页 —— 这样"滚列表"和"翻页"不会互相抢。
+
+     ⚠️ 只认 overflow-y 为 auto/scroll 的祖先。overflow:hidden 的容器
+        （比如 .steamwall、封面的裁切框）滚不动，不能算数，
+        否则在背景上滑动会彻底失灵。 */
+  function scrollOwnerOf(node) {
+    for (var el = node; el && el.nodeType === 1 && el !== document.body; el = el.parentElement) {
+      var oy = "";
+      try { oy = getComputedStyle(el).overflowY; } catch (err) { oy = ""; }
+      if (oy !== "auto" && oy !== "scroll" && oy !== "overlay") continue;
+      if (el.scrollHeight > el.clientHeight + 2) return el;
+    }
+    return null;
+  }
+
+  /* 这个容器还能不能朝手势方向滚？
+     dy < 0（手指上移）= 内容往下走 = 还能往下滚；
+     dy > 0 反之。留 2px 容差，避免亚像素误差把边界判反。 */
+  function canScrollBy(el, dy) {
+    if (!el) return false;
+    if (dy < 0) return el.scrollTop + el.clientHeight < el.scrollHeight - 2;
+    if (dy > 0) return el.scrollTop > 2;
+    return false;
+  }
+
   function initWheel() {
     window.addEventListener("wheel", function (e) {
       if (!wheelPagingAllowed(e)) return;
+
+      /* 起点的可滚动祖先还能朝这个方向滚 → 整个事件让给浏览器。
+         这一步必须在 wheelAcc 累加之前 return，否则列表滚到底之后
+         会带着之前攒的量突然翻页。 */
+      if (canScrollBy(scrollOwnerOf(e.target), e.deltaY)) return;
 
       var now = Date.now();
       if (now < wheelLockedUntil) { e.preventDefault(); return; }
@@ -623,6 +669,7 @@ window.SITE_PAGED = (function () {
     var startX = 0, startY = 0;
     var tracking = false;    // 这一轮手势是否归我们管
     var decided = false;     // 是否已判定为竖向手势
+    var owner = null;        // 起点所在的可滚动容器（没有则 null）
 
     window.addEventListener("touchstart", function (e) {
       // 多指：直接放弃这一轮
@@ -632,6 +679,9 @@ window.SITE_PAGED = (function () {
       var t = e.touches[0];
       startX = t.clientX;
       startY = t.clientY;
+      /* 记下起点处能不能滚 —— 每轮手势只查一次 getComputedStyle，
+         不在 touchmove 里查：那里一帧要跑好几遍，查询会变成强制布局。 */
+      owner = scrollOwnerOf(e.target);
       tracking = true;
       decided = false;
     }, { passive: true });
@@ -649,6 +699,10 @@ window.SITE_PAGED = (function () {
         if (Math.abs(dx) < 5 && Math.abs(dy) < 5) return;
         // 横向为主：交回浏览器（不 preventDefault，不翻页）
         if (Math.abs(dx) > Math.abs(dy)) { tracking = false; return; }
+        /* 竖向：起点在可滚动容器里、且它还能朝这个方向滚 → 交回浏览器。
+           这就是"滚列表"和"翻页"的分界：列表没到底就滚列表，
+           到底了再滑才翻页。 */
+        if (canScrollBy(owner, dy)) { tracking = false; return; }
         decided = true;
       }
 

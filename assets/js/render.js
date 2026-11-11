@@ -558,7 +558,20 @@ window.SITE_RENDER = (function () {
      ⚠️ 没有数据时整条不渲染 —— 空标题比没有更难看。 */
   function recentlyAddedHtml(added, since) {
     var list = arr(added).filter(function (g) { return g && g.appid; });
-    if (!list.length) return "";
+
+    /* 空态：一条记录都没有时，早先整块不渲染 —— 那一行就凭空少了 30px，
+       看起来像"这块坏了"。现在补一句实话：从哪天开始记账。
+       Steam 接口没有"购买时间"，记录只能从第一次建立基线那天算起，
+       所以这个日期是准的，不是占位文案。 */
+    if (!list.length) {
+      if (!since) return "";
+      return '<span class="gb-new is-empty">' +
+          '<span class="gb-new__label">最近入库' +
+            '<i>' + esc(String(since).slice(5).replace("-", "/")) + " 起</i>" +
+          "</span>" +
+          '<span class="gb-new__hint">还没有新入库</span>' +
+        "</span>";
+    }
 
     var MAX = 8;
     var head = list.slice(0, MAX).map(function (g) {
@@ -623,6 +636,12 @@ window.SITE_RENDER = (function () {
            "</span>";
   }
 
+  /* 渲染行数的硬上限。数据端（sync-steam.mjs 的 ROWS）也给 30，
+     这里再兜一层：万一 JSON 是旧的 / 手工改大的，DOM 也不会失控。
+     为什么是 30：一屏最多也就 6~7 行，30 行 = 滚动 4~5 屏，
+     再多既没人看，也会让首次渲染变重。 */
+  var ROW_LIMIT = 30;
+
   function renderGameStats(data) {
     var box = $("gameStats");
     if (!box) return 0;
@@ -631,7 +650,8 @@ window.SITE_RENDER = (function () {
     var added = !Array.isArray(data) && data ? data.added : null;
     var since = !Array.isArray(data) && data ? data.ownedSince : "";
     var rows = arr(Array.isArray(data) ? data : (data && data.recent))
-      .filter(function (g) { return g && (g.hours > 0 || (g.ach && g.ach.total > 0)); });
+      .filter(function (g) { return g && (g.hours > 0 || (g.ach && g.ach.total > 0)); })
+      .slice(0, ROW_LIMIT);
 
     if (!rows.length) { box.hidden = true; box.innerHTML = ""; fitBoardList(); return 0; }
 
@@ -657,6 +677,9 @@ window.SITE_RENDER = (function () {
       window.SITE_MOTION.revealScan(box);
     }
     fitBoardList();
+    /* 行是**这一刻**才进 DOM 的，而 fonts.ready 可能在更早就已经 resolve 了 ——
+       所以必须在这里再挂一次：字体真正落地时按新行高再算一遍。 */
+    refitOnFonts();
     return rows.length;
   }
 
@@ -704,10 +727,19 @@ window.SITE_RENDER = (function () {
     var total = list.children.length;
     var visible = Math.max(2, Math.floor(room / rowH));
 
-    /* 要滚的时候，底部那条"查看全部"是压在列表上的 ——
-       得先给它让出高度，否则最后一行的小时数会被渐隐盖住（实测就压住了 132.4h）。 */
+    /* 要滚的时候，底部那条"查看全部"是**压在列表上**的（position:absolute）。
+       所以算行数时必须先把它的真实高度让出来，否则最后一行的名字和小时候
+       会被那条渐隐盖住 —— 早先写死让 26px，而它实际有 46px，于是压了 20px。
+
+       更关键的是 max-height 要多加这 46px：
+         行只占 visible*rowH，剩下的一条缝留给"下一行"露一小截，
+         渐隐正好盖在那一截上 —— 看起来是"下面还有"，而不是"断开"。
+       如果没有这 46px，列表底边就是板子底边，渐隐一定压住最后一行。 */
+    if (more) more.hidden = false;                    /* 先显出来才量得到高度 */
+    var strip = (more && more.offsetHeight) || 46;
+
     if (visible < total) {
-      visible = Math.max(2, Math.floor((room - 26) / rowH));
+      visible = Math.max(2, Math.floor((room - strip) / rowH));
     }
 
     if (visible >= total) {                /* 装得下就全展示，不出滚动条 */
@@ -717,11 +749,55 @@ window.SITE_RENDER = (function () {
       return total;
     }
 
-    list.style.maxHeight = (visible * rowH) + "px";
+    /* 列表是 border-box：max-height 里已经含了 1px 上边框。
+       不把这 1px 加回来，最后一行就正好被边框顶进渐隐里。 */
+    var borderH = list.offsetHeight - list.clientHeight;
+
+    list.style.maxHeight = (visible * rowH + strip + borderH) + "px";
     list.classList.add("is-scroll");
     if (more) more.hidden = false;
+
+    /* 落地之后再用**真实行高**重算一次。
+       上面那个 rowH 是加 max-height 之前量的：字体是分片加载的，
+       MiSans 到位后每一行会高 0.5~1px（实测 63.25 → 64）。
+       这里改的是 rowH 本身，而不是"退一行" —— 退一行会白丢一整行信息，
+       而真正的原因只是高度算小了。 */
+    var realH = list.children[0] ? list.children[0].getBoundingClientRect().height : 0;
+    if (realH > 0 && Math.abs(realH - rowH) > 0.4) {
+      rowH = realH;
+      visible = Math.max(2, Math.floor((room - strip) / rowH));
+      if (visible >= total) {
+        list.style.maxHeight = "";
+        list.classList.remove("is-scroll");
+        if (more) more.hidden = true;
+        return total;
+      }
+      list.style.maxHeight = (visible * rowH + strip + borderH) + "px";
+    }
+
+    /* 最后对一次账。⚠️ 注意方向："查看全部"是 absolute bottom:0 锚在**板子底边**上的，
+       所以把 max-height 调小不会让它离最后一行更远 —— 板子跟着变矮，条也跟着上移。
+       要让它让开，只能把列表**加高**，把条往下推。
+       亚像素舍入（行高 63.5 / 边框 1）常常还差 0.5~2px，在这里补齐。 */
+    var lastFull = list.children[Math.min(visible, list.children.length) - 1];
+    if (lastFull) {
+      var over = lastFull.getBoundingClientRect().bottom - more.getBoundingClientRect().top;
+      if (over > 0.2) {
+        list.style.maxHeight = (visible * rowH + strip + borderH + Math.ceil(over)) + "px";
+      }
+    }
     return visible;
   }
+
+  /* 字体就绪后重算一次（模块加载时先挂一次，覆盖"行还没进 DOM"的情况）。
+     注意：fonts.ready 只 resolve 一次，所以 renderGameStats 里也会在插完行
+     之后再挂一次 —— 那次挂的才是真正生效的。 */
+  function refitOnFonts() {
+    if (document.fonts && document.fonts.ready && document.fonts.ready.then) {
+      document.fonts.ready.then(function () { fitBoardList(); }).catch(function () {});
+    }
+  }
+  refitOnFonts();
 
   /* 窗口变了 / 档位变了都要重算行数 —— 导出给外部调 */
   window.addEventListener("resize", function () {
