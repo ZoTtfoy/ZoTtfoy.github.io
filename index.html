@@ -191,12 +191,15 @@
         <ul id="navList" class="nav__list"></ul>
       </nav>
 
+      <!-- 三个按钮里先写死一份内联图标：render.js 会用主题色重画一遍，
+           但**在 JS 跑起来之前（或图标签名失败时）按钮不能是空的** ——
+           安卓 Edge 上首屏晚 1~2 秒很常见，空白按钮看起来就是"渲染坏了"。 -->
       <div class="header__actions">
         <button class="icon-btn" id="skinBtn" type="button"
-                aria-label="更换风格" title="更换风格" aria-expanded="false" aria-controls="skinPanel"></button>
-        <button class="icon-btn" id="themeToggle" type="button" aria-label="切换深浅" title="切换深浅"></button>
+                aria-label="更换风格" title="更换风格" aria-expanded="false" aria-controls="skinPanel"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18c1.1 0 1.6-.8 1.6-1.7 0-.9-.7-1.5-.7-2.3 0-.8.6-1.4 1.4-1.4H16a5 5 0 0 0 5-5c0-4.2-4-7.6-9-7.6Z"/><circle cx="7.5" cy="11.5" r="1"/><circle cx="11" cy="7.5" r="1"/><circle cx="15.5" cy="9" r="1"/></svg></button>
+        <button class="icon-btn" id="themeToggle" type="button" aria-label="切换深浅" title="切换深浅"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><line x1="12" y1="2" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="2" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="22" y2="12"/><line x1="4.9" y1="4.9" x2="7" y2="7"/><line x1="17" y1="17" x2="19.1" y2="19.1"/><line x1="4.9" y1="19.1" x2="7" y2="17"/><line x1="17" y1="7" x2="19.1" y2="4.9"/></svg></button>
         <button class="icon-btn menu-toggle" id="menuToggle" type="button"
-                aria-label="打开菜单" aria-expanded="false" aria-controls="mobileNav"></button>
+                aria-label="打开菜单" aria-expanded="false" aria-controls="mobileNav"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg></button>
       </div>
     </div>
 

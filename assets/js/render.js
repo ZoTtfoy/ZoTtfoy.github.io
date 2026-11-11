@@ -1031,22 +1031,33 @@ window.SITE_RENDER = (function () {
    *  不是时间上的分帧（分帧会让下面几块晚一帧出现，反而像闪）。
    * ==================================================================== */
   var BLOCKS = [
-    /* layer 0：骨架。顺序必须先排好，后面按 id 取元素才不会错位 */
+    /* ---- layer -1：P0。顶栏三件套先画，且只依赖最少的输入 ----
+       为什么单独一层：头像、导航、右上角三个按钮原来分别在 layer 1 / 3，
+       只要前面任何一块抛错，**整个顶栏就是空的**（K80 + Android Edge 上
+       看到的就是这个）。它们是最该先出现的控件，不能排在内容后面。
+       顺序也有讲究：sections 先跑 —— 它决定导航项和区块顺序，
+       后面的块都按它排好的 DOM 取元素。 */
+    { name: "sections", layer: -1, fn: renderSections, sel: "#siteHeader" },
+    { name: "brand",    layer: -1, fn: renderBrand,    sel: "#siteHeader" },
+    { name: "controls", layer: -1, fn: renderControls, sel: "#siteHeader" },
+    /* layer 0：配色（纯变量，不碰结构） */
     { name: "theme",    layer: 0, fn: applyAccent,    sel: null },
-    { name: "sections", layer: 0, fn: renderSections, sel: null },
-    /* layer 1：文案与身份（首屏可见，最先要有内容） */
+    /* layer 1：首屏文案 */
     { name: "meta",     layer: 1, fn: renderMeta,     sel: null },
-    { name: "brand",    layer: 1, fn: renderBrand,    sel: "#top" },
     { name: "profile",  layer: 1, fn: renderProfile,  sel: "#top" },
     /* layer 2：内容块 */
     { name: "listen",   layer: 2, fn: renderListen,   sel: "#listen" },
     { name: "gaming",   layer: 2, fn: renderGaming,   sel: "#gaming" },
     { name: "repair",   layer: 2, fn: renderRepair,   sel: "#repair" },
-    /* layer 3：导航与控件 */
+    /* layer 3：其余导航与页脚 */
     { name: "links",    layer: 3, fn: renderLinks,    sel: null },
-    { name: "contact",  layer: 3, fn: renderContact,  sel: "#contact" },
-    { name: "controls", layer: 3, fn: renderControls, sel: null }
+    { name: "contact",  layer: 3, fn: renderContact,  sel: "#contact" }
   ];
+
+  /* P0 失败时的补救：下一帧再试一次。
+     为什么值得单独做：这一层是"页面看起来是不是活的"的全部依据，
+     一次偶发的异常（比如图标名读不到）不该让顶栏永远空着。 */
+  var P0_RETRY = ["sections", "brand", "controls"];
 
   var lastReport = {};
 
@@ -1082,6 +1093,15 @@ window.SITE_RENDER = (function () {
     var failed = [];
     for (var i = 0; i < list.length; i++) {
       if (!runBlock(list[i])) failed.push(list[i].name);
+    }
+    /* P0 掉队了就在下一帧补一次（只补 P0，不重跑内容块） */
+    var p0Failed = failed.filter(function (n) { return P0_RETRY.indexOf(n) >= 0; });
+    if (p0Failed.length && !only) {
+      requestAnimationFrame(function () {
+        for (var j = 0; j < BLOCKS.length; j++) {
+          if (p0Failed.indexOf(BLOCKS[j].name) >= 0) runBlock(BLOCKS[j]);
+        }
+      });
     }
     return failed;
   }
