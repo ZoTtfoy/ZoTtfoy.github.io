@@ -501,6 +501,22 @@ check(failures.length === before, '无 IntersectionObserver 时降级正常且�
    这里挑首屏任意一个 [data-reveal] 元素验证降级即可。 */
 check(byId.get('heroName')._classes.has('is-visible'), '降级环境下内容仍然可见');
 
+/* ---------------------------------------------- 渲染分块与调试开关 */
+const renderSrc2 = fs.readFileSync(path.join(ROOT, 'assets/js/render.js'), 'utf8');
+check(/var BLOCKS = \[/.test(renderSrc2), 'render.js 有渲染块清单');
+check(/function runBlock\(/.test(renderSrc2) && /try \{[\s\S]{0,80}b\.fn\(\)/.test(renderSrc2),
+  '每块单独 try/catch（一块坏了不带走整页）');
+check(/data-render/.test(renderSrc2), '每块在容器上留 data-render 标记');
+check(/renderOnly: function/.test(renderSrc2) && /report: function/.test(renderSrc2),
+  '暴露 renderOnly / report 调试接口');
+check(/\?render=|\[\?&\]render=/.test(renderSrc2), '支持 ?render=xxx 单块渲染');
+
+const cfgSrc2 = fs.readFileSync(path.join(ROOT, 'assets/js/config.js'), 'utf8');
+check(/preload: false/.test(cfgSrc2), '预取闸门默认关闭（排查期）');
+const preloadSrc2 = fs.readFileSync(path.join(ROOT, 'assets/js/preload.js'), 'utf8');
+check(/live\.preload === true/.test(preloadSrc2), '闸门读 config 开关');
+check(/preload=\(\[01\]\)/.test(preloadSrc2), '闸门支持 ?preload=1/0 强制开关');
+
 console.log(notes.join('\n'));
 console.log('\n检查项: ' + notes.length + '，失败: ' + failures.length);
 if (failures.length) { console.log('\n失败明细:\n' + failures.join('\n')); process.exit(1); }

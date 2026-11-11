@@ -1013,18 +1013,95 @@ window.SITE_RENDER = (function () {
     if (top && C.ui && C.ui.showBackToTop === false) top.hidden = true;
   }
 
+  /* ======================================================================
+   *  渲染分块：每个 UI 块独立渲染、独立报错、独立可测
+   * ----------------------------------------------------------------------
+   *  为什么拆：
+   *    原来是 9 个 renderXxx() 顺序直调，**任何一个抛错，后面的全部不执行** ——
+   *    表现就是"页面只渲染了上半截"，而且看不出是哪一块坏的。
+   *    这在移动端排查时最要命：你看到一个空面板，但控制台只说某处 undefined。
+   *
+   *  拆完之后有三件事：
+   *    1. 单块失败只影响自己（catch 住，打日志，继续下一块）
+   *    2. 每块在它自己的容器上留标记：data-render="ok" / "error"
+   *       → DevTools 里一眼看出哪块没画出来，不用猜
+   *    3. 支持单独渲染：?render=gaming 只跑那一块，方便隔离问题
+   *
+   *  layer 只是"先骨架、再文案、最后内容与控件"的顺序分组，
+   *  不是时间上的分帧（分帧会让下面几块晚一帧出现，反而像闪）。
+   * ==================================================================== */
+  var BLOCKS = [
+    /* layer 0：骨架。顺序必须先排好，后面按 id 取元素才不会错位 */
+    { name: "theme",    layer: 0, fn: applyAccent,    sel: null },
+    { name: "sections", layer: 0, fn: renderSections, sel: null },
+    /* layer 1：文案与身份（首屏可见，最先要有内容） */
+    { name: "meta",     layer: 1, fn: renderMeta,     sel: null },
+    { name: "brand",    layer: 1, fn: renderBrand,    sel: "#top" },
+    { name: "profile",  layer: 1, fn: renderProfile,  sel: "#top" },
+    /* layer 2：内容块 */
+    { name: "listen",   layer: 2, fn: renderListen,   sel: "#listen" },
+    { name: "gaming",   layer: 2, fn: renderGaming,   sel: "#gaming" },
+    { name: "repair",   layer: 2, fn: renderRepair,   sel: "#repair" },
+    /* layer 3：导航与控件 */
+    { name: "links",    layer: 3, fn: renderLinks,    sel: null },
+    { name: "contact",  layer: 3, fn: renderContact,  sel: "#contact" },
+    { name: "controls", layer: 3, fn: renderControls, sel: null }
+  ];
+
+  var lastReport = {};
+
+  /* 跑一块：单独 try/catch + 打标记。
+     ⚠️ 这里绝不能把异常往上抛 —— 一块坏了不该带走整页。 */
+  function runBlock(b) {
+    var t0 = (window.performance && performance.now) ? performance.now() : 0;
+    var ok = true, msg = "";
+    try {
+      b.fn();
+    } catch (e) {
+      ok = false;
+      msg = (e && e.message) || String(e);
+      if (window.console && console.error) console.error("[render] " + b.name + " 失败：", e);
+    }
+    lastReport[b.name] = { ok: ok, ms: Math.round(((window.performance && performance.now) ? performance.now() : 0) - t0), error: msg };
+
+    var el = b.sel ? document.querySelector(b.sel) : null;
+    if (el) {
+      el.setAttribute("data-render", ok ? "ok" : "error");
+      if (!ok) el.setAttribute("data-render-error", msg.slice(0, 120));
+      else el.removeAttribute("data-render-error");
+    }
+    return ok;
+  }
+
+  /* only：只跑这几块（调试用）。不传就跑全部，按 layer 从低到高。 */
+  function runBlocks(only) {
+    var list = only && only.length
+      ? BLOCKS.filter(function (b) { return only.indexOf(b.name) >= 0; })
+      : BLOCKS.slice();
+    list.sort(function (a, b) { return a.layer - b.layer; });
+    var failed = [];
+    for (var i = 0; i < list.length; i++) {
+      if (!runBlock(list[i])) failed.push(list[i].name);
+    }
+    return failed;
+  }
+
+  /* ?render=gaming,listen 只渲染指定块 —— 排查"是不是这一块画坏的"时用。
+     页面上会少东西，这是预期的（它的用途就是隔离）。 */
+  function pickedFromQuery() {
+    try {
+      var m = /[?&]render=([^&]+)/.exec(location.search);
+      if (!m) return null;
+      return decodeURIComponent(m[1]).split(",").map(function (s) { return s.trim(); }).filter(Boolean);
+    } catch (e) { return null; }
+  }
+
   function init() {
-    applyAccent();
-    renderMeta();
-    renderBrand();
-    renderSections();   // 先排好顺序：后面按 id 取元素才不会错位
-    renderProfile();
-    renderListen();
-    renderGaming();
-    renderRepair();
-    renderLinks();
-    renderContact();
-    renderControls();
+    var only = pickedFromQuery();
+    if (only && only.length) {
+      if (window.console && console.info) console.info("[render] 只渲染：" + only.join(" / "));
+    }
+    runBlocks(only);
   }
 
   return {
@@ -1037,6 +1114,11 @@ window.SITE_RENDER = (function () {
     previewCard: previewCard,  // sync.js 用
     renderGameStats: renderGameStats, // sync.js 用：读 data/steam.json 后画模块
     fitBoardList: fitBoardList, // sync.js / 翻页完成后重算可见行数
-    recentlyAddedHtml: recentlyAddedHtml
+    recentlyAddedHtml: recentlyAddedHtml,
+    /* 调试接口（排查用）：
+       SITE_RENDER.renderOnly('gaming')  只重画某一块
+       SITE_RENDER.report()              每块的成败与耗时 */
+    renderOnly: function (name) { return runBlocks(String(name).split(",")); },
+    report: function () { return lastReport; }
   };
 })();

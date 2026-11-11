@@ -27,7 +27,10 @@ ok(html.includes('assets/css/gaming.css'), 'index.html 引入 gaming.css');
 ok(html.includes('id="gaming"') && html.includes('data-section="gaming"'), '页面含游戏区块');
 ok(html.includes('id="gameRail"'), '页面含游戏卡片容器');
 ok(/renderGaming/.test(renderSrc), 'render.js 有 renderGaming');
-ok(/renderGaming\(\);/.test(renderSrc), 'renderGaming 已在 init 中调用');
+/* 渲染改成块表之后不再有直调语句 —— 断言"已注册进块表且带 fn"，
+   比守一句 `renderGaming();` 更贴近现在的结构，也不怕再改调用方式。 */
+ok(/\{\s*name:\s*"gaming"[^}]*fn:\s*renderGaming/.test(renderSrc),
+   'renderGaming 已注册进渲染块表');
 
 /* ---- 配置结构 ---- */
 const c = { window: null, console };

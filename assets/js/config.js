@@ -409,6 +409,10 @@ window.SITE_CONFIG = {
     },
   live: {
       loading: true,
+      /* 预取闸门（preload.js）：等第一二屏图片解码完才进站。
+         默认关闭 —— 它会让首次进入多等 1~4 秒，正在排查渲染问题时先关掉，
+         需要时把这里改成 true 即可恢复（代码和自检都还在）。 */
+      preload: false,
       clock: true,
       progress: true,
       quote: true,

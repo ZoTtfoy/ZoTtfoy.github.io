@@ -872,7 +872,29 @@ Steam 的 `IPlayerService/GetOwnedGames` 里**没有"购买时间"字段**。
 
 实测：列表内上划 → 列表滚 252px、页码不动；滚到底再上划 → 翻页；空白处上划 → 翻页。
 
+### 渲染分块：每块独立渲染、独立报错、可单块调试
+
+`render.js` 的初始化不是 9 个 `renderXxx()` 直调，而是一张块表
+（`theme / sections / meta / brand / profile / listen / gaming / repair / links / contact / controls`），
+按 layer 从低到高跑（骨架 → 文案 → 内容 → 控件）。
+
+每条都单独 `try/catch`：**一块抛错不再带走整页**，并且会在自己的容器上留
+`data-render="ok|error"`（失败还带 `data-render-error="原因"`）——
+DevTools 里一眼看出是哪块没画出来，不用猜。
+
+排查用的三个入口：
+
+```js
+SITE_RENDER.report()          // 每块的成败与耗时（毫秒）
+SITE_RENDER.renderOnly('gaming')   // 只重画某一块
+// 或者打开页面时：?render=gaming,listen   只渲染这几块
+```
+
 ### 预取闸门：第一二屏缓存完才进站（`assets/js/preload.js`）
+
+> **默认关闭**（`config.js` 的 `live.preload: false`）。它会让首访多等 1~4 秒，
+> 排查渲染问题期间不该再叠这个变量。需要时改成 `true`，或在 URL 上
+> 加 `?preload=1` 临时开启 / `?preload=0` 强制关闭。
 
 站点本来就是「一屏一页」，但第 2 屏的背景是 144 个相册封面、第 3 屏是 48 张游戏封面。
 它们和首屏抢同一条带宽、同一份解码内存 —— 移动端上足以让首屏内容迟迟画不出来。

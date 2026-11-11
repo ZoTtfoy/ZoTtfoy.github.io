@@ -19,7 +19,10 @@ const BLANK = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
   'base64');
 
-const SITE = process.argv[2] || 'http://127.0.0.1:8791/';
+/* ⚠️ 闸门在 config 里默认关闭（排查期），自检用 ?preload=1 强制打开。
+   顺便这也验证了 URL 覆盖这条路是通的。 */
+const BASE = process.argv[2] || 'http://127.0.0.1:8791/';
+const SITE = BASE + (BASE.indexOf('?') < 0 ? '?preload=1' : '&preload=1');
 const notes = [], fails = [];
 const ok = (c, m) => c ? notes.push('OK  ' + m) : fails.push(m);
 

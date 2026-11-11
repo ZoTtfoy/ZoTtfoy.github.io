@@ -257,6 +257,27 @@
 
   /* 先占位声明 gating=true：live.js 的 900ms 兜底会看这个标记，
      避免它抢在预取开始前把 splash 收掉。真正要不要挡由 run() 决定。 */
+  /* 开关放在 config.live.preload。**默认关**：闸门会让首访多等一会儿，
+     排查渲染问题的阶段不该叠加这个变量。关掉时它完全不介入 ——
+     不放行、不预取、不碰 splash，页面行为回到加这个文件之前。 */
+  function enabled() {
+    /* URL 可以强制开关，方便 A/B 与自检：
+         ?preload=1 强制开   ?preload=0 强制关
+       比改 config.js 快，也不影响线上默认值。 */
+    var q = "";
+    try { q = (/[?&]preload=([01])/.exec(location.search) || [])[1] || ""; } catch (e) { q = ""; }
+    if (q === "1") return true;
+    if (q === "0") return false;
+    var live = (window.SITE_CONFIG || {}).live || {};
+    return live.preload === true;
+  }
+
+  if (!enabled()) {
+    /* 不接管 splash：把 gating 置假，live.js 的计时器照旧负责退场 */
+    window.SITE_PRELOAD = { gating: false, disabled: true, version: function () { return ""; } };
+    return;
+  }
+
   window.SITE_PRELOAD = { gating: true, state: state, version: function () { return state.version; } };
 
   /* 老访客（本机已经完整预热过一次）不等 DOM 稳定，立刻放行：
