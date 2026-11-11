@@ -45,10 +45,25 @@ html[data-paged="on"] .site-header {
   right: 0;
 }
 
+
+/* 关掉浏览器的滚动锚定。
+   区块高度随视口变化时，Chrome / Safari 会自作主张改 scrollY 去"保持内容位置"，
+   而我们有一套更准的规则（resize 后钉回当前页）。两套规则同时生效的结果是
+   谁也不服谁：实测 844→900 时浏览器先把页面拉到 720，钉页再拉回 900，
+   中间那 180px 就是"上一屏露出来"的画面。 */
+html[data-paged="on"] {
+  overflow-anchor: none;
+}
+
 html[data-paged="on"] .hero,
 html[data-paged="on"] .section {
+  /* ⚠️ 必须是 dvh，不能是 svh。
+     svh = "地址栏还在时的最小高度"，而地址栏收起后视口会**变高**；
+     区块还停在 svh，下一屏就永远从底部露出一截 —— 用户看到的"前后页面串行"。
+     dvh 跟随当前视口：地址栏收起，区块一起长高，一屏还是一屏。
+     老浏览器不认 dvh，退回 100vh（早期 Chromium 下等价于大视口，至少不会更差）。 */
   min-height: 100vh;
-  min-height: 100svh;
+  min-height: 100dvh;
   display: flex;
   align-items: center;
 

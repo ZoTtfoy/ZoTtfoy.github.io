@@ -698,6 +698,7 @@ window.SITE_RENDER = (function () {
     var sec = $("gaming");
     if (!list || !sec) return 0;
 
+    var board = $("gameBoard");
     var row = list.firstElementChild;
     if (!row) return 0;
     var rowH = row.getBoundingClientRect().height;
@@ -745,15 +746,24 @@ window.SITE_RENDER = (function () {
     if (visible >= total) {                /* 装得下就全展示，不出滚动条 */
       list.style.maxHeight = "";
       list.classList.remove("is-scroll");
+      board.style.paddingBottom = "";
       if (more) more.hidden = true;
       return total;
     }
+
+    /* 给渐隐条**专用的一条底带**，而不是让它压在列表上。
+       早先的做法是"列表多留 46px 去露半行 + 渐隐盖在上面"，
+       宽屏看着没问题，窄屏（320）上那半行的游戏名和时长正好和
+       「查看全部 143 款」挤在同一高度 —— 截图里就是两行字叠在一起。
+       现在：列表就是整整 visible 行，板子底部留 46px 空带，条住在带子里。
+       代价是少一点"下面还有"的渐隐暗示，换来任何宽度下都不打架。 */
+    board.style.paddingBottom = strip + "px";
 
     /* 列表是 border-box：max-height 里已经含了 1px 上边框。
        不把这 1px 加回来，最后一行就正好被边框顶进渐隐里。 */
     var borderH = list.offsetHeight - list.clientHeight;
 
-    list.style.maxHeight = (visible * rowH + strip + borderH) + "px";
+    list.style.maxHeight = (visible * rowH + borderH) + "px";
     list.classList.add("is-scroll");
     if (more) more.hidden = false;
 
@@ -772,7 +782,7 @@ window.SITE_RENDER = (function () {
         if (more) more.hidden = true;
         return total;
       }
-      list.style.maxHeight = (visible * rowH + strip + borderH) + "px";
+      list.style.maxHeight = (visible * rowH + borderH) + "px";
     }
 
     /* 最后对一次账。⚠️ 注意方向："查看全部"是 absolute bottom:0 锚在**板子底边**上的，
@@ -783,7 +793,8 @@ window.SITE_RENDER = (function () {
     if (lastFull) {
       var over = lastFull.getBoundingClientRect().bottom - more.getBoundingClientRect().top;
       if (over > 0.2) {
-        list.style.maxHeight = (visible * rowH + strip + borderH + Math.ceil(over)) + "px";
+        /* 行比预估高一点点：把多出来的高度补给底带，别去挤行 */
+        board.style.paddingBottom = (strip + Math.ceil(over)) + "px";
       }
     }
     return visible;
