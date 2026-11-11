@@ -27,9 +27,6 @@ window.SITE_CONFIG = {
           label: "游戏"
         },
       repair: {
-          /* 2026-11-11 下掉维修这一屏。
-             保留配置与代码（以后想恢复只要把这里改回 true），
-             render.js 会把它从导航里去掉、paged.js 会跳过隐藏的 section。 */
           enabled: false,
           order: 3,
           label: "维修"
@@ -91,7 +88,7 @@ window.SITE_CONFIG = {
   listen: {
       eyebrow: "02 / LISTENING",
       title: "听歌排行",
-      lead: "最近一周循环最多的歌，播放次数与累计听歌由定时任务从网易云抓取。",
+      lead: "看看我这周在听什么吧。",
       neteaseUid: "1695307327",
       dataFile: "data/netease.json",
       limit: 6,
@@ -420,7 +417,7 @@ window.SITE_CONFIG = {
       "细节自由，但边界要清楚。"
     ],
   music: {
-      enabled: true,
+      enabled: false,
       title: "我的歌单",
       artist: "网易云音乐",
       src: "https://music.163.com/#/song?id=733149",
@@ -438,8 +435,8 @@ window.SITE_CONFIG = {
       showPager: true,
       showHint: true,
       lightEffects: true,
-      showSkinPicker: true,
-      showProgress: true,
+      showSkinPicker: false,
+      showProgress: false,
       showBackToTop: true,
       ambientMotion: true,
       showThemeToggle: true
