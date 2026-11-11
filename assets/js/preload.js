@@ -207,6 +207,16 @@
       return;
     }
 
+    /* 一张该等的图都没有 ≠ 缓存完了：多半是封面墙还没建好（它要等 data/*.json）。
+       这时候放行等于闸门失效，所以再等一会儿重试，但不超过总时限。 */
+    if (!crit.length && Date.now() < DEADLINE - 300) {
+      setTimeout(function () {
+        if (read(KEY_V) === state.version && read(KEY_W) === "1") { release(); return; }
+        run();
+      }, 200);
+      return;
+    }
+
     /* 已经超过总时限（比如数据接口很慢）→ 不再设闸门，后台补图 */
     if (Date.now() >= DEADLINE) {
       release();
