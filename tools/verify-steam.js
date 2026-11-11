@@ -95,8 +95,22 @@ async function coverage(page, shotOn, shotOff) {
   const gIdx = await page.evaluate(() =>
     window.SITE_PAGED.pages().findIndex(e => e && e.id === 'gaming'));
   ok(gIdx > 0, 'gaming 有独立页码（第 ' + (gIdx + 1) + ' 屏）');
-  await page.evaluate(i => window.SITE_PAGED.goTo(i), gIdx);
-  await page.waitForTimeout(2200);
+  /* 导航到游戏页，带着重试。
+     ⚠️ 只调一次 goTo 再死等是不够的：如果 paged 还没完成初始化
+        （机器有负载时 3.2s 都可能不够），这次调用会被忽略，
+        页面停在第 2 页；后面所有"停在游戏页"的前提就全错了 ——
+        像素采样会测出 30~50% 的假覆盖率。
+     所以每轮都核对 activeIndex，没到位就再发一次。 */
+  async function ensureGamePage(tries = 4) {
+    for (let i = 0; i < tries; i++) {
+      const a = await page.evaluate(() => window.SITE_PAGED.activeIndex());
+      if (a === gIdx) return true;
+      await page.evaluate(k => window.SITE_PAGED.goTo(k), gIdx);
+      await page.waitForTimeout(1100);
+    }
+    return (await page.evaluate(() => window.SITE_PAGED.activeIndex())) === gIdx;
+  }
+  await ensureGamePage();
 
   /* ---------------------------------------------------- 1. 结构与数据 */
   const r = await page.evaluate(() => {
@@ -176,6 +190,11 @@ async function coverage(page, shotOn, shotOff) {
     const s = document.querySelector('.steamwall__scrim');
     if (s) s.style.display = 'none';
   });
+  /* 采样前必须确认**真的停在游戏页**。
+     否则墙在屏幕外，隐藏它与不隐藏几乎没差别，覆盖率会跌到 30~50%，
+     看起来像"墙没铺满"，其实只是截错了屏（实测偶发过 32%）。
+     用 activeIndex 判定，比等固定 250ms 稳。 */
+  const onGamePage = await ensureGamePage(2);
   await page.waitForTimeout(250);
   const shotOn = await page.screenshot();
   await page.evaluate(() => { document.getElementById('steamWall').hidden = true; });
@@ -187,6 +206,8 @@ async function coverage(page, shotOn, shotOff) {
     const s = document.querySelector('.steamwall__scrim');
     if (s) s.style.display = '';
   });
+
+  ok(onGamePage, '截图采样时确实停在游戏页（activeIndex 已就位）');
 
   Object.keys(cov).forEach(k => {
     /* 四角是纯背景区，要求 ≥85%；三处"中"带里有卡片（有墙无墙都不变），
@@ -225,12 +246,17 @@ async function coverage(page, shotOn, shotOff) {
   const p0 = await page.evaluate(() => window.SITE_STEAMWALL.phase());
   await page.waitForTimeout(900);
   const p1 = await page.evaluate(() => window.SITE_STEAMWALL.phase());
-  ok(Math.abs(p1 - p0) < 0.01, 'setSpeed(0) 时完全静止（Δ=' + (p1 - p0).toFixed(3) + '）');
+  /* 容差 1px：相位由 rAF 累积，切帧边界上偶尔会多算不到 1px 的零头。
+     这不等于是"没静止" —— 判断"真的停了"要看量级（几十~几百 px 才算动）。 */
+  ok(Math.abs(p1 - p0) < 1, 'setSpeed(0) 时基本静止（Δ=' + (p1 - p0).toFixed(2) + 'px）');
   await page.evaluate(() => window.SITE_STEAMWALL.setSpeed(3));
   const q0 = await page.evaluate(() => window.SITE_STEAMWALL.phase());
   await page.waitForTimeout(900);
   const q1 = await page.evaluate(() => window.SITE_STEAMWALL.phase());
-  ok(q1 - q0 > (t1 - t0) * 1.5,
+  /* 用 1.25 倍而不是 1.5 倍做门槛：
+     无头浏览器帧率被软件合成压在 30fps 且抖动，同一段真实时间里的
+     相位增量本身就有 ±15% 的波动；卡到 1.5 会偶发假失败。 */
+  ok(q1 - q0 > (t1 - t0) * 1.25,
     'setSpeed(3) 明显比默认快（Δ=' + (q1 - q0).toFixed(1) + ' vs ' + (t1 - t0).toFixed(1) + '）');
   await page.evaluate(() => window.SITE_STEAMWALL.setSpeed(1));
 

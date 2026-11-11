@@ -31,15 +31,38 @@
         图片四角被裁掉后露出一块方形底色，看着像没裁干净。
    现在：无边框、圆形、透明底，图本身就是唯一的边界。
    object-fit: cover + object-position 让偏上的角色不被裁掉下巴。 */
-.brand__avatar {
-  display: block;
-  width: 34px;
-  height: 34px;
-  border: 0;
+/* 外壳在有图片时变成圆形裁切框。
+   ⚠️ 这一条才是"深色下白边"的真正解药：
+   .brand__mark 的底色是 var(--text)，深色主题下接近纯白。
+   它是字母方块的底，图片头像复用了同一个外壳 —— 于是圆图后面永远垫着
+   一个白色圆角方块，四个角露在外面，看着就是"白边"。
+   之前只改 img 的 border/radius 治不到根上。 */
+.brand__mark.is-photo {
   border-radius: 50%;
   background: transparent;
+  overflow: hidden;
+  /* 裁切交给外壳，img 自己的圆角就没用了 */
+  padding: 0;
+}
+
+.brand__avatar {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
   object-fit: cover;
-  object-position: 50% 42%;
+  object-position: 50% 45%;
+  /* 轻微放大：原图边缘有一圈浅色过渡（角色白衣/浅蓝底），
+     圆形裁切后会在边上留一道亮环，放大 8% 正好把它裁掉。 */
+  transform: scale(1.08);
+}
+/* 没有 .is-photo 外壳（比如未来别处单独用 img）时仍要是个干净的圆 */
+.brand__avatar:not(.brand__mark.is-photo *) {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
 }
 .brand__avatar--sm { width: 26px; height: 26px; }
 

@@ -430,6 +430,15 @@ check(letterHtml.includes('brand__mark') && !letterHtml.includes('<img'), '未�
 setAvatar('https://example.com/a.png');
 try { ctx.SITE_RENDER.init(); } catch (e) { failures.push('设置头像后重渲染失败: ' + e.message); }
 check(H('brandMark').includes('<img class="brand__avatar"'), '设了头像后页头渲染为图片');
+/* ⚠️ 这条守的是"深色下头像白边"那个反复出现的 bug。
+   根因不是 img 的边框/圆角，而是它外面那层 .brand__mark：
+   字母方块的底色是 var(--text)（深色下近白），圆图后面垫着它，
+   四个角就会露出来 —— 只改 img 怎么都治不好。
+   所以有图片时外壳必须挂 is-photo（CSS 里圆形 + 透明 + 裁切）。 */
+/* 读 classList 而不是 className：测试里的元素桩把类存在 _classes 集合里，
+   className 不会同步 —— 拿 className 判断会永远读到空串（假阴性/假阳性都可能）。 */
+check(byId.get('brandMark').classList.contains('is-photo'),
+  '有头像时外壳加 is-photo（否则白色字母块会从圆图四角露出来）');
 check(H('brandMark').includes('https://example.com/a.png'), '头像地址写入正确');
 check(H('footerMark').includes('brand__avatar--sm'), '页脚头像使用小尺寸变体');
 check(byId.get('heroAvatar').hidden === false, '首页头像显示');
@@ -437,7 +446,22 @@ check(H('heroAvatar').includes('<img'), '首页头像渲染为图片');
 setAvatar('');
 try { ctx.SITE_RENDER.init(); } catch (e) { failures.push('清空头像后重渲染失败: ' + e.message); }
 check(!H('brandMark').includes('<img'), '清空头像后回到字母方块');
+check(!byId.get('brandMark').classList.contains('is-photo'),
+  '清空头像后外壳撤掉 is-photo（字母块仍是圆角方块）');
 check(byId.get('heroAvatar').hidden === true, '清空头像后首页头像隐藏');
+
+/* 外壳的圆形裁切必须在 CSS 里真的写了 —— 只靠 JS 加类是不够的。
+   用 indexOf 而不是正则：这些 CSS 声明里全是 : { }，正则里要转义的
+   东西太多，写起来容易错，读起来也不如直接找字符串清楚。 */
+{
+  const compCss = fs.readFileSync(path.join(ROOT, 'assets/css/components.css'), 'utf8');
+  const at = compCss.indexOf('.brand__mark.is-photo');
+  const rule = at >= 0 ? compCss.slice(at, compCss.indexOf('}', at)) : '';
+  check(rule.indexOf('border-radius: 50%') >= 0, '.brand__mark.is-photo 是圆形裁切');
+  check(rule.indexOf('background: transparent') >= 0,
+    '.brand__mark.is-photo 底色透明（不露白色字母块）');
+  check(rule.indexOf('overflow: hidden') >= 0, '.brand__mark.is-photo 负责裁切图片');
+}
 
 /* ---------- 主题 ---------- */
 check(Array.isArray(ctx.SITE_THEMES && ctx.SITE_THEMES.list), 'themes.js 已加载');

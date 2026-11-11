@@ -17,6 +17,20 @@
  * ========================================================================== */
 const { chromium } = require('playwright-core');
 
+/* 屏蔽外部图片（CDN 封面）→ 统一回 1x1 透明 PNG。
+   本站一屏要拉上百张封面，`networkidle` 永远等不到，goto 会 30s 超时；
+   这些脚本不看封面图（由 verify-steam / verify-albumwall 专门验）。
+   用 fulfill 而不是 abort：abort 会在控制台留 ERR_FAILED，带红断言。 */
+const BLANK_PNG = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+  'base64');
+async function blockExternalImages(ctx) {
+  await ctx.route(/^https?:\/\/(?!127\.0\.0\.1|localhost)/, (route) =>
+    route.request().resourceType() === 'image'
+      ? route.fulfill({ status: 200, contentType: 'image/png', body: BLANK_PNG })
+      : route.continue());
+}
+
 const SITE = 'http://127.0.0.1:8791/';
 const notes = [], fails = [];
 const ok = (c, m) => c ? notes.push('OK  ' + m) : fails.push(m);
@@ -27,7 +41,8 @@ async function testMouse(browser) {
   const p = await ctx.newPage();
   const errs = [];
   p.on('pageerror', e => errs.push(e.message));
-  await p.goto(SITE, { waitUntil: 'networkidle' });
+  await blockExternalImages(p.context());
+await p.goto(SITE, { waitUntil: 'load' });
   await p.waitForTimeout(1400);
 
   const tag = '[桌面] ';
@@ -154,7 +169,8 @@ async function testTouch(browser) {
   const p = await ctx.newPage();
   const errs = [];
   p.on('pageerror', e => errs.push(e.message));
-  await p.goto(SITE, { waitUntil: 'networkidle' });
+  await blockExternalImages(p.context());
+await p.goto(SITE, { waitUntil: 'load' });
   await p.waitForTimeout(1500);
   const cdp = await ctx.newCDPSession(p);
   const tag = '[触屏] ';
@@ -318,7 +334,8 @@ async function testFallback(browser) {
   { // 减少动效
     const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, reducedMotion: 'reduce' });
     const p = await ctx.newPage();
-    await p.goto(SITE, { waitUntil: 'networkidle' });
+    await blockExternalImages(p.context());
+await p.goto(SITE, { waitUntil: 'load' });
     await p.waitForTimeout(1000);
     await p.mouse.move(500, 400);
     await p.mouse.down();
@@ -337,7 +354,8 @@ async function testFallback(browser) {
   { // 关闭光效开关
     const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
     const p = await ctx.newPage();
-    await p.goto(SITE, { waitUntil: 'networkidle' });
+    await blockExternalImages(p.context());
+await p.goto(SITE, { waitUntil: 'load' });
     await p.evaluate(() => { window.SITE_CONFIG.ui.lightEffects = false; window.SITE_EFFECTS.init(); });
     await p.waitForTimeout(300);
     await p.mouse.move(500, 400);

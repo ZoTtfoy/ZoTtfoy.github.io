@@ -418,6 +418,11 @@ window.SITE_PAGED = (function () {
       top = pages[i].getBoundingClientRect().top + (window.scrollY || window.pageYOffset || 0);
     }
     markProgrammatic(520);
+    /* 登记目的地：距离越远，允许的赶路时间越长（上限 2.4s）。
+       到点或超时后自动解除，不会永久压住吸附。 */
+    pendingTop = Math.max(0, top);
+    pendingUntil = (typeof performance !== "undefined" ? performance.now() : Date.now()) +
+      Math.min(2400, 600 + Math.abs(pendingTop - (window.scrollY || 0)) * 0.6);
     /* 入场动画赶在 scrollTo 之前开跑：此时目标页还在屏幕外，
        藏起来没人看得见，滑进来的过程正好淡入（见 enterOnNavigate 的注释）。 */
     enterOnNavigate(i);
@@ -464,6 +469,16 @@ window.SITE_PAGED = (function () {
   var wheelResetTimer = null;
   var programmatic = false;     // JS 正在滚动（到点前不做归位）
   var progTimer = null;
+  /* 「正在赶往某一页」的目标。
+     ⚠️ 只靠 programmatic 那个定时窗口是不够的：
+        它按固定 520ms 计时，而平滑滚动 1800px 在这台机器上要 ~950ms。
+        一旦滚动过程中掉帧出现 >150ms 的事件空档（SETTLE_DELAY），
+        programmatic 已经过期，snapToNearest 就会把页面往"当前最近的页边界"
+        拽 —— 通常正好是出发的那一页。表现就是：
+        点第 3 页的页码，页面滑到一半自己弹回第 2 页（实测 1798 → 900）。
+        所以再加一个"目的地"，在路上就绝不归位。 */
+  var pendingTop = null;
+  var pendingUntil = 0;
   /* ⚠️ 这里必须用独立的变量名。
      早先复用了 settleTimer（章节入场动画也在用它），
      结果 updateActive → setActive → scheduleSettle 每次都把归位定时器 clear 掉，
@@ -480,6 +495,19 @@ window.SITE_PAGED = (function () {
   /* 落到最近的页边界。仅在用户自由滚动（拖滚动条 / 触摸）后调用 */
   function snapToNearest() {
     if (!enabled || programmatic) return;
+
+    /* 还在赶路：等它到点再说。
+       判定"到点"用 2px 容差；超时（pendingUntil）则视为被打断，解除保护。 */
+    if (pendingTop !== null) {
+      var yNow = window.scrollY || window.pageYOffset || 0;
+      var tNow = (typeof performance !== "undefined" ? performance.now() : Date.now());
+      if (Math.abs(yNow - pendingTop) <= 2 || tNow > pendingUntil) {
+        pendingTop = null;
+      } else {
+        return;
+      }
+    }
+
     if (document.documentElement.dataset.snap !== "mandatory") return;  // 有高个页时不强制
     if (!pageTops.length) measureTops();
     var y = window.scrollY || window.pageYOffset || 0;
@@ -523,6 +551,9 @@ window.SITE_PAGED = (function () {
       var now = Date.now();
       if (now < wheelLockedUntil) { e.preventDefault(); return; }
 
+      /* 用户自己动了滚轮 = 放弃程序跳转，把目的地清掉，
+         否则接下来两秒内的吸附都会被误判成"还在赶路"。 */
+      pendingTop = null;
       wheelAcc += e.deltaY;
       clearTimeout(wheelResetTimer);
       wheelResetTimer = setTimeout(function () { wheelAcc = 0; }, 140);
@@ -597,6 +628,7 @@ window.SITE_PAGED = (function () {
       // 多指：直接放弃这一轮
       if (e.touches.length !== 1) { tracking = false; return; }
       if (!swipeAllowed()) { tracking = false; return; }
+      pendingTop = null;         /* 手指按下 = 用户接管，取消程序跳转 */
       var t = e.touches[0];
       startX = t.clientX;
       startY = t.clientY;

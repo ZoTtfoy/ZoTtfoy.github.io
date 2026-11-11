@@ -26,6 +26,19 @@ try {
   process.exit(0);
 }
 
+/* 屏蔽外部图片（CDN 封面）→ 统一回 1x1 透明 PNG。
+   本站一屏要拉上百张封面，`networkidle` 永远等不到，goto 会 30s 超时；
+   这个脚本看的是排版与对比度，不看封面图。 */
+const BLANK_PNG = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+  'base64');
+async function blockExternalImages(ctx) {
+  await ctx.route(/^https?:\/\/(?!127\.0\.0\.1|localhost)/, (route) =>
+    route.request().resourceType() === 'image'
+      ? route.fulfill({ status: 200, contentType: 'image/png', body: BLANK_PNG })
+      : route.continue());
+}
+
 /* 几何与视觉校验：不靠肉眼，直接量元素位置、裁切、重叠与对比度 */
 
 const URL = 'http://127.0.0.1:8791/';
@@ -66,7 +79,8 @@ function contrast(a, b) {
     page.on('pageerror', e => errors.push(e.message));
     page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
 
-    await page.goto(URL, { waitUntil: 'networkidle' });
+    await blockExternalImages(ctx);
+await page.goto(URL, { waitUntil: 'load' });
     await page.waitForTimeout(700);
 
     const tag = '[' + vp.name + '] ';
@@ -319,7 +333,8 @@ function contrast(a, b) {
       reducedMotion: 'reduce'
     });
     const page = await ctx.newPage();
-    await page.goto(URL, { waitUntil: 'networkidle' });
+    await blockExternalImages(ctx);
+await page.goto(URL, { waitUntil: 'load' });
     await page.waitForTimeout(400);
     const r = await page.evaluate(() => ({
       snap: getComputedStyle(document.documentElement).scrollSnapType,
@@ -338,7 +353,8 @@ function contrast(a, b) {
     await page.addInitScript(() => {
       window.__forcePagedOff = true;
     });
-    await page.goto(URL, { waitUntil: 'networkidle' });
+    await blockExternalImages(ctx);
+await page.goto(URL, { waitUntil: 'load' });
     await page.evaluate(() => {
       window.SITE_CONFIG.ui.paged = false;
       document.documentElement.dataset.paged = 'off';

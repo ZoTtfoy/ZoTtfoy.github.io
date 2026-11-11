@@ -715,7 +715,7 @@ Apex / DJMAX / Phigros / 中二节奏 四张卡合进一张 Steam 卡 ——
 
 | 字段 | 说明 |
 | --- | --- |
-| `icon` | 内置图标名：`tower` / `crosshair` / `steam` / `target` / `note` / `disc` / `music` / `gamepad` |
+| `icon` | 内置图标名。三张卡用的是**作品/平台官方标识**：`steam` / `rhodes` / `valorant`（另有仓库里其他牌子的 `tower` / `crosshair` / `target` / `note` / `disc` / `music` / `gamepad` 备用） |
 | `iconImage` | **自定义图标图片地址**，填了就用图片，忽略 `icon` |
 | `name` | 游戏名 |
 | `uidLabel` | ID 的标签，如「博士 ID」「Riot ID」「好友码」 |
@@ -1142,12 +1142,35 @@ node scripts/sync-steam.mjs        # 需 playwright-core + 本地 chromium
 | 值 | 效果 |
 | --- | --- |
 | `""`（默认） | 用字母方块（`site.initials`），页头、页脚显示 |
-| 图片网址 | 页头 34px 圆角方块、页脚 26px、首页顶部 64–84px 圆形 |
+| 图片网址 | 页头 / 页脚 圆形（34 / 26px）、首页顶部 64–84px 圆形 |
 | 内嵌图片（data URL） | 同上，图片直接存进 `config.js`，不依赖外部图床 |
 
 **推荐用编辑器上传**（基础 → 头像 → 选择图片）：会自动居中裁成正方形、缩到 256×256、压成 WebP（不支持则 JPEG），通常只有 20–40 KB。也支持直接填网址。
 
 > 只有配置了图片，首页顶部才会出现头像；否则保持原来的极简版式，避免和页头的字母块重复。
+
+### 深色主题下"头像有白边"的真正原因
+
+这个 bug 修过两轮都没根治，因为前两次都在改 `<img>` 自己（去掉 border、
+换成 `border-radius: 50%`）。真正的病灶在**外面那层壳**：
+
+```html
+<span class="brand__mark" id="brandMark">
+  <img class="brand__avatar" src="...">
+</span>
+```
+
+`#brandMark` / `#footerMark` 本身就是 `.brand__mark` —— 字母方块的容器，
+样式是 `border-radius: 10px` + `background: var(--text)`。
+深色主题下 `--text` 接近纯白，于是**圆头像后面永远垫着一个白色圆角方块**，
+四个角从圆边露出来。img 再怎么设圆角都盖不住它。
+
+修法：`render.js` 在有图片时给外壳加 `.is-photo`，CSS 里把它变成
+圆形 + 透明底 + `overflow: hidden`，由外壳负责裁切；img 铺满 100%
+再 `scale(1.08)`，顺带把原图边缘的浅色过渡也裁掉。
+
+`verify.js` 里有 5 条断言钉住这件事（外壳加类 / 撤类 / 圆形 / 透明 / 裁切），
+避免以后又只改 img。
 
 ---
 

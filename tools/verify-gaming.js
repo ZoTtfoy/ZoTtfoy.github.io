@@ -33,9 +33,12 @@ ok(/renderGaming\(\);/.test(renderSrc), 'renderGaming 已在 init 中调用');
 const c = { window: null, console };
 c.window = c;
 vm.createContext(c);
+const iconsSrc = fs.readFileSync(path.join(ROOT, 'assets/js/icons.js'), 'utf8');
 vm.runInContext(cfgSrc, c);
 const C = c.SITE_CONFIG;
 const games = C.gaming && C.gaming.items;
+/* 图标库也载进同一个上下文，后面要查路径 */
+vm.runInContext(iconsSrc, c);
 
 ok(Array.isArray(games), 'config 含 gaming.items');
 /* 数量不写死：卡片会随业务调整（2026-11-11 从 6 收到 3 ——
@@ -70,6 +73,25 @@ games.forEach(g => {
 });
 ok(!games.some(g => /Apex|DJMAX|Phigros|中二节奏/.test(g.name)),
   '后四个平台已合并进 Steam 卡（不再单列）');
+
+/* 顺序（2026-11-11 用户明确要求）：Steam 在最前，然后明日方舟、无畏契约。
+   顺序写进断言是因为它属于"用户点的菜"，不是随手排的 —— 改回去要有人提醒。 */
+ok(games.map(g => g.name).join(',') === 'Steam,明日方舟,无畏契约',
+  '卡片顺序：Steam → 明日方舟 → 无畏契约（实际 ' + games.map(g => g.name).join(' → ') + '）');
+
+/* 图标必须是作品官方的标识，而不是通用线性图标。
+   steam/valorant 来自 Simple Icons（CC0）；rhodes 是方舟印章里的「车」徽记。
+   断言到"路径存在且有实心填充"，防止有人图省事换回 tower/crosshair。 */
+[['Steam', 'steam'], ['明日方舟', 'rhodes'], ['无畏契约', 'valorant']].forEach(([name, icon]) => {
+  const g = games.find(x => x.name === name);
+  ok(g && g.icon === icon, name + ' 用官方标识图标（' + (g && g.icon) + '）');
+  /* 图标库跑在同一个 vm 上下文里（c.window = c），不能用宿主 window */
+  const iconLib = c.SITE_ICONS || {};
+  const path = iconLib[icon];
+  ok(typeof path === 'string' && path.indexOf('<path') === 0 &&
+     /fill="currentColor"/.test(path) && /stroke="none"/.test(path),
+    name + ' 的图标是实心路径（不用描边，小尺寸下才不会糊）');
+});
 /* Steam 卡必须带档案地址，否则"公开库存"这句话是死的 */
 const steamCard = games.find(g => g.name === 'Steam');
 ok(steamCard && steamCard.steam && String(steamCard.steam.profileUrl || '').startsWith('https://steamcommunity.com/profiles/') && (steamCard.steam.steamId || '').length === 17,
@@ -271,8 +293,26 @@ async function browserChecks() {
     page.on('pageerror', e => errs.push(e.message));
     page.on('console', m => { if (m.type() === 'error') errs.push(m.text()); });
 
-    await page.goto(URL, { waitUntil: 'networkidle' });
-    await page.waitForTimeout(1400);
+    /* ⚠️ 屏蔽外部图片（CDN 封面）。
+       这一版起，游戏屏要拉 48 张 Steam 竖版封面、在听屏要拉 72 张专辑封面，
+       合计上百个外部请求。`waitUntil:'networkidle'` 要求"500ms 内没有新请求"，
+       慢网下永远等不到，goto 直接 30s 超时 —— 表现为"偶发崩溃"，
+       排查很久才发现跟代码无关。
+       这个脚本不看封面图（图由 verify-steam / verify-albumwall 专门验），
+       屏蔽掉既快又稳。注意顺序：先注册拦截，再注册一言的 mock，
+       因为 Playwright 的路由是**后注册优先**。 */
+    /* 用 1×1 透明 PNG **代替**（不是 abort）：abort 会在控制台留下
+       "Failed to load resource: net::ERR_FAILED"，而本脚本有一条
+       "没有控制台错误"的断言，会被这些无关噪声带红。 */
+    const BLANK = Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+      'base64');
+    await page.route(/^https?:\/\/(?!127\.0\.0\.1|localhost)/, (route) => {
+      if (route.request().resourceType() !== 'image') return route.continue();
+      return route.fulfill({ status: 200, contentType: 'image/png', body: BLANK });
+    });
+    await page.goto(URL, { waitUntil: 'load' });
+    await page.waitForTimeout(1600);
     const tag = '[' + vp.n + '] ';
 
     /* 一屏约束 */
@@ -321,10 +361,28 @@ async function browserChecks() {
       const pages = [...document.querySelectorAll('.hero, .section')].filter(el => !el.hidden);
       return pages.findIndex(p => p.id === 'gaming');
     });
-    await page.evaluate(i => {
-      document.querySelectorAll('.pager__dot')[i].click();
-    }, gameIdx);
-    await page.waitForTimeout(1500);
+    /* 点页码跳游戏页：点 → 核对"页码是它 且 真的停在它的顶部" → 不对就重点。
+       为什么需要重试：
+         平滑滚动 + 吸附在这一屏上要 1s 以上（桌面 1800px），
+         期间任何一次重排（字体缩放、density 调档、同步回来的曲目数变化）
+         都会让 goTo 的目标位置失效。这类"点了没到位"是**环境时序**，
+         不是页码点坏了 —— 死等一个固定时间会把它报成功能缺陷。 */
+    const gotoGamePage = async (tries = 3) => {
+      for (let t = 1; t <= tries; t++) {
+        await page.evaluate(i => {
+          document.querySelectorAll('.pager__dot')[i].click();
+        }, gameIdx);
+        const landed = await page.waitForFunction(i => {
+          const els = [...document.querySelectorAll('.hero, .section')].filter(e => !e.hidden);
+          if (!els[i]) return false;
+          const top = els[i].getBoundingClientRect().top + (window.scrollY || 0);
+          return window.SITE_PAGED.activeIndex() === i && Math.abs((window.scrollY || 0) - top) < 4;
+        }, gameIdx, { timeout: 2600 }).then(() => true).catch(() => false);
+        if (landed) return t;
+      }
+      return 0;
+    };
+    const tries = await gotoGamePage();
 
     const onGame = await page.evaluate(() => {
       const dots = [...document.querySelectorAll('.pager__dot')];
@@ -332,7 +390,8 @@ async function browserChecks() {
       const pages = [...document.querySelectorAll('.hero, .section')].filter(el => !el.hidden);
       return { i, id: pages[i] && pages[i].id, label: dots[i] && dots[i].getAttribute('aria-label') };
     });
-    ok(onGame.id === 'gaming', tag + '点对应页码能到游戏页（' + onGame.id + '）');
+    ok(tries > 0 && onGame.id === 'gaming',
+      tag + '点对应页码能到游戏页（' + onGame.id + '，第 ' + tries + ' 次尝试到位）');
     /* 标签来自 sections.gaming.label（「游戏」）或页面标题。标题现在是英文
        "MY GAME'S"，所以两个都接受 —— 断言的是"标签指向游戏这一屏"，
        不是"标题必须是中文"。 */
@@ -359,6 +418,11 @@ async function browserChecks() {
     });
     ok(noHScroll.sw <= noHScroll.cw + 2,
        tag + '网格内容不超出宽度（' + noHScroll.sw + ' vs ' + noHScroll.cw + '）');
+    /* 先等页码落定再取基准。
+       上一步刚点过页码跳转，is-current 是在滚动过程中逐帧更新的；
+       立刻读可能还停在中途那一页（实测读到 1，而最终是 2），
+       于是"滚动网格没有改页码"这条会假失败。 */
+    await page.waitForTimeout(700);
     const beforeIdx = await page.evaluate(() =>
       [...document.querySelectorAll('.pager__dot')].findIndex(d => d.classList.contains('is-current')));
     const railMoved = await page.evaluate(() => {
@@ -423,7 +487,7 @@ async function browserChecks() {
   {
     const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, reducedMotion: 'reduce' });
     const page = await ctx.newPage();
-    await page.goto(URL, { waitUntil: 'networkidle' });
+    await page.goto(URL, { waitUntil: 'load' });
     await page.waitForTimeout(1200);
     const r = await page.evaluate(() => {
       const h = document.getElementById('pageHint');
@@ -442,7 +506,7 @@ async function browserChecks() {
   {
     const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
     const page = await ctx.newPage();
-    await page.goto(URL, { waitUntil: 'networkidle' });
+    await page.goto(URL, { waitUntil: 'load' });
     await page.waitForTimeout(900);
     ok(await page.evaluate(() => document.getElementById('pageHint').classList.contains('is-shown')),
        '[提示] 首次进入显示翻页提示');
@@ -450,7 +514,7 @@ async function browserChecks() {
     await page.waitForTimeout(700);
     ok(await page.evaluate(() => !document.getElementById('pageHint').classList.contains('is-shown')),
        '[提示] 滚动后自动收起');
-    await page.reload({ waitUntil: 'networkidle' });
+    await page.reload({ waitUntil: 'load' });
     await page.waitForTimeout(900);
     ok(await page.evaluate(() => !document.getElementById('pageHint').classList.contains('is-shown')),
        '[提示] 同会话不再重复出现');
@@ -471,7 +535,7 @@ async function browserChecks() {
 
     const ctx = await browser.newContext({ viewport: { width: 1280, height: 1000 } });
     const page = await ctx.newPage();
-    await page.goto(URL.replace(/\/$/, '') + '/admin.html', { waitUntil: 'networkidle' });
+    await page.goto(URL.replace(/\/$/, '') + '/admin.html', { waitUntil: 'load' });
     await page.fill('#gateUser', user);
     await page.fill('#gatePass', pass);
     await page.click('.gate__btn');

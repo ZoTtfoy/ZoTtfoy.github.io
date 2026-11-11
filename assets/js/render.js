@@ -75,12 +75,28 @@ window.SITE_RENDER = (function () {
     return '<span class="brand__mark' + (size ? " brand__mark--sm" : "") + '">' + letter + '</span>';
   }
 
+  /* 头像位是「字母块」还是「图片」要用不同外壳样式，必须让 CSS 知道。
+     ⚠️ 这就是"深色下头像还有白边"的真正原因：
+        #brandMark / #footerMark 本身是 .brand__mark —— 一个
+        `border-radius: 10px` + `background: var(--text)` 的字母方块。
+        深色主题下 --text 接近纯白，于是图片后面永远垫着一个**白色圆角方块**，
+        图片再怎么 border-radius:50%，方角都会从四个角露出来。
+        之前两轮只改 img 的边框和圆角，当然没用。
+     解法：有图片时给外壳加 .is-photo —— 圆形、透明、overflow:hidden，
+        由外壳负责裁切，img 铺满并轻微放大，把图片自带的浅色边缘也裁掉。 */
+  function paintMark(id, size) {
+    var el = $(id);
+    if (!el) return;
+    el.innerHTML = markHtml(size);
+    el.classList.toggle("is-photo", !!avatarUrl());
+  }
+
   function renderAvatar() {
     var s = C.site || {};
     var url = avatarUrl();
 
-    set("brandMark", markHtml(false));
-    set("footerMark", markHtml(true));
+    paintMark("brandMark", false);
+    paintMark("footerMark", true);
 
     // 首屏大头像：只有配置了图片才显示，否则靠名字本身撑起识别度
     var box = $("heroAvatar");

@@ -117,23 +117,12 @@ window.SITE_CONFIG = {
       eyebrow: "03 / GAMES",
       title: "MY GAME'S",
       lead: "想一起玩的话，ID 都在这里，点一下就能复制。",
+      /* 顺序按用户要求：Steam 在最前，然后明日方舟、无畏契约。
+         图标全部换成作品/平台的官方标识（见 icons.js 顶部注释）：
+           steam    → 官方 Steam 徽标
+           rhodes   → 罗德岛的「车」徽记（方舟印章的核心装置）
+           valorant → 官方 V 形简化标 */
       items: [
-          {
-              icon: "tower",
-              name: "明日方舟",
-              uidLabel: "博士 ID",
-              uid: "Zotrod#0001",
-              server: "官服",
-              color: "#4a90d9"
-            },
-          {
-              icon: "crosshair",
-              name: "无畏契约",
-              uidLabel: "Riot ID",
-              uid: "Zotrod#0806",
-              server: "亚服",
-              color: "#ff4655"
-            },
           {
               icon: "steam",
               name: "Steam",
@@ -161,6 +150,22 @@ window.SITE_CONFIG = {
                       413150
                     ]
                 }
+            },
+          {
+              icon: "rhodes",
+              name: "明日方舟",
+              uidLabel: "博士 ID",
+              uid: "Zotrod#0001",
+              server: "官服",
+              color: "#4a90d9"
+            },
+          {
+              icon: "valorant",
+              name: "无畏契约",
+              uidLabel: "Riot ID",
+              uid: "Zotrod#0806",
+              server: "亚服",
+              color: "#ff4655"
             }
         ]
     },

@@ -158,13 +158,15 @@ const OG_W = 1200, OG_H = 630;
   }));
   ok(/skip-link/.test(f1.cls), '第一次 Tab 落在 skip-link（' + f1.tag + '.' + f1.cls + '）');
 
-  /* 滑入是 transform 过渡（--t-fast = 220ms），等它走完再量 ——
-     否则量到的是动画中途的位置，会误判成"没滑出来"。 */
-  await page.waitForTimeout(320);
-  const afterFocus = await page.locator('.skip-link').evaluate(el => {
-    return Math.round(el.getBoundingClientRect().top);
-  });
-  ok(afterFocus >= 0, '聚焦后 skip-link 滑入视口（可见）');
+  /* 滑入是 transform 过渡（--t-fast = 220ms）。
+     ⚠️ 别用"等 320ms 再量"：机器有负载时过渡可能还没走完，
+     量到中途的负值就报"没滑出来"，而动画其实正常。
+     改成等条件成立（top >= 0），并给 2.5s 上限。 */
+  const slid = await page.waitForFunction(() => {
+    const el = document.querySelector('.skip-link');
+    return !!el && Math.round(el.getBoundingClientRect().top) >= 0;
+  }, null, { timeout: 2500 }).then(() => true).catch(() => false);
+  ok(slid, '聚焦后 skip-link 滑入视口（可见）');
 
   await page.keyboard.press('Enter');
   await page.waitForTimeout(900);
