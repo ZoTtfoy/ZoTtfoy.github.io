@@ -1077,15 +1077,27 @@ window.SITE_RENDER = (function () {
 
     var el = b.sel ? document.querySelector(b.sel) : null;
     if (el) {
-      el.setAttribute("data-render", ok ? "ok" : "error");
-      if (!ok) el.setAttribute("data-render-error", msg.slice(0, 120));
-      else el.removeAttribute("data-render-error");
+      /* ⚠️ 同一个容器可能被多块写（顶栏就是 sections/brand/controls 三块）——
+         直接赋值会让后写的覆盖前面的：sections 挂了、controls 成功，
+         标记就变成 ok，排查时被它骗。所以按块累计，任一失败即为 error。 */
+      if (!el._renderBlocks) el._renderBlocks = [];
+      el._renderBlocks.push(b.name + (ok ? ":ok" : ":error"));
+      var anyBad = el._renderBlocks.some(function (x) { return x.slice(-6) === ":error"; });
+      el.setAttribute("data-render", anyBad ? "error" : "ok");
+      el.setAttribute("data-render-blocks", el._renderBlocks.join(" "));
+      if (anyBad) el.setAttribute("data-render-error", b.name + ": " + msg.slice(0, 110));
     }
     return ok;
   }
 
   /* only：只跑这几块（调试用）。不传就跑全部，按 layer 从低到高。 */
   function runBlocks(only) {
+    /* 重跑前清掉旧记录：否则一次偶发失败会让标记永久停在 error */
+    [].forEach.call(document.querySelectorAll("[data-render]"), function (el) {
+      el._renderBlocks = null;
+      el.removeAttribute("data-render-blocks");
+      el.removeAttribute("data-render-error");
+    });
     var list = only && only.length
       ? BLOCKS.filter(function (b) { return only.indexOf(b.name) >= 0; })
       : BLOCKS.slice();
