@@ -563,10 +563,14 @@ window.SITE_RENDER = (function () {
     var MAX = 8;
     var head = list.slice(0, MAX).map(function (g) {
       var url = "https://cdn.akamai.steamstatic.com/steam/apps/" + g.appid + "/header.jpg";
-      return '<span class="gb-new__item" title="' + esc(g.name || "") +
+      /* --h 是这块的兜底色相：新入库的游戏最容易没有 header.jpg，
+         图挂了就藏起 img，露出 .gb-new__item 自己的色相渐变，
+         而不是留一个空洞（列表行的 is-blank 是同一套思路）。 */
+      return '<span class="gb-new__item" style="--h:' + hueOf(g.appid) + '"' +
+               ' title="' + esc(g.name || "") +
                (g.at ? "（" + esc(g.at) + " 入库）" : "") + '">' +
                '<img src="' + esc(url) + '" alt="" loading="lazy" decoding="async"' +
-               ' onerror="this.style.visibility=\'hidden\'">' +
+               ' onerror="this.style.display=\'none\'">' +
              "</span>";
     }).join("");
 

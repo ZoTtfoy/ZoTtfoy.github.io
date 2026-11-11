@@ -157,6 +157,18 @@ ok(/\.gb-head__icon\s*\{[\s\S]{0,240}color:\s*var\(--game/.test(gameCssDecl),
 ok(!/\.gb-head__id\s*\{[\s\S]{0,300}cursor:\s*pointer/.test(gameCssDecl),
    '好友码只是文字（不是可点按钮）');
 
+/* 「最近入库」的封面兜底：新入库的游戏最容易没有 header.jpg（预购 / 锁区 / 刚上架），
+   图挂了必须露一块有色相的空位，而不是一个透明洞。
+   两个条件缺一不可 —— 藏图（display:none）+ 容器自己有渐变底。 */
+const newItemBlock = (gameCssDecl.match(/\.gb-new__item\s*\{[\s\S]*?\}/) || [''])[0];
+ok(/linear-gradient/.test(newItemBlock) && /var\(--h/.test(newItemBlock),
+   '最近入库的封面块自带色相兜底（图挂了不是洞）');
+const newHtmlBlock = (renderSrc.match(/function recentlyAddedHtml[\s\S]*?\n  \}/) || [''])[0];
+ok(/--h:/.test(newHtmlBlock) && /hueOf\(/.test(newHtmlBlock),
+   '最近入库按 appid 写行内 --h（每款一个色）');
+ok(/onerror="this\.style\.display=\\?'none\\?'"/.test(newHtmlBlock),
+   '最近入库的图挂了是 display:none（visibility:hidden 会留空位）');
+
 /* 章节动画 */
 ok(/@keyframes chapter-item/.test(pagedCss), '有章节入场关键帧');
 ok(/\.section\.is-entering > \.container > \*/.test(pagedCss), '入场作用在页面直接子元素');

@@ -544,7 +544,14 @@ html[data-vp="mini"] .gb-row__hours { font-size: .8rem; }
   aspect-ratio: 16 / 9;
   overflow: hidden;
   border-radius: var(--r-xs);
-  background: var(--bg-soft);
+  /* 底色不是装饰，是**兜底**：刚入库的游戏常常还没有 header.jpg
+     （预购 / 锁区 / 新上架），图挂了就露出这一层色相。
+     色相来自 appid（render.js 写行内 --c），和列表行的条同源，
+     所以"图没了"只是一块有颜色的空位，不会是一个洞。 */
+  background:
+    linear-gradient(135deg,
+      hsl(var(--h, 210) 46% 42%),
+      hsl(calc(var(--h, 210) + 26) 40% 30%));
 }
 .gb-new__item img { display: block; width: 100%; height: 100%; object-fit: cover; }
 .gb-new__more {
