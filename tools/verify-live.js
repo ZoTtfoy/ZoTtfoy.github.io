@@ -248,8 +248,14 @@ async function browserChecks() {
              getComputedStyle(document.getElementById('splash')).display === 'grid'
     }));
     ok(first.attr === '1' && first.shown, '[浏览器] 首次访问出现载入动画');
-    await page.waitForTimeout(1500);
-    ok(await page.evaluate(() => !document.getElementById('splash')), '[浏览器] 载入动画会自动移除');
+    /* 等条件成立而不是等固定 1500ms。
+       载入动画的移除要看主线程什么时候空下来；页面重一点（比如封面墙有
+       几十张图要解码）时 1500ms 可能不够，断言就会假失败。
+       给 4s 上限，超时才算真没移除。 */
+    const splashGone = await page.waitForFunction(
+      () => !document.getElementById('splash'), null, { timeout: 4000 }
+    ).then(() => true).catch(() => false);
+    ok(splashGone, '[浏览器] 载入动画会自动移除');
 
     await page.goto(URL, { waitUntil: 'domcontentloaded' });
     const second = await page.evaluate(() => ({

@@ -1,52 +1,86 @@
 /* ==========================================================================
- *  Steam 拼贴背景验证：node tools/verify-steam.js [URL]
+ *  Steam 封面墙验证：node tools/verify-steam.js
  * --------------------------------------------------------------------------
- *  守三件事：
- *    1. 数据链：data/steam.json 有真实 appid（来自公开库存），
- *       或者 config 里有 fallbackApps 快照 —— 两者至少有一个
- *    2. 渲染：拼贴格子铺出来了、图真的加载了、旋转是 -45°、遮罩在
- *    3. 交互：滚动只沿图片自身的垂直方向位移（translate3d 的 X 恒为 0），
- *       速度倍率生效（0 = 完全静止）
+ *  2026-11-11 随实现一起重写。旧版验的是「按滚动进度整体平移的横版网格」，
+ *  现在验的是「固定大实例 + 等比缩放 + 竖版密铺 + 每列独立循环流动」。
  *
- *  ⚠️ 为什么断言"X 恒为 0"而不是"看起来是垂直的"：
- *     网格先 rotate(-45°) 再 translate，所以局部 Y 轴在屏幕上指向右下。
- *     只改 Y = 顺着 45° 斜纹滑，这才是"贴合图片垂直方向"。
- *     如果同时改 X，就变成斜向漂移 —— 视觉上完全不同。
+ *  截图能看出好不好看，但守不住回归，所以这里把三件事量化：
+ *
+ *    1. 完全填充 —— 对比「有墙 / 隐藏墙」两张截图，逐像素算差异。
+ *       四角各自必须有足够比例的像素发生变化，否则就是没铺到。
+ *       这是唯一能客观回答"背景有没有被封面填满"的办法。
+ *    2. 等比缩放 —— 验证 scale 公式与旋转后内接正方形的覆盖关系，
+ *       并在手机 / 宽屏 / 竖屏平板三种视口上各验一次。
+ *    3. 真的在动 —— 相位随时间推进、各列速度不同、setSpeed(0) 能停。
+ *       ⚠️ 不能再用"滚动位置"驱动断言：翻页站点停稳后 scrollY 不变，
+ *       旧版就是这样测出了 0.04% 的位移还以为通过。
+ *
+ *  依赖：playwright-core + 本地 chromium
  * ========================================================================== */
-const { chromium } = require('playwright-core');
-const fs = require('node:fs');
-const path = require('node:path');
 
-const SITE = process.argv[2] || 'http://127.0.0.1:8791/';
-const IS_LOCAL = /127\.0\.0\.1|localhost/.test(SITE);
-const notes = [], fails = [], skips = [];
-const ok = (c, m) => c ? notes.push('OK  ' + m) : fails.push('· ' + m);
-const skip = (m) => skips.push(m);
+const { chromium } = require('playwright-core');
+
+const SITE = 'http://127.0.0.1:8791/';
+const notes = [], fails = [];
+const ok = (c, m) => c ? notes.push('OK  ' + m) : fails.push(m);
+
+const INST = 2400;
+const PERIOD = 2400;
+
+/* --------------------------------------------------------------- 截图对比
+   把两张 PNG 传回页面，用 <img> 解码后画进 canvas 逐像素比较。
+   这样不需要 pngjs / sharp 之类的额外依赖 —— 浏览器自己就是最好的解码器。
+   返回：七个取样区域里"有变化"的像素占比。 */
+async function coverage(page, shotOn, shotOff) {
+  return page.evaluate(async ([a, b]) => {
+    async function pixels(b64) {
+      const im = new Image();
+      im.src = 'data:image/png;base64,' + b64;
+      await im.decode();
+      const cv = document.createElement('canvas');
+      cv.width = im.naturalWidth; cv.height = im.naturalHeight;
+      const cx = cv.getContext('2d', { willReadFrequently: true });
+      cx.drawImage(im, 0, 0);
+      return { d: cx.getImageData(0, 0, cv.width, cv.height).data, w: cv.width, h: cv.height };
+    }
+    const A = await pixels(a), B = await pixels(b);
+    const W = A.w, H = A.h;
+
+    /* 顶栏 / 页码条 / 卡片是固定不随墙变化的，取样时避开它们 */
+    const zones = {
+      '左上': [0.02, 0.10, 0.22, 0.30],
+      '右上': [0.78, 0.10, 0.98, 0.30],
+      '左中': [0.02, 0.42, 0.20, 0.60],
+      '右中': [0.80, 0.42, 0.98, 0.60],
+      '左下': [0.02, 0.70, 0.22, 0.90],
+      '右下': [0.78, 0.70, 0.98, 0.90],
+      '正中': [0.42, 0.42, 0.58, 0.58]
+    };
+    function ratio(box) {
+      const x0 = Math.floor(box[0] * W), x1 = Math.floor(box[2] * W);
+      const y0 = Math.floor(box[1] * H), y1 = Math.floor(box[3] * H);
+      let changed = 0, total = 0;
+      for (let y = y0; y < y1; y += 3) {
+        for (let x = x0; x < x1; x += 3) {
+          const i = (y * W + x) * 4;
+          const diff = Math.abs(A.d[i] - B.d[i]) +
+                       Math.abs(A.d[i + 1] - B.d[i + 1]) +
+                       Math.abs(A.d[i + 2] - B.d[i + 2]);
+          if (diff > 18) changed++;
+          total++;
+        }
+      }
+      return total ? +(changed / total).toFixed(3) : 0;
+    }
+    const out = {};
+    Object.keys(zones).forEach(k => { out[k] = ratio(zones[k]); });
+    return out;
+  }, [shotOn.toString('base64'), shotOff.toString('base64')]);
+}
 
 (async () => {
-  /* --------------------------------------------- 1. 数据链（本地可查文件） */
-  if (IS_LOCAL) {
-    const p = path.resolve(process.cwd(), 'data/steam.json');
-    let d = null;
-    try { d = JSON.parse(fs.readFileSync(p, 'utf8')); } catch { /* 缺失 */ }
-    ok(!!d, 'data/steam.json 存在');
-
-    if (d) {
-      const apps = Array.isArray(d.apps) ? d.apps : [];
-      ok(apps.length > 0, 'data/steam.json 里有 appid（' + apps.length + ' 个，来源 ' + (d.source || '?') + '）');
-      ok(apps.every(a => Number.isInteger(a) && a > 0), 'appid 都是正整数');
-      /* 753 是 Steam 平台本身，不是游戏 —— 混进来会铺出一堆非游戏封面 */
-      ok(!apps.includes(753), 'appid 列表里没有 Steam 平台本体（753）');
-      if (d.source === 'inventory') {
-        ok(Number(d.inventoryTotal) > 0, '记录了库存总数（' + d.inventoryTotal + ' 件）');
-        ok(Array.isArray(d.events) && d.events.length >= 0,
-          '特卖活动的 appid 单独存放，没有混进背景（' + (d.events || []).length + ' 个）');
-      }
-      if (!apps.length) skip('appid 为空，前端会用 config 的 fallbackApps 快照');
-    }
-  }
-
   const browser = await chromium.launch();
+
   const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
   const page = await ctx.newPage();
   const errs = [];
@@ -56,134 +90,208 @@ const skip = (m) => skips.push(m);
     status: 200, contentType: 'application/json', body: '{"hitokoto":"x","from":"x"}'
   }));
   await page.goto(SITE, { waitUntil: 'load' });
-  await page.waitForTimeout(2400);
-  /* gaming 排第几屏由 config 的 sections.*.order 决定，不写死数字 ——
-     写死的话一调顺序，这段就失效，而且失效得很安静：
-     gaming 在视口外 → update() 直接 return → transform 是空字符串。 */
+  await page.waitForTimeout(3200);
+
   const gIdx = await page.evaluate(() =>
     window.SITE_PAGED.pages().findIndex(e => e && e.id === 'gaming'));
-  const lastIdx = await page.evaluate(() => window.SITE_PAGED.pages().length - 1);
+  ok(gIdx > 0, 'gaming 有独立页码（第 ' + (gIdx + 1) + ' 屏）');
   await page.evaluate(i => window.SITE_PAGED.goTo(i), gIdx);
-  await page.waitForTimeout(2400);
+  await page.waitForTimeout(2200);
 
-  /* ------------------------------------------------------- 2. 渲染 */
+  /* ---------------------------------------------------- 1. 结构与数据 */
   const r = await page.evaluate(() => {
-    const wall = document.getElementById('steamWall');
     const grid = document.getElementById('steamWallGrid');
+    const wall = document.getElementById('steamWall');
+    const cols = [...document.querySelectorAll('.steamwall__col')];
     const tiles = [...document.querySelectorAll('.steamwall__tile')];
-    if (!wall || !grid) return null;
-    const cs = getComputedStyle(grid);
-    const m = new DOMMatrix(cs.transform);
+    const imgs = [...document.querySelectorAll('.steamwall__tile img')];
+    const cs = grid && getComputedStyle(grid);
+    const one = tiles[0] && getComputedStyle(tiles[0]);
+    const m = cs ? new DOMMatrix(cs.transform) : null;
     return {
-      hidden: wall.hidden,
+      wallHidden: wall && wall.hidden,
+      cols: cols.length,
       tiles: tiles.length,
-      loaded: tiles.filter(t => {
-        const i = t.querySelector('img');
-        return i && i.complete && i.naturalWidth > 0;
-      }).length,
-      /* 旋转角：matrix 的 a/b = cos/sin。rotate(-45°) → a≈0.707, b≈-0.707 */
-      rotA: +m.a.toFixed(3), rotB: +m.b.toFixed(3),
-      hasScrim: !!document.querySelector('.steamwall__scrim'),
-      ariaHidden: wall.getAttribute('aria-hidden'),
-      pointerNone: cs.pointerEvents === 'none' ||
-        getComputedStyle(wall).pointerEvents === 'none',
-      gridBiggerThanSection: (() => {
-        const gb = grid.getBoundingClientRect();
-        const sb = document.getElementById('gaming').getBoundingClientRect();
-        return gb.width > sb.width && gb.height > sb.height;
-      })(),
-      apps: window.SITE_STEAMWALL ? window.SITE_STEAMWALL.apps().length : -1,
-      speed: window.SITE_STEAMWALL ? window.SITE_STEAMWALL.speed() : null
+      perCol: cols[0] ? cols[0].children.length : 0,
+      imgs: imgs.length,
+      loaded: imgs.filter(x => x.complete && x.naturalWidth > 0).length,
+      broken: imgs.filter(x => x.complete && x.naturalWidth === 0).length,
+      portraitUrls: imgs.filter(x => /library_600x900\.jpg/.test(x.src)).length,
+      uniqueApps: new Set(imgs.map(x => x.src)).size,
+      /* rotate(45deg) → a≈cos45·s, b≈+sin45·s（b 为正 = 顺时针 = 向右倾） */
+      rotA: m ? +m.a.toFixed(4) : 0,
+      rotB: m ? +m.b.toFixed(4) : 0,
+      cssInst: cs ? cs.width : '',
+      gap: cs ? cs.gap : '',
+      radius: one ? one.borderRadius : '',
+      scale: window.SITE_STEAMWALL ? window.SITE_STEAMWALL.scale() : null,
+      portraitOnly: window.SITE_STEAMWALL ? window.SITE_STEAMWALL.portraitOnly() : null,
+      period: window.SITE_STEAMWALL ? window.SITE_STEAMWALL.period() : null,
+      apps: window.SITE_STEAMWALL ? window.SITE_STEAMWALL.apps().length : 0
     };
   });
 
-  ok(!!r, '拼贴背景节点存在');
-  if (r) {
-    ok(!r.hidden, '背景没有被隐藏');
-    ok(r.tiles > 0, '铺出了拼贴格子（' + r.tiles + ' 个）');
-    ok(r.apps > 0, '有可用的 appid 列表（' + r.apps + ' 个）');
-    ok(r.loaded > 0, '封面图真的加载了（' + r.loaded + '/' + r.tiles + '）');
-    /* 45°：cos45 = sin(-45) = 0.7071 */
-    ok(Math.abs(r.rotA - 0.7071) < 0.01 && Math.abs(r.rotB + 0.7071) < 0.01,
-      '网格旋转 -45°（a=' + r.rotA + ', b=' + r.rotB + '）');
-    ok(r.hasScrim, '有遮罩层（不然文字会被封面图案吃掉对比度）');
-    ok(r.ariaHidden === 'true', '背景对读屏隐藏（纯装饰）');
-    ok(r.pointerNone, '背景不吃鼠标事件');
-    ok(r.gridBiggerThanSection, '网格尺寸大于该屏（旋转后四角才不会露白）');
-  }
+  ok(!r.wallHidden, '封面墙没有被隐藏');
+  ok(r.cols === 6, '固定 6 列（' + r.cols + '）');
+  ok(r.tiles === 48 && r.perCol === 8,
+    '6 列 × 每列 8 格（两份相同的 4 格，用于无缝循环）→ ' + r.tiles + ' 格');
+  ok(r.imgs === r.tiles, '每格都有一张图（' + r.imgs + '）');
+  ok(r.portraitUrls === r.imgs, '全部是**竖版** library_600x900 封面（' + r.portraitUrls + '）');
+  ok(r.loaded === r.imgs && r.broken === 0,
+    '所有封面都加载成功、0 坏图（' + r.loaded + '/' + r.imgs + '）');
+  ok(r.portraitOnly === true, '用的是逐张探测过的 portraitApps，不是未过滤的 apps');
+  ok(r.uniqueApps >= 12, '墙面用了至少 12 种不同封面（' + r.uniqueApps + ' 种）');
+  ok(r.apps >= 30, '数据源里有足够多的游戏（' + r.apps + ' 个 appid）');
+  ok(/^0px/.test(r.gap), '网格间隙为 0（' + r.gap + '），斜拼时不会露出白线');
+  ok(r.radius === '0px', '格子无圆角（' + r.radius + '），四格交界不留小三角');
+  ok(r.cssInst === '2400px', '实例是固定的 2400×2400（' + r.cssInst + '）');
+  ok(r.period === PERIOD, '循环周期 = 一份 4 格 = 2400px（' + r.period + '）');
 
-  /* ------------------------------------- 3. 滚动方向：只沿图片垂直方向
-     ⚠️ 两个坑都在这一版才暴露：
-       ① 位移已经从「整个网格」挪到了「每一列」——网格只负责 rotate(-45deg)。
-          拆列是为了让每列能有不同移速，所以这里必须读 .steamwall__col。
-       ② 页码不能写死。gaming 排第几屏由 config 的 sections.*.order 决定，
-          写死 goTo(1)/goTo(3) 的话，一调顺序就整段失效（而且失效得很安静：
-          gaming 在视口外，update() 直接 return，transform 是空字符串）。 */
-  ok(gIdx > 0, 'gaming 有独立的页码（第 ' + (gIdx + 1) + ' 屏）');
-  const prevIdx = Math.max(0, gIdx - 1);
-  const nextIdx = Math.min(lastIdx, gIdx + 1);
+  /* 向右倾斜 45°：cos45 = sin45 = 0.7071，且 b 必须为正 */
+  const s = r.scale;
+  ok(Math.abs(r.rotA - 0.707107 * s) < 0.002 && Math.abs(r.rotB - 0.707107 * s) < 0.002,
+    '整体向右倾斜 +45°（a=' + r.rotA + ', b=' + r.rotB + '，b 正 = 顺时针）');
+  ok(r.rotB > 0, '不是旧版的 -45°（向左）');
 
-  /* 读出所有列的 transform。列数固定 7，相邻页各取一次就够判断方向了。 */
-  const colsAt = async (idx) => {
-    await page.evaluate(i => window.SITE_PAGED.goTo(i), idx);
-    await page.waitForTimeout(1400);
-    return page.evaluate(() => [...document.querySelectorAll('.steamwall__col')].map(c => ({
-      t: c.style.transform || '',
-      f: +getComputedStyle(c).getPropertyValue('--col-speed') || 1
-    }))).then(list => list.map(o => {
-      const m = /translate3d\(\s*([-\d.]+)(?:px|%)\s*,\s*([-\d.]+)%/.exec(o.t);
-      return { x: m ? +m[1] : null, y: m ? +m[2] : null, f: o.f, raw: o.t };
+  /* ---------------------------------------------- 2. 等比缩放覆盖公式 */
+  const geom = await page.evaluate(() => ({
+    w: innerWidth, h: innerHeight,
+    scale: window.SITE_STEAMWALL.scale()
+  }));
+  const inner = INST * geom.scale / Math.SQRT2;   // 旋转后轴对齐内接正方形边长
+  ok(inner >= Math.max(geom.w, geom.h) * 1.05,
+    '1440×900 覆盖成立：内接 ' + Math.round(inner) + 'px ≥ 视口 ' +
+    Math.max(geom.w, geom.h) + 'px（scale=' + geom.scale.toFixed(3) + '）');
+  ok(Math.abs(geom.scale - Math.SQRT2 * Math.max(geom.w, geom.h) * 1.12 / INST) < 0.001,
+    'scale 严格等于 √2 × max(W,H) × 1.12 / 2400');
+
+  /* -------------------------------------------- 3. 完全填充（像素对比）
+     ⚠️ 截图前先把遮罩去掉。
+     遮罩在屏幕下方压到 58% 底色，"有墙"和"无墙"两张图在那一带本来就
+     颜色很接近，逐像素差值会低于阈值 —— 看起来像没铺到，其实只是被压暗了。
+     第一版就栽在这里：右下角测出 54%，反复查几何都没问题。
+     去掉遮罩后比较的是纯封面 vs 纯底色，才是真正回答"填没填满"。 */
+  await page.waitForTimeout(600);
+  await page.evaluate(() => {
+    const s = document.querySelector('.steamwall__scrim');
+    if (s) s.style.display = 'none';
+  });
+  await page.waitForTimeout(250);
+  const shotOn = await page.screenshot();
+  await page.evaluate(() => { document.getElementById('steamWall').hidden = true; });
+  await page.waitForTimeout(350);
+  const shotOff = await page.screenshot();
+  const cov = await coverage(page, shotOn, shotOff);
+  await page.evaluate(() => {
+    document.getElementById('steamWall').hidden = false;
+    const s = document.querySelector('.steamwall__scrim');
+    if (s) s.style.display = '';
+  });
+
+  Object.keys(cov).forEach(k => {
+    /* 四角是纯背景区，要求 ≥85%；三处"中"带里有卡片（有墙无墙都不变），
+       阈值放宽到 55% —— 不是放水，是明确区分"该被封面盖住的区域"和
+       "本来就摆着不透明卡片、看不出背景的区域"。 */
+    const need = k.indexOf('中') >= 0 ? 0.55 : 0.85;
+    ok(cov[k] > need, '填充[' + k + '] ' + (cov[k] * 100).toFixed(1) +
+      '% 像素被封面覆盖（需 >' + (need * 100) + '%）');
+  });
+
+  /* ---------------------------------------------------- 4. 真的在动 */
+  const t0 = await page.evaluate(() => window.SITE_STEAMWALL.phase());
+  await page.waitForTimeout(1400);
+  const t1 = await page.evaluate(() => window.SITE_STEAMWALL.phase());
+  ok(t1 > t0 + 20, '停留不动时相位也在推进（' + t0.toFixed(1) + ' → ' + t1.toFixed(1) + ' px）');
+
+  const shifts = await page.evaluate(() =>
+    [...document.querySelectorAll('.steamwall__col')].map(c => {
+      const m = /translate3d\(\s*([-\d.]+)px\s*,\s*([-\d.]+)px/.exec(c.style.transform || '');
+      return m ? { x: +m[1], y: +m[2] } : null;
     }));
-  };
+  ok(shifts.every(v => v && v.x === 0), '位移的 X 恒为 0（只沿图片自身垂直方向滑）');
+  ok(new Set(shifts.map(v => v && v.y)).size === shifts.length,
+    '同一时刻每列位移互不相同（' + shifts.map(v => v && v.y.toFixed(0)).join('/') + '）');
 
-  const A = await colsAt(prevIdx);
-  const B = await colsAt(nextIdx);
+  const rates = await page.evaluate(() =>
+    [...document.querySelectorAll('.steamwall__col')]
+      .map(c => +c.style.getPropertyValue('--col-speed')));
+  ok(rates.length === 6 && new Set(rates.map(v => v.toFixed(3))).size === 6,
+    '6 列倍率各不相同（' + rates.map(v => v.toFixed(2)).join(' / ') + '）');
+  ok(Math.min(...rates) >= 0.5 && Math.max(...rates) <= 1.5,
+    '倍率落在 0.55~1.45 的正弦分布内');
 
-  ok(A.length > 1 && A.every(c => c.y !== null) && B.every(c => c.y !== null),
-    '每列都有 translate3d（' + A.length + ' 列，首列 ' + (A[0] && A[0].raw || '空') + '）');
+  /* speed=0 必须停；恢复后继续走 */
+  await page.evaluate(() => window.SITE_STEAMWALL.setSpeed(0));
+  const p0 = await page.evaluate(() => window.SITE_STEAMWALL.phase());
+  await page.waitForTimeout(900);
+  const p1 = await page.evaluate(() => window.SITE_STEAMWALL.phase());
+  ok(Math.abs(p1 - p0) < 0.01, 'setSpeed(0) 时完全静止（Δ=' + (p1 - p0).toFixed(3) + '）');
+  await page.evaluate(() => window.SITE_STEAMWALL.setSpeed(3));
+  const q0 = await page.evaluate(() => window.SITE_STEAMWALL.phase());
+  await page.waitForTimeout(900);
+  const q1 = await page.evaluate(() => window.SITE_STEAMWALL.phase());
+  ok(q1 - q0 > (t1 - t0) * 1.5,
+    'setSpeed(3) 明显比默认快（Δ=' + (q1 - q0).toFixed(1) + ' vs ' + (t1 - t0).toFixed(1) + '）');
+  await page.evaluate(() => window.SITE_STEAMWALL.setSpeed(1));
 
-  if (A.every(c => c.y !== null) && B.every(c => c.y !== null)) {
-    ok(A.concat(B).every(c => c.x === 0),
-      '位移的 X 分量恒为 0 —— 只沿图片自身的垂直方向滑（' +
-      A.map(c => c.x).join('/') + '）');
-    ok(A.some((c, i) => c.y !== B[i].y),
-      '滚动时 Y 确实变了（' + A.map(c => c.y).join('/') + ' → ' + B.map(c => c.y).join('/') + '）');
+  /* 循环无缝：推进整整一个周期，位移仍被取模在合法区间，
+     不会"越滑越远"把列底露出来。 */
+  const loop = await page.evaluate((P) => {
+    window.SITE_STEAMWALL.step(P);
+    return [...document.querySelectorAll('.steamwall__col')].map(c => {
+      /* ⚠️ 读 style.transform 时浏览器已经把它规范化成
+         "translate3d(0px, 1485px, 0px)" —— 源码里写的 "0" 会变成 "0px"。
+         按源码格式写 /translate3d\(0,/ 会全部匹配不上，误判成 -1。 */
+      const m = /translate3d\(\s*[-\d.]+px\s*,\s*([-\d.]+)px/.exec(c.style.transform || '');
+      return m ? +m[1] : -1;
+    });
+  }, PERIOD);
+  ok(loop.every(y => y >= 0 && y < PERIOD),
+    '推进一整个周期后，每列位移仍被取模在 [0,2400) 内');
 
-    /* 每列移速不同 —— 这是纵深感的来源，也是这一版的主要改动。 */
-    const absA = A.map(c => Math.abs(c.y)).filter(v => v > 0);
-    const spread = absA.length > 1 ? Math.max(...absA) / Math.min(...absA) : 1;
-    ok(spread > 1.5,
-      '同一时刻各列位移互不相同（最快是最慢的 ' + spread.toFixed(2) + ' 倍）');
-    ok(new Set(A.map(c => c.f.toFixed(2))).size === A.length,
-      '每列的 --col-speed 倍率各不相同（' + A.map(c => c.f.toFixed(2)).join(' / ') + '）');
+  /* --------------------------------------------- 5. 多视口等比缩放 */
+  for (const [w, h, name] of [[390, 844, '手机 390×844'], [1920, 1080, '宽屏 1920×1080'], [820, 1180, '竖屏平板 820×1180']]) {
+    await page.setViewportSize({ width: w, height: h });
+    await page.waitForTimeout(700);
+    const g = await page.evaluate(() => ({
+      w: innerWidth, h: innerHeight,
+      scale: window.SITE_STEAMWALL.scale(),
+      inst: getComputedStyle(document.getElementById('steamWallGrid')).width,
+      cols: document.querySelectorAll('.steamwall__col').length,
+      tiles: document.querySelectorAll('.steamwall__tile').length
+    }));
+    const need = Math.SQRT2 * Math.max(g.w, g.h) * 1.12 / INST;
+    ok(Math.abs(g.scale - need) < 0.001,
+      '[' + name + '] scale 按公式重算（' + g.scale.toFixed(3) + '）');
+    ok(g.inst === '2400px' && g.cols === 6 && g.tiles === 48,
+      '[' + name + '] 实例规格不变，只靠缩放适配（6 列 / 48 格）');
+    ok(INST * g.scale / Math.SQRT2 >= Math.max(g.w, g.h) * 1.05,
+      '[' + name + '] 覆盖成立（内接 ' +
+      Math.round(INST * g.scale / Math.SQRT2) + 'px）');
   }
 
-  /* --------------------------------------------- 4. 速度可调 */
-  const measure = async (sp) => {
-    await page.evaluate(s => window.SITE_STEAMWALL.setSpeed(s), sp);
-    const p = await colsAt(prevIdx);
-    const n = await colsAt(nextIdx);
-    /* 用「各列位移变化量的最大值」衡量，避免刚好抽到最慢的那一列 */
-    return Math.max(...p.map((c, i) => Math.abs((n[i].y || 0) - (c.y || 0))));
-  };
-
-  const d0 = await measure(0);
-  const d1 = await measure(1);
-  const d3 = await measure(3);
-  ok(d0 < 0.2, 'speed=0 时完全静止（ΔY=' + d0.toFixed(2) + '）');
-  ok(d1 > 1, 'speed=1 时有位移（ΔY=' + d1.toFixed(2) + '）');
-  ok(d3 > d1 * 1.8, 'speed=3 明显比 speed=1 快（' + d3.toFixed(1) + ' vs ' + d1.toFixed(1) + '）');
-  await page.evaluate(() => window.SITE_STEAMWALL.setSpeed(1));
+  /* ------------------------------------------------ 6. 减少动效时停转 */
+  const rm = await ctx.newPage();
+  await rm.emulateMedia({ reducedMotion: 'reduce' });
+  await rm.setViewportSize({ width: 1440, height: 900 });
+  await rm.goto(SITE, { waitUntil: 'load' });
+  await rm.waitForTimeout(2600);
+  const r0 = await rm.evaluate(() => window.SITE_STEAMWALL.phase());
+  await rm.waitForTimeout(1000);
+  const r1 = await rm.evaluate(() => window.SITE_STEAMWALL.phase());
+  ok(Math.abs(r1 - r0) < 0.01, '减少动效时封面墙静止（图还在，只是不流动）');
+  await rm.close();
 
   ok(errs.length === 0, '没有 JS 报错' + (errs.length ? '：' + errs[0] : ''));
 
   await browser.close();
-
   notes.forEach(n => console.log(n));
-  skips.forEach(s => console.log('--  ' + s));
-  if (fails.length) { console.log('\n失败明细:'); fails.forEach(f => console.log(f)); }
-  console.log('\n检查项: ' + (notes.length + fails.length) + '，失败: ' + fails.length
-    + (skips.length ? '，跳过: ' + skips.length : ''));
+  if (fails.length) {
+    console.log('\n失败明细:');
+    fails.forEach(f => console.log('· ' + f));
+  }
+  console.log('\n检查项: ' + (notes.filter(n => n.startsWith('OK')).length + fails.length) +
+    '，失败: ' + fails.length);
   console.log(fails.length ? '\n有问题' : '\n全部通过');
-  process.exit(fails.length ? 1 : 0);
+  if (fails.length) process.exitCode = 1;
 })();

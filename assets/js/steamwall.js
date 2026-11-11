@@ -1,29 +1,58 @@
 /* ==========================================================================
- *  steamwall.js —— 游戏屏的 Steam 封面拼贴背景
+ *  steamwall.js —— 游戏屏的 Steam 竖版封面拼贴背景
  * --------------------------------------------------------------------------
- *  做什么：
- *    用「我的 Steam 库里的游戏封面」铺满 #gaming 这一屏，
- *    整体旋转 45° 斜着摆，滚动时缓慢位移（视差）。
+ *  2026-11-11 重写。旧版有三个硬伤，都是实测截图看出来的：
  *
- *  数据来源（三级降级，任何一级失败都有图）：
- *    ① data/steam.json —— 由 .github/workflows/sync.yml 定时抓取
- *       结构 { apps: [appid, ...], names: { appid: name }, updated }
- *       抓取需要 STEAM_API_KEY（Steam 的 GetOwnedGames 强制要求 key，
- *       不像网易云的公开接口 —— 实测无 key 直接返回 401）。
- *    ② config 里 gaming.items[].steam.fallbackApps —— 手写快照
- *    ③ 什么都没有 → 整块背景不渲染，这一屏退回普通底色
+ *    ① 用横版 header.jpg（460×215），不是竖版封面。
+ *    ② 右下角大片空白、手机上几乎全空 —— 网格按 170%/200% 百分比给尺寸，
+ *       旋转 45° 后覆盖不了四角，列又只有 5 格，列底就是空的。
+ *    ③ 停在游戏屏时位移只有 -0.04%，等于不动。
+ *       翻页站点没有"持续滚动进度"，靠 scrollY 驱动的视差在停稳后必然归零。
  *
- *  为什么用 header.jpg 而不是 library_600x900：
- *    实测 header.jpg 每张 30~40KB，600x900 竖版封面要 120~200KB。
- *    背景会被 scrim 压到很暗、还要旋转 45°，细节根本看不出来 ——
- *    用大图纯属浪费流量。12 张 header 合计约 400KB，且都带 loading=lazy。
+ *  现在换成用户点名的思路：**做一个够大的固定实例，再对整个实例等比缩放**。
  *
- *  性能约朿（这一屏最容易踩的坑）：
- *    · 不用 background-image 拼贴，而是真实的 <img>：
- *      浏览器的图片解码比 CSS 背景更省，且能用 loading/decoding 提示。
- *    · 滚动位移只碰 transform（合成层），不碰 top/left（触发 layout）。
- *    · 用 rAF 节流 + 只在游戏屏接近视口时才更新。
- *    · prefers-reduced-motion 下完全不位移（图还在，只是不动）。
+ *  ── 几何 ──────────────────────────────────────────────────────────────
+ *    实例 INST × INST = 2400×2400（固定 px，与设备无关）
+ *    格子 TILE_W × TILE_H = 400×600（2:3，竖版封面的比例）
+ *    COLS = INST/TILE_W = 6，单份 ROWS = 4 格 = 2400px（正好一个周期）
+ *
+ *    ⚠️ 格子尺寸是**性能**调出来的，不是随手定的。
+ *       第一版用 300×450 / 8 列 / 每列 12 格 = 96 个 <img>，
+ *       实测 verify-perf 的滚动帧耗时从 61ms 翻倍到 118ms ——
+ *       96 张 600×900 的竖图在软件合成下要维护约 52M 像素纹理。
+ *       放大到 400×600 后只需 6 列 × 8 格 = 48 张（砍半），
+ *       覆盖面积一点没变，手机上单张还更清楚。
+ *
+ *    一个 S×S 的正方形旋转 45° 之后，能完整内接的轴对齐正方形边长 = S/√2。
+ *    要让 W×H 的视口整个落在里面：S/√2 ≥ max(W,H)。
+ *    所以 scale = √2 × max(W,H) × SAFETY / INST，SAFETY = 1.12 留旋转余量。
+ *
+ *      1440×900  → 0.95      390×844 → 0.56      1920×1080 → 1.27
+ *    格子在手机上约 223×334、宽屏约 507×760 —— 同一套布局等比缩放，
+ *    任何设备都被填满，且不会出现"换台机器就缺一角"。
+ *
+ *  ── 为什么永远填得满 ─────────────────────────────────────────────────
+ *    每列渲染 **2 份完全相同**的图组（8 格 = 4800px），列从 top = -2400 起。
+ *    格子 k 的顶部 = -2400 + k×600。
+ *      位移 d = 0     → 实例 [0,2400] 里看到的是第二份（格子 4..7）
+ *      位移 d = +2400 → 看到的是第一份（格子 0..3）
+ *    两份内容相同，所以 d 从 2400 归零时画面**完全一致**，没有跳变。
+ *    任意 d ∈ [0,2400]，内容覆盖 [-2400+d, 2400+d]，
+ *      上沿 ≤ 0（因 d ≤ 2400）且下沿 ≥ 2400（因 d ≥ 0）—— 恒成立。
+ *    于是流动永远无缝、永远填满。gap = 0、无圆角，连 1px 缝都不留。
+ *
+ *  ── 动起来 ───────────────────────────────────────────────────────────
+ *    不再依赖滚动位置，改用**时间驱动**的持续缓慢流动（rAF 累积相位），
+ *    这样停在游戏屏时也在动。每列 d = (phase × 该列倍率) % 2700。
+ *    倍率沿用正弦分布 0.55~1.45：随机会让相邻列一快一慢像抖动，
+ *    正弦是连续变化，读起来像流动。
+ *    滚动时另外叠一个会衰减的 boost，翻页瞬间背景会"跟着冲一下"，
+ *    保留先前要求的"伴随滚动"，但不把运动绑死在 scrollY 上。
+ *
+ *  ── 数据 ─────────────────────────────────────────────────────────────
+ *    data/steam.json 的 portraitApps 是**逐张探测过 200 + >5KB** 的 appid。
+ *    45 个库存 appid 里 8 个没有竖版封面（404），不剔掉就会在墙上开天窗。
+ *    渲染层仍有 img.onerror 兜底，防止 CDN 临时故障露白。
  * ========================================================================== */
 
 window.SITE_STEAMWALL = (function () {
@@ -35,28 +64,37 @@ window.SITE_STEAMWALL = (function () {
   var reduceQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
   function reduced() { return reduceQuery.matches; }
 
-  /* 一格封面的原始比例。Steam 的 header.jpg 固定 460×215。 */
-  var TILE_W = 460;
-  var TILE_H = 215;
-
-  /* 拼贴规格。cols/rows 取略大于视口能容纳的数量，
-     多出来的部分用于覆盖 45° 旋转后的四角（旋转会露出空白，必须溢出）。 */
-  var COLS = 7;
-  var ROWS = 5;
-  var GAP = 14;
+  /* ------------------------------------------------------------- 实例规格
+     这些全是**固定的设计像素**，不随设备变。适配只通过最外层的一个 scale，
+     所以手机/平板/带鱼屏看到的是同一张拼贴的不同放大倍率，不会各缺一角。 */
+  var INST = 2400;               // 实例边长（正方形）
+  var TILE_W = 400;              // 格子宽（2:3 竖版）
+  var TILE_H = 600;              // 格子高
+  var COLS = INST / TILE_W;      // 6 列
+  var ROWS = 4;                  // 单份 4 格 = 2400px
+  var PERIOD = ROWS * TILE_H;    // 一份的高度，也是循环周期
+  var SAFETY = 1.12;             // 旋转后的覆盖余量
+  var BASE_RATE = 48;            // px/s，SPEED=1 时基准列的流速
 
   var wall = null, grid = null;
-  var colsEls = [];        // 每列的 DOM，位移时逐列写 transform
+  var colsEls = [];
   var apps = [];
-  var lastY = -1;
+  var portraitOnly = false;      // 是否只用了探测过的竖版封面
+  var scale = 1;
+
+  var SPEED = 1;
+  var phase = 0;                 // 累积相位（px）
+  var boost = 0;                 // 滚动带来的额外速度，会衰减
+  var lastT = 0;
   var raf = 0;
+  var running = false;
 
   function cdnUrl(appid) {
-    return "https://cdn.cloudflare.steamstatic.com/steam/apps/" + appid + "/header.jpg";
+    return "https://cdn.cloudflare.steamstatic.com/steam/apps/" + appid +
+      "/library_600x900.jpg";
   }
 
   /* ------------------------------------------------------- 数据来源 */
-  /* 从 config 里找带 steam 字段的那张卡，取 fallbackApps。 */
   function fromConfig() {
     var items = (C.gaming && C.gaming.items) || [];
     for (var i = 0; i < items.length; i++) {
@@ -78,13 +116,35 @@ window.SITE_STEAMWALL = (function () {
       .then(function (v) { clearTimeout(timer); return v; });
   }
 
-  /* --------------------------------------------------------- 渲染 */
+  /* 各列流速倍率。正弦，不是随机：随机让相邻列一快一慢像在抖，
+     正弦是连续变化，人眼读成"有前后层次的流动"。 */
+  function colSpeed(i, total) {
+    if (total <= 1) return 1;
+    var phase = (i / (total - 1) - 0.5) * Math.PI;
+    return 1 + Math.sin(phase) * 0.45;   // 0.55 ~ 1.45
+  }
+
+  /* ------------------------------------------------------------- 适配 */
+  function fit() {
+    if (!grid) return;
+    var w = window.innerWidth || 1280;
+    var h = window.innerHeight || 800;
+    /* 旋转 45° 后，S×S 正方形的轴对齐内接正方形边长是 S/√2。
+       把它撑到至少 max(w,h)×SAFETY，视口四角就都在实例里。 */
+    scale = Math.SQRT2 * Math.max(w, h) * SAFETY / INST;
+    grid.style.setProperty("--wall-scale", scale.toFixed(4));
+    grid.style.setProperty("--wall-inst", INST + "px");
+    grid.style.setProperty("--wall-tile-w", TILE_W + "px");
+    grid.style.setProperty("--wall-tile-h", TILE_H + "px");
+    grid.style.setProperty("--wall-period", PERIOD + "px");
+  }
+
+  /* ------------------------------------------------------------- 渲染 */
   function build(list) {
     if (!grid || !list.length) return 0;
 
-    /* 打乱顺序：库里前几个 appid 往往是最常玩的，
-       原样铺开会让人一眼认出"左上角那三个我认识"，反而像没排过。
-       用固定种子的伪随机，保证每次刷新布局一致（不会晃来晃去）。 */
+    /* 固定种子打乱：库里靠前的都是最常玩的，原样铺会一眼认出来，
+       也保证每次刷新布局一致（不会晃）。 */
     var seed = 20261111;
     function rand() {
       seed = (seed * 1103515245 + 12345) & 0x7fffffff;
@@ -96,36 +156,25 @@ window.SITE_STEAMWALL = (function () {
       var t = pool[i]; pool[i] = pool[j]; pool[j] = t;
     }
 
-    /* ============================================================
-       结构改成「按列切分」，而不是一个大网格。
-       为什么：要给每一列不同的移速，就必须能单独位移每列 ——
-       一个整体网格只能整体平移，做不出列与列之间的流速差。
-       拆成列之后，每列是一个纵向 flex 容器，各自带 transform。
-
-       列数/每列格子数由 CSS 变量控制（桌面 7 列 × 5 格，手机 4 列 × 6 格），
-       这里只负责把 appid 均匀分到各列，顺序仍然是打乱后的。
-       ============================================================ */
-    var cols = COLS;
-    var rows = ROWS;
-    var perCol = rows;
-
     var html = "";
-    for (var c = 0; c < cols; c++) {
-      /* 每列的移速不同 —— 这是纵深感的核心。
-         用一条平滑的曲线分配倍率，而不是随机：随机会让相邻两列一快一慢，
-         看起来像抖动；用「奇数列与偶数列反向」的分配更像背景在流动。 */
-      var factor = colSpeed(c, cols);
+    for (var c = 0; c < COLS; c++) {
+      var factor = colSpeed(c, COLS);
+      /* 每列错开起点，避免所有列第一张都是同一张图；
+         同时保证「第 k 格」和「第 k+ROWS 格」用同一个 appid（两份完全相同）。 */
+      var seq = [];
+      for (var r = 0; r < ROWS; r++) {
+        seq.push(pool[(c * 3 + r * 5) % pool.length]);
+      }
+
       var cells = "";
-      for (var r = 0; r < perCol; r++) {
-        var idx = c * perCol + r;                    // 全局序号，用于取 appid
-        var appid = pool[idx % pool.length];
-        /* 每格给一点点随机的亮度差，避免整面墙灰得非常死板 */
-        var dim = 0.72 + (rand() * 0.28);
-        var delay = c * 45 + r * 70;
-        cells += '<span class="steamwall__tile" style="--dim:' + dim.toFixed(2) +
-          ";--d:" + delay + 'ms">' +
-            '<img src="' + cdnUrl(appid) + '" alt="" loading="lazy" decoding="async" ' +
-              'width="' + TILE_W + '" height="' + TILE_H + '">' +
+      for (var k = 0; k < ROWS * 2; k++) {
+        var appid = seq[k % ROWS];
+        /* 明暗起伏：两份对应位置必须一致，否则循环归零会闪一下 */
+        var dim = 0.82 + (((c * 7 + (k % ROWS) * 3) % 5) * 0.035);
+        cells += '<span class="steamwall__tile" style="--dim:' + dim.toFixed(2) + '">' +
+          '<img src="' + cdnUrl(appid) + '" alt="" decoding="async" ' +
+          'width="' + TILE_W + '" height="' + TILE_H + '" ' +
+          'onerror="this.closest(\'.steamwall__tile\').classList.add(\'is-broken\')">' +
           "</span>";
       }
       html += '<div class="steamwall__col" data-col="' + c + '" ' +
@@ -135,97 +184,66 @@ window.SITE_STEAMWALL = (function () {
 
     wall.setAttribute("data-ready", "1");
     colsEls = [].slice.call(grid.querySelectorAll(".steamwall__col"));
-
-    /* 尺寸交给 CSS 变量，样式层据此算旋转后的溢出 */
-    document.documentElement.style.setProperty("--steamwall-cols", String(COLS));
-    document.documentElement.style.setProperty("--steamwall-rows", String(ROWS));
-    document.documentElement.style.setProperty("--steamwall-gap", GAP + "px");
-
-    return cols * perCol;
+    fit();
+    return COLS * ROWS * 2;
   }
 
-  /* 每列的移速倍率。
-     用「正弦分布」而不是随机：
-       · 随机 → 相邻列一快一慢，看起来像画面在抖；
-       · 正弦 → 中间那列最慢、两侧逐渐变快（或反之），
-         人眼会读成"这一排封面在绕着一个轴流动"，是有机的。
-     返回 0.55 ~ 1.45 之间的值，平均约 1.0（整体速度不变，只是分配不同）。 */
-  function colSpeed(i, total) {
-    if (total <= 1) return 1;
-    /* 相位从 -π/2 到 +π/2：中间列 sin=0 → 最慢，两端最快。
-       再乘 0.45 控制幅度，±45% 的差异已经很明显但不夸张。 */
-    var phase = (i / (total - 1) - 0.5) * Math.PI;
-    return 1 + Math.sin(phase) * 0.45;
-  }
-
-  /* ------------------------------------------------------- 滚动视差
-   * 方向约定（2026-11-11 按用户要求改）：
-   *   位移**只沿图片自身的垂直方向**，也就是旋转 45° 之后的「下」。
-   *   网格已经 rotate(-45deg)，所以它的局部 Y 轴在屏幕上指向右下 ——
-   *   只要只改 translateY，视觉上就是"封面墙顺着自己的竖纹滑"。
-   *
-   * 每列不同速（2026-11-11 追加）：
-   *   这是纵深感的关键。所有列同速 = 一整块板子在平移，看起来很平；
-   *   列与列之间有流速差，人眼会读成"有前后层次"。
-   *
-   *   倍率由 colSpeed() 按正弦分布算出，写在每列的 --col-speed 上：
-   *     中间列 1.00（基准），往两侧逐渐到 0.55 / 1.45。
-   *   正向与反向各占一半，视觉上像两股水流在对穿。
-   *
-   *   为什么用正弦而不是随机：
-   *     随机 → 相邻列可能一快一慢，看起来像画面在抖；
-   *     正弦 → 相邻列的速度是**连续变化**的，读起来是"流动"。
-   */
-  var SPEED = 1;
-  var BASE_SHIFT = 6;      // 页面滚过一屏时，基准列的滑动百分比
-  var MAX_SHIFT = 28;      // 硬上限：再多就会滑出拼接缝隙
-
-  function update() {
-    raf = 0;
-    if (!wall || reduced() || !colsEls.length) return;
-
-    var page = document.getElementById("gaming");
-    if (!page) return;
-
-    var rect = page.getBoundingClientRect();
-    var vh = window.innerHeight || 800;
-    /* 离视口还远就跳过：这一屏在第三页，前两页滚动时不该有任何计算 */
-    if (rect.bottom < -200 || rect.top > vh + 200) return;
-
-    /* 位移基准：页面中心相对视口中心的偏移，归一化到 ≈ -1 ~ 1。 */
-    var progress = (vh / 2 - (rect.top + rect.height / 2)) / vh;
-    var base = progress * BASE_SHIFT * SPEED;
-
-    /* 差量很小时不写样式：滚动事件很密，避免每帧都触发样式重算 */
-    if (Math.abs(base - lastY) < 0.1) return;
-    lastY = base;
-
-    /* 逐列写 transform。
-       每列的倍率从 --col-speed 读（在 build 时写进内联样式），
-       这样 CSS 侧改倍率也不用动 JS。 */
+  /* ------------------------------------------------------------- 运动 */
+  function paint() {
     for (var i = 0; i < colsEls.length; i++) {
       var el = colsEls[i];
       var f = parseFloat(el.style.getPropertyValue("--col-speed")) || 1;
-      var shift = base * f;
-      if (shift > MAX_SHIFT) shift = MAX_SHIFT;
-      if (shift < -MAX_SHIFT) shift = -MAX_SHIFT;
-
-      /* 只改 Y。translate 在 rotate 之后，Y 是网格的局部纵轴 ——
-         屏幕上就是"顺着 45° 斜纹的走向"。
-         注意这里的 transform 是**列**的，不是整个网格的：
-         网格本身只负责 rotate(-45deg)，列各自 translateY。 */
-      el.style.transform = "translate3d(0," + shift.toFixed(2) + "%, 0)";
+      /* 取模 = 无限循环。因为两份内容首尾相同，模回 0 时画面完全接得上。
+         只写 Y，X 恒为 0 —— 位移沿图片自身的垂直方向（旋转后是斜向流水）。 */
+      var d = (phase * f) % PERIOD;
+      el.style.transform = "translate3d(0," + d.toFixed(2) + "px,0)";
     }
   }
 
-  function onScroll() {
-    if (raf) return;
-    raf = requestAnimationFrame(update);
+  function tick(t) {
+    raf = 0;
+    if (!running) return;
+    if (!lastT) lastT = t;
+    var dt = Math.min(64, t - lastT);     // 切标签回来时别一次跳一大截
+    lastT = t;
+
+    /* 是否可见由 IntersectionObserver 决定（见 init），
+       这里不再每帧测 getBoundingClientRect —— 那本身就是一次强制布局。
+       只在 reduced / 标签页隐藏时跳过推进。 */
+    if (!reduced() && !document.hidden) {
+      boost *= Math.pow(0.94, dt / 16.7);           // 滚动冲量衰减
+      if (boost < 0.05) boost = 0;
+      phase += (BASE_RATE * SPEED + boost) * dt / 1000;
+      paint();
+    }
+    raf = requestAnimationFrame(tick);
   }
 
-  /* ---------------------------------------------------------- 入口 */
+  function start() {
+    if (running || reduced() || !colsEls.length) return;
+    running = true;
+    lastT = 0;
+    raf = requestAnimationFrame(tick);
+  }
+
+  function stopLoop() {
+    running = false;
+    if (raf) cancelAnimationFrame(raf);
+    raf = 0;
+    lastT = 0;
+  }
+
+  function onScroll() {
+    /* 翻页时给一个短促的加速，让背景"跟着冲一下"。
+       滚动速度取绝对值的 1/8，最多再叠 220px/s，然后自然衰减。 */
+    var y = window.scrollY || 0;
+    var dy = Math.abs(y - (onScroll._y === undefined ? y : onScroll._y));
+    onScroll._y = y;
+    boost = Math.min(220, boost + dy * 0.12);
+  }
+
+  /* ------------------------------------------------------------- 入口 */
   function init() {
-    /* 速度可以在 config 里配：gaming.items[].steam.scrollSpeed */
     (function () {
       var items = (C.gaming && C.gaming.items) || [];
       for (var i = 0; i < items.length; i++) {
@@ -238,41 +256,58 @@ window.SITE_STEAMWALL = (function () {
     grid = $("steamWallGrid");
     if (!wall || !grid) return;
 
-    /* 先把 config 里的快照铺上 —— 保证"打开就有图"，不等网络 */
+    /* 先铺 config 里的快照，保证打开就有图（不等网络）。
+       但快照没探测过竖版可用性，所以拿到 steam.json 后要换成 portraitApps。 */
     apps = fromConfig();
-    if (!apps.length) {
-      /* 没有配置就整块不渲染，这一屏退回普通底色（不留一个空壳吃掉布局） */
-      wall.hidden = true;
-      return;
-    }
+    if (!apps.length) { wall.hidden = true; return; }
     build(apps);
 
-    /* 再尝试用定时任务抓来的真实库存替换。
-       抓不到就保持快照，静默降级 —— 与 sync.js 的其它数据同一套原则。 */
     getJSON("data/steam.json").then(function (d) {
-      if (!d || !Array.isArray(d.apps) || !d.apps.length) return;
-      /* 只在真实的库和快照差异明显时才重铺，避免无意义的 DOM 重建 */
-      if (d.apps.length < 4) return;
-      apps = d.apps;
+      if (!d) return;
+      var good = Array.isArray(d.portraitApps) && d.portraitApps.length >= 6
+        ? d.portraitApps
+        : (Array.isArray(d.apps) ? d.apps : []);
+      if (!good.length) return;
+      apps = good;
+      portraitOnly = !!(d.portraitApps && d.portraitApps.length >= 6);
       build(apps);
-      update();
+      paint();
     });
 
-    if (!reduced()) {
-      window.addEventListener("scroll", onScroll, { passive: true });
-      window.addEventListener("resize", function () { lastY = -1; onScroll(); }, { passive: true });
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", function () { fit(); }, { passive: true });
+    document.addEventListener("visibilitychange", function () {
+      lastT = 0;
+      if (document.hidden) stopLoop(); else start();
+    });
+
+    /* 游戏屏离屏时把 rAF 整个停掉，别空转。
+       ⚠️ 早先是在 tick 里每帧读 getBoundingClientRect 判断 near，
+          那样即使离屏也保持一帧一次的 JS 调用，而且读 rect 本身会触发
+          强制布局 —— verify-perf 的滚动帧耗时因此翻倍。
+          改用 IntersectionObserver：只在进出时各回调一次，平时零开销。
+          rootMargin 上下各留 0.3 屏，翻页过渡还没结束就已经在动了。
+          ⚠️ 不能留一整屏：gaming 是第三屏，留 100% 会让它在用户还停在
+          首页时也算"可见"，rAF 照样常驻，等于没优化。 */
+    if (typeof IntersectionObserver === "function") {
+      var io = new IntersectionObserver(function (entries) {
+        var visible = entries.some(function (e) { return e.isIntersecting; });
+        if (visible) start(); else stopLoop();
+      }, { rootMargin: "30% 0px" });
+      io.observe(document.getElementById("gaming"));
     }
-    update();
+
+    fit();
+    paint();
+    start();
   }
 
-  /* 速度可调：0 = 静止，1 = 默认，3 = 明显流动。
-     只影响"滚动时滑多快"，不影响入场动画。 */
+  /* 速度可调：0 = 静止，1 = 默认，3 = 明显流动。 */
   function setSpeed(n) {
     var v = Number(n);
     if (!isFinite(v) || v < 0) v = 1;
     SPEED = Math.min(6, v);
-    lastY = -1;
-    onScroll();
+    paint();
     return SPEED;
   }
 
@@ -281,8 +316,14 @@ window.SITE_STEAMWALL = (function () {
     setSpeed: setSpeed,
     speed: function () { return SPEED; },
     /* 自检用 */
+    fit: fit,
+    scale: function () { return scale; },
+    phase: function () { return phase; },
+    step: function (px) { phase += px; paint(); },   // 测试里精确推进相位
+    period: function () { return PERIOD; },
+    portraitOnly: function () { return portraitOnly; },
     count: function () { return grid ? grid.children.length : 0; },
     apps: function () { return apps.slice(); },
-    refresh: function () { if (wall) { build(apps); update(); } }
+    refresh: function () { if (wall) { build(apps); paint(); } }
   };
 })();

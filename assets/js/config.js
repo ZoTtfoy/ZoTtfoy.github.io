@@ -148,11 +148,13 @@ window.SITE_CONFIG = {
                   steamId: "76561199120970154",
                   profileUrl: "https://steamcommunity.com/profiles/76561199120970154/",
                   libraryUrl: "https://steamcommunity.com/profiles/76561199120970154/games/?tab=all",
-                  /* 滚动时封面墙滑动的倍率：0 = 完全静止，1 = 默认，3 = 明显流动。
+                  /* 封面墙的流动倍率：0 = 静止，1 = 默认，3 = 明显流动。
+                     时间驱动（持续缓慢流动），不依赖滚动位置。
                      也可以不动配置，在控制台 SITE_STEAMWALL.setSpeed(2) 现场试。 */
                   scrollSpeed: 1,
-                  /* appid 列表由 scripts/sync.mjs 抓取写入 data/steam.json；
-                     抓不到就用下面这份快照，保证背景永远有图，不会开天窗。 */
+                  /* 竖版封面由 scripts/sync-steam.mjs 抓取并逐张验过，
+                     写进 data/steam.json 的 portraitApps；
+                     抓不到就用下面这份快照（12 个都已确认有竖版图）。 */
                   fallbackApps: [
                       730,
                       570,

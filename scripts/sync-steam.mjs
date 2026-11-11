@@ -164,6 +164,38 @@ async function main() {
   const games = found.filter((x) => !x.event);
   const events = found.filter((x) => x.event);
 
+  /* 逐张探测**竖版**封面是否真的存在。
+     ⚠️ 这一步不能省：库存里的 appid 只是"这个游戏发过卡牌"，
+        不代表它有 library_600x900.jpg。实测 45 个游戏里 8 个是 404 ——
+        不剔掉，前端墙上就会出现 8 个天窗，而用户要的是"完全被封面填充"。
+     只看状态码 + 体积：200 但 <5KB 的通常是占位图/错误页，一样剔除。 */
+  const PORTRAIT = (id) =>
+    `https://cdn.cloudflare.steamstatic.com/steam/apps/${id}/library_600x900.jpg`;
+  async function hasPortrait(id) {
+    try {
+      const ctl = new AbortController();
+      const timer = setTimeout(() => ctl.abort(), 12000);
+      const r = await fetch(PORTRAIT(id), { signal: ctl.signal, method: "GET" });
+      const len = Number(r.headers.get("content-length") || 0);
+      clearTimeout(timer);
+      return r.ok && (len === 0 || len > 5000);
+    } catch { return false; }
+  }
+  /* 真正的并发上限 6：一批跑完才发下一批。
+     ⚠️ 不能用 Promise.all + 递增 setTimeout 错开起点 ——
+        那只是把 45 个请求错开几十毫秒，仍然全部同时在线，
+        照样会被 CDN 限速、然后把超时误判成"没有封面"。 */
+  const portraitApps = [];
+  for (let i = 0; i < games.length; i += 6) {
+    const batch = games.slice(i, i + 6);
+    const res = await Promise.all(batch.map((g) => hasPortrait(g.appid)));
+    res.forEach((ok, k) => { if (ok) portraitApps.push(batch[k].appid); });
+  }
+  portraitApps.sort((a, b) => a - b);
+  log(`竖版封面 ${portraitApps.length}/${games.length} 张可用` +
+      (games.length - portraitApps.length
+        ? `（剔除 ${games.length - portraitApps.length} 个 404）` : ""));
+
   await fs.mkdir(path.dirname(OUT), { recursive: true });
   await fs.writeFile(
     OUT,
@@ -175,6 +207,11 @@ async function main() {
         inventoryTotal: total,
         /* apps 只放真游戏 —— 活动 appid 的封面大多 404，铺上去会是空白格 */
         apps: games.map((g) => g.appid),
+        /* portraitApps 是逐张探测过、一定能加载的竖版封面，
+           前端的封面墙只用这一份。apps 保留完整清单供别处引用。 */
+        portraitBase: PORTRAIT("{id}"),
+        portraitApps,
+        portraitChecked: games.length,
         games: games.slice(0, 24).map((g) => ({ appid: g.appid, name: g.name })),
         events: events.map((e) => e.appid)
       },

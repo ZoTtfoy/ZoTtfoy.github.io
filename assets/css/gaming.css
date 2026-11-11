@@ -176,73 +176,80 @@
 }
 
 /* ==========================================================================
- *  Steam 封面拼贴背景（#gaming 专属）
+ *  Steam 竖版封面拼贴背景（#gaming 专属）
  * --------------------------------------------------------------------------
- *  做法：一层 overflow:hidden 的容器，里面是一个旋转 -45° 的网格。
- *  网格本身放大到 160%（width/height 都超出），这样旋转之后四角不会露白。
+ *  2026-11-11 重写：不再按百分比给网格尺寸，改成**固定实例 + 整体等比缩放**。
  *
- *  ⚠️ 三个必须记住的坑：
- *    1. 旋转的是**网格**，不是容器。容器一转，overflow:hidden 的裁剪框
- *       也跟着转，边缘会出现锯齿状的斜切缝。
- *    2. 网格尺寸必须 > 视口的对角线（≈ 1.42×），否则旋转后角上会漏底。
- *       这里给 170%，略大于对角线，多留一点余量。
- *    3. 不要用 background-image 拼贴：12 张 460×215 的背景图无法懒加载，
- *       首屏就会全部请求。用真实 <img loading="lazy"> 才省。
+ *    实例  2400×2400 px（固定，与设备无关）
+ *    格子  400×600 px（2:3，正好是 library_600x900 的比例，不裁切）
+ *    6 列 × 每列 8 格（= 两份相同的 4 格，用于无缝循环）
+ *    旋转  +45°（顺时针 = 封面向右倾）
+ *    scale = √2 × max(视口宽, 视口高) × 1.12 / 2400   ← JS 算，写进 --wall-scale
+ *
+ *  一个 S×S 正方形转 45° 后，内接的轴对齐正方形边长是 S/√2；
+ *  把它撑到 ≥ max(W,H) 就能盖住四角。旧版用 170%/200% 百分比，
+ *  在手机上只盖住巴掌大一块 —— 这就是截图里大片空白的原因。
+ *
+ *  ⚠️ gap 必须是 0，圆角也必须是 0。
+ *    斜着拼的时候，任何间隙都会变成显眼的白色菱形线；
+ *    圆角则会在四格交界处留下小三角底色。
  * ========================================================================== */
 .steamwall {
   position: absolute;
   inset: 0;
   z-index: 0;
   overflow: hidden;
-  /* 独立合成层：旋转 + translate 的图层单独提出来，避免每帧重绘整屏 */
-  will-change: transform;
   contain: paint;
   pointer-events: none;
 }
 .steamwall[hidden] { display: none; }
 
-/* 网格只负责两件事：摆位置、转 45°。
-   ⚠️ 位移**不在这里做** —— 每列要各自的移速，所以 transform 写在
-   .steamwall__col 上（见下面）。如果仍在网格上整体平移，
-   所有列就是同速，视觉上是一整块板子在动，没有纵深。 */
+/* 固定实例。位移只发生在每一列上，这层只负责摆正、右倾 45°、整体缩放。
+   transform 顺序：先 scale → 再 rotate → 最后 translate(-50%,-50%) 把中心
+   挪到容器中心。因为 rotate/scale 都绕元素中心，中心位置不变，
+   所以那一步平移始终生效，不会因为缩放而偏移。 */
 .steamwall__grid {
   position: absolute;
   left: 50%;
   top: 50%;
-  /* 170% 是"大于对角线（142%）且不至于离谱"的折中 */
-  width: 170%;
-  height: 170%;
+  width: var(--wall-inst, 2400px);
+  height: var(--wall-inst, 2400px);
   display: grid;
-  grid-template-columns: repeat(var(--steamwall-cols, 7), minmax(0, 1fr));
-  gap: var(--steamwall-gap, 14px);
-  transform: translate(-50%, -50%) rotate(-45deg);
+  grid-template-columns: repeat(6, var(--wall-tile-w, 400px));
+  grid-template-rows: var(--wall-inst, 2400px);
+  gap: 0;
+  overflow: hidden;
+  transform: translate(-50%, -50%) rotate(45deg) scale(var(--wall-scale, 1));
   transform-origin: center;
 }
 
-/* 一列 = 一个纵向容器，自带移速。
-   gap 与网格的行距一致，视觉上仍然是一整片拼贴。 */
+/* 一列 = 两份完全相同的 4 格图组，总高 2×2400 = 4800。
+   从 -2400 起放，任意位移 d ∈ [0,2400] 时内容覆盖
+   [-2400+d, 2400+d] 都完整包住实例 [0,2400] —— 永远填得满。
+   归零时两份内容相同，画面接得上，不会跳。 */
 .steamwall__col {
+  width: var(--wall-tile-w, 400px);
+  height: calc(var(--wall-period, 2400px) * 2);
+  margin-top: calc(-1 * var(--wall-period, 2400px));
+  align-self: start;
   display: flex;
   flex-direction: column;
-  gap: var(--steamwall-gap, 14px);
-  /* 初始不位移；JS 每帧按 --col-speed 写入 translateY */
+  gap: 0;
   will-change: transform;
-  /* 位移上限 28%，格子 + gap 的总高足够覆盖，不会露出边缘 */
 }
 
 .steamwall__tile {
   position: relative;
+  display: block;
+  flex: 0 0 var(--wall-tile-h, 600px);
+  width: var(--wall-tile-w, 400px);
+  height: var(--wall-tile-h, 600px);
   overflow: hidden;
-  border-radius: var(--r-sm);
-  /* 每格按 --dim 压暗，让整面墙有明暗起伏而不是一片平 */
-  opacity: 0;
-  animation: steamwall-in .6s var(--ease-out) forwards;
-  animation-delay: var(--d, 0ms);
+  border-radius: 0;
+  /* 每张略有明暗起伏，整面墙才不死板；不做入场动画 ——
+     48 个格子同时淡入会在加载期露出大片底色，与"完全填充"相悖 */
+  opacity: var(--dim, .9);
   background: var(--bg-soft);
-}
-@keyframes steamwall-in {
-  from { opacity: 0; transform: scale(1.06); }
-  to   { opacity: var(--dim, .8); transform: scale(1); }
 }
 
 .steamwall__tile img {
@@ -250,33 +257,61 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
-  /* 已经旋转 -45° 了，图本身不要再转，否则封面全歪 */
-  filter: saturate(.8) contrast(1.02);
+  filter: saturate(.86) contrast(1.03);
 }
 
-/* 遮罩：把背景压到"能看出是游戏封面，但不干扰读字"的强度。
-   同 backdrop.js 的原则 —— 曝光有硬上限，宁可按得更暗，
-   也不让正文对比度掉下去。自检会用 WCAG 公式实测。 */
+/* CDN 临时故障时不能开天窗：用一块深色渐变顶上，绝不留白 */
+.steamwall__tile.is-broken img { display: none; }
+.steamwall__tile.is-broken {
+  background: linear-gradient(135deg, var(--bg-soft), var(--bg-elev));
+}
+
+/* 遮罩：边缘压实（和前后两屏接得上），中间保留封面的颜色。
+   旧版中间压到 52% 太重，截图里几乎是一片白 —— 但也不能全撤，
+   标题是直接压在背景上的，可读性靠这一层 + 卡片实底共同保证。 */
 .steamwall__scrim {
   position: absolute;
   inset: 0;
   background:
-    /* 上下渐变：靠边更暗，让这一屏和前后两屏接得上 */
     linear-gradient(to bottom,
       var(--bg) 0%,
-      color-mix(in srgb, var(--bg) 62%, transparent) 18%,
-      color-mix(in srgb, var(--bg) 52%, transparent) 50%,
-      color-mix(in srgb, var(--bg) 66%, transparent) 82%,
+      color-mix(in srgb, var(--bg) 74%, transparent) 12%,
+      color-mix(in srgb, var(--bg) 42%, transparent) 34%,
+      color-mix(in srgb, var(--bg) 38%, transparent) 56%,
+      color-mix(in srgb, var(--bg) 58%, transparent) 80%,
       var(--bg) 100%);
 }
 @supports not (background: color-mix(in srgb, red 50%, transparent)) {
-  /* 老浏览器：退回一个稳定的半透明黑/白层 */
-  .steamwall__scrim { background: var(--bg); opacity: .78; }
+  .steamwall__scrim { background: var(--bg); opacity: .62; }
 }
 
 /* 内容要压在背景之上 */
 #gaming { position: relative; isolation: isolate; }
 #gaming > .container { position: relative; z-index: 1; }
+
+/* 标题区的可读性保护：**给文字本身加光晕**，不垫底板。
+   ⚠️ 试过两种底板，都被截图否掉了：
+     · 线性渐变板 → 垂直方向均匀，露出一条水平硬边，像贴了块胶布；
+     · 径向椭圆板 → 盒子左边缘截断了还有 88% 不透明度的渐变，
+       变成一条竖硬边。要让硬边落在视口外就得把盒子扩到 -50vw，
+       椭圆的百分比又全变了，越调越不可控。
+   底板这条路本身就和"背景完全被封面填充"冲突：它总要挡住一块。
+   所以改成文字自带三层光晕：紧致的一层护住笔画，两圈扩散的把周围
+   彩色封面推开。颜色用 var(--bg) —— 浅色主题是近白、深色主题是近黑，
+   自动跟主题走，不用写两套。 */
+#gaming .section__head > * {
+  text-shadow:
+    0 0 6px var(--bg),
+    0 0 18px var(--bg),
+    0 0 34px var(--bg);
+}
+/* 副标题比标题细、颜色又浅一档，光晕推得开背景但抬不动笔画本身的对比度。
+   在这一屏单独提到正文色并加半档字重 —— 只有 Q3，其它屏维持原设计。 */
+#gaming .section__lead {
+  color: var(--text);
+  font-weight: 500;
+}
+#gaming .eyebrow { color: var(--text-2); font-weight: 600; }
 
 /* 关卡：这一屏的卡片在拼贴背景上要更实一点，否则图案会从卡片缝里抢注意力。
    曾经用过 92% 半透明想留一点"若隐若现"，但遮罩本来就压到 78%，
@@ -286,21 +321,12 @@
   background: var(--bg-elev);
 }
 
-/* 窄屏：列数少一点，格子变大，才不至于糊成一片噪点 */
-@media (max-width: 680px) {
-  .steamwall__grid {
-    width: 200%;
-    height: 200%;
-    gap: 8px;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    grid-template-rows: repeat(6, minmax(0, 1fr));
-  }
-}
+/* 窄屏不再单独改列数：实例是固定的，JS 的 scale 已经按 max(宽,高)
+   等比缩好了。为手机另配一套格子数只会让"填满"这件事重新变得不可控。 */
 
-/* 减少动效：拼贴还在，但完全不位移、不做入场动画 */
+/* 减少动效：图还在、还是斜 45°，只是不流动（JS 里停掉相位推进） */
 @media (prefers-reduced-motion: reduce) {
-  .steamwall__grid { transition: none; transform: translate(-50%, -50%) rotate(-45deg); }
-  .steamwall__tile { animation: none; opacity: var(--dim, .8); }
+  .steamwall__grid { transition: none; }
 }
 
 /* 不支持 color-mix 时 game 卡也要有底 */
