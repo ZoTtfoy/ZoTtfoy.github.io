@@ -88,7 +88,7 @@ window.SITE_CONFIG = {
   listen: {
       eyebrow: "02 / LISTENING",
       title: "听歌排行",
-      lead: "最近一周循环最多的歌，播放次数与累计听歌由定时任务从网易云抓取。",
+      lead: "看看我这周在听什么吧。",
       neteaseUid: "1695307327",
       dataFile: "data/netease.json",
       limit: 6,
