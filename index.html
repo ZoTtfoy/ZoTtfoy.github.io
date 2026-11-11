@@ -76,6 +76,10 @@
         }
         d.dataset.theme = mode;
         d.dataset.modeRaw = modeRaw;
+        /* 首帧前就声明配色方案：安卓 Edge 的自动深色会把浅色页反成深底，
+           而带 mask-image 的列表不参与反色 —— 结果整块列表看起来是空的。
+           `only light/dark` 让浏览器别插手，配色由我们自己管。 */
+        d.style.colorScheme = (mode === 'dark') ? 'only dark' : 'only light';
 
         /* 载入动画：每次会话只出现一次；系统开了「减少动态效果」就跳过。
            放在内联脚本里判断，首帧前就定好，避免内容先闪一下再盖住。 */

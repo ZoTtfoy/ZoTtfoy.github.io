@@ -890,6 +890,28 @@ SITE_RENDER.renderOnly('gaming')   // 只重画某一块
 // 或者打开页面时：?render=gaming,listen   只渲染这几块
 ```
 
+### 安卓 Edge / Chrome 的「自动深色」必须显式关掉
+
+实机（Redmi K80 + 安卓 Edge 156）上出现「游戏列表整块空白」，探针读到的数据是：
+
+```
+data-theme = light      --text = #17191b      --bg-elev = #ffffff
+.gb-row 存在 30 条、opacity 1、高 63px，文字色 rgb(23,25,27)
+```
+
+页面自己的配色明明是**浅色**，屏幕上却是深色 —— 说明浏览器做了 **force dark**（自动深色）。
+它按像素反色，且**不认 CSS 变量**：`.gb-list` 带 `mask-image`，反色会跳过这类元素，
+于是深色底 + 没被反色的深色文字 = 整块列表「消失」。顶栏图标发灰、头像发暗也是同一个原因。
+
+修法：在首帧前声明本页自己管配色（`only light` / `only dark` 是官方的退出方式）：
+
+```js
+// index.html 内联脚本 + skin.js 的 apply()
+root.style.colorScheme = mode === "dark" ? "only dark" : "only light";
+```
+
+两个位置都要写：内联脚本负责首帧（否则会先被反色闪一下），`skin.js` 负责之后每次换主题。
+
 ### 预取闸门：第一二屏缓存完才进站（`assets/js/preload.js`）
 
 > **默认关闭**（`config.js` 的 `live.preload: false`）。它会让首访多等 1~4 秒，

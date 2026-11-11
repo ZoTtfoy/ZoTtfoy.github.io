@@ -65,6 +65,13 @@ window.SITE_SKIN = (function () {
     root.dataset.theme = mode;
     root.dataset.modeRaw = modeRaw;
 
+    /* ⚠️ 必须声明 color-scheme，否则安卓 Edge / Chrome 的「自动深色」
+       会在系统处于深色时把整页反色 —— 而且它**不认 CSS 变量**：
+       我们的浅色主题被反成深底，但带 mask-image 的列表会被跳过反色，
+       于是深底 + 深字 = 整块列表"消失"（K80 + Edge 实测）。
+       `only light/dark` 是官方的退出方式：告诉浏览器这页自己管配色。 */
+    try { root.style.colorScheme = mode === "dark" ? "only dark" : "only light"; } catch (e) {}
+
     // 允许 config.ui.accent 在主题之上再覆盖一次主色
     if (window.SITE_RENDER && window.SITE_RENDER.applyAccent) {
       window.SITE_RENDER.applyAccent();
