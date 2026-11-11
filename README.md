@@ -119,6 +119,7 @@ zotrod-homepage/
 │   ├── verify-perf.js            # 性能回归（帧耗时 / 合成层 / 布局读取）
 │   ├── verify-drag.js            # 拖拽光效（含真实触摸手势）
 │   ├── verify-devices.js         # 15 种手机比例适配
+│   ├── verify-preload.js         # 预取闸门：冷启动 / 回访 / 版本变化 / 图全挂
 │   ├── verify-calc.js            # 维修估价器：跳转 / 重算 / 回改 / 键盘
 │   ├── verify-copy.js            # 四个复制入口：反馈不许动 DOM、Toast 不回显账号
 │   ├── verify-listen.js          # 听歌排行：次数 / 累计听歌 / 一屏容量
@@ -871,6 +872,34 @@ Steam 的 `IPlayerService/GetOwnedGames` 里**没有"购买时间"字段**。
 
 实测：列表内上划 → 列表滚 252px、页码不动；滚到底再上划 → 翻页；空白处上划 → 翻页。
 
+### 预取闸门：第一二屏缓存完才进站（`assets/js/preload.js`）
+
+站点本来就是「一屏一页」，但第 2 屏的背景是 144 个相册封面、第 3 屏是 48 张游戏封面。
+它们和首屏抢同一条带宽、同一份解码内存 —— 移动端上足以让首屏内容迟迟画不出来。
+所以加了一道闸门：
+
+| 时机 | 行为 |
+| --- | --- |
+| 这台设备**第一次**来 | 复用 splash 当闸门：第 1、2 屏的图**全部 decode 完**才放行，底部那条细线显示真实进度 |
+| 放行之后 | 立刻并发预取第 3 屏（不阻塞，失败无所谓） |
+| 回访（版本未变） | **不等**，直接进站；只对没进缓存的图做一次暖机 |
+| 回访（版本变了） | 也不挡人（换批封面不该让老用户多等），后台补图并更新版本号 |
+| CDN 抽风 / 图全 404 | 到点就放行 —— 预取失败绝不能把人锁在门外 |
+
+**版本号怎么算**：把三屏图片的**绝对 URL 排序后**做 FNV-1a。三个坑都踩过：
+
+1. 用 `currentSrc` 会让同一张图产出两种字符串（已加载=绝对、未加载=相对），
+   版本号在两次访问间乱跳 → 只读 `src` 属性并 `new URL()` 归一化。
+2. 收集时机不能靠 `data-ready`：两面墙、战绩列表各有各的异步来源，
+   先到先得会让集合不同 → 改成**自稳定探测**（URL 集合连续 300ms 不变才算定下来）。
+3. 总时限必须从脚本执行那一刻算，否则最坏是「等 DOM 2.5s + 等图 4.5s = 7s」。
+
+**`load()` 里两个必踩的坑**（都修了）：`new Image()` 只被局部变量引用会被 GC、
+请求取消后 `onload` 永远不来（要用 pool 持有到结束）；`onload` 与 `decode()` 都会回调，
+必须用 `done` 标记只结算一次，否则提前 resolve。
+
+自检：`node tools/verify-preload.js`（17 项，覆盖冷启动 / 回访 / 版本变化 / 图全挂）。
+
 ### 封面墙为什么不能懒加载
 
 `loading="lazy"` 看着很合适，实测**不能用**：整面墙 48 个 `<img>`，被
@@ -1599,6 +1628,7 @@ node tools/verify-perf.js     # 性能：帧耗时 / 合成层 / 布局读取 / 
 node tools/verify-drag.js     # 拖拽光效：桌面鼠标 + 触屏真实手势
 node tools/verify-devices.js  # 15 种机型：字号下限 / 不超屏 / 每屏各取档位
 node tools/verify-steam-added.js # 最近入库：首次建基线 / 累积 / 上限 / 空库不清记录
+node tools/verify-preload.js  # 预取闸门：第一二屏缓存完才放行 / 版本复用 / 兜底放行
 
 # 可选：真实浏览器验证布局与交互（需 npm install playwright-core --no-save && npx playwright install chromium）
 node tools/verify-calc.js     # 估价器：选完自动跳转 / 价格算法 / 回改 / 触控高度 / 键盘

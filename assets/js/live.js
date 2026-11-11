@@ -40,7 +40,12 @@ window.SITE_LIVE = (function () {
     if (mark) mark.textContent = s.initials || (s.name || "Z").slice(0, 1);
     if (name) name.textContent = String(s.name || "").toUpperCase();
 
-    function done() {
+    /* 退场。⚠️ 只有在"没有预取闸门"时才允许自动退场：
+       preload.js 会在首屏/第二屏的图解码完之前把 gating 置真，
+       这时任何计时器都不该把 splash 收掉 —— 否则闸门形同虚设，
+       用户看到的还是"图没到位就先给页面"。真退场由 preload 调 done(true)。 */
+    function done(force) {
+      if (!force && window.SITE_PRELOAD && window.SITE_PRELOAD.gating) return;
       el.classList.add("is-done");
       document.documentElement.dataset.loading = "0";
       setTimeout(function () {
@@ -48,26 +53,29 @@ window.SITE_LIVE = (function () {
       }, 600);
     }
 
+    /* 暴露给 preload.js —— 它是唯一知道"图到底缓存完没有"的一方 */
+    window.SITE_SPLASH = { done: done, el: el };
+
     // 内联脚本没标记要显示（非首次 / 减少动效），直接清理
     if (document.documentElement.dataset.loading !== "1") {
       if (el.parentNode) el.parentNode.removeChild(el);
       return;
     }
 
-    // 硬上限：不管资源加载到哪一步，最多 900ms 就退场
-    var cap = setTimeout(done, 900);
+    // 硬上限：不管资源加载到哪一步，最多 900ms 就退场（有闸门时由 preload 接管）
+    var cap = setTimeout(function () { done(false); }, 900);
     if (document.readyState === "complete") {
       clearTimeout(cap);
-      setTimeout(done, 380);      // 已加载完，让动画走完就收
+      setTimeout(function () { done(false); }, 380);   // 已加载完，让动画走完就收
     } else {
       window.addEventListener("load", function () {
         clearTimeout(cap);
-        setTimeout(done, 320);
+        setTimeout(function () { done(false); }, 320);
       }, { once: true });
     }
 
-    // 允许点击跳过
-    el.addEventListener("click", done);
+    // 允许点击跳过 —— 这一下是用户主动要进去，闸门也不拦
+    el.addEventListener("click", function () { done(true); });
   }
 
   /* ======================================================== 2. 实时时钟 */
