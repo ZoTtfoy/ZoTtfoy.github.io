@@ -26,7 +26,7 @@ window.SITE_CONFIG = {
           order: 2,
           label: "游戏"
         },
-  repair: {
+      repair: {
           enabled: true,
           order: 3,
           label: "维修"
@@ -114,12 +114,6 @@ window.SITE_CONFIG = {
       eyebrow: "03 / GAMES",
       title: "MY GAME'S",
       lead: "想一起玩的话，ID 都在这里，点一下就能复制。",
-      /* 2026-11-11：从 6 张卡收成 3 张。
-         原来 Apex / DJMAX / Phigros / 中二节奏各占一格，四张卡都在说
-         "我也玩这个"，信息密度很低 —— 而访客真正会做的是两件事：
-         加手游玩家的好友、翻我的 Steam。
-         所以后四个平台合并成一张 Steam 卡，指向公开档案。
-         steam 字段让渲染层给这张卡套用封面拼贴背景。 */
       items: [
           {
               icon: "tower",
@@ -148,13 +142,7 @@ window.SITE_CONFIG = {
                   steamId: "76561199120970154",
                   profileUrl: "https://steamcommunity.com/profiles/76561199120970154/",
                   libraryUrl: "https://steamcommunity.com/profiles/76561199120970154/games/?tab=all",
-                  /* 封面墙的流动倍率：0 = 静止，1 = 默认，3 = 明显流动。
-                     时间驱动（持续缓慢流动），不依赖滚动位置。
-                     也可以不动配置，在控制台 SITE_STEAMWALL.setSpeed(2) 现场试。 */
                   scrollSpeed: 1,
-                  /* 竖版封面由 scripts/sync-steam.mjs 抓取并逐张验过，
-                     写进 data/steam.json 的 portraitApps；
-                     抓不到就用下面这份快照（12 个都已确认有竖版图）。 */
                   fallbackApps: [
                       730,
                       570,
@@ -181,7 +169,7 @@ window.SITE_CONFIG = {
           id: "xianyu",
           icon: "shop",
           platform: "闲鱼",
-          url: "https://www.goofish.com/",
+          url: "https://www.goofish.com/personal?spm=a21ybx.home.nav.1.4c053da64wQyXN",
           title: "我的闲鱼小铺",
           meta: "维修单 · 实拍 · 芝麻信用",
           cover: "",
@@ -233,23 +221,6 @@ window.SITE_CONFIG = {
               0.85,
               1.15
             ],
-          /* ============================================================
-             维修业务数据（2026-11-11 按实际业务重写）
-             ------------------------------------------------------------
-             实际情况：修的基本是鼠标，换的基本是微动和编码器，
-             偶尔有主板级/进水这类复杂问题需要单独聊。
-
-             这里刻意保留"种类 → 项目 → 方式 → 加急"的四层结构，
-             以后要加键盘、手柄、耳机，只需要往 devices 里加一条、
-             再给 services 里挂上对应的 devices 即可，代码一行不用改。
-
-             每层字段约定：
-               devices    id / name / factor（价格系数）/ note
-               services   id / name / price / devices（适用种类，空=全适用）
-               methods    id / name / add（附加费）/ note
-               rushes     id / name / add / note
-               materials  id / name / factor（不改问，走 materialDefault）
-             ============================================================ */
           devices: [
               {
                   id: "mouse",
@@ -346,8 +317,6 @@ window.SITE_CONFIG = {
                   note: "插单优先，当天处理"
                 }
             ],
-          /* 「复杂问题」这一项没法自动报价 —— 它要看了才知道。
-             这里给它一句替代文案，结果页不显示价格区间，而是显示这句。 */
           askText: "这类问题得先看一眼：拍张照发给我，或者约个时间当面看。下面是联系方式。"
         }
     },
