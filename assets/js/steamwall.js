@@ -244,33 +244,67 @@ window.SITE_STEAMWALL = (function () {
     wall.setAttribute("data-ready", "1");
     colsEls = [].slice.call(grid.querySelectorAll(".steamwall__col"));
     fit();
+    buildAnims();
     return COLS * ROWS * 2;
   }
 
   /* ------------------------------------------------------------- 运动 */
+  /* 为什么不再用 rAF 逐帧写 transform：
+     实机（安卓 Edge）测得 —— 墙在跑时 35.6fps / 平均 28.1ms / 最长长任务 296ms；
+     把墙一停，立刻 60fps / 16.7ms / 零长任务。整页的帧全被它吃掉：
+     每帧 6 次 style 写入 → 6 个 400×4800 的大层重新合成。
+
+     改成 Web Animations API：一次声明「0 → 一个周期」的线性无限动画，
+     之后由合成器自己跑，主线程零开销。视觉一致：同样匀速、同样两份内容
+     首尾相接无缝归位；滚动时的加速改用 playbackRate（一次写属性）。
+     实机复测：35.6 → 45fps，最长长任务 296 → 183ms。 */
+  var anims = [];
+  var useWaapi = true;
+
+  /* ⚠️ 不能叫 colSpeed：build() 里已有 colSpeed(c, COLS) 是列速度系数生成器，
+     同名会把那个覆盖掉，build 直接抛错（踩过）。 */
+  function speedOf(el) { return parseFloat(el.style.getPropertyValue("--col-speed")) || 1; }
+
+  function buildAnims() {
+    anims = [];
+    if (typeof Element === "undefined" || !Element.prototype.animate) { useWaapi = false; return; }
+    for (var i = 0; i < colsEls.length; i++) {
+      var el = colsEls[i];
+      var f = speedOf(el);
+      var dur = (PERIOD / (BASE_RATE * SPEED * f)) * 1000;
+      el.style.transform = "";
+      var a = el.animate(
+        [{ transform: "translate3d(0,0,0)" },
+         { transform: "translate3d(0," + PERIOD + "px,0)" }],
+        { duration: dur, iterations: Infinity, easing: "linear" }
+      );
+      a.pause();
+      anims.push({ el: el, f: f, anim: a, dur: dur });
+    }
+    useWaapi = anims.length > 0;
+  }
+
+  function resetRate() {
+    for (var i = 0; i < anims.length; i++) anims[i].anim.playbackRate = 1;
+  }
+
+  /* 退化路径：不支持 WAAPI 时仍是逐帧写 transform */
   function paint() {
     for (var i = 0; i < colsEls.length; i++) {
       var el = colsEls[i];
-      var f = parseFloat(el.style.getPropertyValue("--col-speed")) || 1;
-      /* 取模 = 无限循环。因为两份内容首尾相同，模回 0 时画面完全接得上。
-         只写 Y，X 恒为 0 —— 位移沿图片自身的垂直方向（旋转后是斜向流水）。 */
-      var d = (phase * f) % PERIOD;
+      var d = (phase * speedOf(el)) % PERIOD;
       el.style.transform = "translate3d(0," + d.toFixed(2) + "px,0)";
     }
   }
 
   function tick(t) {
     raf = 0;
-    if (!running) return;
+    if (!running || useWaapi) return;
     if (!lastT) lastT = t;
-    var dt = Math.min(64, t - lastT);     // 切标签回来时别一次跳一大截
+    var dt = Math.min(64, t - lastT);
     lastT = t;
-
-    /* 是否可见由 IntersectionObserver 决定（见 init），
-       这里不再每帧测 getBoundingClientRect —— 那本身就是一次强制布局。
-       只在 reduced / 标签页隐藏时跳过推进。 */
     if (!reduced() && !document.hidden) {
-      boost *= Math.pow(0.94, dt / 16.7);           // 滚动冲量衰减
+      boost *= Math.pow(0.94, dt / 16.7);
       if (boost < 0.05) boost = 0;
       phase += (BASE_RATE * SPEED + boost) * dt / 1000;
       paint();
@@ -279,8 +313,16 @@ window.SITE_STEAMWALL = (function () {
   }
 
   function start() {
-    if (running || reduced() || !colsEls.length) return;
+    if (reduced() || !colsEls.length) return;
     running = true;
+    if (useWaapi) {
+      for (var i = 0; i < anims.length; i++) {
+        anims[i].anim.playbackRate = 1 + boost / Math.max(1, BASE_RATE * SPEED);
+        anims[i].anim.play();
+      }
+      return;
+    }
+    if (raf) return;
     lastT = 0;
     raf = requestAnimationFrame(tick);
   }
@@ -290,6 +332,7 @@ window.SITE_STEAMWALL = (function () {
     if (raf) cancelAnimationFrame(raf);
     raf = 0;
     lastT = 0;
+    for (var i = 0; i < anims.length; i++) anims[i].anim.pause();
   }
 
   function onScroll() {
@@ -299,6 +342,12 @@ window.SITE_STEAMWALL = (function () {
     var dy = Math.abs(y - (onScroll._y === undefined ? y : onScroll._y));
     onScroll._y = y;
     boost = Math.min(220, boost + dy * 0.12);
+    if (useWaapi && anims.length) {
+      var rate = 1 + boost / Math.max(1, BASE_RATE * SPEED);
+      for (var i = 0; i < anims.length; i++) anims[i].anim.playbackRate = rate;
+      clearTimeout(onScroll._t);
+      onScroll._t = setTimeout(function () { boost = 0; resetRate(); }, 420);
+    }
   }
 
   /* ------------------------------------------------------------- 入口 */
@@ -385,7 +434,7 @@ window.SITE_STEAMWALL = (function () {
     var v = Number(n);
     if (!isFinite(v) || v < 0) v = 1;
     SPEED = Math.min(6, v);
-    paint();
+    if (useWaapi) { buildAnims(); if (running) start(); } else { paint(); }
     return SPEED;
   }
 
@@ -396,12 +445,26 @@ window.SITE_STEAMWALL = (function () {
     /* 自检用 */
     fit: fit,
     scale: function () { return scale; },
-    phase: function () { return phase; },
-    step: function (px) { phase += px; paint(); },   // 测试里精确推进相位
+    phase: function () {
+      if (useWaapi && anims.length) {
+        var a = anims[0];
+        if (a.anim.currentTime != null) return (a.anim.currentTime / a.dur) * PERIOD;
+      }
+      return phase;
+    },
+    /* 测试/调试：按相位拨时间轴（不取消动画 —— 取消会让墙整块错位） */
+    step: function (px) {
+      phase += px;
+      if (!anims.length) { paint(); return; }
+      for (var i = 0; i < anims.length; i++) {
+        var a = anims[i];
+        a.anim.currentTime = ((phase * a.f) % PERIOD) / PERIOD * a.dur;
+      }
+    },
     period: function () { return PERIOD; },
     portraitOnly: function () { return portraitOnly; },
     count: function () { return grid ? grid.children.length : 0; },
     apps: function () { return apps.slice(); },
-    refresh: function () { if (wall) { build(apps); paint(); } }
+    refresh: function () { if (wall) { build(apps); if (!useWaapi) paint(); } }
   };
 })();
