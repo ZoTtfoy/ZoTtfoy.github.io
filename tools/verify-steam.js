@@ -46,14 +46,21 @@ async function coverage(page, shotOn, shotOff) {
     const A = await pixels(a), B = await pixels(b);
     const W = A.w, H = A.h;
 
-    /* 顶栏 / 页码条 / 卡片是固定不随墙变化的，取样时避开它们 */
+    /* 顶栏 / 页码条 / 卡片 / 战绩列表都是**不透明内容**，不随墙变化，取样要避开。
+       ⚠️ 2026-11-11 改了下半部分的两个采样区：
+          这一屏现在多了一块战绩列表（整宽、实底），原来的 左下/右下
+          （x 2%~22% / 78%~98%）有一大半落在列表上，测出来只有 48%，
+          看上去像"墙没盖满"，其实是被列表挡住了。
+          现在下半部分只取**容器外面**的窄条：容器最大 1180，1440 视口下
+          左右各留 130px，取 x 0.5%~3.5% 与 96.5%~99.5% 一定在外侧；
+          y 到 90% 为止，避开右下角固定的"回到顶部"按钮（y>92%）。 */
     const zones = {
       '左上': [0.02, 0.10, 0.22, 0.30],
       '右上': [0.78, 0.10, 0.98, 0.30],
       '左中': [0.02, 0.42, 0.20, 0.60],
       '右中': [0.80, 0.42, 0.98, 0.60],
-      '左下': [0.02, 0.70, 0.22, 0.90],
-      '右下': [0.78, 0.70, 0.98, 0.90],
+      '左下': [0.005, 0.70, 0.035, 0.90],
+      '右下': [0.965, 0.70, 0.995, 0.90],
       '正中': [0.42, 0.42, 0.58, 0.58]
     };
     function ratio(box) {
@@ -89,7 +96,9 @@ async function coverage(page, shotOn, shotOff) {
   await page.route('**/v1.hitokoto.cn/**', r => r.fulfill({
     status: 200, contentType: 'application/json', body: '{"hitokoto":"x","from":"x"}'
   }));
-  await page.goto(SITE, { waitUntil: 'load' });
+  /* 这一套必须看真图（要逐像素比对有没有封面），所以不能屏蔽外链。
+     Steam 图床偶尔会有单张卡住十几秒，30s 默认超时不够 —— 放宽到 90s。 */
+  await page.goto(SITE, { waitUntil: 'load', timeout: 90000 });
   await page.waitForTimeout(3200);
 
   const gIdx = await page.evaluate(() =>
@@ -300,7 +309,7 @@ async function coverage(page, shotOn, shotOff) {
   const rm = await ctx.newPage();
   await rm.emulateMedia({ reducedMotion: 'reduce' });
   await rm.setViewportSize({ width: 1440, height: 900 });
-  await rm.goto(SITE, { waitUntil: 'load' });
+  await rm.goto(SITE, { waitUntil: 'load', timeout: 90000 });
   await rm.waitForTimeout(2600);
   const r0 = await rm.evaluate(() => window.SITE_STEAMWALL.phase());
   await rm.waitForTimeout(1000);

@@ -157,8 +157,8 @@ window.SITE_RENDER = (function () {
              "</button>";
     }).join(""));
 
-    // 两个主页的摘要卡（左右各一张）
-    paintPreviews("heroPreviews", p.previews);
+    // 两个主页的摘要卡（左右各一张）。compact：只要「图标 + 平台名 + 箭头」
+    paintPreviews("heroPreviews", p.previews, true);
 
     // 首屏按钮
     var a = $("heroPrimary"), b = $("heroSecondary");
@@ -179,22 +179,23 @@ window.SITE_RENDER = (function () {
        有 cover → 上方封面 + 下方文字，像一张缩略图卡
        无 cover → 纯文字信息卡，左边一块平台图标
      sync.js 拿到 data/previews.json 后，会按 [data-preview-id] 回填
-     标题 / 副标题 / 数据 / 封面 —— 优先用抓到的真实信息。 */
-  function previewCard(p, i) {
+     标题 / 副标题 / 数据 / 封面 —— 优先用抓到的真实信息。
+
+     ⚠️ 2026-11-11 第二轮：用户要「磁贴内文字去掉，只要网易云音乐和小黑盒」。
+        Q1 那两张卡改成**单行**（compact）——不渲染标题 / 副标题 / 数据三块，
+        只留 图标 + 平台名 + 外链箭头。数据本身还在 data/previews.json 里，
+        只是不再上屏；哪天想摆回来，把 compact 去掉即可。 */
+  function previewCard(p, i, compact) {
     var cover = String(p.cover || "").trim();
-    var stats = arr(p.stats).filter(function (s) { return s && s.value != null; });
+    var stats = compact ? [] : arr(p.stats).filter(function (s) { return s && s.value != null; });
     var statsHtml = stats.map(function (s) {
       return '<span class="preview__stat"><b>' + esc(s.value) + "</b>" + esc(s.label || "") + "</span>";
     }).join("");
-    /* 没有数据可摆的卡（当前是黑盒）：把副标题顶到第二行，
-       否则右半边永远空着，看着像没加载出来。
-       判据只看"有没有渲染出数据"，不看 id —— 以后谁配了 stats 谁就自动变回来。 */
-    var statless = !statsHtml && !!String(p.meta || "").trim();
 
     var style = (p.accent ? "--pc:" + esc(p.accent) + ";" : "") + delay(i, 80);
 
     return '<a class="preview' + (cover ? " preview--cover" : "") +
-             (statless ? " is-statless" : "") + '"' +
+             (compact ? " preview--slim" : "") + '"' +
              ' href="' + esc(p.url || "#") + '" target="_blank" rel="noopener noreferrer"' +
              ' data-preview-id="' + esc(p.id || "") + '"' +
              ' style="' + style + '" data-reveal>' +
@@ -208,18 +209,20 @@ window.SITE_RENDER = (function () {
                  '<span class="preview__platform">' + esc(p.platform || "") + "</span>" +
                  icon("arrow-up-right", "preview__go") +
                "</span>" +
-               '<span class="preview__title" data-preview-title>' + esc(p.title || "") + "</span>" +
-               '<span class="preview__meta" data-preview-meta>' + esc(p.meta || "") + "</span>" +
-               '<span class="preview__stats" data-preview-stats' +
-                 (statsHtml ? "" : " hidden") + ">" + statsHtml + "</span>" +
+               (compact ? "" :
+                 '<span class="preview__title" data-preview-title>' + esc(p.title || "") + "</span>" +
+                 '<span class="preview__meta" data-preview-meta>' + esc(p.meta || "") + "</span>") +
+               (compact ? "" :
+                 '<span class="preview__stats" data-preview-stats' +
+                   (statsHtml ? "" : " hidden") + ">" + statsHtml + "</span>") +
              "</span>" +
            "</a>";
   }
 
-  function paintPreviews(mountId, list) {
+  function paintPreviews(mountId, list, compact) {
     var el = $(mountId);
     if (!el) return;
-    el.innerHTML = arr(list).map(previewCard).join("");
+    el.innerHTML = arr(list).map(function (p, i) { return previewCard(p, i, compact); }).join("");
   }
 
   /* ========================================================== Q2 · 在听 */
@@ -464,7 +467,8 @@ window.SITE_RENDER = (function () {
     var grid = $("gameRail");
     if (!grid) return;
 
-    var items = arr(d.items);
+    var items = arr(d.items).filter(function (g) { return g && !g.hidden; });
+    grid.classList.toggle("is-single", items.length === 1);
     grid.innerHTML = items.map(function (g, i) {
       var color = g.color ? "--game:" + esc(g.color) + ";" : "";
       var img = String(g.iconImage || "").trim();
@@ -500,6 +504,126 @@ window.SITE_RENDER = (function () {
                  : "") +
              "</article>";
     }).join("");
+  }
+
+  /* ---------- Q3 战绩：游戏时长 / 两周内 / 成就 ----------
+     版式参考用户给的小黑盒截图（不是拍脑袋定的）：
+       ┌────────┬──────────────────────────────────────┬────────┐
+       │ 封面   │ 游戏名                                │  🌟    │
+       │ 16:9   │ 2,491h ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓░░░░  28 h     │ 12/12  │
+       └────────┴──────────────────────────────────────┴────────┘
+     一行三段：封面 / 主区（名字 + 时长条 + 两周内）/ 成就。行与行之间一条细线，
+     不画卡片 —— 小黑盒也是这么排的，卡片会让 6 行变成 6 块砖。
+
+     数据来自 data/steam.json：
+       lib    { totalGames, totalHours, perfect, partial, source }
+       recent [{ appid, name, hours, hours2w, cover, ach:{have,total} }]
+     ⚠️ 这一块是**可选**的：抓不到就整块不渲染（不留空标题）。
+
+     ⚠️ 三个刻意的决定：
+       1. 时长条按 **√ 归一化**，不是线性。库里 2491h 和 2.7h 差 900 倍，
+          线性归一化会让除第一名以外全塌成 1px。√ 之后 109h→21%、2.7h→3%，
+          长短关系还看得出，页面也不至于只剩一根条。
+       2. 条的颜色按 appid 哈希出色相（见 hueOf），每款一个色 ——
+          这是小黑盒的做法：颜色不承载信息，只是让相邻两行能分开。
+       3. 只有**全成就**才给那枚星章（16px 的 award 图标）+ 强调色数字。
+          没打满就只写 x/y，不给任何装饰 —— 稀缺，才有意义。
+  */
+  /* appid → 色相。用 Knuth 乘法散列再乘黄金角：
+     相邻两行是"随机"的 appid，纯线性映射（appid*N % 360）在 appid 相差
+     360/gcd 的倍数时会撞成同色；散列 + 黄金角把撞色摊平。
+     颜色不承载信息，只负责让相邻两行分得开 —— 小黑盒也是这么做的。 */
+  function hueOf(appid) {
+    var x = ((Number(appid) || 0) * 2654435761) % 4294967296;
+    return Math.round(x * 0.6180339887) % 360;
+  }
+
+  function fmtH(n) {
+    var v = Number(n) || 0;
+    if (v >= 1000) return v.toLocaleString("en-US", { maximumFractionDigits: 0 });
+    if (v >= 10) return v.toFixed(1).replace(/\.0$/, "");
+    return (Math.round(v * 10) / 10).toString();
+  }
+
+  /* 顶部三格数据。partial=true 时把"总时长"写成「近 N 款时长」——
+     公开页只给了最近几款，把部分和的标签写成「游戏时长」是撒谎。 */
+  function boardSummaryHtml(lib) {
+    if (!lib) return "";
+    var items = [];
+    items.push('<span class="gb-sum__item"><b>' +
+      esc(lib.totalGames ? lib.totalGames.toLocaleString("en-US") : "—") +
+      "</b><i>游戏数量</i></span>");
+    items.push('<span class="gb-sum__item"><b>' +
+      (lib.totalHours ? esc(fmtH(lib.totalHours)) + '<small>h</small>' : "—") +
+      "</b><i>" + (lib.partial ? "近 " + (lib.rows || 0) + " 款时长" : "游戏时长") + "</i></span>");
+    items.push('<span class="gb-sum__item"><b>' +
+      esc(String(lib.perfect || 0)) + "</b><i>完美通关</i></span>");
+    return '<div class="gb-sum">' + items.join("") + "</div>";
+  }
+
+  function renderGameStats(data) {
+    var box = $("gameStats");
+    if (!box) return 0;
+
+    /* 兼容两种入参：直接给行数组（旧的调用方式）/ 给 { lib, recent } */
+    var lib = !Array.isArray(data) && data ? data.lib : null;
+    var rows = arr(Array.isArray(data) ? data : (data && data.recent))
+      .filter(function (g) { return g && (g.hours > 0 || (g.ach && g.ach.total > 0)); });
+
+    if (!rows.length) { box.hidden = true; box.innerHTML = ""; return 0; }
+
+    /* 时长条的分母：列表里最长的那款。√ 归一化见上方注释。 */
+    var maxH = rows.reduce(function (m, g) { return Math.max(m, Number(g.hours) || 0); }, 0) || 1;
+    if (lib) lib.rows = rows.length;
+
+    var list = rows.map(function (g, i) {
+      var cover = String(g.cover || "").trim();
+      var ach = g.ach && g.ach.total > 0 ? g.ach : null;
+      var done = ach && ach.have >= ach.total;
+      var pct = Math.max(4, Math.round(Math.sqrt((Number(g.hours) || 0) / maxH) * 100));
+      var hue = hueOf(g.appid);
+
+      return '<article class="gb-row' + (done ? " is-done" : "") + '" data-reveal' +
+               ' style="' + delay(i, 55) + "--c:hsl(" + hue + " 72% 56%);" + '">' +
+               '<span class="gb-row__cover' + (cover ? "" : " is-blank") + '">' +
+                 /* 图标常驻，只是默认不显示：header.jpg 挂了的时候
+                    由 CSS 把 .is-blank 打开，露出它 —— 否则那一格是个空黑框。 */
+                 '<i class="gb-row__ph">' + icon("gamepad") + "</i>" +
+                 (cover
+                   ? '<img src="' + esc(cover) + '" alt="" loading="lazy" decoding="async"' +
+                     ' onerror="this.parentNode.classList.add(\'is-blank\');this.remove()">'
+                   : "") +
+               "</span>" +
+               '<span class="gb-row__main">' +
+                 '<span class="gb-row__name">' + esc(g.name || "") + "</span>" +
+                 '<span class="gb-row__stats">' +
+                   '<b class="gb-row__hours">' + fmtH(g.hours) + "<small>h</small></b>" +
+                   '<span class="gb-row__bar" aria-hidden="true"><i style="width:' + pct + '%"></i></span>' +
+                   /* 两周内为 0 时**留空**，不画破折号：
+                      否则它和右边"没有成就"的 —/— 挨在一起，
+                      看起来像同一个数字（手机截图里格外明显）。 */
+                   (g.hours2w > 0
+                     ? '<span class="gb-row__w" title="最近两周">' + fmtH(g.hours2w) + "<small>h</small></span>"
+                     : '<span class="gb-row__w is-empty"></span>') +
+                 "</span>" +
+               "</span>" +
+               (ach
+                 ? '<span class="gb-row__ach">' +
+                     (done ? '<span class="gb-row__medal">' + icon("award") + "</span>" : "") +
+                     '<span class="gb-row__ach-num"><b>' + ach.have + "</b>/" + ach.total + "</span>" +
+                   "</span>"
+                 : '<span class="gb-row__ach is-none">—/—</span>') +
+             "</article>";
+    }).join("");
+
+    box.innerHTML = boardSummaryHtml(lib) + '<div class="gb-list">' + list + "</div>";
+    box.hidden = false;
+    /* ⚠️ 重绘之后必须重新挂一次入场观察器，否则行会永远停在 opacity:0
+       （数据在 DOM 里、屏幕上是空的）。和 setTracks 的处理保持一致。 */
+    if (window.SITE_MOTION && typeof window.SITE_MOTION.revealScan === "function") {
+      window.SITE_MOTION.revealScan(box);
+    }
+    return rows.length;
   }
 
   /* ========================================================== Q4 · 维修 */
@@ -719,6 +843,7 @@ window.SITE_RENDER = (function () {
     applyAccent: applyAccent,
     setTracks: setTracks,      // sync.js 用：抓到真实播放记录后重画
     setListenMeta: setListenMeta, // sync.js 用：只更新累计听歌 / 同步状态
-    previewCard: previewCard   // sync.js 用
+    previewCard: previewCard,  // sync.js 用
+    renderGameStats: renderGameStats // sync.js 用：读 data/steam.json 后画战绩
   };
 })();

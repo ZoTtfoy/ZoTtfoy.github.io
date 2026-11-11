@@ -90,9 +90,29 @@ window.SITE_STEAMWALL = (function () {
   var raf = 0;
   var running = false;
 
-  function cdnUrl(appid) {
-    return "https://cdn.cloudflare.steamstatic.com/steam/apps/" + appid +
-      "/library_600x900.jpg";
+  /* ⚠️ 2026-11-11 图床换血。
+     原来只用 cdn.cloudflare.steamstatic.com —— 国内网络下它会时通时不通，
+     表现是这面墙**一部分封面永远加载不出来**（瓦片露出接近白色的底色，
+     整屏看着像没渲染完）。实测三个域名都返回同一张图，换主机即可：
+       steamcdn-a.akamaihd.net      Akamai 老域名，国内最稳，也是最快的
+       cdn.akamai.steamstatic.com   新 Akamai 域名，兜底
+       cdn.cloudflare.steamstatic.com  最后再退到它
+     顺序按"国内可达性"排，不是按字母。 */
+  var CDN_HOSTS = [
+    "https://steamcdn-a.akamaihd.net",
+    "https://cdn.akamai.steamstatic.com",
+    "https://cdn.cloudflare.steamstatic.com"
+  ];
+
+  function cdnUrl(appid, host) {
+    return (host || CDN_HOSTS[0]) + "/steam/apps/" + appid + "/library_600x900.jpg";
+  }
+
+  /* 图挂了 / 还没到时的底色：由 appid 派生一个固定的深色相。
+     目的不是好看，是**别露白** —— 一面墙只要有几块近白的瓦片，
+     远看就是"页面没加载出来"。同一 appid 永远同一个颜色，重排也不晃。 */
+  function hueOf(appid) {
+    return ((Number(appid) || 0) * 47) % 360;
   }
 
   /* ------------------------------------------------------- 数据来源 */
@@ -181,16 +201,36 @@ window.SITE_STEAMWALL = (function () {
         var appid = seq[k % ROWS];
         /* 明暗起伏：两份对应位置必须一致，否则循环归零会闪一下 */
         var dim = 0.82 + (((c * 7 + (k % ROWS) * 3) % 5) * 0.035);
-        cells += '<span class="steamwall__tile" style="--dim:' + dim.toFixed(2) + '">' +
-          '<img src="' + cdnUrl(appid) + '" alt="" decoding="async" ' +
+        /* --h 是这张瓦片的兜底色相（见 hueOf）。图没到 / 图挂了时由它顶上，
+           绝不再露接近白色的 --bg-soft —— 那种"几块白瓦片"会让整面墙
+           看起来像没渲染完。 */
+        cells += '<span class="steamwall__tile" style="--dim:' + dim.toFixed(2) +
+          ';--h:' + hueOf(appid) + '">' +
+          '<img src="' + cdnUrl(appid, CDN_HOSTS[0]) + '" alt="" decoding="async" ' +
           'width="' + TILE_W + '" height="' + TILE_H + '" ' +
-          'onerror="this.closest(\'.steamwall__tile\').classList.add(\'is-broken\')">' +
+          'data-appid="' + appid + '" data-host="0">' +
           "</span>";
       }
       html += '<div class="steamwall__col" data-col="' + c + '" ' +
         'style="--col-speed:' + factor.toFixed(3) + '">' + cells + "</div>";
     }
     grid.innerHTML = html;
+
+    /* 图挂了就换下一个图床，全部试完才认输（落到底色）。
+       用 addEventListener 而不是内联 onerror：内联要挂一个全局函数，
+       而这里刚好在同一个作用域里，闭包更好读也更好测。 */
+    [].forEach.call(grid.querySelectorAll(".steamwall__tile img"), function (img) {
+      img.addEventListener("error", function () {
+        var tile = img.parentNode;
+        var step = Number(img.getAttribute("data-host") || 0) + 1;
+        if (step < CDN_HOSTS.length) {
+          img.setAttribute("data-host", String(step));
+          img.src = cdnUrl(img.getAttribute("data-appid"), CDN_HOSTS[step]);
+          return;
+        }
+        if (tile) tile.classList.add("is-broken");
+      });
+    });
 
     wall.setAttribute("data-ready", "1");
     colsEls = [].slice.call(grid.querySelectorAll(".steamwall__col"));

@@ -20,6 +20,14 @@
  *      node tools/verify-listen.js --sample
  * ========================================================================== */
 const { chromium } = require('playwright-core');
+
+/* 1×1 透明 PNG：外链图片的替身。
+   ⚠️ 页面要拉上百张境外 CDN 封面，只要一张卡住几十秒，`load` 就等不到，
+      整套断言白跑 —— 而它测的是结构与布局，与图片内容无关。 */
+const BLANK_PNG = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+  'base64');
+
 const fs = require('node:fs');
 const path = require('node:path');
 
@@ -98,6 +106,14 @@ function restore() {
       contentType: 'application/json',
       body: JSON.stringify({ hitokoto: '把复杂的东西，做得简单一点。', from: '测试' })
     }));
+    await page.route(/^https?:\/\/(?!127\.0\.0\.1|localhost)/, (route) =>
+
+      route.request().resourceType() === 'image'
+
+        ? route.fulfill({ status: 200, contentType: 'image/png', body: BLANK_PNG })
+
+        : route.continue());
+
     await page.goto(SITE, { waitUntil: 'load' });
     await page.waitForTimeout(1500);
     await page.evaluate(() => window.SITE_PAGED.goTo(1));

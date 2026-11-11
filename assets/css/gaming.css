@@ -22,8 +22,43 @@
   align-items: stretch;
 }
 
+/* 只剩一张卡时（Q3 现在是"Steam + 战绩列表"）：把它压成一条横卡，
+   否则 repeat(3) 会让它占 1/3 宽、右边空出 2/3，像少渲染了两块。 */
+.game-rail.is-single { grid-template-columns: minmax(0, 1fr); }
+.game-rail.is-single .game {
+  display: grid;
+  /* 图标 / 名字 / 好友码 / 外链箭头。好友码紧跟在名字后面 ——
+     原来把 1fr 给了名字列，1200px 下好友码被推到最右边、
+     离名字一千像素，看着像另一块内容。最后那列留给箭头贴右。 */
+  grid-template-columns: auto max-content max-content minmax(0, 1fr);
+  align-items: center;
+  gap: 14px;
+  padding: 13px 16px;
+}
+.game-rail.is-single .game__icon { margin-bottom: 0; }
+.game-rail.is-single .game__uid { width: auto; min-width: 240px; margin-top: 0; }
+.game-rail.is-single .game__name { white-space: nowrap; }
+.game-rail.is-single .game__link { justify-self: end; }
+
 @media (max-width: 900px) {
   .game-rail { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  /* 横卡在窄屏退回"图标 + ID"两行，别把 ID 挤成省略号 */
+  .game-rail.is-single { grid-template-columns: minmax(0, 1fr); }
+  .game-rail.is-single .game {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-rows: auto auto;
+    gap: 4px 10px;
+    padding: 12px 14px;
+  }
+  .game-rail.is-single .game__icon { grid-row: 1 / 3; }
+  .game-rail.is-single .game__name { grid-column: 2; }
+  .game-rail.is-single .game__uid {
+    grid-column: 2 / 4;
+    width: 100%;
+    min-width: 0;
+    margin-top: 4px;
+  }
+  .game-rail.is-single .game__link { grid-row: 1; grid-column: 3; }
 }
 
 /* ---------------------------------------------------------------- 卡片本体 */
@@ -249,7 +284,15 @@
   /* 每张略有明暗起伏，整面墙才不死板；不做入场动画 ——
      48 个格子同时淡入会在加载期露出大片底色，与"完全填充"相悖 */
   opacity: var(--dim, .9);
-  background: var(--bg-soft);
+  /* ⚠️ 兜底色由 appid 派生的色相决定（JS 写 --h），**不是 --bg-soft**。
+     用近白底色时，只要有一批封面没加载出来（弱网 / 图床被墙），
+     屏幕上就是几块白瓦片，远看等于"这页没渲染完"。
+     深色饱和的底色即使全是占位，也仍然是一面"有颜色的墙"。 */
+  background:
+    linear-gradient(150deg,
+      hsl(var(--h, 210) 34% 24%),
+      hsl(calc(var(--h, 210) + 38) 30% 15%));
+  background-color: hsl(var(--h, 210) 30% 20%);
 }
 
 .steamwall__tile img {
@@ -260,26 +303,36 @@
   filter: saturate(.86) contrast(1.03);
 }
 
-/* CDN 临时故障时不能开天窗：用一块深色渐变顶上，绝不留白 */
+/* CDN 全挂时也不能开天窗：留一块更暗的色块，颜色仍然由 --h 决定，
+   整面墙的明暗关系不会被几块白斑撕开 */
 .steamwall__tile.is-broken img { display: none; }
 .steamwall__tile.is-broken {
-  background: linear-gradient(135deg, var(--bg-soft), var(--bg-elev));
+  background:
+    radial-gradient(120% 90% at 30% 20%,
+      hsl(var(--h, 210) 26% 22%),
+      hsl(calc(var(--h, 210) + 30) 22% 12%));
 }
 
 /* 遮罩：边缘压实（和前后两屏接得上），中间保留封面的颜色。
    旧版中间压到 52% 太重，截图里几乎是一片白 —— 但也不能全撤，
    标题是直接压在背景上的，可读性靠这一层 + 卡片实底共同保证。 */
+/* ⚠️ 2026-11-11 重配。原来是 0% 和 100% 直接写 var(--bg)（**完全不透明**）：
+   深色主题下 --bg 是近黑，等于给顶/底各糊一条黑边，封面在那儿彻底消失；
+   浅色主题下 --bg 是近白，整面墙被糊成一片灰白 —— 用户手机截图里
+   "背景像没渲染出来"就是这个（他当时用的是浅色）。
+   现在两端压到 70%、中间只在 26~30%，Wall 在任何明暗下都还看得见；
+   文字可读性不靠这层，靠 .section__head 的三重光晕 + 卡片的实底。 */
 .steamwall__scrim {
   position: absolute;
   inset: 0;
   background:
     linear-gradient(to bottom,
-      var(--bg) 0%,
-      color-mix(in srgb, var(--bg) 74%, transparent) 12%,
-      color-mix(in srgb, var(--bg) 42%, transparent) 34%,
-      color-mix(in srgb, var(--bg) 38%, transparent) 56%,
-      color-mix(in srgb, var(--bg) 58%, transparent) 80%,
-      var(--bg) 100%);
+      color-mix(in srgb, var(--bg) 70%, transparent) 0%,
+      color-mix(in srgb, var(--bg) 52%, transparent) 12%,
+      color-mix(in srgb, var(--bg) 30%, transparent) 34%,
+      color-mix(in srgb, var(--bg) 26%, transparent) 56%,
+      color-mix(in srgb, var(--bg) 42%, transparent) 80%,
+      color-mix(in srgb, var(--bg) 70%, transparent) 100%);
 }
 @supports not (background: color-mix(in srgb, red 50%, transparent)) {
   .steamwall__scrim { background: var(--bg); opacity: .62; }
@@ -330,3 +383,221 @@
 }
 
 /* 不支持 color-mix 时 game 卡也要有底 */
+
+/* ================================================== 游戏战绩（时长 / 成就）
+   版式参照小黑盒的游戏库列表（用户指定）：
+     顶部三格数据  →  一行一款游戏：封面 / 名字 + 时长条 / 成就
+   数据在 data/steam.json 的 lib + recent[]，抓不到整块 hidden（见 render.js）。
+   ⚠️ 这里刻意**不用卡片**：六行卡片会让这一屏变成六块砖，
+      而列表（细线分隔）才像"游戏库"。 */
+
+.game-stats { margin-top: 18px; }
+
+/* ---------------------------------------------------- 顶部三格数据 */
+.gb-sum {
+  display: flex;
+  align-items: baseline;
+  gap: clamp(28px, 6vw, 64px);
+  /* 上和 Steam 卡、下和列表都要留出呼吸：这两处在深色底上很容易糊成一片 */
+  margin: 6px 2px 18px;
+}
+.gb-sum__item { display: flex; flex-direction: column; gap: 2px; }
+.gb-sum__item b {
+  font-family: var(--font-mono);
+  font-size: clamp(1.4rem, 2.4vw, 1.9rem);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -.02em;
+  line-height: 1;
+  color: var(--text);
+}
+.gb-sum__item b small {
+  margin-left: 2px;
+  font-size: .55em;
+  font-weight: 600;
+  color: var(--text-2);
+}
+.gb-sum__item i {
+  font-style: normal;
+  font-size: .7rem;
+  letter-spacing: .02em;
+  color: var(--text-3);
+}
+
+/* ------------------------------------------------------------ 列表 */
+.gb-list {
+  display: flex;
+  flex-direction: column;
+  /* 列表压在彩色封面墙上：给一层实底，字才稳（和 .game 同一条规矩） */
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--bg-elev);
+  overflow: hidden;
+}
+
+.gb-row {
+  display: grid;
+  grid-template-columns: 116px minmax(0, 1fr) 64px;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 16px;
+  /* 行间细线：用 border-top 而不是 gap，最后一行不会多出一条 */
+  border-top: 1px solid var(--line);
+}
+.gb-row:first-child { border-top: 0; }
+
+.gb-row__cover {
+  width: 116px;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border-radius: var(--r-sm);
+  background: var(--bg-soft);
+  display: grid;
+  place-items: center;
+  color: var(--text-3);
+}
+.gb-row__cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
+/* 占位图标：默认不占位（display:none），图挂了才由 .is-blank 打开。
+   用两层叠着而不是 JS 重建节点 —— onerror 里只能写一句话，越简单越不会错。 */
+.gb-row__ph { display: none; }
+.gb-row__cover.is-blank .gb-row__ph { display: grid; place-items: center; }
+.gb-row__ph .icon { width: 22px; height: 22px; }
+
+.gb-row__main { display: flex; flex-direction: column; gap: 7px; min-width: 0; }
+.gb-row__name {
+  overflow: hidden;
+  font-size: .95rem;
+  font-weight: 600;
+  letter-spacing: -.01em;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 时长 / 条 / 两周内 —— 三者一行，条吃满中间的余量 */
+.gb-row__stats {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) 52px;
+  align-items: center;
+  gap: 12px;
+}
+.gb-row__hours {
+  font-family: var(--font-mono);
+  font-size: .95rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -.01em;
+  color: var(--text);
+  white-space: nowrap;
+}
+.gb-row__hours small,
+.gb-row__w small { font-size: .72em; font-weight: 600; color: var(--text-3); margin-left: 1px; }
+
+/* 条的颜色来自 --c（appid 哈希出的色相，JS 写在内联 style 上）。
+   轨道用 --line，填充用 --c —— 小黑盒就是这么做的。 */
+.gb-row__bar {
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--line);
+}
+.gb-row__bar i {
+  display: block;
+  height: 100%;
+  min-width: 4px;
+  border-radius: 999px;
+  background: var(--c, var(--accent));
+}
+
+.gb-row__w {
+  font-family: var(--font-mono);
+  font-size: .78rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-2);
+  text-align: right;
+  white-space: nowrap;
+}
+.gb-row__w.is-empty { color: var(--text-3); }
+
+/* 成就：全成就才有勋章 + 强调色 */
+.gb-row__ach {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  text-align: center;
+}
+.gb-row__medal {
+  display: grid;
+  place-items: center;
+  color: var(--accent);
+}
+.gb-row__medal .icon { width: 17px; height: 17px; }
+.gb-row__ach-num {
+  font-family: var(--font-mono);
+  font-size: .78rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-2);
+  white-space: nowrap;
+}
+.gb-row__ach-num b { font-weight: 700; color: var(--text); }
+.gb-row.is-done .gb-row__ach-num,
+.gb-row.is-done .gb-row__ach-num b { color: var(--accent); }
+.gb-row__ach.is-none { color: var(--text-3); font-size: .78rem; }
+
+/* --------------------------------------------------------- 窄屏 */
+@media (max-width: 680px) {
+  .gb-sum { gap: 22px; padding-bottom: 10px; }
+  .gb-sum__item b { font-size: 1.25rem; }
+  .gb-sum__item i { font-size: .64rem; }
+
+  .gb-row {
+    /* 手机上封面缩到 84px，成就列收到 44px —— 
+       再宽游戏名就只剩「深空当铺：可能…」了 */
+    grid-template-columns: 84px minmax(0, 1fr) 44px;
+    gap: 10px;
+    padding: 8px 11px;
+  }
+  .gb-row__cover { width: 84px; border-radius: var(--r-xs); }
+  .gb-row__main { gap: 5px; }
+  .gb-row__name { font-size: .86rem; }
+  .gb-row__stats { grid-template-columns: auto minmax(0, 1fr) 40px; gap: 8px; }
+  .gb-row__hours { font-size: .86rem; }
+  .gb-row__bar { height: 5px; }
+  .gb-row__w { font-size: .7rem; }
+  .gb-row__medal .icon { width: 14px; height: 14px; }
+  .gb-row__ach-num { font-size: .7rem; }
+}
+
+/* ---------------------------------------------- 矮窗口：先缩行，再缩封面
+   320×568 实测这一屏多出 27px（战绩列表是新增的，把原先刚好的高度顶破了）。
+   档位（html[data-vp]）是全站通用的那套判断（density.js 按视口高度 + 宽度惩罚算），
+   这里只在 tight / mini 两级收尺寸 —— 不去动内容的"有没有"，只动"多大"。
+   ⚠️ 选择器带 [data-vp]，特异性比 @media 里的 .gb-row 高，所以放在文件末尾之外
+      也不会被上面的手机规则盖回去。 */
+html[data-vp="tight"] .gb-sum,
+html[data-vp="mini"] .gb-sum {
+  margin: 2px 2px 10px;
+  gap: 24px;
+}
+html[data-vp="tight"] .gb-sum__item b,
+html[data-vp="mini"] .gb-sum__item b { font-size: 1.1rem; }
+html[data-vp="tight"] .gb-sum__item i,
+html[data-vp="mini"] .gb-sum__item i { font-size: .62rem; }
+
+html[data-vp="tight"] .gb-row,
+html[data-vp="mini"] .gb-row {
+  grid-template-columns: 76px minmax(0, 1fr) 44px;
+  gap: 9px;
+  padding: 6px 10px;
+}
+html[data-vp="tight"] .gb-row__cover,
+html[data-vp="mini"] .gb-row__cover { width: 76px; }
+html[data-vp="tight"] .gb-row__main,
+html[data-vp="mini"] .gb-row__main { gap: 4px; }
+html[data-vp="tight"] .gb-row__name,
+html[data-vp="mini"] .gb-row__name { font-size: .82rem; }
+html[data-vp="tight"] .gb-row__stats,
+html[data-vp="mini"] .gb-row__stats { grid-template-columns: auto minmax(0, 1fr) 38px; gap: 7px; }
+html[data-vp="tight"] .gb-row__hours,
+html[data-vp="mini"] .gb-row__hours { font-size: .8rem; }

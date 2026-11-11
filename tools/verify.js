@@ -279,7 +279,10 @@ check(typeof ctx.SITE_SYNC === 'object' && typeof ctx.SITE_SYNC.applyTracks === 
 }
 
 /* ============================================================ Q3 · 游戏 */
-const games = (C.gaming?.items || []);
+/* 只统计**没被下线**的卡：明日方舟 / 无畏契约 现在是 hidden（见 config.js）。
+   断言拿"配置里可见的卡"和"渲染出来的卡"比，而不是拿数组长度比 ——
+   否则每次下线一张卡都要改测试。 */
+const games = (C.gaming?.items || []).filter((g) => g && !g.hidden);
 /* ⚠️ 匹配要精确到 class="game " 或 class="game" 开头，不能用 /class="game"/
    —— Steam 卡带 game--steam 修饰类，宽匹配会把同一张卡数两次。 */
 check(count('gameRail', /class="game[ "]/g) === games.length,

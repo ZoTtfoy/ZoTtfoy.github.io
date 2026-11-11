@@ -157,10 +157,6 @@
             return wrap.outerHTML;
           }).join("");
         box.hidden = false;
-        /* 数据一到，这张卡就不再是"只有副标题"的空卡 ——
-           把 render.js 打的 .is-statless 摘掉，否则副标题会和数据抢同一行
-           （CSS 里 .is-statless 专门放开了副标题的 display）。 */
-        node.classList.remove("is-statless");
       }
     }
 
@@ -176,12 +172,22 @@
     return n;
   }
 
+  /* ------------------------------------- Q3：游戏时长 / 成就（战绩） */
+  function applySteam(data) {
+    if (!data) return 0;
+    if (!window.SITE_RENDER || typeof window.SITE_RENDER.renderGameStats !== "function") return 0;
+    return window.SITE_RENDER.renderGameStats(data);
+  }
+
   /* --------------------------------------------------------------- 启动 */
   function run() {
     var listen = C.listen || {};
     var tasks = [
       getJSON(listen.dataFile || "data/netease.json").then(applyTracks),
-      getJSON("data/previews.json").then(applyPreviews)
+      getJSON("data/previews.json").then(applyPreviews),
+      /* 战绩和封面墙用的是同一个文件（steamwall.js 也在读它），
+         但那边只取 appid 列表，这边取 recent[] —— 各读一次，浏览器有缓存 */
+      getJSON("data/steam.json").then(applySteam)
     ];
 
     if (typeof Promise.allSettled === "function") {

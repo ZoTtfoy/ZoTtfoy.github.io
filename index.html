@@ -109,9 +109,9 @@
   <script defer src="assets/js/main.js"></script>
 
   <!-- 字体必须第一个：@font-face 越早被解析，首屏文字越快用上 MiSans。
-       里面是按 unicode-range 分片的 woff2 声明，浏览器只下用得着的片。 -->
+       woff2 就在 assets/fonts/（随仓库走，不走外部 CDN），
+       但仍按 unicode-range 分片声明，浏览器只下用得着的片。 -->
   <link rel="stylesheet" href="assets/css/fonts.css">
-  <link rel="preconnect" href="https://fastly.jsdelivr.net" crossorigin>
   <link rel="stylesheet" href="assets/css/tokens.css">
   <link rel="stylesheet" href="assets/css/backdrop.css">
   <link rel="stylesheet" href="assets/css/layout.css">
@@ -323,6 +323,9 @@
             <p class="section__lead" data-field="lead"></p>
           </header>
           <div class="game-rail" id="gameRail"></div>
+          <!-- 游戏战绩：时长 + 成就进度（sync.js 读 data/steam.json 后填充）。
+               数据来自 Steam 公开资料页，没有就整块不渲染 —— 不留空壳。 -->
+          <div class="game-stats" id="gameStats" hidden></div>
         </div>
       </section>
 

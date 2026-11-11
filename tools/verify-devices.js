@@ -21,6 +21,10 @@
 const { chromium } = require('playwright-core');
 
 const SITE = 'http://127.0.0.1:8791/';
+/* 1×1 透明 PNG：外链图片的替身（见下方 ctx.route 的说明） */
+const BLANK_PNG = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+  'base64');
 const notes = [], fails = [];
 const ok = (c, m) => c ? notes.push('OK  ' + m) : fails.push(m);
 
@@ -106,6 +110,16 @@ const META_SEL = [
       contentType: 'application/json',
       body: JSON.stringify({ hitokoto: '把复杂的东西，做得简单一点。', from: '测试' })
     }));
+    /* 外链图片一律回 1×1 透明 PNG。
+       ⚠️ 为什么必须挡：这张页面要拉 70+ 张网易云封面 + 40 多张 Steam 封面，
+         全部来自境外 CDN。只要有一张卡住 20~30 秒，`load` 就永远等不到，
+         整套机型断言白跑 —— 而它测的是布局，跟图片内容毫无关系。
+         用 fulfill 而不是 abort：abort 会在控制台留 ERR_FAILED，
+         干扰"没有 JS 报错"这类断言。 */
+    await ctx.route(/^https?:\/\/(?!127\.0\.0\.1|localhost)/, (route) =>
+      route.request().resourceType() === 'image'
+        ? route.fulfill({ status: 200, contentType: 'image/png', body: BLANK_PNG })
+        : route.continue());
     await p.goto(SITE, { waitUntil: 'load' });
     await p.waitForTimeout(1300);
 

@@ -62,6 +62,200 @@ async function pickSteamId() {
   return "";
 }
 
+/* ==========================================================================
+ *  游戏战绩：时长 / 成就 / 总数
+ * --------------------------------------------------------------------------
+ *  两条数据来源，**优先用 API，没有 key 就退回公开资料页**：
+ *
+ *   ① 有 key（推荐）
+ *      IPlayerService/GetOwnedGames 能一次拿到**整个库**：
+ *      game_count（游戏数量）、每款 playtime_forever（分钟）、
+ *      playtime_2weeks（最近两周）。配合 ISteamUserStats/GetPlayerAchievements
+ *      还能拿到每款的成就。这条路和「小黑盒」看到的是同一份数据。
+ *      key 是免费的：https://steamcommunity.com/dev/apikey
+ *      放法（任选其一，都不进仓库）：
+ *        · 环境变量 STEAM_API_KEY=xxx node scripts/sync-steam.mjs
+ *        · 在仓库根目录建一个 steam-key.txt，里面只写 key
+ *
+ *   ② 没 key（当前默认）
+ *      只能读公开资料页的「最新动态」：
+ *        /profiles/<id>/                      → 最近玩过的几款 + 总时数
+ *        /profiles/<id>/stats/<appid>/achievements → 「已解锁 X 项，共 Y 项」
+ *      公开页只给最近 3~5 款，所以页面上的"游戏时长"会标成「近 N 款」，
+ *      而不是假装那是全库总时长。
+ *
+ *  ⚠️ 为什么必须用真实浏览器：裸 fetch 在这台机器上会被 TLS 指纹挡住
+ *     （见文件顶注）。API 那条走普通 fetch 就行 —— api.steampowered.com 不挑。
+ * ========================================================================== */
+
+const UA =
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 " +
+  "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
+
+/* 横版头图（460×215）。列表里的缩略图用它，别用 2:3 的竖版封面 ——
+   竖版塞进 16:9 的框里会被裁掉一半。 */
+function headerUrl(appid) {
+  return `https://cdn.akamai.steamstatic.com/steam/apps/${appid}/header.jpg`;
+}
+
+async function readApiKey() {
+  if ((process.env.STEAM_API_KEY || "").trim()) return process.env.STEAM_API_KEY.trim();
+  try {
+    const txt = await fs.readFile(path.join(ROOT, "steam-key.txt"), "utf8");
+    const key = txt.trim().split(/\s+/)[0];
+    if (/^[0-9A-F]{32}$/i.test(key)) return key;
+  } catch { /* 没有就算了 */ }
+  return "";
+}
+
+/* 单款成就（API）。没有成就的游戏会返回 success:false，按"没有"处理。 */
+async function achViaApi(key, steamId, appid) {
+  const url =
+    `https://api.steampowered.com/ISteamUserStats/GetPlayerAchievements/v1/` +
+    `?key=${key}&steamid=${steamId}&appid=${appid}&l=schinese&format=json`;
+  try {
+    const r = await fetch(url);
+    const j = await r.json();
+    const ps = j && j.playerstats;
+    if (!ps || ps.success === false || !Array.isArray(ps.achievements)) return null;
+    const total = ps.achievements.length;
+    if (!total) return null;
+    const have = ps.achievements.filter((a) => a.achieved === 1).length;
+    return { have, total };
+  } catch {
+    return null;
+  }
+}
+
+/* ---------------------------------------------------------------- 路线① API */
+async function collectViaApi(steamId, key) {
+  const url =
+    `https://api.steampowered.com/IPlayerService/GetOwnedGames/v1/` +
+    `?key=${key}&steamid=${steamId}&include_appinfo=1&include_played_free_games=1` +
+    `&format=json&l=schinese`;
+  const res = await fetch(url);
+  const json = await res.json();
+  const body = (json && json.response) || {};
+  const games = Array.isArray(body.games) ? body.games : [];
+  if (!games.length) return null;
+
+  const ROWS = 8;                     // 页面上一屏能放下的行数（多出来的不渲染）
+  const sorted = games.slice().sort((a, b) => (b.playtime_forever || 0) - (a.playtime_forever || 0));
+  const minutes = games.reduce((s, g) => s + (g.playtime_forever || 0), 0);
+
+  const rows = [];
+  for (const g of sorted.slice(0, ROWS)) {
+    rows.push({
+      appid: g.appid,
+      name: g.name || String(g.appid),
+      hours: +(((g.playtime_forever || 0) / 60).toFixed(1)),
+      hours2w: +(((g.playtime_2weeks || 0) / 60).toFixed(1)),
+      last: "",
+      cover: headerUrl(g.appid),
+      ach: await achViaApi(key, steamId, g.appid)
+    });
+  }
+
+  return {
+    source: "api",
+    totalGames: body.game_count || games.length,
+    totalHours: Math.round(minutes / 60),
+    perfect: rows.filter((r) => r.ach && r.ach.have >= r.ach.total).length,
+    /* API 拿到的是全库，所以"游戏时长"就是真的总时长 */
+    partial: false,
+    rows
+  };
+}
+
+/* ------------------------------------------------------- 路线② 公开资料页 */
+async function collectViaPage(chromium, steamId, fallbackCount) {
+  const browser = await chromium.launch();
+  try {
+    const ctx = await browser.newContext({ locale: "zh-CN", userAgent: UA });
+    const page = await ctx.newPage();
+
+    const base = `https://steamcommunity.com/profiles/${steamId}/`;
+    const resp = await page.goto(base, { waitUntil: "domcontentloaded", timeout: 30000 });
+    if (!resp || resp.status() !== 200) {
+      log("资料页打不开（HTTP " + (resp ? resp.status() : "?") + "），跳过战绩");
+      return null;
+    }
+    await page.waitForTimeout(1500);
+
+    const raw = await page.evaluate(() =>
+      [...document.querySelectorAll(".recent_game")].map((el) => {
+        const a = el.querySelector(".game_name a");
+        const img = el.querySelector("img.game_capsule");
+        const det = el.querySelector(".game_info_details");
+        const href = (a && a.getAttribute("href")) || "";
+        const m = /\/app\/(\d+)/.exec(href);
+        return {
+          appid: m ? Number(m[1]) : 0,
+          name: a ? a.textContent.trim() : "",
+          cover: img ? img.src : "",
+          detail: det ? det.textContent.replace(/\s+/g, " ").trim() : ""
+        };
+      })
+    );
+
+    const rows = [];
+    for (const g of raw) {
+      if (!g.name) continue;
+      /* 「44.4 小时（过去 2 周） 总时数 2,491 小时 最后运行日期：11 月 7 日」
+         英文界面是 "44.4 hrs past 2 weeks / 2,491 hrs on record / Last played on…" —— 两套都认 */
+      const hm = /总时数\s*([\d,.]+)\s*小时/.exec(g.detail) ||
+                 /([\d,.]+)\s*hrs on record/i.exec(g.detail);
+      const wm = /([\d,.]+)\s*小时（过去 2 周）/.exec(g.detail) ||
+                 /([\d,.]+)\s*hrs past 2 weeks/i.exec(g.detail);
+      const lm = /最后运行日期[：:]\s*(.+)$/.exec(g.detail) ||
+                 /Last played on\s*(.+)$/i.exec(g.detail);
+
+      /* 缩略图换成横版头图：公开页给的 capsule_184x69 是 2.67:1，
+         在 16:9 的框里会裁掉两边；header.jpg 比例刚好。 */
+      const cover = g.appid ? headerUrl(g.appid) : g.cover;
+
+      let ach = null;
+      if (g.appid) {
+        try {
+          const r2 = await page.goto(base + `stats/${g.appid}/achievements`,
+            { waitUntil: "domcontentloaded", timeout: 30000 });
+          if (r2 && r2.status() === 200) {
+            const txt = await page.evaluate(() => document.body.innerText);
+            const am = /已解锁\s*(\d+)\s*项，共\s*(\d+)\s*项/.exec(txt) ||
+                       /(\d+)\s+of\s+(\d+)\s+\([\d.]+%\)\s+achievements earned/i.exec(txt);
+            if (am) ach = { have: Number(am[1]), total: Number(am[2]) };
+          }
+          await page.waitForTimeout(700);   // 给限流留余地
+        } catch { /* 单款失败不影响其它 */ }
+      }
+
+      rows.push({
+        appid: g.appid,
+        name: g.name,
+        hours: hm ? Number(hm[1].replace(/,/g, "")) : 0,
+        hours2w: wm ? Number(wm[1].replace(/,/g, "")) : 0,
+        last: lm ? lm[1].trim() : "",
+        cover,
+        ach
+      });
+    }
+
+    const totalHours = rows.reduce((s, r) => s + (r.hours || 0), 0);
+    return {
+      source: "page",
+      totalGames: fallbackCount || 0,
+      totalHours: Math.round(totalHours),
+      perfect: rows.filter((r) => r.ach && r.ach.have >= r.ach.total).length,
+      /* ⚠️ 公开页只给最近几款，这个"总时长"只是这几款之和 —— 
+         前端要据此把标签写成「近 N 款」，不能写成「游戏时长」。 */
+      partial: rows.length < (fallbackCount || 0),
+      rows
+    };
+  } finally {
+    await browser.close();
+  }
+}
+
 function extractApps(descriptions) {
   const map = new Map();
   for (const d of descriptions || []) {
@@ -196,6 +390,30 @@ async function main() {
       (games.length - portraitApps.length
         ? `（剔除 ${games.length - portraitApps.length} 个 404）` : ""));
 
+  /* 战绩：优先 API（全库），没有 key 就退回公开资料页（最近几款）。
+     抓不到不影响库存那条主线 —— board 为 null 时前端整块不渲染。 */
+  const key = await readApiKey();
+  let board = null;
+  if (key) {
+    log("战绩：走 Web API（全库）");
+    try { board = await collectViaApi(steamId, key); } catch (e) { log("API 失败：" + e.message); }
+  } else {
+    log("战绩：没有 STEAM_API_KEY / steam-key.txt，只能读公开资料页（最近几款）");
+    log("      想要「全库时长 + 游戏数量」，去 https://steamcommunity.com/dev/apikey 领一把（免费）");
+  }
+  if (!board) board = await collectViaPage(chromium, steamId, games.length);
+
+  if (board && board.rows.length) {
+    log(`战绩：${board.rows.length} 行 / 共 ${board.totalGames} 款 / ` +
+        `${board.totalHours}h / 完美通关 ${board.perfect}` +
+        (board.partial ? "（部分数据）" : ""));
+    log("      " + board.rows.map((g) =>
+      `${g.name} ${g.hours}h` + (g.ach ? ` ${g.ach.have}/${g.ach.total}` : "")
+    ).join(" / "));
+  } else {
+    log("战绩：没抓到，前端会跳过这一块");
+  }
+
   await fs.mkdir(path.dirname(OUT), { recursive: true });
   await fs.writeFile(
     OUT,
@@ -213,7 +431,18 @@ async function main() {
         portraitApps,
         portraitChecked: games.length,
         games: games.slice(0, 24).map((g) => ({ appid: g.appid, name: g.name })),
-        events: events.map((e) => e.appid)
+        events: events.map((e) => e.appid),
+        /* lib：顶部那条数据（游戏数量 / 总时长 / 完美通关）
+           + rows：列表里的几行（duration / 2w / 成就 / 封面）
+           partial=true 表示"总时长"只统计了列表里这几款，不是全库。 */
+        lib: board ? {
+          source: board.source,
+          totalGames: board.totalGames,
+          totalHours: board.totalHours,
+          perfect: board.perfect,
+          partial: board.partial
+        } : null,
+        recent: board ? board.rows : []
       },
       null,
       2

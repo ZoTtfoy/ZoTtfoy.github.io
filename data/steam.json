@@ -1,5 +1,5 @@
 {
-  "updated": "2026-11-11T03:26:01.268Z",
+  "updated": "2026-11-11T12:01:07.048Z",
   "steamId": "76561199120970154",
   "source": "inventory",
   "inventoryTotal": 280,
@@ -50,6 +50,47 @@
     3527290,
     3923090
   ],
+  "portraitBase": "https://cdn.cloudflare.steamstatic.com/steam/apps/{id}/library_600x900.jpg",
+  "portraitApps": [
+    220,
+    550,
+    620,
+    105600,
+    223850,
+    250900,
+    275850,
+    282140,
+    287700,
+    391220,
+    406150,
+    413150,
+    431960,
+    493340,
+    582160,
+    637310,
+    753640,
+    787480,
+    952040,
+    960170,
+    986800,
+    1038740,
+    1082430,
+    1098340,
+    1139900,
+    1172470,
+    1222140,
+    1237970,
+    1293830,
+    1377360,
+    1406990,
+    1426210,
+    1761390,
+    1817230,
+    2593370,
+    3186040,
+    3339420
+  ],
+  "portraitChecked": 45,
   "games": [
     {
       "appid": 220,
@@ -179,45 +220,46 @@
     3300180,
     3334340
   ],
-  "portraitBase": "https://cdn.cloudflare.steamstatic.com/steam/apps/{id}/library_600x900.jpg",
-  "portraitApps": [
-    220,
-    550,
-    620,
-    105600,
-    223850,
-    250900,
-    275850,
-    282140,
-    287700,
-    391220,
-    406150,
-    413150,
-    431960,
-    493340,
-    582160,
-    637310,
-    753640,
-    787480,
-    952040,
-    960170,
-    986800,
-    1038740,
-    1082430,
-    1098340,
-    1139900,
-    1172470,
-    1222140,
-    1237970,
-    1293830,
-    1377360,
-    1406990,
-    1426210,
-    1761390,
-    1817230,
-    2593370,
-    3186040,
-    3339420
-  ],
-  "portraitChecked": 45
+  "lib": {
+    "source": "page",
+    "totalGames": 45,
+    "totalHours": 2603,
+    "perfect": 1,
+    "partial": true
+  },
+  "recent": [
+    {
+      "appid": 3009140,
+      "name": "Salt Player for Windows",
+      "hours": 109,
+      "hours2w": 0,
+      "last": "11 月 10 日",
+      "cover": "https://cdn.akamai.steamstatic.com/steam/apps/3009140/header.jpg",
+      "ach": null
+    },
+    {
+      "appid": 1172470,
+      "name": "Apex Legends",
+      "hours": 2491,
+      "hours2w": 0,
+      "last": "11 月 7 日",
+      "cover": "https://cdn.akamai.steamstatic.com/steam/apps/1172470/header.jpg",
+      "ach": {
+        "have": 12,
+        "total": 12
+      }
+    },
+    {
+      "appid": 4348910,
+      "name": "深空当铺：可能是偷的",
+      "hours": 2.7,
+      "hours2w": 0,
+      "last": "11 月 3 日",
+      "cover": "https://cdn.akamai.steamstatic.com/steam/apps/4348910/header.jpg",
+      "ach": {
+        "have": 1,
+        "total": 21
+      }
+    }
+  ]
 }

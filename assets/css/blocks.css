@@ -247,26 +247,14 @@
 .preview-pair .preview__meta { display: none; }
 .preview-pair .preview__go { display: block; width: 13px; height: 13px; }
 
-/* ⚠️ 2026-11-11 用户点名：「主页网易云磁贴不显示我框住的内容」。
-   框的是那三格数据（77,063 首 / 100 首 / 11/11）。它在桌面是显示的，
-   在手机上被一行 display:none 抹掉了 —— 而数据正是这张卡存在的理由。
-   现在两端都保留：桌面维持原样，手机缩一号继续显示（见 680px 断点）。
-
-   「没有数据」的卡（当前是黑盒）不能就这样空着下半截 ——
-   它把 preview 的副标题当作第二行露出来。用 JS 打的 .is-statless 判断，
-   不用 :has() —— 后者在旧内核上会让**整条规则**失效，
-   而这只是"多显示一行字"的锦上添花，不值得冒整块消失的风险。 */
-.preview-pair .preview.is-statless .preview__meta {
-  display: -webkit-box;
-  /* 和数据块同一个对齐基线：.preview__stats 是 margin-top:auto（贴底），
-     这里也贴底，两张卡的第二行才会在同一条水平线上。
-     用 6px 的 margin 会让副标题紧跟在平台名下面，和右边那张错开十几像素。 */
-  margin-top: auto;
-  padding-top: 6px;
-  font-size: .72rem;
-  line-height: 1.4;
-  -webkit-line-clamp: 2;
-}
+/* ⚠️ 2026-11-11 用户要求：「磁贴内文字去掉，只要网易云音乐和小黑盒」。
+   Q1 这两张卡从此就是**单行**：图标 + 平台名 + 外链箭头。
+   render.js 会给它们打 .preview--slim，那三块（标题 / 副标题 / 数据）
+   压根不渲染 —— 这里的 display:none 只是给「非 slim 形态」兜底，
+   防止哪天有人把非紧凑卡塞进 .preview-pair。 */
+.preview-pair .preview--slim .preview__title,
+.preview-pair .preview--slim .preview__meta,
+.preview-pair .preview--slim .preview__stats { display: none; }
 
 /* 例外：如果某张卡在后台配了封面（cover 非空），它本身就是一张缩略图，
    压成 40px 细条会把图裁掉大半。这时改走「左边 40px 方图 + 右边单行」，
@@ -505,11 +493,20 @@
   margin-right: -2px;
   object-fit: cover;
   filter: saturate(.86);
-  background: var(--bg-soft);
+  /* 兜底色由封面的 URL 哈希出色相（JS 写 --h）。
+     用 --bg-soft 那种近白灰时，弱网下几块没加载出来的瓦片
+     会让整面墙看起来"没渲染完" —— 深色饱和的占位至少还是面墙。 */
+  background:
+    linear-gradient(150deg,
+      hsl(var(--h, 210) 30% 26%),
+      hsl(calc(var(--h, 210) + 36) 26% 16%));
 }
 /* CDN 临时故障不能开天窗 */
 .albumwall__row img.is-broken {
-  background: linear-gradient(135deg, var(--bg-soft), var(--bg-elev));
+  background:
+    radial-gradient(120% 90% at 30% 20%,
+      hsl(var(--h, 210) 24% 24%),
+      hsl(calc(var(--h, 210) + 30) 20% 13%));
 }
 
 /* 遮罩：边缘压实（和前后两屏接得上），中间只留 40% ——
@@ -518,14 +515,16 @@
 .albumwall__scrim {
   position: absolute;
   inset: 0;
+  /* 与游戏墙同一条规则（见 gaming.css 的 .steamwall__scrim 注释）：
+     两端不再写不透明的 var(--bg)，否则浅色主题下整面墙会被糊成灰白。 */
   background:
     linear-gradient(to bottom,
-      color-mix(in srgb, var(--bg) 88%, transparent) 0%,
-      color-mix(in srgb, var(--bg) 64%, transparent) 12%,
-      color-mix(in srgb, var(--bg) 40%, transparent) 35%,
-      color-mix(in srgb, var(--bg) 40%, transparent) 65%,
-      color-mix(in srgb, var(--bg) 66%, transparent) 88%,
-      color-mix(in srgb, var(--bg) 88%, transparent) 100%);
+      color-mix(in srgb, var(--bg) 72%, transparent) 0%,
+      color-mix(in srgb, var(--bg) 50%, transparent) 12%,
+      color-mix(in srgb, var(--bg) 30%, transparent) 35%,
+      color-mix(in srgb, var(--bg) 28%, transparent) 65%,
+      color-mix(in srgb, var(--bg) 46%, transparent) 88%,
+      color-mix(in srgb, var(--bg) 72%, transparent) 100%);
 }
 @supports not (background: color-mix(in srgb, red 50%, transparent)) {
   .albumwall__scrim { background: var(--bg); opacity: .68; }
@@ -1390,36 +1389,6 @@
   .preview-pair .preview__go { display: block; width: 12px; height: 12px; }
   /* 配了封面的那张（当前没配，留着兜底）在手机上缩到 32px，仍是一行高 */
   .preview-pair .preview--cover .preview__cover { width: 32px; height: 32px; }
-
-  /* 数据块：手机上**保留**，不再 display:none。
-     这里两列各约 148px（390 宽），三格数据放不下 —— 硬塞会折成两行，
-     而右边那张（黑盒）只有一行，两卡高度就一高一矮。
-     所以手机上只留前两格（累计听歌 / 本周在听），第三格「同步于 11/11」
-     是元信息：同一屏底部的「已同步」已经说了这件事，重复一遍不值 20px。
-     字号各降一档，但 600/700 的字重不动 —— 数字要能一眼看出是数字。 */
-  .preview-pair .preview__stats {
-    display: flex;
-    flex-wrap: nowrap;
-    gap: 3px 9px;
-    margin-top: 7px;
-    padding-top: 0;
-  }
-  .preview-pair .preview__stat {
-    font-size: .6rem;
-    line-height: 1.3;
-    letter-spacing: .01em;
-    white-space: nowrap;
-  }
-  .preview-pair .preview__stat:nth-child(n + 3) { display: none; }
-  .preview-pair .preview__stat b { font-size: .78rem; }
-  /* 没有数据的那张，副标题在同高度上顶第二行 —— 两卡仍然等高 */
-  .preview-pair .preview.is-statless .preview__meta {
-    margin-top: auto;
-    padding-top: 7px;
-    font-size: .68rem;
-    line-height: 1.3;
-    -webkit-line-clamp: 1;
-  }
 
   /* ---------------------------------------------------------- Q4 维修 */
   /* 这一屏是六屏里内容最多的：摘要卡 + 计算器 4 步 + 报价表。

@@ -98,6 +98,16 @@ window.SITE_ALBUMWALL = (function () {
       : url + (url.indexOf("?") >= 0 ? "&" : "?") + "param=400y400";
   }
 
+  /* 封面没加载出来时的兜底色相：由 URL 字符串哈希出来。
+     同一个封面永远同一个颜色（不会每次刷新换色），不同封面互相错开。
+     为什么不用 --bg-soft：那是个接近白的灰，弱网下几块白瓦片
+     会让整面墙看起来像"没渲染完"——游戏墙踩过同一个坑。 */
+  function hueOf(url) {
+    var s = String(url || ""), h = 0;
+    for (var i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) % 100003;
+    return h % 360;
+  }
+
   function fromConfig() {
     var f = (C.listen && C.listen.fallback) || [];
     return f.map(function (t) { return bigCover(t.cover); }).filter(Boolean);
@@ -161,8 +171,12 @@ window.SITE_ALBUMWALL = (function () {
       var cells = "";
       for (var copy = 0; copy < 2; copy++) {
         for (var j = 0; j < 6; j++) {
+          /* --h：封面没到 / 加载失败时的兜底色相。
+             和游戏墙同一个理由 —— 别用近白底色，几块白瓦片
+             会让整面墙看起来像"没渲染完"。 */
           cells += '<img src="' + seq[j] + '" alt="" decoding="async" ' +
             'width="' + TILE + '" height="' + TILE + '" ' +
+            'style="--h:' + hueOf(seq[j]) + '" ' +
             'onerror="this.classList.add(\'is-broken\')">';
         }
       }

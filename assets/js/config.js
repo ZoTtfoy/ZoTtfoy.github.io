@@ -69,16 +69,10 @@ window.SITE_CONFIG = {
               title: "我的音乐主页",
               meta: "歌单 · 红心 · 最近在听",
               cover: "",
-              /* 这三格是 data/previews.json 的快照。
-                 ⚠️ 留在这里不是为了"编数据"，而是为了**首屏就有内容**：
-                    sync.js 拿到 json 之前的那 100~300ms 里，卡片不能空着半截
-                    （空着的那一下正好是用户视线落在页面上的时候）。
-                    抓取成功后 sync.js 会用真数据覆盖，两边本来就一致。 */
-              stats: [
-                  { label: "累计听歌", value: "77,063 首" },
-                  { label: "本周在听", value: "100 首" },
-                  { label: "同步于", value: "11/11" }
-                ],
+              /* ⚠️ 2026-11-11：Q1 的磁贴改成**单行**（只要平台名），
+                 所以这里不再需要 stats —— 数据本身还在 data/previews.json 里，
+                 sync.js 照样会取，只是不上屏（render.js 的 compact 分支不渲染）。 */
+              stats: [],
               accent: "#c20c0c"
             },
           {
@@ -168,7 +162,12 @@ window.SITE_CONFIG = {
               uidLabel: "博士 ID",
               uid: "Zotrod#0001",
               server: "官服",
-              color: "#4a90d9"
+              color: "#4a90d9",
+              /* ⚠️ 2026-11-11 用户要求先下线：这一屏改成"Steam 战绩"之后，
+                 明日方舟 / 无畏契约没有可同步的时长与成就（官方没有公开接口），
+                 留着就是两张只有 ID 的空卡，和左边的战绩列表不成体系。
+                 数据全留着 —— 把 hidden 去掉就回来。 */
+              hidden: true
             },
           {
               icon: "valorant",
@@ -176,7 +175,8 @@ window.SITE_CONFIG = {
               uidLabel: "Riot ID",
               uid: "Zotrod#0806",
               server: "亚服",
-              color: "#ff4655"
+              color: "#ff4655",
+              hidden: true
             }
         ]
     },

@@ -55,8 +55,10 @@ ok(!!C.sections.gaming, 'sections 里注册了 gaming');
 /* server 是 2026-11-11 恢复的：卡片上要标「官服 / 亚服 / 公开库存」——
    同一个 ID 在不同服不是同一个账号，这是访客需要知道的信息，
    不是介绍性内容。rank / stats / note 仍然禁止。 */
-const ALLOWED = ['icon', 'iconImage', 'name', 'uidLabel', 'uid', 'server', 'color', 'link', 'steam'];
-games.forEach(g => {
+/* hidden：这一项"配置着但先不上屏"（明日方舟 / 无畏契约，见 config.js）。
+   它不是内容字段，是开关 —— 所以列进白名单，且下线项不参与下面的内容断言。 */
+const ALLOWED = ['icon', 'iconImage', 'name', 'uidLabel', 'uid', 'server', 'color', 'link', 'steam', 'hidden'];
+games.filter(g => !g.hidden).forEach(g => {
   ok(typeof g.name === 'string' && g.name.length > 0, g.name + ': 有游戏名');
   ok(typeof g.uid === 'string' && g.uid.length > 0, g.name + ': 有可复制的 ID');
   ok(!g.color || /^#[0-9a-f]{3,8}$/i.test(g.color), g.name + ': 品牌色合法');
@@ -269,6 +271,13 @@ ok(R.pages.every(p => !p._classes.has('is-entering')),
 let chromium;
 try { chromium = require('playwright-core').chromium; } catch (e) { chromium = null; }
 
+/* 1×1 透明 PNG：外链图片的替身。
+   ⚠️ 这一屏的背景要拉几十张 Steam 封面，全部来自境外 CDN；
+      只要一张卡住，`load` 就等不到，整套断言白跑。测的是布局，与图片内容无关。 */
+const BLANK_PNG = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+  'base64');
+
 async function browserChecks() {
   if (!chromium) {
     notes.push('--  未安装 playwright-core，跳过浏览器端校验');
@@ -311,6 +320,14 @@ async function browserChecks() {
       if (route.request().resourceType() !== 'image') return route.continue();
       return route.fulfill({ status: 200, contentType: 'image/png', body: BLANK });
     });
+    await page.route(/^https?:\/\/(?!127\.0\.0\.1|localhost)/, (route) =>
+
+      route.request().resourceType() === 'image'
+
+        ? route.fulfill({ status: 200, contentType: 'image/png', body: BLANK_PNG })
+
+        : route.continue());
+
     await page.goto(URL, { waitUntil: 'load' });
     await page.waitForTimeout(1600);
     const tag = '[' + vp.n + '] ';
@@ -351,7 +368,11 @@ async function browserChecks() {
     ok(layout.railOverflow !== 'auto' || !layout.scrollable,
        tag + '游戏卡不做横向滚动（overflowX=' + layout.railOverflow + '）');
     ok(!/x mandatory/.test(layout.railSnap), tag + '未启用横向吸附');
-    ok(layout.cols >= 2, tag + '游戏卡为多列网格（' + layout.cols + ' 列）');
+    /* 只剩一张卡时（Q3 现在是"Steam 一条横卡 + 战绩列表"）本来就该是 1 列；
+       两张以上才要求多列网格，否则横卡会退回成一块窄砖。 */
+    const visibleGames = (C.gaming?.items || []).filter(g => g && !g.hidden).length;
+    ok(layout.cols >= Math.min(2, visibleGames),
+       tag + '游戏卡列数匹配（' + layout.cols + ' 列 / ' + visibleGames + ' 张）');
     ok(layout.slack > 0, tag + '游戏页仍有余量（' + layout.slack + 'px）');
     /* 手机两列网格下每张约 171px —— 这是设计值，不是缺陷 */
     ok(layout.cardW >= 150, tag + '卡片宽度可用（' + layout.cardW + 'px）');
@@ -487,6 +508,10 @@ async function browserChecks() {
   {
     const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, reducedMotion: 'reduce' });
     const page = await ctx.newPage();
+    await ctx.route(/^https?:\/\/(?!127\.0\.0\.1|localhost)/, (route) =>
+      route.request().resourceType() === 'image'
+        ? route.fulfill({ status: 200, contentType: 'image/png', body: BLANK_PNG })
+        : route.continue());
     await page.goto(URL, { waitUntil: 'load' });
     await page.waitForTimeout(1200);
     const r = await page.evaluate(() => {
@@ -506,6 +531,10 @@ async function browserChecks() {
   {
     const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
     const page = await ctx.newPage();
+    await ctx.route(/^https?:\/\/(?!127\.0\.0\.1|localhost)/, (route) =>
+      route.request().resourceType() === 'image'
+        ? route.fulfill({ status: 200, contentType: 'image/png', body: BLANK_PNG })
+        : route.continue());
     await page.goto(URL, { waitUntil: 'load' });
     await page.waitForTimeout(900);
     ok(await page.evaluate(() => document.getElementById('pageHint').classList.contains('is-shown')),
@@ -535,6 +564,10 @@ async function browserChecks() {
 
     const ctx = await browser.newContext({ viewport: { width: 1280, height: 1000 } });
     const page = await ctx.newPage();
+    await ctx.route(/^https?:\/\/(?!127\.0\.0\.1|localhost)/, (route) =>
+      route.request().resourceType() === 'image'
+        ? route.fulfill({ status: 200, contentType: 'image/png', body: BLANK_PNG })
+        : route.continue());
     await page.goto(URL.replace(/\/$/, '') + '/admin.html', { waitUntil: 'load' });
     await page.fill('#gateUser', user);
     await page.fill('#gatePass', pass);
