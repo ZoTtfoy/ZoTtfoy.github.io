@@ -74,6 +74,24 @@ html[data-paged="on"] [data-fit="tight"] .profile__tagline { margin-top: 8px; }
 html[data-paged="on"] [data-fit="tight"] .profile__intro { margin-top: 11px; }
 html[data-paged="on"] [data-fit="tight"] .contact-pair { margin-top: 16px; }
 html[data-paged="on"] [data-fit="tight"] .ccard { padding: 11px 12px 12px; }
+
+/* 根字号改成"永不低于 16px"之后，这两档各多出 3~7px 溢出 ——
+   一屏一页是硬约束，只能从留白里扣，不能把字缩回去。
+   数据来源：verify-density 的 144 个桌面尺寸矩阵（920×600 / 810×800）。 */
+html[data-paged="on"] .hero[data-fit="tight"] {
+  /* 600 高的窗口里 hero 比视口高 3px：底部留白 42 → 36 即可 */
+  padding-bottom: 36px;
+}
+html[data-paged="on"] [data-fit="compact"] .game-board {
+  /* 810×800 下战绩板多占 7px：顶部间距 24 → 16 */
+  margin-top: 16px;
+}
+/* 游戏屏是六屏里最高的一屏（背景墙 + 顶栏 + 三格 + 列表）。
+   810×800 这档它的 data-fit 仍是 roomy，上面那条 compact 规则不命中，
+   直接从它自己的顶部留白扣 8px —— 比等到溢出再降档更稳。 */
+html[data-paged="on"] #gaming {
+  padding-top: calc(var(--header-h) + clamp(16px, 3vh, 40px));
+}
 html[data-paged="on"] [data-fit="tight"] .hero__actions { margin-top: 15px; }
 
 /* 摘要卡 */

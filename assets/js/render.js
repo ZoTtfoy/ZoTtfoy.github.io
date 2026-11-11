@@ -726,7 +726,10 @@ window.SITE_RENDER = (function () {
     /* 底部留白：区块内边距 + 页码条 / 回到顶部按钮那一带 */
     var room = budget - listTop - padBottom - 18;
     var total = list.children.length;
-    var visible = Math.max(2, Math.floor(room / rowH));
+    /* 下限是 1 行，不是 2 行：680 高的窗口里"顶栏 + 三格 + 两行 + 底带"
+       会超出 9~12px（根字号钉在 16px 之后）。宁可少显示一行，
+       也不能把一屏顶破 —— 溢出会连带翻页吸附一起失灵。 */
+    var visible = Math.max(1, Math.floor(room / rowH));
 
     /* 要滚的时候，底部那条"查看全部"是**压在列表上**的（position:absolute）。
        所以算行数时必须先把它的真实高度让出来，否则最后一行的名字和小时候
@@ -740,7 +743,7 @@ window.SITE_RENDER = (function () {
     var strip = (more && more.offsetHeight) || 46;
 
     if (visible < total) {
-      visible = Math.max(2, Math.floor((room - strip) / rowH));
+      visible = Math.max(1, Math.floor((room - strip) / rowH));
     }
 
     if (visible >= total) {                /* 装得下就全展示，不出滚动条 */
@@ -775,7 +778,7 @@ window.SITE_RENDER = (function () {
     var realH = list.children[0] ? list.children[0].getBoundingClientRect().height : 0;
     if (realH > 0 && Math.abs(realH - rowH) > 0.4) {
       rowH = realH;
-      visible = Math.max(2, Math.floor((room - strip) / rowH));
+      visible = Math.max(1, Math.floor((room - strip) / rowH));
       if (visible >= total) {
         list.style.maxHeight = "";
         list.classList.remove("is-scroll");
