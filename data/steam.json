@@ -1,5 +1,5 @@
 {
-  "updated": "2026-11-11T13:08:51.434Z",
+  "updated": "2026-11-11T14:10:15.604Z",
   "steamId": "76561199120970154",
   "source": "inventory",
   "inventoryTotal": 280,
@@ -224,7 +224,7 @@
     "source": "api",
     "totalGames": 143,
     "totalHours": 3786,
-    "perfect": 4,
+    "perfect": 5,
     "partial": false
   },
   "recent": [
@@ -480,6 +480,133 @@
       "ach": {
         "have": 21,
         "total": 69
+      }
+    },
+    {
+      "appid": 986800,
+      "name": "AVICII Invector",
+      "hours": 15.4,
+      "hours2w": 0,
+      "last": "",
+      "cover": "https://cdn.akamai.steamstatic.com/steam/apps/986800/header.jpg",
+      "coverFallback": "",
+      "ach": {
+        "have": 15,
+        "total": 24
+      }
+    },
+    {
+      "appid": 629520,
+      "name": "Soundpad",
+      "hours": 15.1,
+      "hours2w": 0,
+      "last": "",
+      "cover": "https://cdn.akamai.steamstatic.com/steam/apps/629520/header.jpg",
+      "coverFallback": "",
+      "ach": null
+    },
+    {
+      "appid": 2073850,
+      "name": "THE FINALS",
+      "hours": 14.2,
+      "hours2w": 0,
+      "last": "",
+      "cover": "https://cdn.akamai.steamstatic.com/steam/apps/2073850/header.jpg",
+      "coverFallback": "",
+      "ach": {
+        "have": 19,
+        "total": 50
+      }
+    },
+    {
+      "appid": 730,
+      "name": "Counter-Strike 2",
+      "hours": 13.8,
+      "hours2w": 0,
+      "last": "",
+      "cover": "https://cdn.akamai.steamstatic.com/steam/apps/730/header.jpg",
+      "coverFallback": "",
+      "ach": {
+        "have": 1,
+        "total": 1
+      }
+    },
+    {
+      "appid": 1139900,
+      "name": "Ghostrunner",
+      "hours": 13.4,
+      "hours2w": 0,
+      "last": "",
+      "cover": "https://cdn.akamai.steamstatic.com/steam/apps/1139900/header.jpg",
+      "coverFallback": "",
+      "ach": {
+        "have": 6,
+        "total": 45
+      }
+    },
+    {
+      "appid": 223850,
+      "name": "3DMark",
+      "hours": 12.4,
+      "hours2w": 0,
+      "last": "",
+      "cover": "https://cdn.akamai.steamstatic.com/steam/apps/223850/header.jpg",
+      "coverFallback": "",
+      "ach": {
+        "have": 10,
+        "total": 29
+      }
+    },
+    {
+      "appid": 287700,
+      "name": "METAL GEAR SOLID V: THE PHANTOM PAIN",
+      "hours": 12,
+      "hours2w": 0,
+      "last": "",
+      "cover": "https://cdn.akamai.steamstatic.com/steam/apps/287700/header.jpg",
+      "coverFallback": "",
+      "ach": {
+        "have": 7,
+        "total": 42
+      }
+    },
+    {
+      "appid": 493340,
+      "name": "Planet Coaster",
+      "hours": 9.9,
+      "hours2w": 0,
+      "last": "",
+      "cover": "https://cdn.akamai.steamstatic.com/steam/apps/493340/header.jpg",
+      "coverFallback": "",
+      "ach": {
+        "have": 9,
+        "total": 32
+      }
+    },
+    {
+      "appid": 753640,
+      "name": "Outer Wilds",
+      "hours": 8.9,
+      "hours2w": 0,
+      "last": "",
+      "cover": "https://cdn.akamai.steamstatic.com/steam/apps/753640/header.jpg",
+      "coverFallback": "",
+      "ach": {
+        "have": 2,
+        "total": 31
+      }
+    },
+    {
+      "appid": 620,
+      "name": "Portal 2",
+      "hours": 8.8,
+      "hours2w": 0,
+      "last": "",
+      "cover": "https://cdn.akamai.steamstatic.com/steam/apps/620/header.jpg",
+      "coverFallback": "",
+      "ach": {
+        "have": 18,
+        "total": 51
       }
     }
   ],
