@@ -157,8 +157,10 @@
     var lastSig = "", stableAt = 0;
     (function loop() {
       var groups = collect();
-      var all = groups[0].concat(groups[1], groups[2]);
-      var sig = hash(all.slice().sort().join("|")) + "/" + all.length;
+      /* ⚠️ 只看第 1、2 屏：闸门等的是它们。第 3 屏的数据走 sync.js 的 idle 调度，
+         最晚 2s 才到；把它算进"稳定"判据会让首访白白多等 2 秒。 */
+      var crit = groups[0].concat(groups[1]);
+      var sig = hash(crit.slice().sort().join("|")) + "/" + crit.length;
 
       if (sig !== lastSig) { lastSig = sig; stableAt = Date.now(); }
       var settled = stableAt && (Date.now() - stableAt >= 300);
@@ -175,7 +177,9 @@
 
     /* 排序后再哈希：同一组封面不论渲染顺序如何都得到同一个版本号，
        否则"今天先画哪一张"这种无关差异会让闸门天天重开。 */
-    state.version = hash(all.slice().sort().join("|"));
+    /* 版本只由"闸门实际等待的那批图"决定 —— 这样版本变化 = 闸门该重跑，
+       两者语义一致；第三屏的封面换了不需要为此挡住任何人。 */
+    state.version = hash(crit.slice().sort().join("|"));
     state.total = crit.length;
 
     var warm = read(KEY_W) === "1" && read(KEY_V) === state.version;
