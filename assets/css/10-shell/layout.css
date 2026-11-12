@@ -50,6 +50,20 @@
   .site-header.is-scrolling { background: var(--header-bg); }
 }
 
+/* 2026-11-12 第五轮：翻页期把毛玻璃关到**停稳**为止。
+   motion.js 的 is-scrolling 只有 180ms，盖不住 goTo 那段 ~700ms 平滑滚动；
+   实测只关毛玻璃就能把翻页 p90 从 66.7ms 拉回 16.8ms。
+   背景沿用 is-scrolling 的同一色源，避免翻页时顶栏忽然变亮。
+   标记由 paged.js 的 flipStart/flipRenew 维护，触摸自由滚动同样覆盖。 */
+html[data-flipping="1"] .site-header {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  background: color-mix(in srgb, var(--header-bg) 96%, transparent);
+}
+@supports not (background: color-mix(in srgb, red 50%, transparent)) {
+  html[data-flipping="1"] .site-header { background: var(--header-bg); }
+}
+
 .header__inner {
   display: grid;
   grid-template-columns: 1fr auto 1fr;

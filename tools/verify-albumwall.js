@@ -18,9 +18,9 @@ const SITE = 'http://127.0.0.1:8791/';
 const notes = [], fails = [];
 const ok = (c, m) => c ? notes.push('OK  ' + m) : fails.push(m);
 
-const INST = 2400;
-const TILE = 400;
-const PERIOD = 2400;
+const INST = 1200;
+const TILE = 200;
+const PERIOD = 1200;
 
 (async () => {
   const browser = await chromium.launch();
@@ -80,9 +80,9 @@ const PERIOD = 2400;
   ok(r.bigCovers === r.imgs, '用的是 400y400 大图，不是列表里的 120y120 缩略图');
   ok(r.unique >= 24, '至少用了 24 种不同封面（' + r.unique + ' 种）');
   ok(r.covers >= 90, '数据源是本周完整曲库（' + r.covers + ' 首）');
-  ok(r.inst === '2400px', '固定 2400×2400 实例（' + r.inst + '）');
+  ok(r.inst === '1200px', '固定 1200×1200 实例（' + r.inst + '）');
   ok(r.gap === '0px', '行间 gap 为 0（' + r.gap + '）');
-  ok(r.period === PERIOD, '循环周期 = 单份 6 张 = 2400px');
+  ok(r.period === PERIOD, '循环周期 = 单份 6 张 = 1200px');
 
   /* ------------------------------------------------- 2. 135 左 / 246 右 */
   const expectDirs = ['left', 'right', 'left', 'right', 'left', 'right'];
@@ -102,12 +102,12 @@ const PERIOD = 2400;
 
   const xs = await readX();
   ok(xs.every(x => x >= -PERIOD - 1 && x <= 0.5),
-    '所有行位移都落在 [-2400, 0]，内容始终盖住实例（' +
+    '所有行位移都落在 [-1200, 0]，内容始终盖住实例（' +
     xs.map(v => v.toFixed(0)).join('/') + '）');
   ok(xs.filter((_, i) => i % 2 === 0).every(x => x < 0 || x === 0),
-    '左移行的位移是 0 → -2400 区间内的负值或起点 0');
+    '左移行的位移是 0 → -1200 区间内的负值或起点 0');
   ok(xs.filter((_, i) => i % 2 === 1).every(x => x <= 0 && x > -PERIOD),
-    '右移行同样落在 [-2400, 0]，只是运动方向相反');
+    '右移行同样落在 [-1200, 0]，只是运动方向相反');
   ok(new Set(xs.map(v => Math.round(v))).size === 6,
     '同一时刻六行位移互不相同（' + xs.map(v => v.toFixed(0)).join('/') + '）');
 
@@ -124,7 +124,7 @@ const PERIOD = 2400;
 
   ok(await page.evaluate(() => {
     const css = document.getElementById('aw-keyframes');
-    return !!css && /-2400px/.test(css.textContent) &&
+    return !!css && /-1200px/.test(css.textContent) &&
       /aw-move-left/.test(css.textContent) && /aw-move-right/.test(css.textContent);
   }), '@keyframes 由常量注入（含 aw-move-left / aw-move-right）');
 
@@ -141,14 +141,14 @@ const PERIOD = 2400;
   ok(Math.abs(p1 - p0) < 0.01, 'setSpeed(0) 完全静止');
   await page.evaluate(() => window.SITE_ALBUMWALL.setSpeed(1));
 
-  /* 循环：把动画快进整整一个周期，位移仍落在 [-2400, 0]。
-     动画是 infinite + linear，这份 keyframes 只覆盖 0 → -2400 一个周期，
+  /* 循环：把动画快进整整一个周期，位移仍落在 [-1200, 0]。
+     动画是 infinite + linear，这份 keyframes 只覆盖 0 → -1200 一个周期，
      所以"快进一周期"必然还在区间内 —— 断言的意义是守住 keyframes
-     别被改成跨多个周期或改了 -2400 而没同步 PERIOD。 */
+     别被改成跨多个周期或改了 -1200 而没同步 PERIOD。 */
   await page.evaluate(P => window.SITE_ALBUMWALL.step(P), PERIOD);
   const loop = await readX();
   ok(loop.every(x => x >= -PERIOD - 1 && x <= 0.5),
-    '推进一整个周期后每行仍在 [-2400,0]（' + loop.map(v => v.toFixed(0)).join('/') + '）');
+    '推进一整个周期后每行仍在 [-1200,0]（' + loop.map(v => v.toFixed(0)).join('/') + '）');
 
   /* --------------------------------------------- 4. 缝隙与上下交接 */
   const seam = await page.evaluate(() => {
@@ -291,7 +291,7 @@ const PERIOD = 2400;
       '[' + name + '] scale 按公式重算（' + g.scale.toFixed(3) + '）');
     ok(INST * g.scale >= Math.max(g.w, g.h),
       '[' + name + '] 实例缩放后盖住视口（' + Math.round(INST * g.scale) + 'px）');
-    ok(g.inst === '2400px' && g.rows === 6 && g.imgs === 72,
+    ok(g.inst === '1200px' && g.rows === 6 && g.imgs === 72,
       '[' + name + '] 规格不变，只靠缩放适配');
   }
 

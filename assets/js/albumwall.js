@@ -43,12 +43,18 @@ window.SITE_ALBUMWALL = (function () {
   var reduceQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
   function reduced() { return reduceQuery.matches; }
 
-  var INST = 2400;                // 实例边长
-  var TILE = 400;                 // 封面格
+  /* ⚠️ 2026-11-12 第五轮：与 steamwall 同步，整套设计像素减半、scale 翻倍。
+     屏幕上封面尺寸、行高、左右流速都不变；一行从 13206×1109 设备像素
+     降到约 6600×550（−75% 纹理）。
+     BASE_RATE 同步减半后 base = PERIOD/BASE_RATE 仍是 80s 一圈，
+     所以行时长、相位读数、step() 的换算全部保持原来的语义。
+     ⚠️ 本文件历史注释里的 2400 / 400 / 4800 是旧设计像素。 */
+  var INST = 1200;                // 实例边长
+  var TILE = 200;                 // 封面格
   var ROWS = 6;
-  var PERIOD = 6 * TILE;          // 一份 6 张 = 2400，也是循环周期
+  var PERIOD = 6 * TILE;          // 一份 6 张 = 1200，也是循环周期
   var SAFETY = 1.05;
-  var BASE_RATE = 30;             // px/s，SPEED=1 时基准行的流速
+  var BASE_RATE = 15;             // px/s（原 30，随实例减半，屏幕流速不变）
 
   /* 每行速度。方向由索引奇偶决定，倍率让相邻行还有快慢差 ——
      只交替方向不差速的话，看起来会像整块板子在左右搓。 */

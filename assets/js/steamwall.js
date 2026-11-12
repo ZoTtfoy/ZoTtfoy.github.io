@@ -67,14 +67,22 @@ window.SITE_STEAMWALL = (function () {
   /* ------------------------------------------------------------- 实例规格
      这些全是**固定的设计像素**，不随设备变。适配只通过最外层的一个 scale，
      所以手机/平板/带鱼屏看到的是同一张拼贴的不同放大倍率，不会各缺一角。 */
-  var INST = 2400;               // 实例边长（正方形）
-  var TILE_W = 400;              // 格子宽（2:3 竖版）
-  var TILE_H = 600;              // 格子高
-  var COLS = INST / TILE_W;      // 6 列
-  var ROWS = 4;                  // 单份 4 格 = 2400px
-  var PERIOD = ROWS * TILE_H;    // 一份的高度，也是循环周期
+  /* ⚠️ 2026-11-12 第五轮：整套「设计像素」减半，scale 由公式自动翻倍。
+     屏幕上瓦片尺寸 = TILE × scale：200 × (2×0.4917) 与旧的 400 × 0.4917
+     完全相等 —— 视觉尺寸、旋转包围盒、四角覆盖、循环观感都不变；
+     但一列从 1100×13200 设备像素降到约 540×6500，两面墙 12 个大层
+     合计纹理从约 175M 降到约 44M 像素（−75%）。
+     ⚠️ BASE_RATE / boost 必须同步减半，否则屏幕上的流速会翻倍。
+     ⚠️ 本文件历史注释里写的 2400 / 400 / 600 / 4800 是**旧设计像素**，
+        现在分别是 1200 / 200 / 300 / 2400，几何推导关系不变。 */
+  var INST = 1200;               // 实例边长（正方形）
+  var TILE_W = 200;              // 格子宽（2:3 竖版）
+  var TILE_H = 300;              // 格子高
+  var COLS = INST / TILE_W;      // 6 列（不变）
+  var ROWS = 4;                  // 单份 4 格 = 1200px
+  var PERIOD = ROWS * TILE_H;    // 一份的高度，也是循环周期 = 1200
   var SAFETY = 1.12;             // 旋转后的覆盖余量
-  var BASE_RATE = 48;            // px/s，SPEED=1 时基准列的流速
+  var BASE_RATE = 24;            // px/s（原 48，随实例减半，屏幕流速不变）
 
   var wall = null, grid = null;
   var colsEls = [];
@@ -352,7 +360,9 @@ window.SITE_STEAMWALL = (function () {
     var y = window.scrollY || 0;
     var dy = Math.abs(y - (onScroll._y === undefined ? y : onScroll._y));
     onScroll._y = y;
-    boost = Math.min(220, boost + dy * 0.12);
+    /* 实例减半后 design px 也减半：上限 220→110、系数 0.12→0.06，
+       保证滚动时那一下"跟着冲"的屏幕速度与原版一致。 */
+    boost = Math.min(110, boost + dy * 0.06);
     if (!useWaapi || !anims.length) return;
     /* 2026-11-12：原来每个 scroll 事件都写 6 个 WAAPI 动画的 playbackRate，
        真机 touch 一秒上百次，主线程白忙。改成每帧最多写一次（boost 仍逐事件累计）。 */

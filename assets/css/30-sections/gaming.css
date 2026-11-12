@@ -55,11 +55,11 @@
   position: absolute;
   left: 50%;
   top: 50%;
-  width: var(--wall-inst, 2400px);
-  height: var(--wall-inst, 2400px);
+  width: var(--wall-inst, 1200px);
+  height: var(--wall-inst, 1200px);
   display: grid;
-  grid-template-columns: repeat(6, var(--wall-tile-w, 400px));
-  grid-template-rows: var(--wall-inst, 2400px);
+  grid-template-columns: repeat(6, var(--wall-tile-w, 200px));
+  grid-template-rows: var(--wall-inst, 1200px);
   gap: 0;
   overflow: hidden;
   transform: translate(-50%, -50%) rotate(45deg) scale(var(--wall-scale, 1));
@@ -71,9 +71,9 @@
    [-2400+d, 2400+d] 都完整包住实例 [0,2400] —— 永远填得满。
    归零时两份内容相同，画面接得上，不会跳。 */
 .steamwall__col {
-  width: var(--wall-tile-w, 400px);
-  height: calc(var(--wall-period, 2400px) * 2);
-  margin-top: calc(-1 * var(--wall-period, 2400px));
+  width: var(--wall-tile-w, 200px);
+  height: calc(var(--wall-period, 1200px) * 2);
+  margin-top: calc(-1 * var(--wall-period, 1200px));
   align-self: start;
   display: flex;
   flex-direction: column;
@@ -86,9 +86,9 @@
 .steamwall__tile {
   position: relative;
   display: block;
-  flex: 0 0 var(--wall-tile-h, 600px);
-  width: var(--wall-tile-w, 400px);
-  height: var(--wall-tile-h, 600px);
+  flex: 0 0 var(--wall-tile-h, 300px);
+  width: var(--wall-tile-w, 200px);
+  height: var(--wall-tile-h, 300px);
   overflow: hidden;
   border-radius: 0;
   /* 2026-11-12：撤掉逐瓦片 opacity。48 个 opacity<1 的元素在旋转层里
