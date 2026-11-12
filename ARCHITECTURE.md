@@ -179,8 +179,11 @@ npm run baseline:check  # 12 张视觉基线（需先 baseline:make）
    将来可以并进 `skin.js`。
 2. **`paged.js`（1027 行）拆出测量与手势**：测量（`pickFit` / `foldQuote` / 定档）
    和手势（滚轮/触摸/键盘）是两件事，耦合在一个文件里导致谁都改不动。
-3. **引入 `core/scheduler.js`**：现在模块之间靠互相调 `refresh()` 通知，
-   一次 resize 能放大成 11 次 `PAGED.refresh()`。改成订阅制，谁关心谁登记。
+3. **`core/scheduler.js` ⚠️ 需要重新设计**：原计划是"把一次 resize 放大出的 11 次
+   `PAGED.refresh()` 合并成每帧一次"。核对后否掉了这个做法 —— 那些调用是
+   **同步且有序**的多轮测量（`refresh → fitQuote → refresh`，中间要读到上一轮的
+   真实高度），延后一帧就会量到旧值。真要做，得先把调用点分成两类：
+   「下一次读数之前必须完成」和「本帧内可以延后」，只对后者做合并。
 4. **`main.js` → `core/boot.js` + 显式依赖表**：把「顺序即依赖」从注释变成数据结构。
 5. **死选择器清理**：`.card` / `.interest` / `.game`（`gaming.css` 头部已注明
    `.game` 那套样式被删除，但 `paged.css` / `motion.css` / `tokens.css` 里还留着
