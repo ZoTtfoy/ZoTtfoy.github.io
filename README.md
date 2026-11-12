@@ -4,6 +4,12 @@
 
 **设计目标：极简、克制、动效顺滑，且以后改起来不费劲。**
 
+> 📐 **先看结构再看内容**：[`ARCHITECTURE.md`](ARCHITECTURE.md) —— CSS 六层的层叠契约、
+> JS 18 个模块的启动顺序、数据流、以及「改了什么必须跑什么」。这份 README 按屏讲设计取舍。
+>
+> 改完东西跑一条命令：`npm test`（25 个脚本、约 1900 项断言）；
+> 动了 CSS 顺序或 DOM 结构再跑 `npm run baseline:check`（12 张视觉基线）。
+
 ---
 
 ## 〇、页面结构：一共 6 屏
@@ -58,6 +64,7 @@ zotrod-homepage/
 ├── index.html                    # 页面骨架（结构 / 语义标签 / 区块容器）
 ├── admin.html                    # ★ 内容编辑器（带口令保护，不对外链接）
 ├── themes.html                   # ★ 风格总览：14 种组合并排真实预览
+├── package.json                  # 只有测试脚本和 playwright-core，没有构建步骤
 ├── .nojekyll                     # 让 GitHub Pages 不跳过下划线目录
 ├── .github/workflows/deploy.yml  # 推送后自动部署，一般不用动
 ├── .github/workflows/sync.yml    # 每天抓一次：网易云听歌 + Steam 战绩 / 最近入库（见第五节）
@@ -73,22 +80,36 @@ zotrod-homepage/
 ├── assets/
 │   ├── backdrop/                 # 4 套内置 SVG 背景（每个不到 1KB）
 │   ├── css/
-│   │   ├── tokens.css            # 兜底设计变量 + 重置 + 基础排版
-│   │   ├── layout.css            # 布局、栅格、响应式断点
-│   │   ├── components.css        # 按钮、卡片、标签等组件外观
-│   │   ├── skin.css              # 风格切换面板
-│   │   ├── paged.css             # 翻页式布局与页码
-│   │   ├── backdrop.css          # 背景：图片/遮罩/光晕/网格/微粒/噪点
-│   │   ├── fit.css               # 多比例适配：按屏分档，只压留白不压字号
-│   │   ├── blocks.css            # 6 屏新模块：身份区/摘要卡/在听/报价表/估价器/邮箱
-│   │   ├── gaming.css            # 游戏战绩板（顶栏 / 三格汇总 / 列表 / 最近入库）
-│   │   ├── live.css              # 载入动画 / 时钟 / 进度条 / 音乐浮窗
-│   │   ├── effects.css           # 追光 / 卡片光斑 / 触控涟漪
-│   │   ├── gallery.css           # 风格总览页
-│   │   ├── motion.css            # 入场动画、悬停反馈、背景动效
 │   │   ├── fonts.css             # ★ MiSans 的 @font-face（按 unicode-range 分片）
-│   │   ├── typography.css        # ★ 字重阶梯：400 / 600 / 700 三档
-│   │   └── admin.css             # 编辑器专用样式
+│   │   ├── admin.css             # 编辑器专用样式
+│   │   ├── 00-base/              # 变量与基础排版
+│   │   │   ├── tokens.css        # 兜底设计变量 + 重置
+│   │   │   └── typography.css    # ★ 字重阶梯：400 / 600 / 700 三档
+│   │   ├── 10-shell/             # 页面骨架
+│   │   │   ├── layout.css        # 布局、栅格、响应式断点
+│   │   │   ├── paged.css         # 翻页式布局与页码
+│   │   │   └── backdrop.css      # 背景：图片/遮罩/光晕/网格/微粒/噪点
+│   │   ├── 20-components/        # 通用组件
+│   │   │   ├── components.css    # 按钮、卡片、标签等组件外观
+│   │   │   ├── skin.css          # 风格切换面板
+│   │   │   ├── effects.css       # 追光 / 卡片光斑 / 触控涟漪
+│   │   │   └── motion.css        # 入场动画、悬停反馈、背景动效
+│   │   ├── 30-sections/          # 各屏专属
+│   │   │   ├── profile.css       # Q1 身份区
+│   │   │   ├── link-cards.css    # 外链摘要卡（Q1 / Q4 共用）
+│   │   │   ├── listen.css        # Q2 在听：歌单 + 专辑墙 + 播放器
+│   │   │   ├── repair.css        # Q4 维修：报价表 + 估价器
+│   │   │   ├── mailbox.css       # Q6 邮箱
+│   │   │   ├── section-media.css # 各屏自己的 @media（不是全局分级）
+│   │   │   ├── xianyu.css        # 闲鱼在售列表（Q4 报价位）
+│   │   │   ├── gaming.css        # 游戏战绩板（顶栏 / 三格汇总 / 列表 / 最近入库）
+│   │   │   ├── live.css          # 载入动画 / 时钟 / 进度条 / 音乐浮窗
+│   │   │   └── gallery.css       # 风格总览页
+│   │   ├── 40-responsive/        # 只看视口的全局分级
+│   │   │   ├── fit.css           # 按可用高度分档，只压留白不压字号
+│   │   │   └── density.css       # 视口密度：装饰退场
+│   │   └── 90-overrides/
+│   │       └── unify.css         # 卡片语言统一层（「白卡」的最终值）
 │   ├── fonts/                    # ★ MiSans 的 woff2 分片（300 个文件 / 5.8MB，随仓库走）
 │   └── js/
 │       ├── config.js             # ★★ 所有文案、链接、模块开关（内容都在这里）
@@ -107,6 +128,10 @@ zotrod-homepage/
 │       ├── main.js               # 启动入口
 │       └── admin.js              # ★ 编辑器逻辑 + 访问凭据（哈希）
 ├── tools/
+│   ├── run-all.js                # ★ 一键跑全部校验（npm test）
+│   ├── serve.js                  # 本地服务器（Node，零依赖，并发够拉封面）
+│   ├── visual-baseline.js        # 视觉基线：12 张截图（3 屏 × 2 明暗 × 2 视口）
+│   ├── compare-baseline.py       # 基线像素对比（阈值 8 / 容差 0.3%）
 │   ├── verify.js                 # 站点自检
 │   ├── verify-admin.js           # 编辑器自检
 │   ├── verify-theme.js           # 主题自检（含对比度计算）
