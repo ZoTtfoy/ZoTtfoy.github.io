@@ -7,7 +7,7 @@
 > 📐 **先看结构再看内容**：[`ARCHITECTURE.md`](ARCHITECTURE.md) —— CSS 六层的层叠契约、
 > JS 18 个模块的启动顺序、数据流、以及「改了什么必须跑什么」。这份 README 按屏讲设计取舍。
 >
-> 改完东西跑一条命令：`npm test`（25 个脚本、约 1900 项断言）；
+> 改完东西跑一条命令：`npm test`（27 个脚本、约 2000 项断言）；
 > 动了 CSS 顺序或 DOM 结构再跑 `npm run baseline:check`（12 张视觉基线）。
 
 ---
@@ -133,7 +133,7 @@ zotrod-homepage/
 │       ├── sync.js               # 拉 data/*.json 回填页面（失败则静默用兜底）
 │       ├── repair.js             # Q4 四步价格计算器（状态 + 算法 + 键盘操作）
 │       ├── motion.js             # 滚动、明暗快切、菜单、复制等交互
-│       ├── main.js               # 启动入口
+│       ├── main.js               # 启动表：顺序即依赖（SITE_BOOT.STEPS）
 │       └── admin.js              # ★ 编辑器逻辑 + 访问凭据（哈希）
 ├── tools/
 │   ├── lib/

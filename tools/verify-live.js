@@ -31,15 +31,12 @@ ok(html.includes('id="liveProgress"') && html.includes('id="liveProgressFill"'),
 ok(html.includes('id="soundOn"'), '页面含音乐挂载点');
 ok(/dataset\.loading/.test(html), '首屏内联脚本决定了是否显示载入动画');
 
-const mainSrc = fs.readFileSync(path.join(ROOT, 'assets/js/main.js'), 'utf8');
-/* 改成比较出现位置，而不是「相隔 80 字符内」的正则：
-   中间插一句注释或一个别的初始化就会误报。语义要的只是先后顺序。 */
-const iLive = mainSrc.indexOf('SITE_LIVE.init');
-const iPaged = mainSrc.indexOf('SITE_PAGED.init');
-const iFold = mainSrc.indexOf('foldQuote');
-ok(iLive > 0 && iPaged > iLive, 'main.js 里 live 先于 paged 初始化');
-/* 报价表的展开/收起会改变 Q4 高度，必须在 paged 测量之前定下来 */
-ok(iFold > 0 && iPaged > iFold, '报价表折叠先于 paged 测量');
+/* ⚠️ 2026-11-13：原来这里用 indexOf('SITE_LIVE.init') 比较出现位置，
+   守「live 先于 paged」「报价表折叠先于 paged 测量」两条顺序。
+   main.js 改成启动表（STEPS）之后，顺序是数据不再是文本，
+   这两条断言搬到了 tools/verify-boot.js（它同时守 render 第一、
+   scale→density→foldQuote→paged 依次、readable 晚于 paged）。
+   一个约束只留一个守门人，免得两处各写一半、改一处忘另一处。 */
 
 /* ------------------------------------------------------ 2. 配置项齐全 */
 ['loading', 'clock', 'progress', 'quote', 'quoteRemote'].forEach(k => {

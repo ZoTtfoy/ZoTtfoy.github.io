@@ -110,19 +110,32 @@ icons → core/render-kit → sections/render-profile → sections/render-listen
 `tools/lib/render-src.js` 把 kit + 所有 sections + render.js 拼成一份逻辑源码；
 以后再拆一屏，工具不用跟着改。
 
-`main.js` 的 `boot()` 是唯一的启动点，里面有四条硬约束（写在那里，别复制走）：
+### 启动：`main.js` 里的一张表
 
-1. `scale` 第一个 —— 它改根字号，后面所有测量都以它为基准。
-2. `density` 第二个 —— 它写 `<html data-vp>`，决定哪些装饰退场，直接影响屏高。
-3. `repair.foldQuote()` 第三 —— 问 density 要不要折叠报价表，Q4 高度的大头。
-4. `paged.init()` 最后测量 —— 任何一步提前，量到的都是「还没让位」的旧高度。
+以前是 15 行 `if (window.SITE_X) SITE_X.init()`，中间夹着大段「为什么这个必须在那个
+前面」的注释 —— 顺序是语义，但只活在注释里，插错一行没人拦。
+
+现在顺序是数据：`SITE_BOOT` 的 `STEPS` 表，每行 `{ name, mod, fn, why }`，
+`why` 只写真正有约束的那几条。加模块 = 表里插一行 + `index.html` 加一个 `<script>`。
+
+四条硬约束（现在由 `tools/verify-boot.js` 断言，不再只是注释）：
+
+1. `render` 第一 —— 它的产物是后面每一步的前提。
+2. `scale → density → repair.foldQuote → paged` 依次，一步都不能提前 ——
+   任何一步提前，`paged` 量到的都是「还没让位」的旧高度。
+3. `live` 早于 `paged` —— 时钟/一言/进度条会撑高首页。
+4. `readable` 晚于 `paged` —— 它要读「最终生效」的字号。
+
+`verify-boot` 还守另一类错：页面上凡是暴露了 `init` 的 `SITE_*` 模块，
+要么在 `STEPS` 里，要么在 `SELF_INIT` 里写明为什么不用调（比如 `SITE_SYNC`
+自己在 `DOMContentLoaded` 里拉数据）。**写了模块忘了启动**这种问题以前只能靠肉眼。
 
 模块间通信只有两种方式：
 
 - **`site:*` 自定义事件**：目前只有 `site:pagechange`（翻页引擎广播）和
   `site:density`（分级变化）。屏外的动画墙靠它停/起。
-- **互相调 `refresh()`**：其余情况都是直接调函数。这是**已知的耦合点**，
-  也是下一步要收的地方（见第六节）。
+- **互相调 `refresh()`**：其余情况都是直接调函数。这是**已知的耦合点** ——
+  但注意第六节第 3 条：这些调用多数是同步有序的，不能简单合并。
 
 ## 四、数据流
 
@@ -140,7 +153,7 @@ index.html 的骨架被填满
 ## 五、校验闸门
 
 ```bash
-npm test              # 25 个脚本 / 约 1990 项断言，7 分钟
+npm test              # 27 个脚本 / 约 2000 项断言，7 分钟
 npm run test:list     # 看看会跑哪些
 npm run test:all      # 连已知超时/已知红项一起跑
 npm run serve         # 本地 8791
@@ -177,14 +190,23 @@ npm run baseline:check  # 12 张视觉基线（需先 baseline:make）
    `render.js` 只剩外壳（meta / 头像 / 品牌 / 导航 / 控件）+ 块表 + 启动。
    剩下的欠账：`hexToRgba` / `applyAccent` 仍在外壳里，属于主题而非渲染，
    将来可以并进 `skin.js`。
-2. **`paged.js`（1027 行）拆出测量与手势**：测量（`pickFit` / `foldQuote` / 定档）
-   和手势（滚轮/触摸/键盘）是两件事，耦合在一个文件里导致谁都改不动。
+2. **`paged.js`（1027 行）不拆 —— 这是结论，不是偷懒**。评估过「测量 vs 手势」这条缝，
+   结论是拆了更糟：手势段（滚轮 170 行 + 触摸 205 行）依赖 `pageTops` / `pendingTop` /
+   `programmatic` / `settleTimer` / `snapTimer` / `wheelAcc` / `resizeAnchor` 等
+   **十几个共享可变状态**，它们和测量段是同一次状态机的两半。硬拆要么把这些状态
+   搬进一个新的状态对象（等于重写一个行为极其微妙的状态机），要么开十几个读写口子
+   （比现在更难读）。
+   ⇢ 真要降低这个文件的认知负担，先做「把共享状态收进一个 `state` 对象」这一小步，
+   等状态边界清楚了再谈拆文件。**不要**为了行数好看去动它。
 3. **`core/scheduler.js` ⚠️ 需要重新设计**：原计划是"把一次 resize 放大出的 11 次
    `PAGED.refresh()` 合并成每帧一次"。核对后否掉了这个做法 —— 那些调用是
    **同步且有序**的多轮测量（`refresh → fitQuote → refresh`，中间要读到上一轮的
    真实高度），延后一帧就会量到旧值。真要做，得先把调用点分成两类：
    「下一次读数之前必须完成」和「本帧内可以延后」，只对后者做合并。
-4. **`main.js` → `core/boot.js` + 显式依赖表**：把「顺序即依赖」从注释变成数据结构。
+4. **（已完成）启动表**：`main.js` 改成 `SITE_BOOT.STEPS` 数据表，
+   配 `tools/verify-boot.js`（11 条断言）守顺序和「漏启动」。
+   文件没改名 —— `verify-live` / `verify-paged` / `verify.js` 都按
+   `assets/js/main.js` 这个路径断言，为了一个文件名去改三处测试不值。
 5. **死选择器清理**：`.card` / `.interest` / `.game`（`gaming.css` 头部已注明
    `.game` 那套样式被删除，但 `paged.css` / `motion.css` / `tokens.css` 里还留着
    选择器列表项）。需要先做一次「HTML + JS 生成的 class 全集」比对，别凭感觉删。
