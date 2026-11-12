@@ -24,8 +24,8 @@ const SITE = 'http://127.0.0.1:8791/';
 const notes = [], fails = [];
 const ok = (c, m) => c ? notes.push('OK  ' + m) : fails.push(m);
 
-const INST = 2400;
-const PERIOD = 2400;
+const INST = 1200;
+const PERIOD = 1200;
 
 /* --------------------------------------------------------------- 截图对比
    把两张 PNG 传回页面，用 <img> 解码后画进 canvas 逐像素比较。
@@ -164,8 +164,8 @@ async function coverage(page, shotOn, shotOff) {
   ok(r.apps >= 30, '数据源里有足够多的游戏（' + r.apps + ' 个 appid）');
   ok(/^0px/.test(r.gap), '网格间隙为 0（' + r.gap + '），斜拼时不会露出白线');
   ok(r.radius === '0px', '格子无圆角（' + r.radius + '），四格交界不留小三角');
-  ok(r.cssInst === '2400px', '实例是固定的 2400×2400（' + r.cssInst + '）');
-  ok(r.period === PERIOD, '循环周期 = 一份 4 格 = 2400px（' + r.period + '）');
+  ok(r.cssInst === '1200px', '实例是固定的 1200×1200（' + r.cssInst + '）');
+  ok(r.period === PERIOD, '循环周期 = 一份 4 格 = 1200px（' + r.period + '）');
 
   /* 向右倾斜 45°：cos45 = sin45 = 0.7071，且 b 必须为正 */
   const s = r.scale;
@@ -183,7 +183,7 @@ async function coverage(page, shotOn, shotOff) {
     '1440×900 覆盖成立：内接 ' + Math.round(inner) + 'px ≥ 视口 ' +
     Math.max(geom.w, geom.h) + 'px（scale=' + geom.scale.toFixed(3) + '）');
   ok(Math.abs(geom.scale - Math.SQRT2 * Math.max(geom.w, geom.h) * 1.12 / INST) < 0.001,
-    'scale 严格等于 √2 × max(W,H) × 1.12 / 2400');
+    'scale 严格等于 √2 × max(W,H) × 1.12 / 1200');
 
   /* -------------------------------------------- 3. 完全填充（像素对比）
      ⚠️ 截图前先把遮罩去掉。
@@ -229,7 +229,9 @@ async function coverage(page, shotOn, shotOff) {
   const t0 = await page.evaluate(() => window.SITE_STEAMWALL.phase());
   await page.waitForTimeout(1400);
   const t1 = await page.evaluate(() => window.SITE_STEAMWALL.phase());
-  ok(t1 > t0 + 20, '停留不动时相位也在推进（' + t0.toFixed(1) + ' → ' + t1.toFixed(1) + ' px）');
+  /* 2026-11-12 第五轮：设计像素减半后 BASE_RATE 48→24，phase() 读的是
+     design px，同样 1.4s 的推进量也减半，阈值 20→10 才是同一个判据。 */
+  ok(t1 > t0 + 10, '停留不动时相位也在推进（' + t0.toFixed(1) + ' → ' + t1.toFixed(1) + ' px）');
 
   const shifts = await page.evaluate(() => {
     /* 读"计算后"的位移：墙现在由 Web Animations 驱动，style.transform 是空的，
@@ -294,7 +296,7 @@ async function coverage(page, shotOn, shotOff) {
     });
   }, PERIOD);
   ok(loop.every(y => y >= 0 && y < PERIOD),
-    '推进一整个周期后，每列位移仍被取模在 [0,2400) 内');
+    '推进一整个周期后，每列位移仍被取模在 [0,1200) 内');
 
   /* --------------------------------------------- 5. 多视口等比缩放 */
   for (const [w, h, name] of [[390, 844, '手机 390×844'], [1920, 1080, '宽屏 1920×1080'], [820, 1180, '竖屏平板 820×1180']]) {
@@ -310,7 +312,7 @@ async function coverage(page, shotOn, shotOff) {
     const need = Math.SQRT2 * Math.max(g.w, g.h) * 1.12 / INST;
     ok(Math.abs(g.scale - need) < 0.001,
       '[' + name + '] scale 按公式重算（' + g.scale.toFixed(3) + '）');
-    ok(g.inst === '2400px' && g.cols === 6 && g.tiles === 48,
+    ok(g.inst === '1200px' && g.cols === 6 && g.tiles === 48,
       '[' + name + '] 实例规格不变，只靠缩放适配（6 列 / 48 格）');
     ok(INST * g.scale / Math.SQRT2 >= Math.max(g.w, g.h) * 1.05,
       '[' + name + '] 覆盖成立（内接 ' +

@@ -367,6 +367,12 @@ window.SITE_PAGED = (function () {
     if (!pages.length) return;
     if (!pageTops.length) measureTops();
 
+    /* 2026-11-12 第五轮：程序翻页期间别再算「视线落在哪一页」。
+       goTo() 已经 setActive(i) 定好目标页，而平滑滚动会经过中间页 ——
+       原来一次翻页 pagechange 来回派发 4 次，连带入场动画裁决、
+       scheduleSettle 反复重来。用独立时间闸门，不影响吸附归位。 */
+    if (typeof performance !== "undefined" && performance.now() < flipGuardUntil) return;
+
     var y = window.scrollY || window.pageYOffset || 0;
     var vh = window.innerHeight;
     var line = y + vh * 0.42;         // 视线落点：略高于中线
@@ -398,6 +404,10 @@ window.SITE_PAGED = (function () {
      掉帧从 4 升到 19 —— 均匀的小开销比不均匀的大跳变更友好。
      所以保持每帧计算。 */
   function onScroll() {
+    /* 任何滚动（含触摸自由滑动，它不走 goTo）都进入翻页期；
+       滚动每帧续期，停手 220ms 后摘标记。 */
+    if (flipping) flipRenew();
+    else flipStart();
     if (ticking) return;
     ticking = true;
     rafId = requestAnimationFrame(function () {
@@ -410,6 +420,28 @@ window.SITE_PAGED = (function () {
        程序滚动（goTo / 滚轮）期间跳过，否则会把自己的动画打断。 */
     clearTimeout(snapTimer);
     snapTimer = setTimeout(snapToNearest, SETTLE_DELAY);
+  }
+
+  /* ------------------------------------------------- 翻页期标记（第五轮）
+     只做两件事：让顶栏毛玻璃在整段平滑滚动里保持关闭、给 updateActive
+     一个「别在中途改页号」的闸门。
+     ⚠️ 刻意不派发给封面墙：第四轮试过让墙在翻页时暂停，功能正确但
+        多轮 A/B 只有 55→57 帧，还引入「滚动时墙停一下」的观感代价。
+     start 只发一次，滚动每帧续期，停手 220ms 后自动摘掉标记。 */
+  var flipping = false, flipTimer = 0, flipGuardUntil = 0;
+
+  function flipStart() {
+    flipping = true;
+    document.documentElement.dataset.flipping = "1";
+    flipRenew();
+  }
+  function flipRenew() {
+    clearTimeout(flipTimer);
+    flipTimer = setTimeout(function () {
+      if (!flipping) return;
+      flipping = false;
+      delete document.documentElement.dataset.flipping;
+    }, 220);
   }
 
   /* ------------------------------------------------------------ 跳转某页 */
@@ -426,6 +458,8 @@ window.SITE_PAGED = (function () {
     pendingTop = Math.max(0, top);
     pendingUntil = (typeof performance !== "undefined" ? performance.now() : Date.now()) +
       Math.min(2400, 600 + Math.abs(pendingTop - (window.scrollY || 0)) * 0.6);
+    flipGuardUntil = pendingUntil;
+    flipStart();
     /* 入场动画赶在 scrollTo 之前开跑：此时目标页还在屏幕外，
        藏起来没人看得见，滑进来的过程正好淡入（见 enterOnNavigate 的注释）。 */
     enterOnNavigate(i);
