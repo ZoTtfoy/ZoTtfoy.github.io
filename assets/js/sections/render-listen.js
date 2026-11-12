@@ -117,6 +117,10 @@
   /* 页脚：数据来源 + 累计听歌 + 外链。
      累计听歌是这一屏唯一一个"总量"指标，所以给它单独一个位置和字号，
      而不是和"已同步"挤在同一行小字里。 */
+  /* 2026-11-12：页脚也是每次 setTracks 都重建 innerHTML 的 childList 变动源，
+     内容没变就别写 —— 否则 readability 的 MutationObserver 会白扫一遍全 DOM。 */
+  var lastListenFootHtml = "";
+
   function paintListenFoot() {
     var foot = $("listenFoot");
     if (!foot) return;
@@ -160,7 +164,7 @@
              listenMeta.playableCount + "/" + listenMeta.shownCount + " 可试听</span>";
     }
 
-    foot.innerHTML =
+    var html =
       '<span class="listen__meta">' + src + stat + note + "</span>" +
       /* 窄屏（≤400px）只留箭头，文字用 font-size:0 收掉 ——
          320px 下「去网易云看看」会把页脚挤成两行，多出的 29px
@@ -168,6 +172,10 @@
       '<a class="listen__more" href="' + esc(link) + '" target="_blank" rel="noopener noreferrer"' +
         ' aria-label="去网易云看看" title="去网易云看看">' +
         "去网易云看看" + icon("arrow-up-right") + "</a>";
+    if (html !== lastListenFootHtml) {
+      foot.innerHTML = html;
+      lastListenFootHtml = html;
+    }
   }
 
   /* 一屏最多放几首？
@@ -186,6 +194,12 @@
     return rows * cols;
   }
 
+  /* 2026-11-12：density.refresh() 一轮会调 setTracks 好几次，内容完全相同
+     也重建 innerHTML → readability 的 MutationObserver 触发全 DOM repair
+     → 又调 PAGED.refresh()，单次 resize 被放大成 12 次整页重排。
+     用内容签名挡掉"数据没变却重建 DOM"的假工作（元信息仍照常更新）。 */
+  var lastTrackSig = "";
+
   /* 把"听歌排行"画出来。sync.js 抓到真实数据后也会调用它。 */
   function setTracks(list, source, meta) {
     var d = C.listen || {};
@@ -202,8 +216,16 @@
 
     var items = arr(list).slice(0, Math.min(d.limit || 6, trackCap()));
 
-    ul.innerHTML = items.map(trackHtml).join("");
-    ul.setAttribute("data-count", String(items.length));
+    var sig = items.map(function (t) {
+      return [t.title, t.artist, t.album, t.playCount, t.score, t.cover, t.playable].join("\u0001");
+    }).join("\u0002");
+    var rebuilt = sig !== lastTrackSig || ul.children.length !== items.length;
+    if (rebuilt) {
+      ul.innerHTML = items.map(trackHtml).join("");
+      lastTrackSig = sig;
+    }
+    var count = String(items.length);
+    if (ul.getAttribute("data-count") !== count) ul.setAttribute("data-count", count);
 
     /* 页脚那句「站内试听 N/M 首」要用的两个数。
        必须在这里更新而不是在 paintListenFoot 里数 DOM ——
@@ -215,16 +237,17 @@
     }).length;
     /* 有真实次数时标记：手机上要换成单列，
        否则两列里每块只剩 ~100px 放"曲名 + 次数"，两样都会被截断。 */
-    ul.setAttribute("data-ranked",
-      items.some(function (t) { return Number(t.playCount) > 0; }) ? "1" : "0");
+    var ranked = items.some(function (t) { return Number(t.playCount) > 0; }) ? "1" : "0";
+    if (ul.getAttribute("data-ranked") !== ranked) ul.setAttribute("data-ranked", ranked);
     paintListenFoot();
 
     /* ⚠️ 重绘后必须补挂渐显。
        曲目块带 data-reveal，而 motion.js 的 IntersectionObserver 只在
        init 时扫过一遍；这里 innerHTML 重建出来的新节点没人观察，
        于是永远停在 opacity: 0 —— 数据在、节点在，就是看不见。
-       这正是"网易云抓到数据但不显示"的根因。 */
-    if (window.SITE_MOTION && typeof window.SITE_MOTION.revealScan === "function") {
+       这正是"网易云抓到数据但不显示"的根因。
+       没重建 DOM 时节点还是原来那批，不需要重新扫。 */
+    if (rebuilt && window.SITE_MOTION && typeof window.SITE_MOTION.revealScan === "function") {
       window.SITE_MOTION.revealScan(ul);
     }
   }

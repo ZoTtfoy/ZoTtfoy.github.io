@@ -117,7 +117,7 @@
   height: calc(var(--aw-tile, 400px) + 2px);
   margin-right: -2px;
   object-fit: cover;
-  filter: saturate(.86);
+  /* 2026-11-12：72 个 CSS filter × 13206px 宽的合成层，栅格化代价过高，撤掉。 */
   /* 兜底色由封面的 URL 哈希出色相（JS 写 --h）。
      用 --bg-soft 那种近白灰时，弱网下几块没加载出来的瓦片
      会让整面墙看起来"没渲染完" —— 深色饱和的占位至少还是面墙。 */
