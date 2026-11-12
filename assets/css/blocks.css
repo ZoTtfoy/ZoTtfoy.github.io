@@ -443,6 +443,12 @@
   gap: 0;
   width: calc(var(--aw-period, 1200px) * 2);
   height: var(--aw-tile, 200px);
+  /* 2026-11-12 第七轮：内容改成一张预渲染行图（2400×400，6 格 2×），
+     横向平铺两次正好填满 2 个周期。行里不再有 <img>。 */
+  background-repeat: repeat-x;
+  background-size: auto 100%;
+  background-position: 0 0;
+  background-color: hsl(210 26% 18%);
   /* ⚠️ 刻意不写 will-change：
      这一行本来就是**纯合成器动画**（animation 只改 transform），
      浏览器会自己把它提到合成层 —— will-change 在这里只多做了一件事：

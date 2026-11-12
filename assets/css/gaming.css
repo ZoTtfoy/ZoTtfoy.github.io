@@ -78,6 +78,13 @@
   display: flex;
   flex-direction: column;
   gap: 0;
+  /* 2026-11-12 第七轮：内容改成一张预渲染列图（300×1800，4 格），
+     竖向平铺两次正好填满 2400 的设计高度。列里不再有 <img>，
+     整个墙只剩 6 个「背景图 + transform」层。 */
+  background-repeat: repeat-y;
+  background-size: 100% auto;
+  background-position: 0 0;
+  background-color: hsl(210 26% 16%);   /* 图没到时兜底，不露白 */
   /* 2026-11-12：撤掉 will-change。3D 变换本身就会提成合成层，
      常驻 will-change 只多做一件事 —— 让这一列在**离屏时也常驻显存**。
      CDP 实测 282 个合成层里，6 条 1100×13200 的列就占掉大头。 */

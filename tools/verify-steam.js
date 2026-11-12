@@ -130,6 +130,9 @@ async function coverage(page, shotOn, shotOff) {
     const m = cs ? new DOMMatrix(cs.transform) : null;
     return {
       wallHidden: wall && wall.hidden,
+      bgs: cols.map(c => getComputedStyle(c).backgroundImage),
+      wallImgsLoaded: performance.getEntriesByType('resource')
+        .filter(e => /assets\/wall\/steam-\d\.webp/.test(e.name)).length,
       cols: cols.length,
       tiles: tiles.length,
       perCol: cols[0] ? cols[0].children.length : 0,
@@ -153,17 +156,11 @@ async function coverage(page, shotOn, shotOff) {
 
   ok(!r.wallHidden, '封面墙没有被隐藏');
   ok(r.cols === 6, '固定 6 列（' + r.cols + '）');
-  ok(r.tiles === 48 && r.perCol === 8,
-    '6 列 × 每列 8 格（两份相同的 4 格，用于无缝循环）→ ' + r.tiles + ' 格');
-  ok(r.imgs === r.tiles, '每格都有一张图（' + r.imgs + '）');
-  ok(r.portraitUrls === r.imgs, '全部是**竖版** library_600x900 封面（' + r.portraitUrls + '）');
-  ok(r.loaded === r.imgs && r.broken === 0,
-    '所有封面都加载成功、0 坏图（' + r.loaded + '/' + r.imgs + '）');
-  ok(r.portraitOnly === true, '用的是逐张探测过的 portraitApps，不是未过滤的 apps');
-  ok(r.uniqueApps >= 12, '墙面用了至少 12 种不同封面（' + r.uniqueApps + ' 种）');
+  ok(r.bgs.length === 6 && r.bgs.every(b => /assets\/wall\/steam-\d\.webp/.test(b)),
+    '6 列全部使用预渲染列图（steam-0..5.webp）');
+  ok(r.wallImgsLoaded === 6, '6 张预渲染列图全部加载成功（' + r.wallImgsLoaded + '/6）');
   ok(r.apps >= 30, '数据源里有足够多的游戏（' + r.apps + ' 个 appid）');
   ok(/^0px/.test(r.gap), '网格间隙为 0（' + r.gap + '），斜拼时不会露出白线');
-  ok(r.radius === '0px', '格子无圆角（' + r.radius + '），四格交界不留小三角');
   ok(r.cssInst === '1200px', '实例是固定的 1200×1200（' + r.cssInst + '）');
   ok(r.period === PERIOD, '循环周期 = 一份 4 格 = 1200px（' + r.period + '）');
 
@@ -312,8 +309,8 @@ async function coverage(page, shotOn, shotOff) {
     const need = Math.SQRT2 * Math.max(g.w, g.h) * 1.12 / INST;
     ok(Math.abs(g.scale - need) < 0.001,
       '[' + name + '] scale 按公式重算（' + g.scale.toFixed(3) + '）');
-    ok(g.inst === '1200px' && g.cols === 6 && g.tiles === 48,
-      '[' + name + '] 实例规格不变，只靠缩放适配（6 列 / 48 格）');
+    ok(g.inst === '1200px' && g.cols === 6,
+      '[' + name + '] 实例规格不变，只靠缩放适配（6 列预渲染图）');
     ok(INST * g.scale / Math.SQRT2 >= Math.max(g.w, g.h) * 1.05,
       '[' + name + '] 覆盖成立（内接 ' +
       Math.round(INST * g.scale / Math.SQRT2) + 'px）');

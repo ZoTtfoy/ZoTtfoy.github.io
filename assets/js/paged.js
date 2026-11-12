@@ -422,17 +422,16 @@ window.SITE_PAGED = (function () {
     snapTimer = setTimeout(snapToNearest, SETTLE_DELAY);
   }
 
-  /* ------------------------------------------------- 翻页期标记（第五轮）
-     只做两件事：让顶栏毛玻璃在整段平滑滚动里保持关闭、给 updateActive
-     一个「别在中途改页号」的闸门。
-     ⚠️ 刻意不派发给封面墙：第四轮试过让墙在翻页时暂停，功能正确但
-        多轮 A/B 只有 55→57 帧，还引入「滚动时墙停一下」的观感代价。
-     start 只发一次，滚动每帧续期，停手 220ms 后自动摘掉标记。 */
+  /* ------------------------------------------------- 翻页期标记（第五/六轮）
+     只做一件事：给 updateActive 一个「别在中途改页号」的闸门。
+     顶栏毛玻璃已改由 motion.js 的 html[data-scrolling] 统一控制（见第 12 节），
+     这里不再写 data-flipping —— 两套状态源正是"顶栏翻页时重渲染"的根因。
+     ⚠️ 刻意不派发给封面墙：第四轮试过让墙在翻页时暂停，收益仅 4% 且
+        有「滚动时墙停一下」的观感代价。 */
   var flipping = false, flipTimer = 0, flipGuardUntil = 0;
 
   function flipStart() {
     flipping = true;
-    document.documentElement.dataset.flipping = "1";
     flipRenew();
   }
   function flipRenew() {
@@ -440,7 +439,6 @@ window.SITE_PAGED = (function () {
     flipTimer = setTimeout(function () {
       if (!flipping) return;
       flipping = false;
-      delete document.documentElement.dataset.flipping;
     }, 220);
   }
 
