@@ -1,0 +1,17 @@
+{
+  "name": "zotrod-homepage",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Zotrod 的个人主页：六屏翻页式静态站，原生 JS，无构建步骤",
+  "scripts": {
+    "serve": "node tools/serve.js 8791",
+    "test": "node tools/run-all.js",
+    "test:all": "node tools/run-all.js --all",
+    "test:list": "node tools/run-all.js --list",
+    "baseline:make": "node tools/visual-baseline.js --make",
+    "baseline:check": "node tools/visual-baseline.js --check && python tools/compare-baseline.py"
+  },
+  "devDependencies": {
+    "playwright-core": "^1.65.0"
+  }
+}

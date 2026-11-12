@@ -32,11 +32,15 @@ const SITE = process.argv[2] || 'http://127.0.0.1:8791/';
 const notes = [], fails = [];
 const ok = (c, m) => c ? notes.push('OK  ' + m) : fails.push(m);
 
-/* 四个复制入口，各代表一种 DOM 形状：
-   卡（有自己的图标块）/ 按钮里套文字块 / 纯图标按钮 / 带文字标签的按钮 */
+/* 三个复制入口，各代表一种 DOM 形状：
+   卡（有自己的图标块）/ 纯图标按钮 / 带文字标签的按钮
+
+   ⚠️ 2026-11-12：摘掉了 `.game__uid`（游戏好友码）。
+   「一卡一游戏」那版之后好友码改成了战绩板顶栏的说明文字
+   （.gb-head__id），**不再是按钮** —— 点击由整块 .game-board 链接接管，
+   所以它本来就不该出现在"复制入口"这张表里（原来这项一直是 0 个）。 */
 const KINDS = [
   { sel: '.ccard', page: 'top', name: '联系卡', hint: true },
-  { sel: '.game__uid', page: 'gaming', name: '游戏 UID', hint: false },
   { sel: '.social[data-copy]', page: 'links', name: '社交复制按钮', hint: false },
   { sel: '.btn[data-copy]', page: 'contact', name: '复制邮箱按钮', hint: true }
 ];
