@@ -192,7 +192,7 @@ if (typeof ctx.ADMIN_MERGE === 'function') {
 }
 
 /* ---------- 5. 生成的文件能被站点渲染层正常使用 ---------- */
-const renderSrc = fs.readFileSync(path.join(ROOT, 'assets/js/render.js'), 'utf8');
+const renderSrc = require('./lib/render-src').renderSource();
 const htmlSrc = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
 check(renderSrc.includes('SITE_CONFIG'), '渲染层依赖 SITE_CONFIG 全局');
 check(htmlSrc.includes('assets/js/config.js'), '页面已引入 config.js');

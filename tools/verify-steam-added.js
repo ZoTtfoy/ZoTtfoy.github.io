@@ -94,9 +94,12 @@ const g = (appid, name) => ({ appid, name: name || ('Game ' + appid) });
      '旧版 JSON（无 added 字段）当成空记录，仍能算出新增');
 
   /* ---- 与前端的承接口径 ---- */
-  const renderSrc = fs.readFileSync(path.join(ROOT, 'assets/js/render.js'), 'utf8');
-  ok(/function recentlyAddedHtml/.test(renderSrc), 'render.js 有 recentlyAddedHtml');
-  const fnBlock = (renderSrc.match(/function recentlyAddedHtml[\s\S]*?\n\}/) || [''])[0];
+  const renderSrc = require('./lib/render-src').renderSource();
+  ok(/function recentlyAddedHtml/.test(renderSrc), '渲染层有 recentlyAddedHtml');
+  /* 用「两个空格缩进的收尾大括号」圈住函数体：屏模块里的函数都是两层缩进。
+     早先写的是 \n\}（列 0），在 CRLF / 拆分后的文件里会一路吞到文件尾，
+     看似通过其实是匹配错了范围。 */
+  const fnBlock = (renderSrc.match(/function recentlyAddedHtml[\s\S]*?\r?\n  \}/) || [''])[0];
   ok(/\.at\b|\.at\s*\|\||item\.at/.test(fnBlock) || /\bat\b/.test(fnBlock),
      '前端记录里用到了 at 字段（日期）');
   ok(/slice\(\s*0\s*,\s*8\s*\)/.test(fnBlock) || /8/.test(fnBlock),

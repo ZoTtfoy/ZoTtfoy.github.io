@@ -112,6 +112,10 @@ zotrod-homepage/
 │   │       └── unify.css         # 卡片语言统一层（「白卡」的最终值）
 │   ├── fonts/                    # ★ MiSans 的 woff2 分片（300 个文件 / 5.8MB，随仓库走）
 │   └── js/
+│       ├── core/
+│       │   └── render-kit.js     # 渲染层公共底座：小工具 + 屏模块登记表
+│       ├── sections/
+│       │   └── render-gaming.js  # Q3 游戏屏的渲染（按屏拆的第一块）
 │       ├── config.js             # ★★ 所有文案、链接、模块开关（内容都在这里）
 │       ├── themes.js             # ★★ 主题注册表：7 套风格的完整设计变量
 │       ├── skin.js               # 应用主题 + 切换面板逻辑
@@ -121,13 +125,15 @@ zotrod-homepage/
 │       ├── effects.js            # 光效：追光、卡片光斑、触控涟漪
 │       ├── gallery.js            # 风格总览页
 │       ├── icons.js              # 内联 SVG 图标库，可自行增删
-│       ├── render.js             # 把 config 的数据填进页面
+│       ├── render.js             # 渲染核心：块表 / 逐块容错 / 调试开关（屏代码见 sections/）
 │       ├── sync.js               # 拉 data/*.json 回填页面（失败则静默用兜底）
 │       ├── repair.js             # Q4 四步价格计算器（状态 + 算法 + 键盘操作）
 │       ├── motion.js             # 滚动、明暗快切、菜单、复制等交互
 │       ├── main.js               # 启动入口
 │       └── admin.js              # ★ 编辑器逻辑 + 访问凭据（哈希）
 ├── tools/
+│   ├── lib/
+│   │   └── render-src.js        # 把渲染层各文件拼成"一份逻辑源码"供静态断言读
 │   ├── run-all.js                # ★ 一键跑全部校验（npm test）
 │   ├── serve.js                  # 本地服务器（Node，零依赖，并发够拉封面）
 │   ├── visual-baseline.js        # 视觉基线：12 张截图（3 屏 × 2 明暗 × 2 视口）

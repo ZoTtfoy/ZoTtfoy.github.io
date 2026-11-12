@@ -100,6 +100,10 @@
   <!-- defer：并行下载 + 顺序执行。config.js / themes.js 上面已同步加载，
        因为它们要给首屏内联脚本用；其余都在解析完成后、DOMContentLoaded 之前执行。 -->
   <script defer src="assets/js/icons.js"></script>
+  <!-- 渲染层：kit 先于所有屏模块，render.js 最后收口（块表 + 调试接口）。
+       顺序是契约，别按目录名重排；理由见 ARCHITECTURE.md 第三节。 -->
+  <script defer src="assets/js/core/render-kit.js"></script>
+  <script defer src="assets/js/sections/render-gaming.js"></script>
   <script defer src="assets/js/render.js"></script>
   <script defer src="assets/js/sync.js"></script>
   <script defer src="assets/js/scale.js"></script>

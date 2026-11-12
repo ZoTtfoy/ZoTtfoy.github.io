@@ -174,7 +174,10 @@ vm.createContext(ctx);
 /* ---------- 依次执行站点脚本 ---------- */
 /* sync.js / repair.js 也一起加载：它们都有「元素不存在就直接退出」的保护，
    在这里跑一遍能确保这两个新文件本身没有语法或运行时问题。 */
-const scripts = ['assets/js/config.js','assets/js/themes.js','assets/js/icons.js','assets/js/render.js',
+/* 顺序要和 index.html 一致：kit 先于屏模块，render.js 最后收口。 */
+const scripts = ['assets/js/config.js','assets/js/themes.js','assets/js/icons.js',
+                 'assets/js/core/render-kit.js','assets/js/sections/render-gaming.js',
+                 'assets/js/render.js',
                  'assets/js/sync.js','assets/js/repair.js',
                  'assets/js/skin.js','assets/js/live.js','assets/js/paged.js','assets/js/effects.js',
                  'assets/js/motion.js','assets/js/main.js'];

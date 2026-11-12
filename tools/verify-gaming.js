@@ -17,7 +17,8 @@ const ok = (c, m) => c ? notes.push('OK  ' + m) : fails.push(m);
 
 const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
 const cfgSrc = fs.readFileSync(path.join(ROOT, 'assets/js/config.js'), 'utf8');
-const renderSrc = fs.readFileSync(path.join(ROOT, 'assets/js/render.js'), 'utf8');
+/* 渲染层已按屏拆到 core/ + sections/；静态断言读的是拼起来的整份源码。 */
+const renderSrc = require('./lib/render-src').renderSource();
 const pagedSrc = fs.readFileSync(path.join(ROOT, 'assets/js/paged.js'), 'utf8');
 const pagedCss = fs.readFileSync(path.join(ROOT, 'assets/css/10-shell/paged.css'), 'utf8');
 const gameCss = fs.readFileSync(path.join(ROOT, 'assets/css/30-sections/gaming.css'), 'utf8');

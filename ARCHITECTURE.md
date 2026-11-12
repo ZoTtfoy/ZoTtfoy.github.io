@@ -69,15 +69,43 @@ fonts → tokens → backdrop → layout → components → [30-sections 七连]
 ## 三、JS：加载顺序即依赖
 
 `config.js` 与 `themes.js` 是**非 defer** 的，在 `<head>` 里同步执行 ——
-它们是纯数据，先落地，后面所有模块读它们。其余 16 个 `defer`，
+它们是纯数据，先落地，后面所有模块读它们。其余 18 个 `defer`，
 按依赖顺序排列，各自是一个 IIFE，只暴露一个 `window.SITE_XXX`：
 
 ```
 config, themes          （数据）
-icons → render → sync → scale → density → repair → skin → backdrop
-→ live → steamwall → albumwall → preload → player → paged
-→ readability → effects → motion → main
+icons → core/render-kit → sections/render-gaming → render → sync
+→ scale → density → repair → skin → backdrop → live → steamwall
+→ albumwall → preload → player → paged → readability → effects
+→ motion → main
 ```
+
+### 渲染层：core / sections / render.js
+
+原生 `<script>` 之间没有共享闭包，把 `render.js` 按屏拆开之后，
+原来 IIFE 内部的 `esc` / `$` / `icon` 这些局部函数就互相看不见了。
+解法是给**唯一一个**命名空间 `window.SITE_RENDER_KIT`：
+
+| 角色 | 文件 | 职责 |
+| --- | --- | --- |
+| 底座 | `core/render-kit.js` | 7 个小工具 + `parts` 登记表 + `register()` |
+| 屏模块 | `sections/render-*.js` | 该屏的全部渲染函数；末尾 `K.register(name, {…})` 只登记对外接口 |
+| 收口 | `render.js` | 块表（`BLOCKS` / `layer`）、逐块 try/catch、`data-render` 标记、`?render=` 调试开关 |
+
+**顺序是契约**：kit → 所有屏模块 → `render.js`。反了就找不到 `parts`，
+`render.js` 里的 `var G = K.parts.gaming` 直接是 undefined。
+
+三条规矩：
+
+- 屏模块**不碰** `window.SITE_RENDER`，也不自己往块表里塞条目 ——
+  layer 顺序必须在一处可见。
+- kit 里**不放业务逻辑**。只有一屏用的函数留在那一屏文件里。
+- 需要给外部用的函数才登记；`render.js` 通过 `G.xxx` 转发，对外接口名字不变
+  （`sync.js` 仍调 `SITE_RENDER.renderGameStats`，测试仍查 `fn: renderGaming`）。
+
+因为校验脚本里有几条是对渲染层**源码文本**做静态断言的，
+`tools/lib/render-src.js` 把 kit + 所有 sections + render.js 拼成一份逻辑源码；
+以后再拆一屏，工具不用跟着改。
 
 `main.js` 的 `boot()` 是唯一的启动点，里面有四条硬约束（写在那里，别复制走）：
 
@@ -141,8 +169,11 @@ npm run baseline:check  # 12 张视觉基线（需先 baseline:make）
 
 按「投入产出」排序，不是按工作量：
 
-1. **`render.js`（1159 行）按屏拆开**：`sections/render-q1.js` … 它现在同时管六屏的
-   DOM 生成，改 Q4 要在 1000 行里找。拆法和 CSS 那轮一样：一次一屏，每屏比图。
+1. **（进行中）`render.js` 按屏拆**：Q3 游戏屏已搬进
+   `sections/render-gaming.js`，`render.js` 从 1159 → 805 行。
+   接缝（kit + register + 块表收口）已跑通，下一刀按同样的办法搬
+   Q2 在听（约 235 行）→ Q1 身份区 → Q4 维修 → 外壳（meta/brand/sections/controls）。
+   每搬一屏跑一次 `npm test` + 视觉基线。
 2. **`paged.js`（1027 行）拆出测量与手势**：测量（`pickFit` / `foldQuote` / 定档）
    和手势（滚轮/触摸/键盘）是两件事，耦合在一个文件里导致谁都改不动。
 3. **引入 `core/scheduler.js`**：现在模块之间靠互相调 `refresh()` 通知，
