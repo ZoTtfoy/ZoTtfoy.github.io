@@ -19,11 +19,11 @@ const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
 const cfgSrc = fs.readFileSync(path.join(ROOT, 'assets/js/config.js'), 'utf8');
 const renderSrc = fs.readFileSync(path.join(ROOT, 'assets/js/render.js'), 'utf8');
 const pagedSrc = fs.readFileSync(path.join(ROOT, 'assets/js/paged.js'), 'utf8');
-const pagedCss = fs.readFileSync(path.join(ROOT, 'assets/css/paged.css'), 'utf8');
-const gameCss = fs.readFileSync(path.join(ROOT, 'assets/css/gaming.css'), 'utf8');
+const pagedCss = fs.readFileSync(path.join(ROOT, 'assets/css/10-shell/paged.css'), 'utf8');
+const gameCss = fs.readFileSync(path.join(ROOT, 'assets/css/30-sections/gaming.css'), 'utf8');
 
 /* ------------------------------------------------ 1. 静态接线与结构 */
-ok(html.includes('assets/css/gaming.css'), 'index.html 引入 gaming.css');
+ok(html.includes('assets/css/30-sections/gaming.css'), 'index.html 引入 gaming.css');
 ok(html.includes('id="gaming"') && html.includes('data-section="gaming"'), '页面含游戏区块');
 ok(html.includes('id="gameRail"'), '页面含游戏卡片容器');
 ok(/renderGaming/.test(renderSrc), 'render.js 有 renderGaming');

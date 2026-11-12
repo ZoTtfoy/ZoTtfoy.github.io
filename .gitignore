@@ -20,3 +20,9 @@ desktop.ini
 *.swp
 .idea/
 .vscode/
+
+# 视觉基线截图（13MB，由 tools/visual-baseline.js 随时重建）
+baseline/
+
+# 墙面烘焙缓存
+.cache/

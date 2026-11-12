@@ -424,8 +424,8 @@ for (const ref of new Set(refs)) {
 }
 
 // CSS / JS 括号平衡
-for (const rel of ['assets/css/tokens.css','assets/css/layout.css','assets/css/components.css',
-                   'assets/css/motion.css','assets/css/skin.css']) {
+for (const rel of ['assets/css/00-base/tokens.css','assets/css/10-shell/layout.css','assets/css/20-components/components.css',
+                   'assets/css/20-components/motion.css','assets/css/20-components/skin.css']) {
   const css = fs.readFileSync(path.join(ROOT, rel), 'utf8');
   const open = (css.match(/{/g) || []).length, close = (css.match(/}/g) || []).length;
   check(open === close, 'CSS 括号平衡: ' + rel + ' (' + open + '/' + close + ')');
@@ -469,7 +469,7 @@ check(byId.get('heroAvatar').hidden === true, '清空头像后首页头像隐藏
    用 indexOf 而不是正则：这些 CSS 声明里全是 : { }，正则里要转义的
    东西太多，写起来容易错，读起来也不如直接找字符串清楚。 */
 {
-  const compCss = fs.readFileSync(path.join(ROOT, 'assets/css/components.css'), 'utf8');
+  const compCss = fs.readFileSync(path.join(ROOT, 'assets/css/20-components/components.css'), 'utf8');
   const at = compCss.indexOf('.brand__mark.is-photo');
   const rule = at >= 0 ? compCss.slice(at, compCss.indexOf('}', at)) : '';
   check(rule.indexOf('border-radius: 50%') >= 0, '.brand__mark.is-photo 是圆形裁切');
@@ -482,7 +482,7 @@ check(byId.get('heroAvatar').hidden === true, '清空头像后首页头像隐藏
 check(Array.isArray(ctx.SITE_THEMES && ctx.SITE_THEMES.list), 'themes.js 已加载');
 check(ctx.SITE_THEMES.list.length >= 5, '主题数量 ≥ 5');
 check(!!ctx.SITE_THEMES.get('ink'), '可按 id 取到主题');
-check(html.includes('assets/js/skin.js') && html.includes('assets/css/skin.css'), '页面引入主题脚本与样式');
+check(html.includes('assets/js/skin.js') && html.includes('assets/css/20-components/skin.css'), '页面引入主题脚本与样式');
 
 /* ---------- 第二遍：模拟不支持 IntersectionObserver 的环境，验证降级 ---------- */
 const before = failures.length;

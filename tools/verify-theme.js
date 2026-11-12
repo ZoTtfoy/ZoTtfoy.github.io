@@ -178,7 +178,7 @@ darkKeySets.forEach(s => {
 });
 
 /* --------------------------------------------- CSS 兜底值 = 默认主题（防跳色） */
-const tokens = fs.readFileSync(path.join(ROOT, 'assets/css/tokens.css'), 'utf8');
+const tokens = fs.readFileSync(path.join(ROOT, 'assets/css/00-base/tokens.css'), 'utf8');
 const def = T.get(T.defaultSkin) || T.list[0];
 
 // 取出 :root,[data-theme="light"] 区块里的变量
@@ -225,7 +225,7 @@ if (cssDark && def) {
 
 /* ------------------------------------------------------------ 接线是否完整 */
 const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
-['assets/js/themes.js', 'assets/js/skin.js', 'assets/css/skin.css'].forEach(f => {
+['assets/js/themes.js', 'assets/js/skin.js', 'assets/css/20-components/skin.css'].forEach(f => {
   check(html.includes(f), `index.html 已引入 ${f}`);
 });
 // themes.js 必须在首屏内联脚本之前，否则首屏拿不到主题
@@ -248,7 +248,7 @@ const galleryHtml = path.join(ROOT, 'themes.html');
 check(fs.existsSync(galleryHtml), '存在风格总览页 themes.html');
 if (fs.existsSync(galleryHtml)) {
   const gh = fs.readFileSync(galleryHtml, 'utf8');
-  ['assets/js/themes.js', 'assets/js/gallery.js', 'assets/css/gallery.css'].forEach(f => {
+  ['assets/js/themes.js', 'assets/js/gallery.js', 'assets/css/30-sections/gallery.css'].forEach(f => {
     check(gh.includes(f), `themes.html 已引入 ${f}`);
   });
 

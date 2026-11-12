@@ -15,11 +15,11 @@ const ok = (c, m) => c ? notes.push('OK  ' + m) : failures.push(m);
 
 const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
 const liveSrc = fs.readFileSync(path.join(ROOT, 'assets/js/live.js'), 'utf8');
-const liveCss = fs.readFileSync(path.join(ROOT, 'assets/css/live.css'), 'utf8');
+const liveCss = fs.readFileSync(path.join(ROOT, 'assets/css/30-sections/live.css'), 'utf8');
 const cfgSrc = fs.readFileSync(path.join(ROOT, 'assets/js/config.js'), 'utf8');
 
 /* ------------------------------------------------------ 1. 接线与结构 */
-ok(html.includes('assets/css/live.css'), 'index.html 引入 live.css');
+ok(html.includes('assets/css/30-sections/live.css'), 'index.html 引入 live.css');
 ok(html.includes('assets/js/live.js'), 'index.html 引入 live.js');
 ok(html.indexOf('assets/js/live.js') < html.indexOf('assets/js/paged.js'),
    'live.js 在 paged.js 之前加载（否则会误判一屏装不下）');

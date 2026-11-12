@@ -124,29 +124,29 @@
        woff2 就在 assets/fonts/（随仓库走，不走外部 CDN），
        但仍按 unicode-range 分片声明，浏览器只下用得着的片。 -->
   <link rel="stylesheet" href="assets/css/fonts.css">
-  <link rel="stylesheet" href="assets/css/tokens.css">
-  <link rel="stylesheet" href="assets/css/backdrop.css">
-  <link rel="stylesheet" href="assets/css/layout.css">
-  <link rel="stylesheet" href="assets/css/components.css">
-  <link rel="stylesheet" href="assets/css/blocks.css">
-  <link rel="stylesheet" href="assets/css/skin.css">
-  <link rel="stylesheet" href="assets/css/paged.css">
-  <link rel="stylesheet" href="assets/css/gaming.css">
-  <link rel="stylesheet" href="assets/css/fit.css">
-  <link rel="stylesheet" href="assets/css/live.css">
-  <link rel="stylesheet" href="assets/css/effects.css">
-  <link rel="stylesheet" href="assets/css/motion.css">
+  <link rel="stylesheet" href="assets/css/00-base/tokens.css">
+  <link rel="stylesheet" href="assets/css/10-shell/backdrop.css">
+  <link rel="stylesheet" href="assets/css/10-shell/layout.css">
+  <link rel="stylesheet" href="assets/css/20-components/components.css">
+  <link rel="stylesheet" href="assets/css/30-sections/blocks.css">
+  <link rel="stylesheet" href="assets/css/20-components/skin.css">
+  <link rel="stylesheet" href="assets/css/10-shell/paged.css">
+  <link rel="stylesheet" href="assets/css/30-sections/gaming.css">
+  <link rel="stylesheet" href="assets/css/40-responsive/fit.css">
+  <link rel="stylesheet" href="assets/css/30-sections/live.css">
+  <link rel="stylesheet" href="assets/css/20-components/effects.css">
+  <link rel="stylesheet" href="assets/css/20-components/motion.css">
   <!-- 视口密度分级：缩到某个阈值就让装饰退场，放大再回来 -->
-  <link rel="stylesheet" href="assets/css/density.css">
+  <link rel="stylesheet" href="assets/css/40-responsive/density.css">
   <!-- 字体与字重：覆盖前面散落的 font-weight 字面量。
        ⚠️ 必须在 unify.css **之前** —— unify 的职责是"最后一层收口"，
           自检脚本（verify-unify）也是按这个不变量断言的。
           unify.css 里没有任何 font-weight / font-family，
           所以放到它前面不会丢掉本文件的字重规则。 -->
-  <link rel="stylesheet" href="assets/css/typography.css">
+  <link rel="stylesheet" href="assets/css/00-base/typography.css">
   <!-- 必须最后加载：它定义的是"白卡"这件事的最终值，
        前面几个文件里分散的圆角 / 阴影 / hover 写法会被它统一覆盖。 -->
-  <link rel="stylesheet" href="assets/css/unify.css">
+  <link rel="stylesheet" href="assets/css/90-overrides/unify.css">
 </head>
 
 <body>

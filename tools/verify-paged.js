@@ -21,11 +21,11 @@ const fail = m => failures.push(m);
 const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
 const pagedSrc = fs.readFileSync(path.join(ROOT, 'assets/js/paged.js'), 'utf8');
 const effectsSrc = fs.readFileSync(path.join(ROOT, 'assets/js/effects.js'), 'utf8');
-const pagedCss = fs.readFileSync(path.join(ROOT, 'assets/css/paged.css'), 'utf8');
-const effectsCss = fs.readFileSync(path.join(ROOT, 'assets/css/effects.css'), 'utf8');
+const pagedCss = fs.readFileSync(path.join(ROOT, 'assets/css/10-shell/paged.css'), 'utf8');
+const effectsCss = fs.readFileSync(path.join(ROOT, 'assets/css/20-components/effects.css'), 'utf8');
 
 /* ------------------------------------------------------ 1. 接线是否完整 */
-['assets/css/paged.css', 'assets/css/effects.css'].forEach(f => {
+['assets/css/10-shell/paged.css', 'assets/css/20-components/effects.css'].forEach(f => {
   ok(html.includes(f), 'index.html 引入 ' + f);
 });
 ['assets/js/paged.js', 'assets/js/effects.js'].forEach(f => {
