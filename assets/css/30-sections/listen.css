@@ -498,12 +498,19 @@
   .track,
   .track:last-child:nth-child(odd),
   .track:last-child:nth-child(3n + 1) { grid-column: auto; }
-  /* 手机上磁贴内边距略收，给「六首一屏」让出空间。
+  /* 2026-11-13：手机磁贴原来是 65px 高、封面 34px、曲名 15.2px —— 触区和字号都偏小，
+     而页头 72px 的上留白反而显得空。这一版把磁贴加大、把页头与卡片留白收回来，
+     「六首一屏」仍然成立（容量公式见 render-listen.js 的 trackCap）。
      ⚠️ 必须分开写 column-gap / row-gap：写成 gap 会同时把行距设成 10px，
      两行文字之间突然空出 10px，六行就是白白多出 60px。 */
-  .track { padding: 9px 11px; column-gap: 10px; row-gap: 1px; }
-  .track__title { font-size: .95rem; }
-  .track__meta { font-size: .76rem; }
+  .track { padding: 10px 13px; column-gap: 11px; row-gap: 2px; }
+  .track__pic { width: 38px; height: 38px; }
+  .track__title { font-size: .98rem; }
+  .track__meta { font-size: .77rem; }
+  .track-list { gap: 8px; }
+  /* 页头下留白与卡片上留白各收一点，抵消磁贴变高的部分 */
+  .listen .section__head,
+  #listen .section__head { margin-bottom: 14px; }
   .listen__foot { margin-top: 13px; font-size: .74rem; }
   /* 封面墙不做手机特例：实例固定，JS 的 scale 已经按 max(宽,高) 等比缩好。
      为窄屏另配一套行高只会让"填满"重新变得不可控。 */
