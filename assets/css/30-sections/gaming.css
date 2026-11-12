@@ -70,6 +70,10 @@
    从 -2400 起放，任意位移 d ∈ [0,2400] 时内容覆盖
    [-2400+d, 2400+d] 都完整包住实例 [0,2400] —— 永远填得满。
    归零时两份内容相同，画面接得上，不会跳。 */
+/* 低端档：墙照常显示同一张预渲染图，但不滚动（见 src/core/perf-tier.js） */
+html[data-wall="static"] .steamwall__col,
+html[data-wall="static"] .albumwall__row { animation: none !important; }
+
 .steamwall__col {
   width: var(--wall-tile-w, 200px);
   height: calc(var(--wall-period, 1200px) * 2);
@@ -243,8 +247,41 @@
   text-decoration: none;
   transition: border-color var(--t-fast) var(--ease);
 }
-.game-board:hover { border-color: var(--line-strong); }
 .game-board[hidden] { display: none; }
+
+/* 2026-11-13：整块不再是 <a>（里面要放"前往主页"按钮，链接不能套链接），
+   所以 hover 描边跟着上移到按钮上 —— 容器本身不再可点，给它 hover 反馈是撒谎。 */
+.gb-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-left: auto;          /* 顶栏里靠右 */
+  flex: none;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-full);
+  background: var(--bg-soft);
+  color: var(--text-2);
+  font-size: .78rem;
+  font-weight: 500;
+  letter-spacing: .01em;
+  text-decoration: none;
+  white-space: nowrap;
+  transition:
+    color var(--t-fast) var(--ease),
+    background-color var(--t-fast) var(--ease),
+    border-color var(--t-fast) var(--ease);
+}
+.gb-cta .icon { width: 13px; height: 13px; }
+@media (hover: hover) {
+  .gb-cta:hover {
+    color: var(--text);
+    background: var(--bg-elev);
+    border-color: var(--line-strong);
+  }
+}
+.gb-cta:active { background: var(--bg-elev); }
+.gb-cta:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 /* ------------------------------------------------------------ ① 顶栏 */
 .gb-head {
@@ -296,7 +333,6 @@
   transition: transform var(--t) var(--ease), color var(--t) var(--ease);
 }
 .gb-head__go .icon { width: 14px; height: 14px; }
-.game-board:hover .gb-head__go { color: var(--text); transform: translate(2px, -2px); }
 
 /* ------------------------------------------------------------ ② 三格数据 */
 .game-stats { display: block; }
@@ -478,7 +514,7 @@
 
 /* --------------------------------------------------------------- 窄屏 */
 @media (max-width: 680px) {
-  .game-board { margin-top: 16px; }
+  .game-board { margin-top: 10px; }
   .gb-head { gap: 8px; padding: 11px 12px; }
   .gb-head__name { font-size: .88rem; }
   .gb-head__id { font-size: .7rem; gap: 4px; }

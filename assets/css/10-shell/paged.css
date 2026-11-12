@@ -381,39 +381,31 @@ html[data-paged="on"] .pager { display: flex; }
 .pager__track { display: none; }
 
 @media (max-width: 900px) {
+  /* 2026-11-13：底部分段式进度条已移除（用户要求只保留侧边页码）。
+     手机上没有桌面的 --w 留白，所以把页码贴到屏幕最右侧、站到正文容器外面，
+     与内容零重叠；同时去掉毛玻璃 —— 这层只有十几像素宽，每帧重算不值得。 */
   .pager {
-    top: auto;
+    top: 50%;
     right: 0;
-    bottom: 0;
-    left: 0;
-    transform: none;
-    display: block;
-    padding: 0 12px calc(7px + env(safe-area-inset-bottom));
+    bottom: auto;
+    left: auto;
+    transform: translateY(-50%);
+    display: flex;
+    /* 宽度必须 ≤ 20px：手机正文容器的右边界在 370 左右，
+       right:0 时页码占 [390-w, 390]，w>20 就会压到正文上。
+       圆点本体仍是 6px，只是把 26px 的点击热区收窄到 22px / 左右各 4px。 */
+    padding: 6px 1px;
+    padding-right: max(1px, env(safe-area-inset-right));
+    gap: 2px;
     border: 0;
-    border-radius: 0;
-    background: transparent;
+    border-radius: var(--r-full) 0 0 var(--r-full);
+    background: color-mix(in srgb, var(--bg-elev) 78%, transparent);
     box-shadow: none;
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
-    pointer-events: none;
   }
-  .pager__list { display: none; }
-
-  .pager__track {
-    display: flex;
-    gap: 4px;
-  }
-  .pager__seg {
-    flex: 1;
-    height: 3px;
-    border-radius: 2px;
-    background: var(--line-strong);
-    transition: background-color var(--t) var(--ease), transform var(--t) var(--ease);
-  }
-  .pager__seg.is-current {
-    background: var(--accent);
-    transform: scaleY(1.6);
-  }
+  .pager__track { display: none; }
+  .pager__dot { height: 22px; padding: 0 4px; }
 }
 
 /* 分段只在手机显示，桌面保持圆点 */

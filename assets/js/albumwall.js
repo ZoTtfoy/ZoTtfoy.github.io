@@ -234,7 +234,11 @@ window.SITE_ALBUMWALL = (function () {
 
   function start() {
     if (!wall) return;
-    if (reduced()) { wall.setAttribute("data-paused", "1"); return; }
+    /* 与 steamwall 对称：低端档不滚动，图照常显示 */
+    if (reduced() || (window.SITE_PERF && window.SITE_PERF.staticWall())) {
+      wall.setAttribute("data-paused", "1");
+      return;
+    }
     wall.removeAttribute("data-paused");
   }
 

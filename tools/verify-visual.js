@@ -155,13 +155,10 @@ await page.goto(URL, { waitUntil: 'load' });
         tag + '页码与内容零重叠（相交面积 ' + pager.intersectArea + 'px²，正文底边 ' +
         pager.contentBottom + ' / 页码顶边 ' + pager.y + '）');
       ok(pager.dotCount === pager.pageCount, tag + '页码数量与页数一致（' + pager.dotCount + '）');
-      // 断点 900px：以下用底部分段，以上用侧边圆点
-      if (vp.width <= 900) {
-        ok(pager.y > vp.height * 0.9, tag + '页码贴底（y=' + pager.y + '）');
-        ok(pager.trackVisible && !pager.listVisible, tag + '窄屏用底部分段而非圆点');
-      } else {
-        ok(pager.listVisible && !pager.trackVisible, tag + '宽屏用侧边圆点');
-      }
+      // 2026-11-13：底部分段式进度条已移除，窄屏也改为侧边圆点
+      // （用户要求"只保留侧边进度提示"）。所以两种视口守同一条不变量。
+      ok(pager.listVisible && !pager.trackVisible, tag + '用侧边圆点，没有底部分段');
+      ok(pager.x > vp.width * 0.8, tag + '页码贴在右侧（x=' + pager.x + '）');
     } else {
       fails.push(tag + '页码未显示');
     }

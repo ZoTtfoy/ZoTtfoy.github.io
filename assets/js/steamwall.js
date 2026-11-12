@@ -277,6 +277,9 @@ window.SITE_STEAMWALL = (function () {
 
   function start() {
     if (reduced() || !colsEls.length) return;
+    /* 低端机 / 省流量 / 省电：墙保留同一张预渲染图，但不滚动。
+       判断在 core/perf-tier.js，一处结论两面墙共用。 */
+    if (window.SITE_PERF && window.SITE_PERF.staticWall()) return;
     running = true;
     if (useWaapi) {
       for (var i = 0; i < anims.length; i++) {

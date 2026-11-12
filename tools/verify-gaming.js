@@ -98,10 +98,19 @@ ok(games.map(g => g.name).join(',') === 'Steam,明日方舟,无畏契约',
      /fill="currentColor"/.test(path) && /stroke="none"/.test(path),
     name + ' 的图标是实心路径（不用描边，小尺寸下才不会糊）');
 });
-/* Steam 卡必须带档案地址，否则"公开库存"这句话是死的 */
+/* Steam 卡必须带档案地址 —— 底部那个按钮的 href 就是它。
+   2026-11-13 起改用自定网址（/id/<name>），与 /profiles/<17位ID> 等价，
+   两种形式都接受；但必须指向 steamcommunity.com。 */
+/* 不用正则：heredoc / 多层转义很容易把 \\/ 写坏，这里纯字符串判断。
+   接受两种等价形式：/profiles/<17位数字> 与 /id/<自定名>。 */
+function isSteamProfile(u) {
+  if (typeof u !== 'string' || u.indexOf('https://steamcommunity.com/') !== 0) return false;
+  const tail = u.slice('https://steamcommunity.com'.length).replace(/\/+$/, '');
+  return /^\/profiles\/\d{17}$/.test(tail) || /^\/id\/[A-Za-z0-9_-]+$/.test(tail);
+}
 const steamCard = games.find(g => g.name === 'Steam');
-ok(steamCard && steamCard.steam && String(steamCard.steam.profileUrl || '').startsWith('https://steamcommunity.com/profiles/') && (steamCard.steam.steamId || '').length === 17,
-  'Steam 卡带指向真实档案的 profileUrl（17 位 SteamID64）');
+ok(isSteamProfile(steamCard && steamCard.steam && steamCard.steam.profileUrl),
+  'Steam 卡的 profileUrl 指向真实档案（/profiles/<17位> 或 /id/<自定名>）');
 ok(steamCard && steamCard.steam && Array.isArray(steamCard.steam.fallbackApps) && steamCard.steam.fallbackApps.length >= 6,
   'Steam 卡带 fallbackApps 快照（拿不到库存时背景仍有图）');
 
@@ -405,7 +414,11 @@ async function browserChecks() {
         gamingFit: g.offsetHeight <= innerHeight + 2,
         /* 新结构：一块 .game-board（顶栏 + 三格 + 列表），不是一堆卡片了 */
         hasBoard: !!board,
-        boardHref: board ? board.getAttribute('href') : '',
+        /* 2026-11-13：容器不再是链接，入口在底部那个 .gb-cta 上 */
+        boardHref: (function () {
+          const cta = board && board.querySelector('a.gb-cta');
+          return cta ? cta.getAttribute('href') : '';
+        })(),
         rowCount: rows.length,
         rowH: rows.length ? Math.round(r(rows[0]).height) : 0,
         listH: list ? Math.round(r(list).height) : 0,
@@ -424,7 +437,7 @@ async function browserChecks() {
     ok(layout.allFit, tag + '每页都在一屏内');
     ok(layout.gamingFit, tag + '游戏页在一屏内');
     ok(layout.hasBoard, tag + '有游戏模块（game-board）');
-    ok(/steamcommunity\.com\/profiles\//.test(layout.boardHref), tag + '整块指向 Steam 主页');
+    ok(isSteamProfile(layout.boardHref), tag + '按钮指向 Steam 主页');
     ok(layout.rowCount >= 2, tag + '游戏列表至少有 2 行（' + layout.rowCount + '）');
     ok(layout.overflow <= 2, tag + '模块没有把这一屏顶破（溢出 ' + layout.overflow + 'px）');
     /* 只剩一张卡时（Q3 现在是"Steam 一条横卡 + 战绩列表"）本来就该是 1 列；
@@ -484,16 +497,24 @@ async function browserChecks() {
       const sec = document.getElementById('gaming');
       const board = document.getElementById('gameBoard');
       const uc = sec && sec.querySelector('[data-copy], .game__uid, .gb-head__id button');
-      /* 整块是 <a>，里面不能再套交互元素（嵌套链接是非法结构，点击会打架） */
-      const nested = board ? board.querySelectorAll('a, button, input, select, textarea') : [];
-      return { href: board && board.getAttribute('href'), target: board && board.getAttribute('target'),
-               hasCopyBtn: !!uc, nested: nested.length };
+      /* 2026-11-13 起整块不再是 <a>：里面要放"前往 Steam 主页"按钮，
+         链接套链接是非法结构。改为「容器 + 唯一一个 CTA」，
+         所以这里守三条：容器不是链接、CTA 只有一个、CTA 指向档案并在新标签打开。 */
+      const ctas = board ? board.querySelectorAll('a.gb-cta') : [];
+      const cta = ctas[0] || null;
+      const inner = board ? board.querySelectorAll('a:not(.gb-cta), button, input, select, textarea') : [];
+      return { tag: board ? board.tagName : '',
+               ctas: ctas.length,
+               href: cta && cta.getAttribute('href'), target: cta && cta.getAttribute('target'),
+               hasCopyBtn: !!uc, nested: inner.length };
     });
-    ok(boardInfo.href && boardInfo.target === '_blank',
-       tag + '整块模块可点且在新标签打开（' + (boardInfo.href || '无') + '）');
-    ok(!boardInfo.hasCopyBtn, tag + '模块里没有"复制 UID"按钮（点卡片即跳转）');
-    ok(boardInfo.nested === 0,
-       tag + '战绩板内部没有嵌套交互元素（点哪都是同一个跳转）');
+    ok(boardInfo.tag === 'DIV', tag + '模块容器不是链接（避免链接套链接）');
+    ok(boardInfo.ctas === 1, tag + '只有一个「前往 Steam 主页」按钮');
+    ok(isSteamProfile(boardInfo.href),
+       tag + '按钮指向 Steam 档案（' + (boardInfo.href || '无') + '）');
+    ok(boardInfo.target === '_blank', tag + '按钮在新标签打开');
+    ok(!boardInfo.hasCopyBtn, tag + '模块里没有"复制 UID"按钮');
+    ok(boardInfo.nested === 0, tag + '除了这个按钮，容器里没有别的交互元素');
 
     /* 「查看全部」是绝对定位压在列表底部的，所以必须**一行都不许压住**。
        这里的判据是"完全落在列表可视区内的行，其底边不能越过渐隐顶边"：

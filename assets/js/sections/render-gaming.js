@@ -47,30 +47,29 @@
 
     var g = steamItem();
     if (!g) {                       /* 没有 Steam 卡就整块不显示 */
-      if (board) { board.hidden = true; board.removeAttribute("href"); }
+      if (board) board.hidden = true;
       rail.innerHTML = "";
       return;
     }
 
-    var href = (g.steam && g.steam.profileUrl) || g.link || "#";
-    if (board) {
-      board.hidden = false;
-      board.href = href;
-      board.setAttribute("aria-label", "打开我的 " + (g.name || "Steam") + " 主页");
-    }
+    var href = (g.steam && g.steam.profileUrl) || g.link || "https://steamcommunity.com/id/ZotrodXC/";
+    if (board) board.hidden = false;
 
-    /* 顶栏：左边是身份，右边是好友码。
-       ⚠️ 好友码不再是按钮：它现在是模块的说明文字，点击由外层链接接管。 */
+    /* 顶栏：左边身份，右边入口按钮。
+       2026-11-13 按用户要求去掉「公开库存」与「好友码」两项 ——
+       它们对访客没有用，却占掉了顶栏一半宽度；腾出来的位置正好放主页按钮。
+       ⚠️ 按钮**必须**在顶栏里，不能单独占一行：实测多出那 36px 会把
+          游戏屏从 roomy 顶到 tight（430×932 / 393×873 都会）。
+       ⚠️ 它是 <a>，所以外层 .game-board 只能是 div —— 链接不能套链接。 */
     rail.innerHTML =
       '<span class="gb-head">' +
         '<span class="gb-head__icon">' + icon(g.icon || "steam") + "</span>" +
         '<span class="gb-head__name">' + esc(g.name || "Steam") + "</span>" +
-        (g.server ? '<span class="gb-head__meta">' + esc(g.server) + "</span>" : "") +
-        (g.uid
-          ? '<span class="gb-head__id"><i>' + esc(g.uidLabel || "好友码") + "</i>" +
-            "<b>" + esc(g.uid) + "</b></span>"
-          : "") +
-        '<span class="gb-head__go">' + icon("arrow-up-right") + "</span>" +
+        '<a class="gb-cta" id="steamCta" href="' + esc(href) + '"' +
+          ' target="_blank" rel="noopener noreferrer"' +
+          ' aria-label="前往我的 ' + esc(g.name || "Steam") + ' 主页（新窗口打开）">' +
+          "<span>前往主页</span>" + icon("arrow-up-right") +
+        "</a>" +
       "</span>";
   }
 

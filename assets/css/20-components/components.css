@@ -351,26 +351,6 @@
 
 /* 动态背景已迁移到 backdrop.css（图片 / 遮罩 / 光晕 / 网格 / 微粒 / 噪点） */
 
-/* -------------------------------------------------------------- 滚动进度 */
-.scroll-progress {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 80;
-  height: 2px;
-  pointer-events: none;
-}
-.scroll-progress span {
-  display: block;
-  width: 100%;
-  height: 100%;
-  background: var(--accent);
-  transform: scaleX(0);
-  transform-origin: 0 50%;
-  will-change: transform;
-}
-
 /* ------------------------------------------------------------ 回到顶部 */
 .to-top {
   position: fixed;

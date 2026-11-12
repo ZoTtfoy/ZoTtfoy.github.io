@@ -181,7 +181,7 @@ const scripts = ['assets/js/config.js','assets/js/themes.js','assets/js/icons.js
                  'assets/js/sections/render-gaming.js','assets/js/sections/render-repair.js',
                  'assets/js/sections/render-links.js',
                  'assets/js/render.js',
-                 'assets/js/sync.js','assets/js/repair.js',
+                 'assets/js/core/perf-tier.js','assets/js/sync.js','assets/js/repair.js',
                  'assets/js/skin.js','assets/js/live.js','assets/js/paged.js','assets/js/effects.js',
                  'assets/js/motion.js','assets/js/main.js'];
 for (const rel of scripts) {
@@ -300,10 +300,14 @@ const steamGame = games.filter(g => g.steam && g.steam.steamId)[0];
 /* 注：这套自检用的是极简 DOM 桩，`H('gaming')` 只回显 JS 写进去的 innerHTML，
    静态标记要查源文件本身（html）。 */
 check(/class="game-board"/.test(html), 'Q3 是单块游戏模块（game-board）');
-check(!!steamGame && /steamcommunity\.com\/profiles\//.test(steamGame.steam.profileUrl || ''),
-  '配置里有 Steam 主页地址（整块模块的 href 来自这里）');
-check(count('gameRail', /gb-head__id/g) === 1,
-  '好友码只作为文字展示（gb-head__id）');
+check(!!steamGame && String(steamGame.steam.profileUrl || '').indexOf('https://steamcommunity.com/') === 0,
+  '配置里有 Steam 主页地址（底部按钮的 href 来自这里）');
+check(count('gameRail', /gb-head__id/g) === 0,
+  '顶栏不再显示好友码（2026-11-13 移除）');
+check(count('gameRail', /gb-head__meta/g) === 0,
+  '顶栏不再显示公开库存状态（2026-11-13 移除）');
+check(count('gameRail', /gb-cta/g) === 1 && H('gameRail').indexOf('steamcommunity.com') > 0,
+  '磁贴内有一个指向 Steam 主页的按钮');
 check(count('gameRail', /data-copy="/g) === 0,
   '游戏模块里不再有"复制 UID"按钮');
 check(!/game__stats|game__note/.test(H('gameRail')), 'Q3 卡片不含介绍性内容（只有图标/名称/ID）');

@@ -116,6 +116,8 @@
   <script defer src="assets/js/skin.js"></script>
   <script defer src="assets/js/backdrop.js"></script>
   <script defer src="assets/js/live.js"></script>
+  <!-- 设备档位：低端机不滚动背景墙（墙的图还在，只是不动） -->
+  <script defer src="assets/js/core/perf-tier.js"></script>
   <script defer src="assets/js/steamwall.js"></script>
   <script defer src="assets/js/albumwall.js"></script>
   <!-- 预取闸门：等两面封面墙建好 DOM 之后，先把第 1/2 屏的图 decode 完再放行，
@@ -198,7 +200,6 @@
 
   <a class="skip-link" href="#main">跳到主要内容</a>
 
-  <div class="scroll-progress" aria-hidden="true"><span id="scrollProgressBar"></span></div>
 
   <!-- 背景系统：图片 → 遮罩 → 光晕 → 网格 → 微粒 → 噪点（全部在内容之下，不挡点击） -->
   <div class="ambient" id="ambient" aria-hidden="true">
@@ -373,15 +374,17 @@
             <h2 class="section__title" id="gamingTitle" data-field="title"></h2>
             <p class="section__lead" data-field="lead"></p>
           </header>
-          <!-- 游戏模块：**整块是一个链接**（点哪都进 Steam 主页）。
-               render.js 分两半填：
-                 #gameRail  → 顶栏（平台名 / 公开库存 / 好友码）
+          <!-- 游戏模块：**容器 + 一个明确的主页按钮**。
+               2026-11-13 改版：原来是整块 <a>，但要在磁贴里放"前往 Steam 主页"
+               按钮就变成链接套链接（非法结构，点击会打架），所以外层退回 div。
+               render 分两半填：
+                 #gameRail  → 顶栏（平台名）
                  #gameStats → 三格数据 + 游戏列表（可滚动，行数按可用高度算）
                数据来自 data/steam.json；抓不到时整块不渲染，不留空壳。 -->
-          <a class="game-board" id="gameBoard" hidden target="_blank" rel="noopener noreferrer">
+          <div class="game-board" id="gameBoard" hidden>
             <div class="game-head" id="gameRail"></div>
             <div class="game-stats" id="gameStats" hidden></div>
-          </a>
+          </div>
         </div>
       </section>
 

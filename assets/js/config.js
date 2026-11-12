@@ -139,7 +139,9 @@ window.SITE_CONFIG = {
               color: "#66c0f4",
               steam: {
                   steamId: "76561199120970154",
-                  profileUrl: "https://steamcommunity.com/profiles/76561199120970154/",
+                  /* 2026-11-13：改用自定网址（/id/<name>），与 /profiles/<17位ID> 等价。
+                 两种形式都指向同一个档案，按钮用的是这个。 */
+              profileUrl: "https://steamcommunity.com/id/ZotrodXC/",
                   libraryUrl: "https://steamcommunity.com/profiles/76561199120970154/games/?tab=all",
                   scrollSpeed: 1,
                   fallbackApps: [
@@ -345,12 +347,34 @@ window.SITE_CONFIG = {
       eyebrow: "04 / ELSEWHERE",
       title: "其他账号",
       lead: "挑一个你顺手的方式。",
+      /* 2026-11-13 按用户要求重排：哔哩哔哩 → 抖音 → 小红书 → 闲鱼 → X → GitHub → QQ音乐。
+         掘金已移除；抖音 / 小红书 / 闲鱼是新增。
+         ⚠️ 抖音与小红书的 url 现在是站点首页 —— 各自的主页链接需要换成你自己的
+            （形如 douyin.com/user/<id>、xiaohongshu.com/user/profile/<id>）。 */
       items: [
           {
-              icon: "github",
-              label: "GitHub",
-              handle: "@ZoTtfoy",
-              url: "https://github.com/ZoTtfoy"
+              icon: "bilibili",
+              label: "哔哩哔哩",
+              handle: "偶尔更新",
+              url: "https://space.bilibili.com/"
+            },
+          {
+              icon: "tiktok",
+              label: "抖音",
+              handle: "日常短片",
+              url: "https://www.douyin.com/"
+            },
+          {
+              icon: "xiaohongshu",
+              label: "小红书",
+              handle: "生活记录",
+              url: "https://www.xiaohongshu.com/"
+            },
+          {
+              icon: "xianyu",
+              label: "闲鱼",
+              handle: "维修小铺",
+              url: "https://www.goofish.com/personal?spm=a21ybx.home.nav.1.4c053da64wQyXN"
             },
           {
               icon: "x",
@@ -359,22 +383,16 @@ window.SITE_CONFIG = {
               url: "https://x.com/Zotrod"
             },
           {
-              icon: "bilibili",
-              label: "哔哩哔哩",
-              handle: "偶尔更新",
-              url: "https://space.bilibili.com/"
+              icon: "github",
+              label: "GitHub",
+              handle: "@ZoTtfoy",
+              url: "https://github.com/ZoTtfoy"
             },
           {
               icon: "qqmusic",
               label: "QQ 音乐",
               handle: "常听歌单",
               url: "https://y.qq.com/"
-            },
-          {
-              icon: "juejin",
-              label: "掘金",
-              handle: "技术笔记",
-              url: "https://juejin.cn/"
             },
           {
               icon: "mail",

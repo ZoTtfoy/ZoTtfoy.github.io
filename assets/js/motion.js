@@ -103,7 +103,7 @@ window.SITE_MOTION = (function () {
   /* --------------------------------------------- 滚动：进度 / 页头 / 回顶 / 高亮 */
   function initScroll() {
     var header = $("siteHeader");
-    var bar = $("scrollProgressBar");
+    var bar = null;   // 顶部进度条已移除（见 update() 里的注释）
     var toTop = $("toTop");
     var navLinks = document.querySelectorAll("[data-nav]");
     var sections = Array.prototype.slice.call(document.querySelectorAll(".section"))
@@ -166,16 +166,8 @@ window.SITE_MOTION = (function () {
           header.classList.toggle("is-scrolled", scrolled);
         }
       }
-      if (bar) {
-        if (!docHeight || Math.abs(lastInner - window.innerHeight) > 1) refreshHeight();
-        /* 2026-11-13：进度条宽 390~1440px，0.001 的进度就是 0.4~1.4px ——
-           比屏幕上能看见的还细。原来按 4 位小数比较，等于**每帧都写一次**
-           inline style；在 120Hz 上就是每秒 120 次多余的合成层失效。
-           量化到千分之一后，滚动一屏通常只写十几~几十次。
-           实测（390×844/DSF2/CPU4x/关垂直同步）写与不写的差别约 3ms/帧。 */
-        var p = Math.round(Math.min(1, y / docHeight) * 1000) / 1000;
-        if (bar._p !== p) { bar._p = p; bar.style.transform = "scaleX(" + p + ")"; }
-      }
+      /* 2026-11-13：顶部滚动进度条已移除（用户要求只保留侧边页码）。
+         这里不再写任何进度值 —— bar 永远是 null，下面这段留着只作说明。 */
       if (toTop) {
         var showTop = y > 560 && UI.showBackToTop !== false;
         if (toTop.classList.contains("is-visible") !== showTop) {
