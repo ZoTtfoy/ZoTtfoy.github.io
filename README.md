@@ -115,8 +115,11 @@ zotrod-homepage/
 │       ├── core/
 │       │   └── render-kit.js     # 渲染层公共底座：小工具 + 屏模块登记表
 │       ├── sections/
-│       │   ├── render-listen.js  # Q2 在听屏的渲染
-│       │   └── render-gaming.js # Q3 游戏屏的渲染
+│       │   ├── render-profile.js   # Q1 我：名片 + 摘要卡（previewCard 与 Q4 共用）
+│       │   ├── render-listen.js    # Q2 在听：排行 + 磁贴 + 播放器接口
+│       │   ├── render-gaming.js    # Q3 游戏：顶栏 + 三格数据 + 列表
+│       │   ├── render-repair.js    # Q4 维修：闲鱼卡 + 报价表
+│       │   └── render-links.js     # Q5 外链 + Q6 邮箱（都很小，合一个文件）
 │       ├── config.js             # ★★ 所有文案、链接、模块开关（内容都在这里）
 │       ├── themes.js             # ★★ 主题注册表：7 套风格的完整设计变量
 │       ├── skin.js               # 应用主题 + 切换面板逻辑

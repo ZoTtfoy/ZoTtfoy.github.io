@@ -1,32 +1,58 @@
 /* ==========================================================================
- *  渲染层：把 config.js 的数据填进 index.html 的骨架
- *  一般不需要改这个文件。新增内容优先改 config.js；
- *  新增模块则复制一个 <section> 骨架，再在这里补一段渲染函数。
+ *  render.js —— 渲染层的收口处
+ * --------------------------------------------------------------------------
+ *  这里只剩三件事：
+ *    ① 外壳渲染：文档 meta / 头像 / 品牌页脚 / 导航 / 右上角控件
+ *    ② 块表 BLOCKS：谁先画、画在哪个容器上（layer 顺序一处可见）
+ *    ③ 启动：逐块 try/catch、data-render 标记、?render=xxx 单块调试
  *
- *  ⚠️ 2026-11-13 起按屏拆：Q3 在 sections/render-gaming.js，
- *     共用小工具在 core/render-kit.js。本文件持有块表与启动逻辑，
- *     是所有屏模块的收口处 —— 别把屏专属代码再写回这里。
+ *  六屏的渲染都已搬到 sections/ 下：
+ *    Q1 身份区  render-profile.js      Q4 维修    render-repair.js
+ *    Q2 在听    render-listen.js       Q5/Q6     render-links.js
+ *    Q3 游戏    render-gaming.js
+ *  共用小工具在 core/render-kit.js。
  *
- *  页面 6 屏 → hero(Q1) / listen(Q2) / gaming(Q3) / repair(Q4) / links(Q5) / contact(Q6)
+ *  ⚠️ 别再往这个文件里写屏专属代码。要加一屏：
+ *     新建 sections/render-xxx.js → K.register("xxx", {…}) →
+ *     在下面别名区取一次 → 块表加一条 → index.html 加一个 <script>。
  * ========================================================================== */
 
 window.SITE_RENDER = (function () {
   "use strict";
 
   var C = window.SITE_CONFIG || {};
-  /* 共用小工具挪到 core/render-kit.js（屏模块也要用）。
-     这里只做局部别名 —— 下面近千行渲染代码一个字都不用改。 */
+
+  /* 共用小工具在 core/render-kit.js，这里只做局部别名 ——
+     下面外壳那几百行渲染代码一个字都不用改。 */
   var K = window.SITE_RENDER_KIT;
   var esc = K.esc, text = K.text, icon = K.icon;
   var $ = K.$, set = K.set, arr = K.arr, delay = K.delay;
 
-  /* Q3 游戏屏在自己文件里注册；这里留一个本地别名，
-     让块表与调试接口仍然写 `renderGaming`，调用方式不变。 */
-  var G = K.parts.gaming || {};
-  var renderGaming = G.renderGaming;
-  /* Q2 在听屏：同 kit 注册，块表条目仍写 `fn: renderListen`。 */
-  var LISTEN = K.parts.listen || {};
-  var renderListen = LISTEN.renderListen;
+  /* ---------------------------------------------------------------------
+     屏模块 → 本地别名
+     ---------------------------------------------------------------------
+     各屏在自己的文件末尾 K.register() 登记；这里取一次别名，
+     于是**块表和对外接口仍然写裸函数名**（fn: renderGaming），
+     与拆分之前完全一样 —— 测试断言和 sync.js 都不用改。
+
+     ⚠️ 加载顺序是契约：kit → 屏模块 → 本文件。反了这里全是 undefined，
+        页面会静默空白（每块都被 try/catch 兜住，控制台有 [render] xxx 失败）。
+     ⚠️ 屏之间也有先后：Q4 的闲鱼卡复用 Q1 的 paintPreviews，
+        所以 render-profile 必须排在 render-repair 之前。 */
+  var Q1 = K.parts.profile || {};
+  var Q2 = K.parts.listen || {};
+  var Q3 = K.parts.gaming || {};
+  var Q4 = K.parts.repair || {};
+  var Q56 = K.parts.links || {};
+
+  var renderProfile = Q1.renderProfile;
+  var renderListen = Q2.renderListen;
+  var renderGaming = Q3.renderGaming;
+  var renderRepair = Q4.renderRepair;
+  var renderLinks = Q56.renderLinks;
+  var renderContact = Q56.renderContact;
+  var previewCard = Q1.previewCard;
+  var paintPreviews = Q1.paintPreviews;
 
   /* ---------- 自定义主题色（在 config.js 的 ui.accent / ui.accentDark 里设置） ---------- */
   function hexToRgba(hex, alpha) {
@@ -127,107 +153,9 @@ window.SITE_RENDER = (function () {
     renderAvatar();
   }
 
-  /* ============================================================ Q1 · 我 */
-  function renderProfile() {
-    var s = C.site || {}, p = C.profile || {}, h = C.hero || {};
-
-    set("heroGreet", esc(p.greet || "你好，我是"));
-    set("heroName", esc(s.name || "Zotrod"));
-    set("heroTagline", esc(p.tagline || ""));
-    set("heroRole", esc(s.role || ""));
-    set("heroIntro", text(p.intro || ""));
-    if (!p.tagline) { var t = $("heroTagline"); if (t) t.hidden = true; }
-
-    // 微信 / QQ：只印平台名，点一下复制账号。
-    // 用 <button> 而不是 <a>，因为它不跳转。
-    //
-    // ⚠️ 账号本身不再上屏（2026-11-10 改）：QQ 号 10 位、微信号 12 位，
-    // 摆在卡上要么被挤成第二行、要么吃省略号；而"看见再手抄"本来就不如
-    // "点一下进剪贴板"。账号仍留在 data-copy 与 aria-label 里 ——
-    // 读屏用户照样听得到，复制也照样拿到。
-    // data-copy-toast 让 Toast 只说"已复制 QQ"，不把号码复述一遍。
-    set("heroContacts", arr(p.contacts).map(function (c, i) {
-      return '<button class="ccard" type="button" ' +
-             'data-copy="' + esc(c.value) + '" ' +
-             'data-copy-toast="已复制 ' + esc(c.label) + '" ' +
-             'aria-label="复制' + esc(c.label) + '：' + esc(c.value) + '" ' +
-             'style="' + delay(i, 70) + '">' +
-               '<span class="ccard__icon">' + icon(c.icon) + "</span>" +
-               '<span class="ccard__label">' + esc(c.label) + "</span>" +
-               '<span class="ccard__act">' +
-                 '<span class="ccard__hint" data-copy-hint>点击复制</span>' +
-                 icon("copy") +
-               "</span>" +
-             "</button>";
-    }).join(""));
-
-    // 两个主页的摘要卡（左右各一张）。compact：只要「图标 + 平台名 + 箭头」
-    paintPreviews("heroPreviews", p.previews, true);
-
-    // 首屏按钮
-    var a = $("heroPrimary"), b = $("heroSecondary");
-    var pri = h.primary || { label: "看看我在听", target: "#listen" };
-    var sec = h.secondary || { label: "游戏 ID", target: "#gaming" };
-    if (a) {
-      a.innerHTML = "<span>" + esc(pri.label) + "</span>" + icon("arrow-down", "btn__icon");
-      if (pri.target) a.setAttribute("href", pri.target);
-    }
-    if (b) {
-      b.innerHTML = "<span>" + esc(sec.label) + "</span>" + icon("arrow-up-right", "btn__icon");
-      if (sec.target) b.setAttribute("href", sec.target);
-    }
-  }
-
-  /* ---------- 外链摘要卡（Q1 两个 + Q4 闲鱼一个） ----------
-     一个组件两种形态：
-       有 cover → 上方封面 + 下方文字，像一张缩略图卡
-       无 cover → 纯文字信息卡，左边一块平台图标
-     sync.js 拿到 data/previews.json 后，会按 [data-preview-id] 回填
-     标题 / 副标题 / 数据 / 封面 —— 优先用抓到的真实信息。
-
-     ⚠️ 2026-11-11 第二轮：用户要「磁贴内文字去掉，只要网易云音乐和小黑盒」。
-        Q1 那两张卡改成**单行**（compact）——不渲染标题 / 副标题 / 数据三块，
-        只留 图标 + 平台名 + 外链箭头。数据本身还在 data/previews.json 里，
-        只是不再上屏；哪天想摆回来，把 compact 去掉即可。 */
-  function previewCard(p, i, compact) {
-    var cover = String(p.cover || "").trim();
-    var stats = compact ? [] : arr(p.stats).filter(function (s) { return s && s.value != null; });
-    var statsHtml = stats.map(function (s) {
-      return '<span class="preview__stat"><b>' + esc(s.value) + "</b>" + esc(s.label || "") + "</span>";
-    }).join("");
-
-    var style = (p.accent ? "--pc:" + esc(p.accent) + ";" : "") + delay(i, 80);
-
-    return '<a class="preview' + (cover ? " preview--cover" : "") +
-             (compact ? " preview--slim" : "") + '"' +
-             ' href="' + esc(p.url || "#") + '" target="_blank" rel="noopener noreferrer"' +
-             ' data-preview-id="' + esc(p.id || "") + '"' +
-             ' style="' + style + '" data-reveal>' +
-             (cover
-               ? '<span class="preview__cover"><img src="' + esc(cover) +
-                 '" alt="" loading="lazy" decoding="async"></span>'
-               : "") +
-             '<span class="preview__body">' +
-               '<span class="preview__top">' +
-                 '<span class="preview__icon">' + icon(p.icon) + "</span>" +
-                 '<span class="preview__platform">' + esc(p.platform || "") + "</span>" +
-                 icon("arrow-up-right", "preview__go") +
-               "</span>" +
-               (compact ? "" :
-                 '<span class="preview__title" data-preview-title>' + esc(p.title || "") + "</span>" +
-                 '<span class="preview__meta" data-preview-meta>' + esc(p.meta || "") + "</span>") +
-               (compact ? "" :
-                 '<span class="preview__stats" data-preview-stats' +
-                   (statsHtml ? "" : " hidden") + ">" + statsHtml + "</span>") +
-             "</span>" +
-           "</a>";
-  }
-
-  function paintPreviews(mountId, list, compact) {
-    var el = $(mountId);
-    if (!el) return;
-    el.innerHTML = arr(list).map(function (p, i) { return previewCard(p, i, compact); }).join("");
-  }
+  /* ======================================================== Q1 · 我
+     已搬到 assets/js/sections/render-profile.js（101 行）。
+     previewCard 仍由本文件的对外接口转发给 sync.js。 */
 
   /* ======================================================== Q2 · 在听
      已搬到 assets/js/sections/render-listen.js（233 行）。
@@ -241,125 +169,12 @@ window.SITE_RENDER = (function () {
      块表里的条目仍是 `fn: renderGaming`（上面那个别名），
      所以 layer 顺序、data-render 标记、?render=gaming 调试开关全部照旧。 */
 
-  /* ========================================================== Q4 · 维修 */
-  /* 报价单 → 闲鱼在售物品（2026-11-11 改版）
-     ---------------------------------------------------------------------
-     为什么换：原来的报价单是 10 行长静态价目表，读起来像一份"公告"，
-     而访客真正想看的是"你现在手上有什么、卖多少钱"。
-     闲鱼在售列表同时满足两件事：价格可信（有具体链接与状态），
-     也能顺势引到闲鱼店铺。
+  /* ====================================================== Q4 · 维修
+     已搬到 assets/js/sections/render-repair.js（74 行）。 */
 
-     数据来源只支持快照（config.js 的 repair.quote.items）：
-       试过抓 https://www.goofish.com/personal，它是 SPA，
-       服务端只回空壳；h5api 的 mtop 接口需要 appKey + 签名，
-       裸请求直接返回 FAIL_SYS_API_NOT_FOUNDED。
-       这跟网易云不同 —— 那边的公开接口是可读的。
-       所以这里不做抓取，改成"快照 + 一键重抓"的边界：
-       结构对齐闲鱼的字段（title / price / condition / note / url），
-       将来若有了合法数据源，只需替换 source 的读取方式，渲染层不用动。 */
-  function renderQuote() {
-    var q = (C.repair || {}).quote || {};
-    var el = $("repairQuote");
-    if (!el) return;
+  /* ============================================ Q5 外链 / Q6 邮箱
+     两屏都很小（合计 43 行），合并搬到 assets/js/sections/render-links.js。 */
 
-    var items = arr(q.items);
-    if (!items.length) { el.innerHTML = ""; return; }
-
-    var rows = items.map(function (it) {
-      /* 每条都尽量是一个可点链接：有 url 用 <a>，没有就退化成 <div>，
-         不让"看起来能点但其实点不动"的元素出现。 */
-      var tag = it.url ? "a" : "div";
-      var attrs = it.url
-        ? ' href="' + esc(it.url) + '" target="_blank" rel="noopener noreferrer"'
-        : "";
-      var cond = it.condition || "";
-      /* 「已成交」的置灰：它还有参考价值（能看出这一单大概多少钱），
-         但不该和「在售」抢注意力。 */
-      var sold = /已(成交|售出|下架)/.test(cond);
-
-      return "<" + tag + ' class="xy' + (sold ? " is-sold" : "") + '"' + attrs + ">" +
-          '<span class="xy__main">' +
-            '<span class="xy__title">' + esc(it.title) + "</span>" +
-            (it.note ? '<span class="xy__note">' + esc(it.note) + "</span>" : "") +
-          "</span>" +
-          '<span class="xy__side">' +
-            '<span class="xy__price">' + esc(it.price) + "</span>" +
-            (cond ? '<span class="xy__cond">' + esc(cond) + "</span>" : "") +
-          "</span>" +
-        "</" + tag + ">";
-    }).join("");
-
-    var onSale = items.filter(function (it) { return !/已(成交|售出|下架)/.test(it.condition || ""); }).length;
-
-    el.innerHTML =
-      '<details class="quote" id="quoteDetails" open>' +
-        '<summary class="quote__summary">' +
-          '<span class="quote__title">' + icon("shop") + esc(q.title || "闲鱼在售") + "</span>" +
-          '<span class="quote__count">' + onSale + " 件在售 · 共 " + items.length + " 件</span>" +
-          '<span class="quote__caret" aria-hidden="true">' + icon("chevron-right") + "</span>" +
-        "</summary>" +
-        '<div class="quote__body">' +
-          '<div class="xy-list">' + rows + "</div>" +
-          (q.note ? '<p class="quote__note">' + esc(q.note) + "</p>" : "") +
-          (q.profileUrl
-            ? '<a class="xy__more" href="' + esc(q.profileUrl) + '" target="_blank" rel="noopener noreferrer">' +
-                "去闲鱼看全部" + icon("arrow-up-right") + "</a>"
-            : "") +
-        "</div>" +
-      "</details>";
-  }
-
-  function renderRepair() {
-    var d = C.repair || {};
-    paintPreviews("repairPreview", d.xianyu ? [d.xianyu] : []);
-    renderQuote();
-    // 计算器由 repair.js 负责（它有状态和交互，放在渲染层里不合适）
-  }
-
-  /* ========================================================== Q5 · 其他 */
-  function renderLinks() {
-    var d = C.links || {};
-    set("linksGrid", arr(d.items).map(function (it, i) {
-      var inner =
-        '<span class="social__icon">' + icon(it.icon) + "</span>" +
-        '<span class="social__text">' +
-          '<span class="social__label">' + esc(it.label) + "</span>" +
-          '<span class="social__handle">' + esc(it.handle) + "</span>" +
-        "</span>";
-
-      // copy 模式：没有公开主页的账号，点击即复制
-      if (it.copy) {
-        return '<button class="social" type="button" style="' + delay(i, 55) + '" data-reveal ' +
-               'data-copy="' + esc(it.copy) + '"' +
-               ' data-copy-toast="已复制 ' + esc(it.label) + '"' +
-               ' aria-label="复制' + esc(it.label) + "：" + esc(it.copy) + '">' +
-               inner + icon("copy", "social__arrow") + "</button>";
-      }
-
-      var url = it.url || "#";
-      var external = url.charAt(0) !== "#" && url.indexOf("mailto:") !== 0;
-      return '<a class="social" style="' + delay(i, 55) + '" data-reveal ' +
-             'href="' + esc(url) + '"' +
-             (external ? ' target="_blank" rel="noopener noreferrer"' : "") + ">" +
-             inner + icon("arrow-up-right", "social__arrow") + "</a>";
-    }).join(""));
-  }
-
-  /* ========================================================== Q6 · 邮箱 */
-  function renderContact() {
-    var s = C.site || {}, d = C.contact || {};
-    var mail = s.email || "";
-    set("contactBox",
-      '<p class="mailbox__hint">' + esc(d.hint || "欢迎来信") + "</p>" +
-      '<a class="mailbox__mail" href="mailto:' + esc(mail) + '">' + esc(mail) + "</a>" +
-      '<div class="mailbox__actions">' +
-        '<a class="btn btn--primary" href="mailto:' + esc(mail) + '">' +
-          "<span>发封邮件</span>" + icon("send", "btn__icon") + "</a>" +
-        '<button class="btn btn--quiet" type="button" data-copy="' + esc(mail) + '"' +
-          ' data-copy-toast="已复制邮箱">' +
-          icon("copy", "btn__icon") + '<span data-copy-hint>复制邮箱</span></button>' +
-      "</div>");
-  }
 
   /* ---------- 导航 + 模块开关 / 排序 ---------- */
   function pad2(n) { return (n < 10 ? "0" : "") + n; }
@@ -565,12 +380,12 @@ window.SITE_RENDER = (function () {
     esc: esc,
     icon: icon,
     applyAccent: applyAccent,
-    setTracks: LISTEN.setTracks,      // sync.js 用：抓到真实播放记录后重画
-    setListenMeta: LISTEN.setListenMeta, // sync.js 用：只更新累计听歌 / 同步状态
+    setTracks: Q2.setTracks,      // sync.js 用：抓到真实播放记录后重画
+    setListenMeta: Q2.setListenMeta, // sync.js 用：只更新累计听歌 / 同步状态
     previewCard: previewCard,  // sync.js 用
-    renderGameStats: G.renderGameStats, // sync.js 用：读 data/steam.json 后画模块
-    fitBoardList: G.fitBoardList, // sync.js / 翻页完成后重算可见行数
-    recentlyAddedHtml: G.recentlyAddedHtml,
+    renderGameStats: Q3.renderGameStats, // sync.js 用：读 data/steam.json 后画模块
+    fitBoardList: Q3.fitBoardList, // sync.js / 翻页完成后重算可见行数
+    recentlyAddedHtml: Q3.recentlyAddedHtml,
     /* 调试接口（排查用）：
        SITE_RENDER.renderOnly('gaming')  只重画某一块
        SITE_RENDER.report()              每块的成败与耗时 */

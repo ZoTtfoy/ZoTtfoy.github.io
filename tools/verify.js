@@ -176,8 +176,10 @@ vm.createContext(ctx);
    在这里跑一遍能确保这两个新文件本身没有语法或运行时问题。 */
 /* 顺序要和 index.html 一致：kit 先于屏模块，render.js 最后收口。 */
 const scripts = ['assets/js/config.js','assets/js/themes.js','assets/js/icons.js',
-                 'assets/js/core/render-kit.js','assets/js/sections/render-listen.js',
-                 'assets/js/sections/render-gaming.js',
+                 'assets/js/core/render-kit.js','assets/js/sections/render-profile.js',
+                 'assets/js/sections/render-listen.js',
+                 'assets/js/sections/render-gaming.js','assets/js/sections/render-repair.js',
+                 'assets/js/sections/render-links.js',
                  'assets/js/render.js',
                  'assets/js/sync.js','assets/js/repair.js',
                  'assets/js/skin.js','assets/js/live.js','assets/js/paged.js','assets/js/effects.js',
