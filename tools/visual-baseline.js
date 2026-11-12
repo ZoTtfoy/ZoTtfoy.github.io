@@ -47,6 +47,24 @@ async function freeze(page) {
         try { a.currentTime = 0; a.pause(); } catch (e) {}
       }
     });
+    /* 还有一类随机源：**无限循环**的装饰动画（翻页提示的上下浮、卡片的呼吸光）。
+       有限次的入场动画到这时候早跑完了，不用管；把 iterations 为 Infinity 的
+       统一归零相位，这样每次截到的都是同一个相位。
+       实测：不清这一批，首页两次同版本截图能差出 0.7%。 */
+    document.getAnimations().forEach(function (a) {
+      var timing = a.effect && a.effect.getTiming ? a.effect.getTiming() : null;
+      if (!timing || timing.iterations !== Infinity) return;
+      try { a.currentTime = 0; a.pause(); } catch (e) {}
+    });
+    /* 时钟和「今年已过 %」都读系统时间：两次截图跨过一分钟就整行变字。
+       和一言同理，钉成固定值。 */
+    const set = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
+    set('liveClock', '00:00');
+    set('liveWeek', '周一');
+    set('liveDate', '1 月 1 日');
+    set('liveProgressLabel', '今年已过 0%');
+    const fill = document.getElementById('liveProgressFill');
+    if (fill) fill.style.transform = 'scaleX(0)';
     const q = document.getElementById('liveQuote');
     if (q) q.textContent = 'BASELINE';
   });
