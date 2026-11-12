@@ -259,7 +259,6 @@ html[data-paged="on"] [data-fit="micro"] .mailbox__actions .btn { min-height: 36
    把多列铺开放在这里，而不是混进 micro —— 否则 320×568 那种
    「竖屏 + 矮高」的机型会被误伤（实测高度从 712 涨到 940）。 */
 @media (orientation: landscape) and (max-height: 560px) {
-  html[data-paged="on"] [data-fit="micro"] .game-rail { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
   html[data-paged="on"] [data-fit="micro"] .social-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
   html[data-paged="on"] [data-fit="micro"] .track-list { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   html[data-paged="on"] [data-fit="micro"] .preview-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -285,7 +284,6 @@ html[data-paged="on"] [data-fit="micro"] .mailbox__actions .btn { min-height: 36
      现在只在最紧的两档生效，顺序恢复单调。 */
   html[data-paged="on"] [data-fit="snug"] .repair,
   html[data-paged="on"] [data-fit="micro"] .repair { gap: 6px; }
-  html[data-paged="on"] .game-rail { gap: 8px; }
   html[data-paged="on"] .game { padding: 11px; }
   html[data-paged="on"] .social { padding: 11px; gap: 9px; }
   html[data-paged="on"] .social__icon { width: 30px; height: 30px; }
@@ -298,7 +296,6 @@ html[data-paged="on"] [data-fit="micro"] .mailbox__actions .btn { min-height: 36
    宽度充足（844px）但高度只有 390，两列网格会撑成 4 行。
    维修屏用左右并排，其他屏用多列铺开。 */
 @media (max-height: 560px) and (orientation: landscape) {
-  html[data-paged="on"] .game-rail { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   html[data-paged="on"] .social-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   html[data-paged="on"] .track-list { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   html[data-paged="on"] .repair { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }

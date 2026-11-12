@@ -206,11 +206,14 @@ await page.goto(URL, { waitUntil: 'load' });
     });
 
     /* ---------- 4. 不再有横向滑动容器 ----------
-       6 屏重构后，所有网格都是 grid（游戏卡 3 列、链接 2 列、曲目 1~2 列），
-       没有任何 overflow-x 横滑区。这条断言反过来验证「没有横滑」。 */
+       6 屏重构后，所有网格都是 grid（链接 2 列、曲目 1~2 列），
+       没有任何 overflow-x 横滑区。这条断言反过来验证「没有横滑」。
+       ⚠️ 2026-11-12：`.game-rail` 已从名单里摘掉 —— 那个 class 是"游戏封面横滑轨道"
+       时代的名字，后来 #gameRail 改成了顶栏（gb-head），class 也跟着改名 game-head。
+       它本来就没有 display:grid（旧断言一直红着），留着只会误导。 */
     if (vp.width <= 900) {
       const rail = await page.evaluate(() => {
-        const sel = ['.game-rail', '.social-grid', '.track-list', '.preview-grid'];
+        const sel = ['.social-grid', '.track-list', '.preview-grid'];
         const out = [];
         for (const q of sel) {
           const g = document.querySelector(q);
