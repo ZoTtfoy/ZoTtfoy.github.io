@@ -1,0 +1,390 @@
+/* ==========================================================================
+ *  repair.css —— Q4 · 维修
+ * --------------------------------------------------------------------------
+ *  维修两栏：左闲鱼在售，右报价计算器。
+ *  原 blocks.css 第 886–1268 行，逐行搬来，未改一字。
+ *  设计语言见 profile.css 文件头。
+ * ========================================================================== */
+
+/* ============================================================ Q4 · 维修 */
+/* 第四屏页头与内容的间距。
+   上限从 34 收到 30：加了「上一步」按钮和第 4 步的"人话"之后，
+   这一屏展开报价表的自然高度变成 902px —— 1440×900 差 2px 就装不下，
+   density 于是把报价表折起来，读者看不到价目（信息更少的那一态）。
+   收 4px 是最小代价的修法：视觉上看不出，但让 900 高的窗口重新装得下。 */
+.section__head--tight { margin-bottom: clamp(20px, 3vw, 28px); }
+
+.repair {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, .95fr);
+  gap: clamp(22px, 3vw, 40px);
+  align-items: start;
+}
+.repair__left { display: flex; flex-direction: column; min-width: 0; }
+
+/* ---------------------------------------------------------------- 报价表
+   结构是 <details>：摘要行（标题 + 项数 + 箭头）/ 内容区。
+   桌面默认展开，手机上由 repair.js 收起 —— 报价表是"查价"用的参考信息，
+   不是首屏必读，但它有 10 行，展开着会把 Q4 顶出屏幕。 */
+.quote {
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+}
+
+/* 收起 summary 的默认三角（Chrome/Safari 走 ::-webkit-details-marker，
+   Firefox 走 list-style），改用自己的箭头，好跟着主题圆角走。 */
+.quote__summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  list-style: none;
+  cursor: pointer;
+  /* 点击区向外扩 6px，细长的标题行更好点；负外边距抵掉，视觉位置不变。 */
+  padding: 6px 0;
+  margin: -6px 0;
+  border-radius: var(--r-xs);
+}
+.quote__summary::-webkit-details-marker { display: none; }
+.quote__summary:focus-visible { outline-offset: 2px; }
+
+.quote__title {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: .9rem;
+  font-weight: 600;
+  letter-spacing: -.01em;
+}
+.quote__title .icon { width: 15px; height: 15px; color: var(--text-2); }
+
+/* 「16 项 · 5 类」：收起时也能看出这张表有多少内容，
+   否则一个光秃秃的标题会让人以为里面只有几行。 */
+.quote__count {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: .7rem;
+  letter-spacing: .02em;
+  color: var(--text-3);
+  white-space: nowrap;
+}
+
+.quote__caret {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  flex: none;
+  color: var(--text-3);
+  transition: transform var(--t-fast) var(--ease);
+}
+.quote__caret .icon { width: 14px; height: 14px; }
+.quote[open] .quote__caret { transform: rotate(90deg); }
+.quote__summary:hover .quote__caret { color: var(--text); }
+
+.quote__body { padding-top: 2px; }
+
+.quote__groups {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px clamp(18px, 2.6vw, 32px);
+  margin-top: 10px;
+}
+
+.quote__gname {
+  margin-bottom: 3px;
+  font-family: var(--font-mono);
+  /* 原 .64rem —— 在 0.82 缩放下只剩 8.4px，分组标题几乎读不出。
+     它是价目表的分组名（屏幕 / 电池 / 其他），属于结构信息，不该最小化。 */
+  font-size: .7rem;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+.quote__row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 4px 0;
+  border-bottom: 1px dashed var(--line);
+}
+.quote__row:last-child { border-bottom: 0; }
+
+.quote__item { flex: 1; min-width: 0; font-size: .8rem; line-height: 1.4; }
+.quote__hint {
+  display: block;
+  font-size: .64rem;
+  color: var(--text-3);
+  line-height: 1.35;
+}
+.quote__price {
+  flex: none;
+  font-family: var(--font-mono);
+  font-size: .78rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.quote__note {
+  margin-top: 7px;
+  font-size: .7rem;
+  line-height: 1.6;
+  color: var(--text-3);
+  text-wrap: pretty;
+}
+
+/* -------------------------------------------------------------- 估价器
+   跳转式向导：一次只问一件事，选完自动到下一问，顶部四格既是进度也是返回键。
+   旧版四个问题同时铺开，12 个按钮挤在手机上半屏里，读者还得自己判断
+   "从哪开始、还差几项"；现在一屏一问，选项能放大到 44px 的触控高度。 */
+.calc {
+  padding: clamp(16px, 2.2vw, 22px);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--bg-elev);
+}
+
+.calc__head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.calc__title {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: .92rem;
+  font-weight: 600;
+  letter-spacing: -.01em;
+}
+.calc__title .icon { width: 16px; height: 16px; color: var(--text-2); }
+.calc__hint { font-size: .7rem; color: var(--text-3); }
+
+/* ---------------------------------------------- 进度条（兼返回键）
+   四格等宽：已答的格子直接显示答案（「手机」而不是「设备」），
+   读者不用记自己选过什么。点任意一格回去改。 */
+/* 顶部进度条已移除：用户要的是「前一张选完，下一张才出现」，
+   常驻的四格进度属于额外噪音。取而代之的是 .calc__recap 那一行回执。 */
+
+/* ------------------------------------------------------------ 当前这一问 */
+.calc__stage { margin-top: 14px; outline: none; }
+/* 问题本身要像一句话，不像原来的分组标签 */
+.calc__label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 9px;
+  font-size: .86rem;
+  letter-spacing: 0;
+  color: var(--text);
+}
+.calc__label b {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  flex: none;
+  border-radius: 50%;
+  /* 浅底 + 内描边而不是实心黑：实心圆在一屏只有一句话时太抢眼，
+     读者先看到的是"1"而不是问题本身。 */
+  background: var(--bg-soft);
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+  font-family: var(--font-mono);
+  /* 同 .nav__num：.62rem 在 18px 的圆里本来就偏小，
+     而这是"第几步"的唯一标识，糊掉就失去意义。抬到 .7rem。 */
+  font-size: .7rem;
+  font-weight: 600;
+  color: var(--text-2);
+}
+/* 提示紧跟在问题后面，不要 margin-left:auto 甩到右边缘 ——
+   拉满一行后它看起来像列表头的另一列，而不像这句话的注解。 */
+.calc__label i { font-style: normal; font-size: .68rem; color: var(--text-3); }
+
+/* 选项：等宽格子而不是长短不一的胶囊。
+   两列不是随手定的 —— 四组选项的条数是 4 / 4 / 3 / 4
+   （项目按设备过滤后最多 4 个，游戏机只有 2 个），
+   两列下每一步都正好两行，卡片高度天然一致：
+   不用给卡片锁最小高度，也不会在「材料」那一步留下半张空白。
+   等宽还顺手解决了「换摄像头」比「换屏」长、把整行撑歪的问题。 */
+.calc__opts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-content: start;
+  gap: 6px;
+}
+/* 只剩两个选项时（游戏机能修的项目）改单列：两个按钮各占一行，仍是两行高 */
+.calc__opts.is-single { grid-template-columns: minmax(0, 1fr); }
+/* 奇数个（材料 3 个）：最后一个横跨两列，不留半格空洞 */
+.calc__opts.is-odd .calc__opt:last-child { grid-column: 1 / -1; }
+
+.calc__opt {
+  display: grid;
+  place-items: center;
+  min-height: 35px;
+  padding: 6px 9px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-xs);
+  font-size: .84rem;
+  line-height: 1.4;
+  color: var(--text-2);
+  text-align: center;
+  transition: border-color var(--t-fast) var(--ease), background-color var(--t-fast) var(--ease),
+              color var(--t-fast) var(--ease);
+}
+.calc__opt:hover { border-color: var(--line-strong); color: var(--text); }
+.calc__opt[aria-pressed="true"] {
+  border-color: var(--text);
+  background: var(--text);
+  color: var(--bg);
+}
+
+/* 选项说明：一行高度写死，换选项时只换字不换高 */
+.calc__note {
+  min-height: 1.5em;
+  margin-top: 9px;
+  overflow: hidden;
+  font-size: .72rem;
+  line-height: 1.5;
+  color: var(--text-3);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* -------------------------------------------------------------- 结果区
+   只有四步都答完才出现：中途报个半成品价格，反而会让人以为还能更便宜。 */
+.calc__result {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+  outline: none;
+}
+.calc__price {
+  font-family: var(--font-mono);
+  font-size: clamp(1.35rem, 2.8vw, 1.75rem);
+  font-weight: 600;
+  letter-spacing: -.02em;
+  line-height: 1.2;
+}
+.calc__price small {
+  margin-right: 2px;
+  /* 货币符号跟着价格一起缩是有意的（它是同一个数字的组成部分），
+     但 .6em 在小窗口下会掉到 8px 以下，这里锁一个下限。 */
+  font-size: max(.6em, 10px);
+  font-weight: 500;
+  color: var(--text-3);
+}
+.calc__detail {
+  margin-top: 5px;
+  font-size: .72rem;
+  line-height: 1.6;
+  color: var(--text-3);
+  text-wrap: pretty;
+}
+.calc__foot { display: flex; align-items: center; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
+.calc__reset {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: .72rem;
+  color: var(--text-3);
+  transition: color var(--t-fast) var(--ease);
+}
+.calc__reset .icon { width: 12px; height: 12px; }
+.calc__reset:hover { color: var(--text); }
+/* 「实际以拆机检测为准」：价格旁边必须有一句免责，否则区间数字会被当成报价 */
+.calc__more { margin-left: auto; font-size: .68rem; color: var(--text-3); }
+
+/* --------------------------------------------------- 上一步 / 重新估价
+   两个按钮承担相反的情绪，所以外观必须拉开：
+     · 上一步    ——「反悔」，灰白描边，安静，别和选项抢注意力
+     · 重新估价  —— 结果页唯一的主行动，实心强调色
+   上一步用 ← 箭头而不是图标：箭头本身就说明"往回"，不需要额外解释。 */
+.calc__back {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-height: 30px;
+  padding: 5px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-full);
+  font-size: .72rem;
+  color: var(--text-2);
+  background: var(--bg-soft);
+  transition: border-color var(--t-fast) var(--ease),
+              color var(--t-fast) var(--ease),
+              background-color var(--t-fast) var(--ease);
+}
+.calc__back:hover {
+  border-color: var(--line-strong);
+  background: var(--bg-elev);
+  color: var(--text);
+}
+
+/* 结果页的主按钮。用强调色而不是黑色 —— 深色主题下黑色按钮会陷进背景里 */
+.calc__again {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 8px 16px;
+  border-radius: var(--r-full);
+  background: var(--accent);
+  color: var(--accent-fg);
+  font-size: .8rem;
+  font-weight: 600;
+  transition: transform var(--t-fast) var(--ease), filter var(--t-fast) var(--ease);
+}
+.calc__again .icon { width: 13px; height: 13px; }
+.calc__again:hover { filter: brightness(1.08); transform: translateY(-1px); }
+.calc__again:active { transform: translateY(0); }
+
+/* 结果页里那句"人话"。它比算式重要，所以字号排在算式之上。 */
+.calc__tone {
+  margin-top: 8px;
+  font-size: .84rem;
+  line-height: 1.66;
+  color: var(--text-2);
+  text-wrap: pretty;
+  /* 与算式之间留一道细线：一个说"值不值"，一个说"怎么算的" */
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--line);
+}
+
+/* ------------------------------------------------------ 校验未通过
+   用左边缘一道强调色而不是整块红底：这不是错误，是"还差一点"，
+   弄成报错样式会让访客以为自己操作坏了。 */
+.calc__result--warn {
+  padding-left: 12px;
+  border-left: 3px solid var(--accent);
+}
+.calc__warn-title {
+  font-size: .9rem;
+  font-weight: 600;
+  color: var(--text);
+}
+.calc__warn-list {
+  margin: 8px 0 0;
+  padding-left: 1.1em;
+  font-size: .8rem;
+  line-height: 1.7;
+  color: var(--text-2);
+}
+.calc__warn-list li + li { margin-top: 2px; }
+
+/* -------------------------------------------------- 选中后那一瞬的确认
+   240ms 里按钮先"实心 + 轻微回弹"，让人看见"我记下了"，
+   再跳到下一步。这不只是为了好看 —— 误触时这几帧给了反悔的余地。
+   prefers-reduced-motion 下取消缩放，只保留颜色变化。 */
+.calc__opt.is-picked {
+  animation: calc-pick .24s var(--ease-out) both;
+}
+@keyframes calc-pick {
+  0%   { transform: scale(.96); }
+  55%  { transform: scale(1.015); }
+  100% { transform: scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .calc__opt.is-picked { animation: none; }
+}
+
+/* 无 JS 时的降级：计算器位置显示一句说明，报价表照常可读 */
+.calc__fallback { font-size: .8rem; color: var(--text-3); line-height: 1.7; }

@@ -1,0 +1,161 @@
+/* ==========================================================================
+ *  xianyu.css —— 闲鱼在售列表（Q4 报价位）
+ * --------------------------------------------------------------------------
+ *  取代原长价目表，做成商品行而不是表格行。
+ *  原 blocks.css 第 1523–1675 行，逐行搬来，未改一字。
+ *  设计语言见 profile.css 文件头。
+ * ========================================================================== */
+
+/* ========================================== 闲鱼在售列表（Q4 报价位）
+   取代了原来那份 10 行长价目表。设计上刻意做成"商品行"而不是"表格行"：
+   左侧标题 + 一句备注，右侧价格 + 状态，整行可点。
+   和站点其它卡片同一套语言（1px 细线、圆角、hover 加深），
+   但更紧凑 —— 一屏要放下三到四件。 */
+.xy-list { display: flex; flex-direction: column; gap: 6px; }
+
+.xy {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 11px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--bg-elev);
+  transition: border-color var(--t-fast) var(--ease),
+              background-color var(--t-fast) var(--ease);
+}
+@media (hover: hover) {
+  a.xy:hover { border-color: var(--line-strong); background: var(--bg-soft); }
+}
+
+.xy__main { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.xy__title {
+  overflow: hidden;
+  font-size: .82rem;
+  font-weight: 500;
+  color: var(--text);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.xy__note {
+  margin-top: 1px;
+  overflow: hidden;
+  font-size: max(10.5px, .68rem);
+  color: var(--text-3);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.xy__side {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  flex: none;
+}
+.xy__price {
+  font-family: var(--font-mono);
+  font-size: .82rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+  white-space: nowrap;
+}
+/* 状态标签：在售用强调色，已成交整体降一档。
+   不加重色块 —— 四个色块排在一起会盖过价格本身。 */
+.xy__cond {
+  font-size: max(10.5px, .64rem);
+  color: var(--accent);
+  white-space: nowrap;
+}
+
+/* 已成交 / 已下架：整行降到 55% 不透明度。
+   保留可读 —— 它的价值是"这一单大概多少钱"的参照。 */
+.xy.is-sold { opacity: .55; }
+.xy.is-sold .xy__cond { color: var(--text-3); }
+
+/* 「去闲鱼看全部」：与页脚外链同一套小字语言 */
+.xy__more {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 10px;
+  font-size: max(10.5px, .72rem);
+  color: var(--text-2);
+  transition: color var(--t-fast) var(--ease);
+}
+.xy__more:hover { color: var(--text); }
+.xy__more .icon { width: 12px; height: 12px; }
+
+/* ============================================ 回执行（取代进度条）
+   去掉了顶部四格进度，改成"只显示紧邻的上一步答案"。
+   它不是导航，是一条确认回执 —— 所以做得极轻：
+   没有底色、没有边框，只有一段小字和一个左箭头。
+   整行可点（回退一格），但默认看起来不像按钮，
+   因为它的主要职责是"告诉你刚才选了什么"，而不是"让你点"。 */
+.calc__recap {
+  margin: 0 0 10px;
+  min-height: 18px;
+}
+.calc__recap__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 100%;
+  font-size: max(10.5px, .72rem);
+  color: var(--text-3);
+  border-radius: var(--r-xs);
+  transition: color var(--t-fast) var(--ease);
+}
+.calc__recap__btn:hover { color: var(--text); }
+.calc__recap__arrow { font-size: .82em; opacity: .8; }
+.calc__recap__label { flex: none; }
+.calc__recap__val {
+  overflow: hidden;
+  color: var(--text-2);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ======================================== 「复杂问题」的结果态
+   这一项没有数字可报。用一句判断代替价格，字号仍按价格级的视觉重量给，
+   否则整块会显得比别的结果"轻"，像是出错了。 */
+.calc__price--ask {
+  font-family: var(--font-sans);
+  font-size: 1.32rem;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+.calc__result--ask .calc__tone { border-bottom: none; padding-bottom: 0; }
+
+/* ================================= 台阶等高（选项数不同也不让卡片跳）
+   选项数在 3~5 之间波动：种类 3、项目 5、方式 2、加急 2。
+   两列布局下 5 个选项 = 3 行，2 个 = 1 行 —— 不锁高度的话每走一步
+   整张卡就换一个高度，下面的闲鱼列表跟着上下跳。
+   这里按"最多 5 个选项（3 行）"算基准高度，少选项时留白。
+   值用 min-height 而不是 height：万一将来某项文案换行变高，还能自然撑开。 */
+.calc__stage[data-opts] {
+  /* ⚠️ 这个地板值只该等于「最高的那一步」，多一个像素都是纯白费。
+     早先写的是 336 —— 那是按"5 个选项凑 3 行"估的，实际四步的自然高度是
+     186 / 236 / 186 / 186：地板比真实需求高出 100px 以上，
+     于是每个台阶都空着大半张卡，Q4 在 560px 高的窗口上直接超屏，
+     整站被迫降级成可滚动页 —— 相比卡片跳一下，那个代价大得多。
+
+     所以不再写死，而是「敢留白的程度跟着屏幕高度走」：
+       min-height = clamp(0, 视口高 - 400, 240)
+     400 是台阶之外那些东西的实测总高（区块标题 + 卡头 + 回执 + 说明 + 内边距）。
+     高屏取满 240 → 四步完全等高；矮屏自动收缩到刚好装得下。 */
+  min-height: clamp(0px, calc(100vh - 400px), 240px);
+  display: flex;
+  flex-direction: column;
+}
+/* 320 宽这类窄屏是另一回事：选项两列变单列，5 个选项要 5 行，
+   自然高度（237）本来就超过地板，留白也换不来等高 —— 直接交给内容决定。 */
+@media (max-width: 360px) {
+  .calc__stage[data-opts] { min-height: 0; }
+}
+/* 选项区吃掉剩余空间，说明行与回执贴底 —— 这样选项 2 个时不会挤在上半截 */
+.calc__stage[data-opts] .calc__opts { flex: 1; align-content: start; }
+.calc__stage[data-opts] .calc__note { margin-top: auto; }
+
+/* ← 手机与桌面共用同一个基准值：手机选项更高（46px）但两列变单列，
+   实际行数一样是 3 行，所以高度也接近。分开写反而更难对齐。 */

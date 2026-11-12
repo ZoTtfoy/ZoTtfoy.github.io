@@ -1,0 +1,278 @@
+/* ==========================================================================
+ *  profile.css —— Q1 · 身份区
+ * --------------------------------------------------------------------------
+ *  名片式个人介绍 + 联系方式对 + 站点缩略图对。
+ * --------------------------------------------------------------------------
+ *  设计语言沿用 2026-11-10 那轮「去 AI 感」定下的规矩，本层所有文件共用：
+ *    · 圆角用 --r-sm / --r-md / --r-xs，不出现胶囊（浮层控件除外）
+ *    · 层次只用「1px 线 + 底色」，不叠 box-shadow
+ *    · 强调色只在真正需要指向的地方出现（这里几乎为零）
+ * --------------------------------------------------------------------------
+ *  本文件承接原 blocks.css 的第 15–280 行。
+ * ========================================================================== */
+
+/* ======================================================== Q1 · 身份区 */
+/* 布局从「左图右文 + 一堆胶囊」改成了**居中名片**：
+ *
+ *            [ 头像 ]
+ *            [ 名字 ]
+ *          [ 一句话 ]
+ *     [微 信]      [Q Q]        ← 点一下复制
+ *   [网易云]      [小黑盒]      ← 两张主页卡
+ *
+ * 为什么这么改：原来的左对齐 + 通栏胶囊在宽屏上会拉得很散（一条 760px 的
+ * 「微信 zotrod」横条其实什么也没说），而 QQ/微信/两个主页在语义上是
+ * **成对**的 —— 一个是即时联系，一个是主页展示。做成两列后阅读路径变成
+ * 「中间看人 → 左右扫联系方式」，和递名片的顺序一致。
+ * 手机上两列也天然成立（每列约 170px），不需要额外断点。 */
+.hero {
+  justify-content: center;
+  min-height: min(92svh, 900px);
+  padding: clamp(56px, 8vh, 96px) 0 clamp(40px, 6vh, 72px);
+}
+
+.profile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 640px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+/* 头像：原来是 56~76px 且靠左，现在居中并放大一档 —— 它成了整屏的视觉锚点 */
+.profile__avatar { margin-bottom: clamp(14px, 2vh, 20px); }
+.profile__avatar img {
+  display: block;
+  width: clamp(72px, 9vw, 92px);
+  height: clamp(72px, 9vw, 92px);
+  border: 0;                 /* 同顶栏头像：深色下不要那圈浅色描边 */
+  border-radius: 50%;
+  background: transparent;
+  object-fit: cover;
+  object-position: 50% 42%;
+}
+
+.profile__greet {
+  font-family: var(--font-mono);
+  font-size: .68rem;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--text-2);
+}
+
+.profile__name {
+  margin-top: 4px;
+  font-family: var(--font-display, var(--font-sans));
+  font-size: clamp(2.1rem, 5.4vw, 3.6rem);
+  font-weight: 600;
+  line-height: 1.05;
+  letter-spacing: var(--tracking-title, -.035em);
+  text-wrap: balance;
+}
+
+.profile__tagline {
+  max-width: 30ch;
+  margin-top: clamp(10px, 1.4vh, 15px);
+  font-size: clamp(.92rem, 1.4vw, 1.04rem);
+  line-height: 1.55;
+  color: var(--text);
+  text-wrap: balance;
+}
+
+.profile__role {
+  margin-top: 7px;
+  font-family: var(--font-mono);
+  font-size: .72rem;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--text-2);
+}
+
+.profile__intro {
+  max-width: 46ch;
+  margin-top: clamp(14px, 2vh, 20px);
+  font-size: .86rem;
+  line-height: 1.68;
+  color: var(--text-2);
+  text-wrap: pretty;
+}
+
+.hero__actions { margin-top: clamp(16px, 2.2vh, 24px); }
+
+/* ---------------------------------------------- 第一行：微信 | QQ
+   ⚠️ 2026-11-10 主次重排：这一屏真正的主角是「怎么联系我」——
+   微信号和 QQ 号是要给对方看、让对方抄的，网易云/小黑盒只是"顺路看看"。
+   原先四张卡尺寸几乎一样，而外链卡多了「平台名」一行反而更显眼，
+   于是出现「主次不分明」：扫一眼先看到的是网易云，不是微信。
+
+   现在的层级靠四件事同时表达，而不是只靠字号：
+     · 尺寸：联系卡 88px 高、图标 40px；外链卡 64px 高、图标 20px
+     · 质感：联系卡是实心白卡 + 微投影（浮起来）；外链卡透明底、只有细线
+     · 字重：平台名 600 字重、1rem；外链标题 500 字重、.84rem
+     · 位置：联系卡在上，外链卡在下，中间多一道 12px 间隙 */
+.contact-pair {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  width: 100%;
+  margin-top: clamp(20px, 2.8vh, 28px);
+}
+
+/* 联系卡：图标 + 平台名 + 右侧「点击复制」，整块可点。
+   刻意做成**方角 + 1px 线**，和 Q1 其余卡片一致；不用胶囊。
+
+   ⚠️ 2026-11-10 第二次改版：账号不再印在卡上。
+   QQ 号 10 位、微信号 12 位，摆在卡里只有两种下场 —— 挤成第二行，
+   或者吃省略号；而这张卡的用途本来就是"把号码交给对方"。
+   点一下直接进剪贴板，比"看见再手抄"少一步，也不会被旁人顺眼记走。
+   于是卡片内部从「图标 + (小标签 / 大账号) + 复制图标」简化成
+   「图标 + 平台名 + 点击复制」，纵向也不再需要两行文字。 */
+.ccard {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  min-height: 88px;
+  padding: 15px 17px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--bg-elev);
+  box-shadow: var(--shadow-sm);
+  text-align: left;
+  transition: border-color var(--t-fast) var(--ease), transform var(--t-fast) var(--ease),
+              box-shadow var(--t-fast) var(--ease);
+}
+.ccard:hover {
+  border-color: var(--line-strong);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+.ccard:active { transform: translateY(0); }
+
+/* 图标放进一块浅色底：比裸图标更像"按钮"，也让卡片的视觉重量集中在左侧 */
+.ccard__icon {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  flex: none;
+  border-radius: var(--r-sm);
+  background: var(--bg-soft);
+  /* 一道内描边：浅灰底在浅色主题里几乎和白卡同色，没有它图标像是"浮"着的 */
+  box-shadow: inset 0 0 0 1px var(--line);
+  color: var(--text);
+}
+.ccard__icon .icon { width: 22px; height: 22px; }
+
+/* 平台名现在是这张卡唯一的一行字，也就是它的主文字：
+   flex:1 把它顶到左边、把「点击复制」推到最右，中间留白由卡片宽度决定。 */
+.ccard__label {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  font-size: 1.06rem;
+  font-weight: 600;
+  letter-spacing: .01em;
+  color: var(--text);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 右侧「点击复制」+ 复制图标。
+   用 --text-2 而不是 --text-3：这行小字是整张卡唯一的"可点"信号，
+   --text-3 在浅色下只有 3.7:1、深色 4.2:1，读到但看不清。
+   平台名占 --text + 600 字重，层级由字号和字重表达，不靠把提示压到发灰。 */
+.ccard__act {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 5px;
+  color: var(--text-2);
+  transition: color var(--t-fast) var(--ease);
+}
+.ccard__hint {
+  font-size: .72rem;
+  letter-spacing: .02em;
+  white-space: nowrap;
+}
+.ccard__act .icon { width: 13px; height: 13px; }
+.ccard:hover .ccard__act { color: var(--text); }
+
+/* 复制成功的那 1.6s：motion.js 只加一个 class，不改 DOM。
+   提示文字由 JS 换成「已复制」（见 flashCopied），这里只负责变色 ——
+   用强调色而不是红色，避免被读成"出错了"。 */
+.ccard.is-copied .ccard__act { color: var(--accent); }
+
+/* -------------------------------------- 第二行：网易云 | 小黑盒 */
+/* 第二行：网易云 | 小黑盒 —— 次要信息，做成"链接"而不是"卡片"。
+   去掉了实心底与投影，只留一道细线：视觉上退到背景里，
+   读者扫过时先看到上面两张联系卡，需要时才注意到这两个入口。 */
+.preview-pair {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  width: 100%;
+  margin-top: 12px;
+}
+
+.preview-pair .preview {
+  min-height: 0;
+  padding: 10px 12px;
+  border-color: var(--line);
+  /* 浅灰底而不是透明：完全透明时两块会糊进页面底色，看起来像"没加载出来"；
+     浅灰底既比白卡退一档，又能看出一块可点的区域。 */
+  background: var(--bg-soft);
+  box-shadow: none;
+  text-align: left;
+}
+.preview-pair .preview:hover {
+  background: var(--bg-elev);
+  border-color: var(--line-strong);
+}
+/* 深色下 --bg-soft 比 --bg-elev 更亮（深色主题的"抬升"是变亮），
+   照搬会让次要卡看起来比主卡更高一档，主次正好颠倒。
+   深色改用页面底色 —— 贴着背景才是"下沉"，两套明暗下语义一致。 */
+[data-theme="dark"] .preview-pair .preview { background: var(--bg); }
+[data-theme="dark"] .preview-pair .preview:hover { background: var(--bg-elev); }
+/* 单行即可：图标 + 平台名 + 外链箭头。
+   原先还有一行「我的音乐主页」，但这一行和平台名说的是同一件事
+   （「网易云音乐」已经说明这是音乐主页），留着只是把次要卡撑成一张"卡"。
+   收成单行后它与上面的联系卡形成 2:1 的高度差，主次不再靠猜。 */
+.preview-pair .preview__top { margin-bottom: 0; gap: 8px; }
+.preview-pair .preview__icon { width: 20px; height: 20px; }
+.preview-pair .preview__icon .icon { width: 16px; height: 16px; }
+.preview-pair .preview__platform { flex: 1; font-size: .8rem; color: var(--text-2); }
+.preview-pair .preview__title { display: none; }
+.preview-pair .preview__meta { display: none; }
+.preview-pair .preview__go { display: block; width: 13px; height: 13px; }
+
+/* ⚠️ 2026-11-11 用户要求：「磁贴内文字去掉，只要网易云音乐和小黑盒」。
+   Q1 这两张卡从此就是**单行**：图标 + 平台名 + 外链箭头。
+   render.js 会给它们打 .preview--slim，那三块（标题 / 副标题 / 数据）
+   压根不渲染 —— 这里的 display:none 只是给「非 slim 形态」兜底，
+   防止哪天有人把非紧凑卡塞进 .preview-pair。 */
+.preview-pair .preview--slim .preview__title,
+.preview-pair .preview--slim .preview__meta,
+.preview-pair .preview--slim .preview__stats { display: none; }
+
+/* 例外：如果某张卡在后台配了封面（cover 非空），它本身就是一张缩略图，
+   压成 40px 细条会把图裁掉大半。这时改走「左边 40px 方图 + 右边单行」，
+   高度不变，主次关系也不会被一张图重新拉回来。 */
+.preview-pair .preview--cover { flex-direction: row; align-items: center; gap: 10px; }
+.preview-pair .preview--cover .preview__cover {
+  width: 40px;
+  height: 40px;
+  margin: 0;
+  flex: none;
+  aspect-ratio: auto;
+  border-radius: var(--r-sm);
+}
+.preview-pair .preview--cover .preview__body { flex: 1; min-width: 0; }
+
+/* 封面在 Q1 用扁比例（21:9）。
+   两列时每张卡只有约 300px 宽，16:9 会占 169px 高，直接把一屏顶破；
+   21:9 是 129px，既看得出是"主页的缩略图"，又不至于喧宾夺主。 */
+.preview-pair .preview__cover {
+  margin: -11px -11px 10px;
+  aspect-ratio: 21 / 9;
+}

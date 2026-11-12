@@ -1,0 +1,236 @@
+/* ==========================================================================
+ *  section-media.css —— 屏内断点
+ * --------------------------------------------------------------------------
+ *  各屏自己的 @media。全局视口分级在 40-responsive（fit / density），屏内断点就近放，避免两层媒体查询打架。
+ *  原 blocks.css 第 1294–1522 行，逐行搬来，未改一字。
+ *  设计语言见 profile.css 文件头。
+ * ========================================================================== */
+
+/* ================================================================ 响应式 */
+/* 平板及以下：维修屏从左右并排改成上下堆叠，
+   并且**把计算器提到闲鱼卡+报价表前面** —— 访客最想看的是"我这台多少钱"，
+   报价表是补充信息，排在后面才符合阅读顺序。 */
+@media (max-width: 1024px) {
+  .repair { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+  .repair__left { order: 2; }
+  .calc { order: 1; }
+}
+
+/* 手机横屏/窄平板：曲目列表改单列 */
+@media (max-width: 860px) {
+  .track-list { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* ---------------------------------------------------------------- 手机
+   ⚠️ 2026-11-10 重写。这一版的第一原则是**可读**，不是「塞进一屏」。
+
+   上一版为了 320×568 也能一屏装下，字号一路压到 9~11px：
+     计算器选项 9.9px、报价行 9.6px、摘要副标题 9.9px、游戏 UID 9.3px。
+   但同批机型的实测内容填充率只有 26%~62% —— 屏幕上一大半是空白，
+   字却小到看不清。用空白换字号，是本末倒置。
+
+   这一版定了下限（下列三类是硬线，任何档位都不许破）：
+     · 正文（曲名 / 游戏名 / 平台名 / 账号 / 计算器选项）  ≥ .86rem = 13.8px
+     · 辅助信息（标签 / 副标题 / 脚注）                    ≥ .72rem = 11.5px
+     · 报价表这类密集表格                                  ≥ .8rem  = 12.8px
+     · 可点区域高度                                        ≥ 38px
+
+   腾空间的办法改成「改结构」而不是「缩字号」：
+     · Q4 报价表折叠（默认收起，点开才展开）—— 省 150px
+     · 联系卡从「图标 + 文字」横向排改成两行 —— 账号不再被省略号吃掉
+     · 重复信息隐藏（Q4 摘要卡的平台名、曲目卡的小箭头）
+
+   纵向尺寸用带 vh 的 clamp：高屏（844 / 932）自动长开把屏填满，
+   矮屏（568 / 667）收在可读下限，不再靠缩字号去凑高度。 */
+@media (max-width: 680px) {
+  /* ---------------------------------------------------------- Q1 身份区 */
+  /* 名字跟着屏宽走：320px → 28px，390px → 34px，430px → 37px。
+     不再为了塞下一屏把它压到 20px。 */
+  .profile__name { font-size: clamp(2rem, 8.8vw, 2.7rem); }
+  .profile__avatar img {
+    width: clamp(64px, 9vh, 84px);
+    height: clamp(64px, 9vh, 84px);
+  }
+  .profile__tagline { margin-top: 9px; font-size: 1rem; line-height: 1.5; }
+  .profile__role { margin-top: 6px; font-size: .78rem; }
+
+  .profile__intro {
+    margin-top: 14px;
+    font-size: .9rem;
+    line-height: 1.66;
+    /* 窄屏放宽到 3 行：2 行会把句子截在半个分句上，读起来像没说完。 */
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .hero__actions { margin-top: 20px; gap: 10px; }
+  .hero__actions .btn { min-height: 46px; padding: 12px 18px; font-size: .9rem; }
+
+  .contact-pair,
+  .preview-pair { gap: 10px; }
+  .contact-pair { margin-top: clamp(18px, 2.8vh, 28px); }
+  .preview-pair { margin-top: 10px; }
+
+  /* 联系卡：手机上两列只剩 ~170px，横向一行放不下「平台名 + 点击复制」，
+     所以改成两行 —— 平台名在上，「点击复制」缩在它下面，图标跨两行居中。
+     高度约 66px，仍明显高于下面 41px 的外链条，主次层级不变。
+     （账号改成点击复制后，这里不再需要为 10~12 位账号让路。） */
+  .ccard {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-rows: auto auto;
+    align-items: center;
+    column-gap: 9px;
+    row-gap: 2px;
+    min-height: 0;
+    padding: 12px 13px;
+    border-radius: var(--r-md);
+  }
+  .ccard__icon { grid-area: 1 / 1 / 3 / 2; width: 30px; height: 30px; }
+  .ccard__icon .icon { width: 19px; height: 19px; }
+  .ccard__label { grid-area: 1 / 2 / 2 / 3; font-size: 1rem; }
+  .ccard__act {
+    grid-area: 2 / 2 / 3 / 3;
+    justify-content: flex-start;
+    gap: 4px;
+  }
+  /* 手机上文字提示本身就是"可点"的信号，小图标反而是噪声 */
+  .ccard__act .icon { display: none; }
+  .ccard__hint { font-size: .7rem; }
+
+  /* 两列摘要卡（网易云 / 小黑盒）。
+     现在只剩单行「图标 + 平台名 + 箭头」，副标题与标题都已由桌面规则藏掉。 */
+  .preview-pair .preview { padding: 10px 11px; gap: 7px; border-radius: var(--r-md); }
+  .preview-pair .preview__top { margin-bottom: 0; gap: 7px; }
+  .preview-pair .preview__icon { width: 18px; height: 18px; }
+  .preview-pair .preview__icon .icon { width: 15px; height: 15px; }
+  .preview-pair .preview__platform { font-size: .8rem; }
+  .preview-pair .preview__go { display: block; width: 12px; height: 12px; }
+  /* 配了封面的那张（当前没配，留着兜底）在手机上缩到 32px，仍是一行高 */
+  .preview-pair .preview--cover .preview__cover { width: 32px; height: 32px; }
+
+  /* ---------------------------------------------------------- Q4 维修 */
+  /* 这一屏是六屏里内容最多的：摘要卡 + 计算器 4 步 + 报价表。
+     实测 390×844 下自然高度 931px，超出 87px —— 而它一超屏，
+     paged.js 就会把**整站**降一档，另外五屏（只填了 44%~78%）也被连累。
+     所以这里把 Q4 独有的重复信息收掉，让它自己扛住，不去绑架别人。 */
+
+  /* 导语藏掉：标题「维修报价」+ 计算器已经说明了这一屏做什么，
+     导语那两句（能修什么、多久出结论）在摘要卡和页脚里都有。 */
+  #repair .section__lead { display: none; }
+  #repair .section__head { margin-bottom: 14px; }
+
+  /* 闲鱼卡：平台名那一行（图标 + 「闲鱼」+ 箭头）与标题说的是同一件事，
+     单列横条里去掉它能省 20px。Q1 的两张卡不动 —— 那里平台名是识别信息。 */
+  #repairPreview .preview__top { display: none; }
+
+  .preview-grid { grid-template-columns: minmax(0, 1fr); gap: 9px; margin-top: 12px; }
+  .preview-grid .preview {
+    min-height: 0;
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 13px;
+  }
+  .preview-grid .preview__body { flex: 1; min-width: 0; }
+  .preview-grid .preview__top { margin-bottom: 3px; }
+  .preview-grid .preview__cover { display: none; }
+  .preview-grid .preview__meta {
+    display: -webkit-box;
+    margin-top: 3px;
+    font-size: .74rem;
+    -webkit-line-clamp: 1;
+  }
+  .preview-grid .preview__stats { display: none; }
+  .preview-grid .preview__title { font-size: .94rem; }
+
+  /* 计算器（向导版）：手机上只有一问，选项就是主角 ——
+     44px 的触控高度、.9rem 的字，比原来挤在一起的小胶囊好点得多。 */
+  .calc { padding: 12px 13px 13px; border-radius: var(--r-md); }
+  .calc__title { font-size: 1rem; }
+  .calc__title .icon { width: 17px; height: 17px; }
+  /* 右上角那句「四步选完就有结果」藏掉：四个格子已经把进度说清楚了。
+     留着它还有一个副作用 —— 360px 宽度下它会把标题行挤成两行，
+     凭空多出 33px，正好是 360 机型降一档的差距。 */
+  .calc__hint { display: none; }
+  .calc__stage { margin-top: 10px; }
+  .calc__label { margin-bottom: 7px; font-size: .88rem; }
+  .calc__label i { display: none; }        /* 「选完自动到下一步」在手机上只会把问题挤断行 */
+  .calc__opts { gap: 7px; }
+  .calc__note { margin-top: 8px; font-size: .74rem; }
+  .calc__opt { min-height: 46px; padding: 8px 6px; font-size: .9rem; }
+  .calc__result { margin-top: 9px; padding-top: 8px; }
+  .calc__price { font-size: 1.45rem; }
+  /* 明细「换屏 ¥320 × 手机 1 × 原装 1」允许折两行 ——
+     它是让报价可信的算式，单行省略等于藏起了依据。 */
+  .calc__detail { margin-top: 4px; font-size: .72rem; line-height: 1.5; }
+  .calc__foot { margin-top: 7px; font-size: .72rem; }
+  .calc__more { display: none; }
+
+  /* 报价表：默认收起（repair.js 摘掉 open），点摘要行展开。
+     展开后仍走两栏流式排版，行高与字号按「密集表格」的 .8rem 处理 ——
+     它是一张价目表，不是正文段落。 */
+  .quote { margin-top: 8px; padding-top: 7px; }
+  .quote__summary { padding: 7px 0; margin: -7px 0; }
+  .quote__title { font-size: .92rem; }
+  .quote__count { font-size: .7rem; }
+  /* 展开后走**单列**：390px 下两栏每栏只有 160px，
+     「换外屏（只换玻璃）」这种条目会折成两行、和价格挤在一起。
+     单列后一行放「项目 …… 价格」，10 行约 380px，配合滚动看完。 */
+  .quote__groups {
+    display: block;
+    columns: 1;
+    margin-top: 8px;
+  }
+  .quote__group { break-inside: avoid; margin-bottom: 9px; }
+  /* 右侧让出 36px：悬浮的「回到顶部」按钮固定在右下角，
+     而价格正好是每行最右边的元素 —— 展开后滚动时会被那颗按钮压住。
+     价目表单列后横向有余量，让出这点宽度不影响项目名。 */
+  .quote__row { padding: 2px 36px 2px 0; }
+  .quote__item { font-size: .8rem; line-height: 1.45; }
+  .quote__hint { display: none; }
+  .quote__price { font-size: .8rem; }
+  .quote__gname { margin-bottom: 3px; font-size: .7rem; }
+  .quote__note { margin-top: 8px; font-size: .7rem; line-height: 1.55; }
+
+  /* ------------------------------------------------------- Q5 / Q6 平台 */
+  .social { padding: 14px 15px; gap: 12px; }
+  .social__icon { width: 38px; height: 38px; }
+  .social__label { font-size: .94rem; }
+  .social__handle { font-size: .74rem; }
+
+  .mailbox { padding: 34px 24px; align-items: stretch; }
+  .mailbox__mail { margin-top: 12px; font-size: 1.45rem; }
+  .mailbox__actions { margin-top: 18px; }
+  .mailbox__actions .btn { flex: 1 1 auto; justify-content: center; min-height: 44px; }
+}
+
+/* 窄一点的机型（≤400px）：只收横向间距与图标，
+   不再动字号 —— 上一版就是这里把 390px 主流的字号又压回了 .74rem。 */
+@media (max-width: 400px) {
+  .contact-pair,
+  .preview-pair { gap: 8px; }
+  /* 联系卡在窄屏只收内边距和图标，字号一个不动 ——
+     平台名与「点击复制」分处两行，各有整列宽，本来就没有挤的风险。 */
+  .ccard { padding: 10px 10px 11px; column-gap: 7px; }
+  .ccard__icon { width: 24px; height: 24px; }
+  .ccard__icon .icon { width: 16px; height: 16px; }
+  /* 次要行已经是单行了，纵向内边距跟着收 —— 11px 是旧的「多行卡」留下的 */
+  .preview-pair .preview { padding: 9px 10px; }
+  .preview-pair .preview__icon { width: 18px; height: 18px; }
+  .preview-pair .preview__icon .icon { width: 15px; height: 15px; }
+  .calc { padding: 14px 14px 15px; }
+  .calc__opt { padding: 8px 10px; }
+  .quote__groups { column-gap: 12px; }
+}
+
+/* 「上一步」的占位态：第 1 步看不见它，但保留它那 30px 高度。
+   用 visibility 而不是 display:none —— 后者会让高度归零，
+   而这里要的正是"不显示但占位"。visibility:hidden 的元素也不可聚焦，
+   配合 aria-hidden + tabindex="-1" 三保险。 */
+.calc__back.is-ghost {
+  visibility: hidden;
+  pointer-events: none;
+}

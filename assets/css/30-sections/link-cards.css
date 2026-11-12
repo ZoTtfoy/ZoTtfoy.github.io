@@ -1,0 +1,116 @@
+/* ==========================================================================
+ *  link-cards.css —— 外链摘要卡（通用）
+ * --------------------------------------------------------------------------
+ *  一个组件两种形态：有 cover 用缩略图卡，无 cover 用纯文字信息卡。
+ *  原 blocks.css 第 281–389 行，逐行搬来，未改一字。
+ *  设计语言见 profile.css 文件头。
+ * ========================================================================== */
+
+/* ==================================================== 外链摘要卡（通用） */
+/* 一个组件，两种形态：
+     有 cover → 上方 16:9 封面 + 下方信息（缩略图卡）
+     无 cover → 纯文字信息卡，平台图标顶在左上
+   数据优先用 data/previews.json（Actions 抓的），抓不到用 config 兜底。 */
+.preview-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: clamp(22px, 3.4vh, 36px);
+}
+.preview-grid--single { grid-template-columns: minmax(0, 1fr); margin-top: 0; }
+
+.preview {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 128px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--bg-elev);
+  transition: border-color var(--t-fast) var(--ease);
+}
+.preview:hover { border-color: var(--line-strong); }
+
+.preview__cover {
+  display: block;
+  margin: -16px -16px 14px;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  background: var(--bg-soft);
+}
+.preview__cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform var(--t-slow) var(--ease-out);
+}
+.preview:hover .preview__cover img { transform: scale(1.03); }
+
+.preview__body { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+
+.preview__top { display: flex; align-items: center; gap: 8px; margin-bottom: 9px; }
+.preview__icon {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  flex: none;
+  color: var(--pc, var(--text-2));
+}
+.preview__icon .icon { width: 17px; height: 17px; }
+.preview__platform {
+  font-size: .71rem;
+  letter-spacing: .04em;
+  color: var(--text-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.preview__go {
+  width: 14px;
+  height: 14px;
+  margin-left: auto;
+  flex: none;
+  color: var(--text-3);
+  transition: transform var(--t) var(--ease), color var(--t) var(--ease);
+}
+.preview:hover .preview__go { transform: translate(2px, -2px); color: var(--text); }
+
+.preview__title {
+  font-size: .94rem;
+  font-weight: 500;
+  letter-spacing: -.01em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.preview__meta {
+  margin-top: 4px;
+  font-size: .77rem;
+  line-height: 1.55;
+  /* --text-3 实测对比度只有 3.67:1，小字不达标（被 verify-visual 拦下）。
+     这里是"歌单 · 红心 · 最近在听"这类说明，属于要读的信息，不是装饰，
+     所以用 --text-2（6.5:1）。 */
+  color: var(--text-2);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.preview__stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  margin-top: auto;
+  padding-top: 11px;
+}
+.preview__stat { font-size: .68rem; color: var(--text-3); line-height: 1.35; }
+.preview__stat b {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: .9rem;
+  font-weight: 600;
+  color: var(--text);
+}

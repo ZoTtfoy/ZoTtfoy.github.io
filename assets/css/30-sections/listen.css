@@ -1,0 +1,503 @@
+/* ==========================================================================
+ *  listen.css —— Q2 · 在听
+ * --------------------------------------------------------------------------
+ *  歌单列表 + 专辑墙 + 播放器。专辑墙的合成器动画在这一屏。
+ *  原 blocks.css 第 390–885 行，逐行搬来，未改一字。
+ *  设计语言见 profile.css 文件头。
+ * ========================================================================== */
+
+/* ============================================================ Q2 · 在听 */
+/* 2026-11-11：底层从「纯 CSS 黑胶」换成「这周听的 100 首专辑封面」。
+   6 行，1/3/5 行左移、2/4/6 行右移，每周按 ISO 周轮换一批。
+   结构、缩放与循环公式见 assets/js/albumwall.js 的顶注。 */
+
+/* 专辑墙是 #listen 的直接子元素，铺满整屏；内容压在它上面。 */
+#listen { position: relative; isolation: isolate; }
+#listen > .container { position: relative; z-index: 1; }
+
+/* 容器本身必须透明 —— 它是一整块底板的话，再漂亮的封面也只能从边缘露出来。
+   可读性交给每张磁贴自己的实底 + 标题/页脚的光晕。 */
+.listen-card {
+  position: relative;
+  padding: clamp(20px, 3vw, 30px);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-lg);
+  background: transparent;
+}
+
+.listen-card__body { position: relative; z-index: 1; }
+
+/* --------------------------------------------------- 专辑封面拼贴背景 */
+.albumwall {
+  position: absolute;
+  /* 同 .steamwall：上下各外扩 1px，抵消区块那道 border-top（见 gaming.css 注释），
+     否则整面墙整体下移 1px，中心对不上屏幕中心。 */
+  inset: -1px 0 0;   /* 上 -1 / 右 0 / 下 0 / 左 0 */
+  z-index: 0;
+  overflow: hidden;
+  contain: paint;
+  pointer-events: none;
+}
+
+/* 固定 2400×2400 实例，只靠一个 scale 适配所有设备。
+   不旋转（行是水平的），所以 scale = max(W/2400, H/2400) × 1.05 就够了。 */
+.albumwall__grid {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: var(--aw-inst, 2400px);
+  height: var(--aw-inst, 2400px);
+  display: grid;
+  grid-template-rows: repeat(6, var(--aw-tile, 400px));
+  gap: 0;
+  transform: translate(-50%, -50%) scale(var(--aw-scale, 1));
+  transform-origin: center;
+}
+
+/* 一行 = 两份完全相同的 6 张封面（4800px 宽）。
+   X 位移限制在 [-2400, 0]，内容始终盖住实例 [0,2400]。 */
+.albumwall__row {
+  position: relative;
+  display: flex;
+  gap: 0;
+  width: calc(var(--aw-period, 2400px) * 2);
+  height: var(--aw-tile, 400px);
+  /* ⚠️ 刻意不写 will-change：
+     这一行本来就是**纯合成器动画**（animation 只改 transform），
+     浏览器会自己把它提到合成层 —— will-change 在这里只多做了一件事：
+     让这一层在离屏状态下也常驻。6 行 × 两倍周期 = 一大笔显存在空转。
+     去掉它不改变任何帧的表现，离屏时省下这部分预算。 */
+  /* 纯合成器动画：主线程一帧都不用管。
+     @keyframes 由 albumwall.js 按常量注入（aw-move-left / aw-move-right），
+     时长由每行的 --aw-dur（已按倍率算好）决定。
+     linear + infinite = 匀速、首尾相接（两份内容相同，归位处画面一致）。 */
+  animation-name: aw-move-left;
+  animation-duration: var(--aw-dur, 80s);
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+.albumwall__row[data-dir="right"] { animation-name: aw-move-right; }
+
+/* 离屏 / 标签页隐藏 / 减少动效：暂停。
+   ⚠️ 用 animation-play-state 而不是把 animation 设成 none ——
+     后者会把动画重置到起点，用户切回来时墙会"跳一下"。 */
+.albumwall[data-paused] .albumwall__row { animation-play-state: paused; }
+@media (prefers-reduced-motion: reduce) {
+  .albumwall__row { animation: none; }
+}
+/* 行与行的交接：一条 6px 的向下羽化带，从透明到极淡的暗。
+   不做成实线（那会变成"条纹"），而是让上一行的底边轻轻压进下一行，
+   硬切就变成了过渡。同时它也盖住了上下相邻两图之间可能存在的 1px 缝。 */
+.albumwall__row::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -3px;
+  height: 9px;
+  background: linear-gradient(to bottom, transparent, rgb(0 0 0 / 0.11));
+  pointer-events: none;
+}
+
+/* ⚠️ 缝隙处理（用户专门点名的「图片交接」和「上下交接处」）：
+     · display:block 去掉 <img> 的 inline 基线缝；
+     · gap:0 去掉 flex/grid 的间隙；
+     · 每格宽高比标称多 1px，再用 margin-right:-1px 把占位收回去 ——
+       相邻格**重叠 1px**，缩放产生的亚像素白缝被盖住，
+       而占位仍精确 400px，循环周期不会一点点漂移；
+     · 高度多出的 1px 溢出到下一行顶部，盖住「上下交接处」。
+   不用负 margin 让所有格子整体位移那种做法 —— 累积到行尾会错位。 */
+.albumwall__row img {
+  display: block;
+  flex: 0 0 auto;
+  /* 重叠从 1px 加到 2px：整体缩放后 1px 会被插值成半像素，
+     在部分缩放比下仍会透出一条亮线；2px 才稳。
+     margin 把占位收回去，所以循环周期仍精确等于 6×400 = 2400。 */
+  width: calc(var(--aw-tile, 400px) + 2px);
+  height: calc(var(--aw-tile, 400px) + 2px);
+  margin-right: -2px;
+  object-fit: cover;
+  filter: saturate(.86);
+  /* 兜底色由封面的 URL 哈希出色相（JS 写 --h）。
+     用 --bg-soft 那种近白灰时，弱网下几块没加载出来的瓦片
+     会让整面墙看起来"没渲染完" —— 深色饱和的占位至少还是面墙。 */
+  background:
+    linear-gradient(150deg,
+      hsl(var(--h, 210) 30% 26%),
+      hsl(calc(var(--h, 210) + 36) 26% 16%));
+}
+/* CDN 临时故障不能开天窗 */
+.albumwall__row img.is-broken {
+  background:
+    radial-gradient(120% 90% at 30% 20%,
+      hsl(var(--h, 210) 24% 24%),
+      hsl(calc(var(--h, 210) + 30) 20% 13%));
+}
+
+/* 遮罩：边缘压实（和前后两屏接得上），中间只留 40% ——
+   第一版压到 58~76%，截图里整面墙几乎全白，等于白做了。
+   文字可读性靠光晕和磁贴实底，不靠把背景压没。 */
+.albumwall__scrim {
+  position: absolute;
+  inset: 0;
+  /* 与游戏墙同一条规则（见 gaming.css 的 .steamwall__scrim 注释）：
+     两端不再写不透明的 var(--bg)，否则浅色主题下整面墙会被糊成灰白。 */
+  background:
+    linear-gradient(to bottom,
+      color-mix(in srgb, var(--bg) 72%, transparent) 0%,
+      color-mix(in srgb, var(--bg) 50%, transparent) 12%,
+      color-mix(in srgb, var(--bg) 30%, transparent) 35%,
+      color-mix(in srgb, var(--bg) 28%, transparent) 65%,
+      color-mix(in srgb, var(--bg) 46%, transparent) 88%,
+      color-mix(in srgb, var(--bg) 72%, transparent) 100%);
+}
+@supports not (background: color-mix(in srgb, red 50%, transparent)) {
+  .albumwall__scrim { background: var(--bg); opacity: .68; }
+}
+
+/* 标题与页脚直接压在彩色封面上，不能垫底板（会挡住背景），
+   用和 Q3 一样的三层光晕把字周围的封面推开。var(--bg) 会跟主题走。 */
+#listen .section__head > *,
+#listen .listen__foot,
+#listen .listen__foot * {
+  text-shadow: 0 0 6px var(--bg), 0 0 16px var(--bg), 0 0 30px var(--bg);
+}
+#listen .section__lead,
+#listen .eyebrow,
+#listen .listen__foot { color: var(--text); font-weight: 500; }
+
+/* --------------------------------------------------------------- 磁贴 */
+/* 桌面 3 列：limit 默认 6 首，正好 2×3 铺满。
+   为什么不是 2 列 —— 2 列排 3 首会变成「2 + 1」，右下角空一格，
+   看起来像加载失败；而 3 列排 3 首是一整行，排 6 首是整齐的两行。 */
+.track-list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+/* 落单的磁贴通栏。
+   4 首（3+1）或 5 首（3+2）时，最后一格如果是半宽，右边会留缺口；
+   让它横跨整行，缺口就变成"这一块更宽"的设计感。
+   用 nth-child 判奇偶而不是 data-count 逐个列举，曲目增减时不用改 CSS。 */
+.track:last-child:nth-child(3n + 1) { grid-column: 1 / -1; }
+
+/* 只有 1~2 首：单列，不要三个窄条 */
+.track-list[data-count="1"],
+.track-list[data-count="2"] { grid-template-columns: minmax(0, 1fr); }
+
+/* 平板：2 列（3 列在 700~900px 下每块只有 200px，曲名会被截得太狠） */
+@media (max-width: 900px) {
+  .track-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .track:last-child:nth-child(3n + 1) { grid-column: auto; }
+  .track:last-child:nth-child(odd) { grid-column: 1 / -1; }
+}
+
+/* 带播放次数的排行没有额外的列数规则：
+   ≤680px 那一段（见下面「手机：磁贴单列还是双列」）本来就强制单列，
+   次数落在副标题行右端，不再和曲名抢宽度，所以这条不用再单独处理。 */
+
+/* 一块磁贴 = 两行网格：
+       ┌──────┬──────────────────┬────┐
+       │      │ 曲名              │ ▷  │
+       │  01  ├──────────────────┼────┤
+       │      │ 歌手 · 专辑       │128次│
+       └──────┴──────────────────┴────┘
+   播放次数放在第二行右侧，而不是挤进第一行 ——
+   第一行是曲名，它最需要宽度；320px 的两列里每块只有 123px，
+   再分给次数 34px，曲名连四个字都放不下。
+   序号跨两行居中，视觉上仍然是一条整齐的竖排。
+   .track__main 用 display:contents 把曲名和副标提升成网格项。 */
+.track {
+  display: grid;
+  /* 序号 | 封面 | 主内容 | 按钮
+     加封面只多占了原来序号那一列的右侧一点 —— 序号本来就只有 2 个字符宽，
+     封面紧挨着它，曲名那列仍然拿到绝大部分宽度。 */
+  grid-template-columns: auto auto minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 10px;
+  row-gap: 1px;
+  min-width: 0;
+  padding: 9px 11px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  /* 半透明让底下的唱片纹路透出来 —— "吸附"的观感就来自这里。
+     86% 是实测值：再低文字对比度不够（唱片纹路会干扰阅读），
+     再高就完全看不见底纹了。 */
+  background: color-mix(in srgb, var(--bg-elev) 94%, transparent);
+  transition: border-color var(--t-fast) var(--ease),
+              background-color var(--t-fast) var(--ease);
+}
+@supports not (background: color-mix(in srgb, red 50%, transparent)) {
+  .track { background: var(--bg-elev); }
+}
+.track:hover {
+  border-color: var(--line-strong);
+  background: var(--bg-elev);
+}
+
+.track__idx {
+  grid-area: 1 / 1 / 3 / 2;
+  align-self: center;
+  font-family: var(--font-mono);
+  font-size: .68rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-3);
+}
+
+.track__main { display: contents; }
+.track__pic {
+  grid-area: 1 / 2 / 3 / 3;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--r-xs);
+  object-fit: cover;
+  /* 封面是深色还是浅色不由我们决定，给一条极淡的描边把它和卡片分开 */
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / .08);
+  background: var(--bg-soft);
+  flex: none;
+}
+/* 没有封面时画一个音符占位块：比留空白格好看，也不用发一次注定 404 的请求 */
+.track__pic--none {
+  display: grid;
+  place-items: center;
+  color: var(--text-3);
+}
+.track__pic--none .icon { width: 15px; height: 15px; }
+
+.track__title {
+  grid-area: 1 / 3 / 2 / 4;
+  font-size: .92rem;
+  font-weight: 500;
+  letter-spacing: -.005em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.track__meta {
+  grid-area: 2 / 3 / 3 / 4;
+  font-size: .72rem;
+  color: var(--text-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 播放次数：这一屏的"证据"。
+   数字用等宽 + tabular-nums，01~06 竖排时尾数才能对齐；
+   「次」压到更小更淡，让数字自己站出来。
+   落在第二行右端，不占曲名的宽度（见上面 .track 的注释）。 */
+.track__plays {
+  grid-area: 2 / 4 / 3 / 5;
+  justify-self: end;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 1px;
+  font-family: var(--font-mono);
+  font-size: .76rem;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-2);
+  white-space: nowrap;
+}
+.track__plays-unit {
+  font-family: var(--font-sans);
+  font-size: .6rem;
+  color: var(--text-3);
+}
+
+/* 前三名的序号用强调色。
+   排行榜的通用语言就是"越靠前越重要"，一个颜色就够表达，
+   而且不占任何宽度 —— 上一版在这里放过一根 32px 的热度条，
+   实测后四首只差 1px、看不出区别，却把曲名最缺的宽度吃掉了。 */
+.track__idx.is-top { color: var(--accent); font-weight: 600; }
+
+.track__go {
+  grid-area: 1 / 4 / 2 / 5;
+  justify-self: end;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--r-xs);
+  color: var(--text-3);
+  transition: color var(--t-fast) var(--ease), background-color var(--t-fast) var(--ease);
+}
+.track__go .icon { width: 12px; height: 12px; }
+.track__go:hover { color: var(--text); background: var(--bg-soft); }
+
+/* ------------------------------------------------------- 播放按钮与播放态
+   只有"数据里确认可播"的曲目才会渲染成 <button>。其余是外链，
+   看起来一样但右下角的语义不同（一个播，一个跳网易云）——
+   所以可播的那个平时就带一点强调色，让人一眼知道"这个能点出声音"。 */
+.track__play {
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+.track__play .icon { width: 12px; height: 12px; margin-left: 1px; }
+.track__play:hover { color: var(--accent-fg); background: var(--accent); }
+
+/* 播放中：整块磁贴亮起来 + 左侧一条强调色竖线。
+   不做"跳动的均衡器条"——那需要 3~5 个动画元素 × 6 首常驻，
+   而这一屏本来就紧张。一条静态竖线加变色足够了。 */
+.track.is-playing {
+  border-color: var(--accent);
+  background: var(--bg-elev);
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+.track.is-playing .track__title { color: var(--text); font-weight: 600; }
+.track.is-playing .track__pic {
+  box-shadow: 0 0 0 2px var(--accent), inset 0 0 0 1px rgb(0 0 0 / .08);
+}
+.track.is-playing .track__play { color: var(--accent-fg); background: var(--accent); }
+
+/* 行内进度条：绝对定位在底边，高 2px。
+   不占布局高度 —— 一屏装 6 首的预算里没有多余的 8px 给它。
+   进度由 player.js 写成 --p（0~1），这里只负责画。 */
+.track { position: relative; }
+.track.is-playing::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 2px;
+  width: calc(100% * var(--p, 0));
+  background: var(--accent);
+  border-radius: 0 2px 2px 0;
+  transition: width .25s linear;
+}
+/* 播完或被拦下时把进度条收掉，不要留一条半截的线 */
+.track.is-blocked::after { display: none; }
+.track.is-blocked .track__go { opacity: .5; }
+
+/* 触屏上按钮要够大 —— 但**不能改布局尺寸**。
+   ⚠️ 最早写的是 `.track__go { width: 32px; height: 32px }`，
+   它把磁贴第一行从 25px 撑到 32px，六行就是 +42px，
+   393×852 上 Q2 直接从 roomy 掉到 tight（整屏留白被压）。
+   改用伪元素向外扩 4px 的热区：视觉 24px 不变，可点区变成 32px，
+   布局完全不受影响 —— 这也是 WCAG 2.5.8「目标尺寸」推荐的做法。 */
+@media (pointer: coarse) {
+  .track__go { position: relative; }
+  .track__go::after {
+    content: "";
+    position: absolute;
+    inset: -4px;
+    border-radius: var(--r-sm);
+  }
+}
+
+.listen__foot {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 13px;
+  font-size: .72rem;
+  color: var(--text-3);
+}
+/* 左半边：来源 + 累计听歌。两者用一道细线隔开，
+   读者才知道"累计听歌 77,025 首"不是同步状态的一部分，而是另一个量。 */
+.listen__meta {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  min-width: 0;
+}
+.listen__src { display: inline-flex; align-items: center; gap: 7px; }
+.listen__src.is-live { color: var(--text-2); }
+/* 「已同步 · 收藏」：内容是真实的（来自「我喜欢的音乐」），
+   但语义不是"排行"。不给它加额外装饰 —— 它同样是真实数据，
+   不该看起来像警告；只是把来源说清楚而已。 */
+.listen__src.is-liked { color: var(--text-2); }
+/* 「排行待同步」：有真数字但歌还是兜底，用虚线小标签区分开，
+   避免它看起来像"已同步"或像"出错了" */
+.listen__src.is-pending {
+  padding: 1px 7px;
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--r-xs);
+  color: var(--text-2);
+}
+.listen__stat {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  padding-left: 10px;
+  border-left: 1px solid var(--line);
+  white-space: nowrap;
+}
+.listen__stat b {
+  font-family: var(--font-mono);
+  font-size: .86rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -.01em;
+  color: var(--text);
+}
+/* 试听比例。它是"解释"不是"数据"，所以比累计听歌更淡更小，
+   并且不换行 —— 一换行页脚就多 20px，320px 上会把这一屏顶出屏幕。 */
+.listen__note {
+  padding-left: 10px;
+  border-left: 1px solid var(--line);
+  font-size: .7rem;
+  color: var(--text-3);
+  white-space: nowrap;
+  /* title 里的完整说明鼠标能看到；触屏没有 hover，所以文案本身必须自解释 */
+  cursor: help;
+}
+.listen__more {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--text-2);
+  transition: color var(--t-fast) var(--ease);
+}
+.listen__more .icon { width: 13px; height: 13px; }
+.listen__more:hover { color: var(--text); }
+
+/* 窄屏：页脚必须留在一行。
+   320px 的卡片只有 246px，而「排行待同步 + 累计听歌 77,025 首 + 去网易云看看」
+   加起来约 307px —— 折成两行就是多 29px，正好把这一屏顶出屏幕
+   （实测 590 > 568，paged.js 于是把整站降级成可滚动）。
+   这里把外链文字收掉、只留箭头，页脚回到 231px，一行放得下。
+   文字用 font-size:0 隐藏，元素和可访问名都还在，读屏不受影响。 */
+@media (max-width: 400px) {
+  .listen__more { font-size: 0; gap: 0; }
+  .listen__more .icon { width: 16px; height: 16px; }
+}
+
+/* 同步成功的绿点：静态就好，不做呼吸动画 */
+.live-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  flex: none;
+}
+
+/* 减少动态效果：封面墙静止由 albumwall.js 停掉 rAF，CSS 这边不用再写。 */
+
+/* 手机：磁贴单列还是双列？
+   双列在 390px 下每块只有 165px，曲名会被截成 8 个字 —— 而曲名是这一屏的正文，
+   截断就等于没显示。所以手机上改成单列，每块整行，曲名完整。
+   代价是高度约 +90px（3 首时），已计入 fit.css 的档位预算。 */
+@media (max-width: 680px) {
+  .listen-card { padding: 16px 16px 14px; border-radius: var(--r-md); }
+  .track-list { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+  .track-list[data-count="1"],
+  .track-list[data-count="2"] { grid-template-columns: minmax(0, 1fr); }
+  .track,
+  .track:last-child:nth-child(odd),
+  .track:last-child:nth-child(3n + 1) { grid-column: auto; }
+  /* 手机上磁贴内边距略收，给「六首一屏」让出空间。
+     ⚠️ 必须分开写 column-gap / row-gap：写成 gap 会同时把行距设成 10px，
+     两行文字之间突然空出 10px，六行就是白白多出 60px。 */
+  .track { padding: 9px 11px; column-gap: 10px; row-gap: 1px; }
+  .track__title { font-size: .95rem; }
+  .track__meta { font-size: .76rem; }
+  .listen__foot { margin-top: 13px; font-size: .74rem; }
+  /* 封面墙不做手机特例：实例固定，JS 的 scale 已经按 max(宽,高) 等比缩好。
+     为窄屏另配一套行高只会让"填满"重新变得不可控。 */
+}

@@ -123,12 +123,40 @@
   <!-- 字体必须第一个：@font-face 越早被解析，首屏文字越快用上 MiSans。
        woff2 就在 assets/fonts/（随仓库走，不走外部 CDN），
        但仍按 unicode-range 分片声明，浏览器只下用得着的片。 -->
+  <!-- ── 样式分层（2026-11-12）────────────────────────────────────────
+       目录是**分类**，不是加载顺序 —— 顺序由层叠依赖决定，别按目录名重排。
+       改顺序之前先跑 tools/visual-baseline.js，0 差异才算安全。
+
+         00-base        变量 / 字体 / 字重阶梯
+         10-shell       页面骨架、背景、翻页引擎
+         20-components  通用组件、动效、皮肤
+         30-sections    各屏专属（听歌 / 游戏 / 外链 / 画廊）
+         40-responsive  断点与视口密度分级
+         90-overrides   最后一层收口
+
+       ⚠️ 两个「分类与顺序不一致」的地方，都是故意的：
+         · typography.css 归 00-base，但 <link> 放在 unify 之前 ——
+           它的职责是统一前面散落的 font-weight 字面量，放前面会被覆盖。
+         · paged.css 归 10-shell，但排在 30-sections 之后 ——
+           它定义的 .section 高度/内边距要能压住各屏自己的规则。
+         · 30-sections/section-media.css 是「屏内断点」，不是全局分级 ——
+           全局只看视口（fit / density）的规则才放 40-responsive。
+           屏内断点跟它所属的屏一起加载，避免两层媒体查询互相压。
+       ──────────────────────────────────────────────────────────────── -->
   <link rel="stylesheet" href="assets/css/fonts.css">
   <link rel="stylesheet" href="assets/css/00-base/tokens.css">
   <link rel="stylesheet" href="assets/css/10-shell/backdrop.css">
   <link rel="stylesheet" href="assets/css/10-shell/layout.css">
   <link rel="stylesheet" href="assets/css/20-components/components.css">
-  <link rel="stylesheet" href="assets/css/30-sections/blocks.css">
+  <!-- 各屏结构模块。顺序 = 原 blocks.css 的行序，别重排：
+       Q4 的报价位上原本就压着 xianyu 的覆盖规则。 -->
+  <link rel="stylesheet" href="assets/css/30-sections/profile.css">
+  <link rel="stylesheet" href="assets/css/30-sections/link-cards.css">
+  <link rel="stylesheet" href="assets/css/30-sections/listen.css">
+  <link rel="stylesheet" href="assets/css/30-sections/repair.css">
+  <link rel="stylesheet" href="assets/css/30-sections/mailbox.css">
+  <link rel="stylesheet" href="assets/css/30-sections/section-media.css">
+  <link rel="stylesheet" href="assets/css/30-sections/xianyu.css">
   <link rel="stylesheet" href="assets/css/20-components/skin.css">
   <link rel="stylesheet" href="assets/css/10-shell/paged.css">
   <link rel="stylesheet" href="assets/css/30-sections/gaming.css">

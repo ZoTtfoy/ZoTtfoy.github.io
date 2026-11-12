@@ -85,7 +85,7 @@ window.SITE_CONFIG = {
               title: "小黑盒",
               /* 它的个人主页没有公开接口，抓不到"游戏数 / 时长"这类数字。
                  与其编三个假数字，不如把这张卡的三个入口说清楚 —— 
-                 副标题会在没有 stats 时自动顶到第二行（见 blocks.css）。 */
+                 副标题会在没有 stats 时自动顶到第二行（见 link-cards.css）。 */
               meta: "游戏库 · 时长 · 日常",
               cover: "",
               stats: [],
