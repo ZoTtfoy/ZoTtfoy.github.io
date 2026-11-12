@@ -172,7 +172,7 @@ npm run baseline:check  # 12 张视觉基线（需先 baseline:make）
 
 按「投入产出」排序，不是按工作量：
 
-1. **（已完成）`render.js` 按屏拆**：1159 → 382 行，六屏全部搬进
+1. **（已完成）`render.js` 按屏拆**：1159 → 394 行，六屏全部搬进
    `sections/render-*.js`（profile / listen / gaming / repair / links），
    `render.js` 只剩外壳（meta / 头像 / 品牌 / 导航 / 控件）+ 块表 + 启动。
    剩下的欠账：`hexToRgba` / `applyAccent` 仍在外壳里，属于主题而非渲染，
