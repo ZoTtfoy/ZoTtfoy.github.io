@@ -426,10 +426,10 @@
   position: absolute;
   left: 50%;
   top: 50%;
-  width: var(--aw-inst, 1200px);
-  height: var(--aw-inst, 1200px);
+  width: var(--aw-inst, 2400px);
+  height: var(--aw-inst, 2400px);
   display: grid;
-  grid-template-rows: repeat(6, var(--aw-tile, 200px));
+  grid-template-rows: repeat(6, var(--aw-tile, 400px));
   gap: 0;
   transform: translate(-50%, -50%) scale(var(--aw-scale, 1));
   transform-origin: center;
@@ -441,14 +441,8 @@
   position: relative;
   display: flex;
   gap: 0;
-  width: calc(var(--aw-period, 1200px) * 2);
-  height: var(--aw-tile, 200px);
-  /* 2026-11-12 第七轮：内容改成一张预渲染行图（2400×400，6 格 2×），
-     横向平铺两次正好填满 2 个周期。行里不再有 <img>。 */
-  background-repeat: repeat-x;
-  background-size: auto 100%;
-  background-position: 0 0;
-  background-color: hsl(210 26% 18%);
+  width: calc(var(--aw-period, 2400px) * 2);
+  height: var(--aw-tile, 400px);
   /* ⚠️ 刻意不写 will-change：
      这一行本来就是**纯合成器动画**（animation 只改 transform），
      浏览器会自己把它提到合成层 —— will-change 在这里只多做了一件事：
@@ -497,15 +491,14 @@
 .albumwall__row img {
   display: block;
   flex: 0 0 auto;
-  /* 相邻格重叠一点，盖住缩放产生的亚像素亮线；margin 把占位收回去，
-     所以循环周期仍精确等于 6×TILE。
-     2026-11-12 第五轮：设计像素减半、scale 翻倍，重叠量 2px→1px，
-     屏幕上的实际重叠（1×scale）与旧版（2×scale_old）保持一致。 */
-  width: calc(var(--aw-tile, 200px) + 1px);
-  height: calc(var(--aw-tile, 200px) + 1px);
-  margin-right: -1px;
+  /* 重叠从 1px 加到 2px：整体缩放后 1px 会被插值成半像素，
+     在部分缩放比下仍会透出一条亮线；2px 才稳。
+     margin 把占位收回去，所以循环周期仍精确等于 6×400 = 2400。 */
+  width: calc(var(--aw-tile, 400px) + 2px);
+  height: calc(var(--aw-tile, 400px) + 2px);
+  margin-right: -2px;
   object-fit: cover;
-  /* 2026-11-12：72 个 CSS filter × 13206px 宽的合成层，栅格化代价过高，撤掉。 */
+  filter: saturate(.86);
   /* 兜底色由封面的 URL 哈希出色相（JS 写 --h）。
      用 --bg-soft 那种近白灰时，弱网下几块没加载出来的瓦片
      会让整面墙看起来"没渲染完" —— 深色饱和的占位至少还是面墙。 */

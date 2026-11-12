@@ -123,29 +123,17 @@ window.SITE_MOTION = (function () {
        注意这里刻意用同步赋值而不是放到 rAF 里：
        如果延后一帧，滚动开始时背景还在动，那一帧就会掉 ——
        这正是之前残余掉帧的来源。 */
-    /* 2026-11-12 第六轮：顶栏「翻页时重渲染一遍」的根因修复。
-       实测一次翻页顶栏被切了 27 次状态：class 13 次 + data-scrolling 11 次。
-       原因三条叠加：
-         1) 180ms 定时器太短 —— 平滑滚动的事件间隔能到 193ms，滚动中反复
-            到期移除、下一帧又加回来，顶栏在"关毛玻璃/开毛玻璃"之间高频切换；
-         2) 每次切换都写 class + data 两个属性，即使值没变也会触发样式失效；
-         3) background-color 上有 transition，每次抖动都重启一次 0.2s 渐变。
-       现在：只保留 html[data-scrolling] 一个开关、只在值真的变化时写、
-       定时器 260ms 覆盖事件间隔，并用 scrollend（支持时）立即收口。 */
     var glassTimer = null;
-    function setScrolling(on) {
-      var root = document.documentElement;
+    function markScrolling() {
+      if (!header) return;
+      header.classList.add("is-scrolling");
+      document.documentElement.dataset.scrolling = "on";
       clearTimeout(glassTimer);
-      if (on) {
-        if (root.dataset.scrolling !== "on") root.dataset.scrolling = "on";
-        glassTimer = setTimeout(function () {
-          if (root.dataset.scrolling !== "off") root.dataset.scrolling = "off";
-        }, 260);
-      } else if (root.dataset.scrolling !== "off") {
-        root.dataset.scrolling = "off";
-      }
+      glassTimer = setTimeout(function () {
+        header.classList.remove("is-scrolling");
+        document.documentElement.dataset.scrolling = "off";
+      }, 180);
     }
-    function markScrolling() { setScrolling(true); }
 
     /* 缓存的文档高度：scrollHeight 会强制重新布局，不适合每帧读 */
     var docHeight = 0;
@@ -159,24 +147,12 @@ window.SITE_MOTION = (function () {
       ticking = false;
       var y = window.scrollY || window.pageYOffset || 0;
 
-      /* 每帧只在值真的变化时写，避免无谓的 class/样式失效 */
-      if (header) {
-        var scrolled = y > 12;
-        if (header.classList.contains("is-scrolled") !== scrolled) {
-          header.classList.toggle("is-scrolled", scrolled);
-        }
-      }
+      if (header) header.classList.toggle("is-scrolled", y > 12);
       if (bar) {
         if (!docHeight || Math.abs(lastInner - window.innerHeight) > 1) refreshHeight();
-        var p = Math.min(1, y / docHeight).toFixed(4);
-        if (bar._p !== p) { bar._p = p; bar.style.transform = "scaleX(" + p + ")"; }
+        bar.style.transform = "scaleX(" + Math.min(1, y / docHeight).toFixed(4) + ")";
       }
-      if (toTop) {
-        var showTop = y > 560 && UI.showBackToTop !== false;
-        if (toTop.classList.contains("is-visible") !== showTop) {
-          toTop.classList.toggle("is-visible", showTop);
-        }
-      }
+      if (toTop) toTop.classList.toggle("is-visible", y > 560 && UI.showBackToTop !== false);
 
       /* 翻页模式下导航高亮由 paged.js 通过 site:pagechange 广播，
          这里不再重复遍历 section 读布局（那是每帧 6 次强制布局）。 */
@@ -214,11 +190,6 @@ window.SITE_MOTION = (function () {
     window.addEventListener("wheel", earlyScroll, { passive: true });
     window.addEventListener("touchmove", earlyScroll, { passive: true });
     window.addEventListener("touchstart", earlyScroll, { passive: true });
-    /* 滚动真正结束就立刻收口，不必等 260ms 兜底定时器。
-       Chromium 114+ / Edge 156 都支持；不支持时上面的定时器照常工作。 */
-    if ("onscrollend" in window) {
-      window.addEventListener("scrollend", function () { setScrolling(false); }, { passive: true });
-    }
     window.addEventListener("resize", function () { docHeight = 0; onScroll(); }, { passive: true });
     window.addEventListener("load", onScroll);
     update();

@@ -367,12 +367,6 @@ window.SITE_PAGED = (function () {
     if (!pages.length) return;
     if (!pageTops.length) measureTops();
 
-    /* 2026-11-12 第五轮：程序翻页期间别再算「视线落在哪一页」。
-       goTo() 已经 setActive(i) 定好目标页，而平滑滚动会经过中间页 ——
-       原来一次翻页 pagechange 来回派发 4 次，连带入场动画裁决、
-       scheduleSettle 反复重来。用独立时间闸门，不影响吸附归位。 */
-    if (typeof performance !== "undefined" && performance.now() < flipGuardUntil) return;
-
     var y = window.scrollY || window.pageYOffset || 0;
     var vh = window.innerHeight;
     var line = y + vh * 0.42;         // 视线落点：略高于中线
@@ -392,11 +386,8 @@ window.SITE_PAGED = (function () {
         if (d < min) { min = d; idx = j; }
       }
     }
-    var prevIndex = activeIndex;
     setActive(idx);
-    /* 2026-11-12：原来每帧都调 scheduleSettle()，滚动期间等于每帧清/设一次
-       140ms 定时器；只有页号真的变了才需要重新裁决入场动画。 */
-    if (activeIndex !== prevIndex) scheduleSettle();
+    scheduleSettle();
   }
 
   /* 滚动处理：位置已缓存，updateActive 是纯计算（无布局读取），成本很低。
@@ -404,10 +395,6 @@ window.SITE_PAGED = (function () {
      掉帧从 4 升到 19 —— 均匀的小开销比不均匀的大跳变更友好。
      所以保持每帧计算。 */
   function onScroll() {
-    /* 任何滚动（含触摸自由滑动，它不走 goTo）都进入翻页期；
-       滚动每帧续期，停手 220ms 后摘标记。 */
-    if (flipping) flipRenew();
-    else flipStart();
     if (ticking) return;
     ticking = true;
     rafId = requestAnimationFrame(function () {
@@ -420,26 +407,6 @@ window.SITE_PAGED = (function () {
        程序滚动（goTo / 滚轮）期间跳过，否则会把自己的动画打断。 */
     clearTimeout(snapTimer);
     snapTimer = setTimeout(snapToNearest, SETTLE_DELAY);
-  }
-
-  /* ------------------------------------------------- 翻页期标记（第五/六轮）
-     只做一件事：给 updateActive 一个「别在中途改页号」的闸门。
-     顶栏毛玻璃已改由 motion.js 的 html[data-scrolling] 统一控制（见第 12 节），
-     这里不再写 data-flipping —— 两套状态源正是"顶栏翻页时重渲染"的根因。
-     ⚠️ 刻意不派发给封面墙：第四轮试过让墙在翻页时暂停，收益仅 4% 且
-        有「滚动时墙停一下」的观感代价。 */
-  var flipping = false, flipTimer = 0, flipGuardUntil = 0;
-
-  function flipStart() {
-    flipping = true;
-    flipRenew();
-  }
-  function flipRenew() {
-    clearTimeout(flipTimer);
-    flipTimer = setTimeout(function () {
-      if (!flipping) return;
-      flipping = false;
-    }, 220);
   }
 
   /* ------------------------------------------------------------ 跳转某页 */
@@ -456,8 +423,6 @@ window.SITE_PAGED = (function () {
     pendingTop = Math.max(0, top);
     pendingUntil = (typeof performance !== "undefined" ? performance.now() : Date.now()) +
       Math.min(2400, 600 + Math.abs(pendingTop - (window.scrollY || 0)) * 0.6);
-    flipGuardUntil = pendingUntil;
-    flipStart();
     /* 入场动画赶在 scrollTo 之前开跑：此时目标页还在屏幕外，
        藏起来没人看得见，滑进来的过程正好淡入（见 enterOnNavigate 的注释）。 */
     enterOnNavigate(i);

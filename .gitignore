@@ -20,6 +20,3 @@ desktop.ini
 *.swp
 .idea/
 .vscode/
-
-# 构建缓存：bake-walls 下载的封面与页面导出的排列顺序（不入库）
-.cache/

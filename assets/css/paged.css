@@ -209,21 +209,12 @@ html[data-paged="on"] .section.is-entering > .container > *:nth-child(3) { anima
 html[data-paged="on"] .section.is-entering > .container > *:nth-child(4) { animation-delay: .28s; }
 html[data-paged="on"] .section.is-entering > .container > *:nth-child(n+5) { animation-delay: .34s; }
 
-/* 卡片本身再错开一层，让横滑轨道里的卡片依次浮现。
-   2026-11-12 第五轮：这一层改成**只做位移**（chapter-lift），不再重复 opacity。
-   原来卡片既要乘父容器的 opacity、又自己从 0 淡入，两层半透明叠在一起
-   既更暗、又多出一批需要混合的合成层；实测翻页时入场动画是掉帧大头
-   （关掉它 63 → 95 帧）。卡片仍随父容器淡入、仍按 nth-child 错开上移，
-   章节衔接的观感保留，只是不再"暗两次"。 */
-@keyframes chapter-lift {
-  from { transform: translate3d(0, 20px, 0); }
-  to   { transform: none; }
-}
+/* 卡片本身再错开一层，让横滑轨道里的卡片依次浮现 */
 html[data-paged="on"] .section.is-entering .card,
 html[data-paged="on"] .section.is-entering .interest,
 html[data-paged="on"] .section.is-entering .social,
 html[data-paged="on"] .section.is-entering .game {
-  animation: chapter-lift .55s var(--ease-out) both;
+  animation: chapter-item .55s var(--ease-out) both;
 }
 html[data-paged="on"] .section.is-entering .card:nth-child(1),
 html[data-paged="on"] .section.is-entering .interest:nth-child(1),

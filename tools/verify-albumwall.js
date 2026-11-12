@@ -18,9 +18,9 @@ const SITE = 'http://127.0.0.1:8791/';
 const notes = [], fails = [];
 const ok = (c, m) => c ? notes.push('OK  ' + m) : fails.push(m);
 
-const INST = 1200;
-const TILE = 200;
-const PERIOD = 1200;
+const INST = 2400;
+const TILE = 400;
+const PERIOD = 2400;
 
 (async () => {
   const browser = await chromium.launch();
@@ -50,9 +50,6 @@ const PERIOD = 1200;
     const cs = grid && getComputedStyle(grid);
     return {
       wallParent: wall && wall.parentElement.id,
-      bgs: rows.map(c => getComputedStyle(c).backgroundImage),
-      wallImgsLoaded: performance.getEntriesByType('resource')
-        .filter(e => /assets\/wall\/album-\d\.webp/.test(e.name)).length,
       rows: rows.length,
       perRow: rows[0] ? rows[0].children.length : 0,
       imgs: imgs.length,
@@ -76,12 +73,16 @@ const PERIOD = 1200;
   ok(r.vinyl === 0, '黑胶已彻底移除');
   ok(r.wallParent === 'listen', '封面墙是 #listen 的直接子元素（铺满整屏，不是只盖住卡片）');
   ok(r.rows === 6, '6 行封面');
-  ok(r.bgs.length === 6 && r.bgs.every(b => /assets\/wall\/album-\d\.webp/.test(b)),
-    '6 行全部使用预渲染行图（album-0..5.webp）');
-  ok(r.wallImgsLoaded === 6, '6 张预渲染行图全部加载成功（' + r.wallImgsLoaded + '/6）');
-  ok(r.inst === '1200px', '固定 1200×1200 实例（' + r.inst + '）');
+  ok(r.perRow === 12 && r.imgs === 72,
+    '每行 12 张（两份相同的 6 张）→ 共 ' + r.imgs + ' 张');
+  ok(r.loaded === r.imgs && r.broken === 0,
+    '全部封面加载成功、0 坏图（' + r.loaded + '/' + r.imgs + '）');
+  ok(r.bigCovers === r.imgs, '用的是 400y400 大图，不是列表里的 120y120 缩略图');
+  ok(r.unique >= 24, '至少用了 24 种不同封面（' + r.unique + ' 种）');
+  ok(r.covers >= 90, '数据源是本周完整曲库（' + r.covers + ' 首）');
+  ok(r.inst === '2400px', '固定 2400×2400 实例（' + r.inst + '）');
   ok(r.gap === '0px', '行间 gap 为 0（' + r.gap + '）');
-  ok(r.period === PERIOD, '循环周期 = 单份 6 张 = 1200px');
+  ok(r.period === PERIOD, '循环周期 = 单份 6 张 = 2400px');
 
   /* ------------------------------------------------- 2. 135 左 / 246 右 */
   const expectDirs = ['left', 'right', 'left', 'right', 'left', 'right'];
@@ -101,12 +102,12 @@ const PERIOD = 1200;
 
   const xs = await readX();
   ok(xs.every(x => x >= -PERIOD - 1 && x <= 0.5),
-    '所有行位移都落在 [-1200, 0]，内容始终盖住实例（' +
+    '所有行位移都落在 [-2400, 0]，内容始终盖住实例（' +
     xs.map(v => v.toFixed(0)).join('/') + '）');
   ok(xs.filter((_, i) => i % 2 === 0).every(x => x < 0 || x === 0),
-    '左移行的位移是 0 → -1200 区间内的负值或起点 0');
+    '左移行的位移是 0 → -2400 区间内的负值或起点 0');
   ok(xs.filter((_, i) => i % 2 === 1).every(x => x <= 0 && x > -PERIOD),
-    '右移行同样落在 [-1200, 0]，只是运动方向相反');
+    '右移行同样落在 [-2400, 0]，只是运动方向相反');
   ok(new Set(xs.map(v => Math.round(v))).size === 6,
     '同一时刻六行位移互不相同（' + xs.map(v => v.toFixed(0)).join('/') + '）');
 
@@ -123,7 +124,7 @@ const PERIOD = 1200;
 
   ok(await page.evaluate(() => {
     const css = document.getElementById('aw-keyframes');
-    return !!css && /-1200px/.test(css.textContent) &&
+    return !!css && /-2400px/.test(css.textContent) &&
       /aw-move-left/.test(css.textContent) && /aw-move-right/.test(css.textContent);
   }), '@keyframes 由常量注入（含 aw-move-left / aw-move-right）');
 
@@ -140,36 +141,40 @@ const PERIOD = 1200;
   ok(Math.abs(p1 - p0) < 0.01, 'setSpeed(0) 完全静止');
   await page.evaluate(() => window.SITE_ALBUMWALL.setSpeed(1));
 
-  /* 循环：把动画快进整整一个周期，位移仍落在 [-1200, 0]。
-     动画是 infinite + linear，这份 keyframes 只覆盖 0 → -1200 一个周期，
+  /* 循环：把动画快进整整一个周期，位移仍落在 [-2400, 0]。
+     动画是 infinite + linear，这份 keyframes 只覆盖 0 → -2400 一个周期，
      所以"快进一周期"必然还在区间内 —— 断言的意义是守住 keyframes
-     别被改成跨多个周期或改了 -1200 而没同步 PERIOD。 */
+     别被改成跨多个周期或改了 -2400 而没同步 PERIOD。 */
   await page.evaluate(P => window.SITE_ALBUMWALL.step(P), PERIOD);
   const loop = await readX();
   ok(loop.every(x => x >= -PERIOD - 1 && x <= 0.5),
-    '推进一整个周期后每行仍在 [-1200,0]（' + loop.map(v => v.toFixed(0)).join('/') + '）');
+    '推进一整个周期后每行仍在 [-2400,0]（' + loop.map(v => v.toFixed(0)).join('/') + '）');
 
-  /* --------------------------------------------- 4. 平铺与行间距
-     2026-11-12：行内改成一张预渲染行图（2400×400），不再有 img 之间的缝隙；
-     改为守「行图按行高等比缩放、横向 repeat、行间 gap 为 0」。 */
+  /* --------------------------------------------- 4. 缝隙与上下交接 */
   const seam = await page.evaluate(() => {
     const rows = [...document.querySelectorAll('.albumwall__row')];
-    const cs = getComputedStyle(rows[0]);
+    const imgs = [...rows[0].querySelectorAll('img')];
+    const h = [];
+    for (let i = 0; i < imgs.length - 1; i++) {
+      h.push(imgs[i + 1].getBoundingClientRect().left - imgs[i].getBoundingClientRect().right);
+    }
     const rects = rows.map(x => x.getBoundingClientRect());
     const v = [];
     for (let i = 0; i < rects.length - 1; i++) v.push(rects[i + 1].top - rects[i].bottom);
+    const one = imgs[0].getBoundingClientRect();
+    const rowH = rects[0].height;
     return {
-      bgSize: cs.backgroundSize, bgRepeat: cs.backgroundRepeat,
-      rowH: rects[0].height,
+      hMax: Math.max(...h), hMin: Math.min(...h),
       vMax: Math.max(...v), vMin: Math.min(...v),
+      imgOverRow: one.height - rowH,
       feather: getComputedStyle(rows[0], '::after').backgroundImage
     };
   });
-  ok(/repeat-x/.test(seam.bgRepeat), '行图水平平铺（' + seam.bgRepeat + '），循环接缝无断点');
-  ok(/auto/.test(seam.bgSize), '行图按行高等比缩放（' + seam.bgSize + '）');
+  ok(seam.hMax <= 0.01, '相邻图片之间是重叠而非留缝（最大间隔 ' + seam.hMax.toFixed(2) + 'px）');
   ok(Math.abs(seam.vMax) < 0.5 && Math.abs(seam.vMin) < 0.5,
     '行与行之间 gap 为 0（' + seam.vMin.toFixed(2) + ' ~ ' + seam.vMax.toFixed(2) + 'px）');
-  ok(seam.rowH > 0, '行高有效（' + seam.rowH.toFixed(1) + 'px）');
+  ok(seam.imgOverRow > 0.5,
+    '图片比行高多出 ' + seam.imgOverRow.toFixed(2) + 'px 盖住下一行顶部（上下交接）');
   ok(/linear-gradient/.test(seam.feather), '行底有羽化带柔化硬切');
 
   /* ------------------------------------ 4b. 客观填充（像素级）
@@ -286,8 +291,8 @@ const PERIOD = 1200;
       '[' + name + '] scale 按公式重算（' + g.scale.toFixed(3) + '）');
     ok(INST * g.scale >= Math.max(g.w, g.h),
       '[' + name + '] 实例缩放后盖住视口（' + Math.round(INST * g.scale) + 'px）');
-    ok(g.inst === '1200px' && g.rows === 6,
-      '[' + name + '] 规格不变，只靠缩放适配（6 行预渲染图）');
+    ok(g.inst === '2400px' && g.rows === 6 && g.imgs === 72,
+      '[' + name + '] 规格不变，只靠缩放适配');
   }
 
   /* ------------------------------------------------- 7. 减少动效 */

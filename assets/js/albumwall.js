@@ -43,18 +43,12 @@ window.SITE_ALBUMWALL = (function () {
   var reduceQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
   function reduced() { return reduceQuery.matches; }
 
-  /* ⚠️ 2026-11-12 第五轮：与 steamwall 同步，整套设计像素减半、scale 翻倍。
-     屏幕上封面尺寸、行高、左右流速都不变；一行从 13206×1109 设备像素
-     降到约 6600×550（−75% 纹理）。
-     BASE_RATE 同步减半后 base = PERIOD/BASE_RATE 仍是 80s 一圈，
-     所以行时长、相位读数、step() 的换算全部保持原来的语义。
-     ⚠️ 本文件历史注释里的 2400 / 400 / 4800 是旧设计像素。 */
-  var INST = 1200;                // 实例边长
-  var TILE = 200;                 // 封面格
+  var INST = 2400;                // 实例边长
+  var TILE = 400;                 // 封面格
   var ROWS = 6;
-  var PERIOD = 6 * TILE;          // 一份 6 张 = 1200，也是循环周期
+  var PERIOD = 6 * TILE;          // 一份 6 张 = 2400，也是循环周期
   var SAFETY = 1.05;
-  var BASE_RATE = 15;             // px/s（原 30，随实例减半，屏幕流速不变）
+  var BASE_RATE = 30;             // px/s，SPEED=1 时基准行的流速
 
   /* 每行速度。方向由索引奇偶决定，倍率让相邻行还有快慢差 ——
      只交替方向不差速的话，看起来会像整块板子在左右搓。 */
@@ -127,15 +121,6 @@ window.SITE_ALBUMWALL = (function () {
   }
 
   /* ------------------------------------------------------------- 适配 */
-  /* 2026-11-12：同 steamwall —— resize / visualViewport.resize 会连发十几次，
-     值没变也重写 CSS 变量会让 2400×2400 实例重新栅格化。只在值变化时写。 */
-  var fitCache = {};
-  function setWallVar(name, value) {
-    if (fitCache[name] === value) return;
-    fitCache[name] = value;
-    grid.style.setProperty(name, value);
-  }
-
   function fit() {
     if (!grid) return;
     /* ⚠️ 2026-11-11 修「手机上看背景是错的」。
@@ -156,25 +141,53 @@ window.SITE_ALBUMWALL = (function () {
        纵向是实打实的 6 行，必须 6×400×scale ≥ h。
        两个约束取大者 —— 任何一边不满足都会露白。 */
     scale = Math.max(w / PERIOD, h / INST) * SAFETY;
-    setWallVar("--aw-scale", scale.toFixed(4));
-    setWallVar("--aw-inst", INST + "px");
-    setWallVar("--aw-tile", TILE + "px");
-    setWallVar("--aw-period", PERIOD + "px");
+    grid.style.setProperty("--aw-scale", scale.toFixed(4));
+    grid.style.setProperty("--aw-inst", INST + "px");
+    grid.style.setProperty("--aw-tile", TILE + "px");
+    grid.style.setProperty("--aw-period", PERIOD + "px");
   }
 
   /* ------------------------------------------------------------- 渲染 */
-  /* 2026-11-12 第七轮：同 steamwall，改用预渲染行图。
-     每行一张 2400×400 的 WebP（6 格，2× 分辨率），background-repeat: repeat-x。
-     原来每行 12 个 <img>（整面墙 72 个），现在 6 个元素、6 个请求。 */
-  function build() {
-    if (!grid) return 0;
+  function build(list) {
+    if (!grid || !list.length) return 0;
+
     weekKey = isoWeek(new Date());
+    /* 去重：排行里同一首歌常出现好几次，连着铺三张一样的封面很显眼 */
+    var seen = {}, uniq = [];
+    list.forEach(function (u) {
+      if (u && !seen[u]) { seen[u] = 1; uniq.push(u); }
+    });
+    var pool = seededShuffle(uniq, weekKey * 7919 + 20261111);
+    var need = ROWS * 6;                       // 6 行 × 单份 6 张
+
     var html = "";
     for (var r = 0; r < ROWS; r++) {
+      var seq = [];
+      for (var k = 0; k < 6; k++) {
+        var pick = pool[(r * 6 + k) % pool.length];
+        seq.push(pick);
+      }
+      /* 两份完全相同：位移走到端点归位时画面接得上 */
+      var cells = "";
+      for (var copy = 0; copy < 2; copy++) {
+        for (var j = 0; j < 6; j++) {
+          /* --h：封面没到 / 加载失败时的兜底色相。
+             和游戏墙同一个理由 —— 别用近白底色，几块白瓦片
+             会让整面墙看起来像"没渲染完"。 */
+          cells += '<img src="' + seq[j] + '" alt="" decoding="async" ' +
+            /* 6 行 × 12 格 × 2 份 = 144 个 <img>，首屏一上来就要抢带宽和解码。
+               试过 loading="lazy"，但被 .albumwall 的 overflow:hidden 裁掉的
+               瓦片会被判成"还不需要"，永远不加载，墙面就花了 —— 撤掉。
+               只保留 fetchpriority="low"：不影响加载，只把优先级排到内容后面。 */
+            'fetchpriority="low" ' +
+            'width="' + TILE + '" height="' + TILE + '" ' +
+            'style="--h:' + hueOf(seq[j]) + '" ' +
+            'onerror="this.classList.add(\'is-broken\')">';
+        }
+      }
       var dir = r % 2 === 0 ? "left" : "right";
       html += '<div class="albumwall__row" data-row="' + r + '" data-dir="' + dir + '" ' +
-        'style="--row-rate:' + ROW_RATE[r].toFixed(3) +
-        ';background-image:url(assets/wall/album-' + r + '.webp)"></div>';
+        'style="--row-rate:' + ROW_RATE[r].toFixed(3) + '">' + cells + "</div>";
     }
     grid.innerHTML = html;
     wall.setAttribute("data-ready", "1");
@@ -183,7 +196,7 @@ window.SITE_ALBUMWALL = (function () {
     installKeyframes();
     fit();
     applyTiming();
-    return ROWS;
+    return ROWS * 12;
   }
 
   /* ------------------------------------------------------------- 运动
@@ -253,20 +266,6 @@ window.SITE_ALBUMWALL = (function () {
   function paint() { /* 合成器动画不需要每帧重绘；保留这个名字给外部调用 */ }
 
   /* ------------------------------------------------------------- 入口 */
-  /* 精确裁决「这一刻该不该动」。与 steamwall 对称：离屏立刻 data-paused。 */
-  function decide(forceVisible) {
-    var visible = forceVisible;
-    if (visible == null) {
-      var sec = document.getElementById("listen");
-      if (!sec) visible = false;
-      else {
-        var r = sec.getBoundingClientRect();
-        visible = r.bottom > 0 && r.top < (window.innerHeight || 800);
-      }
-    }
-    if (visible) start(); else stopLoop();
-  }
-
   function init() {
     (function () {
       var l = C.listen || {};
@@ -277,13 +276,27 @@ window.SITE_ALBUMWALL = (function () {
     grid = document.getElementById("albumWallGrid");
     if (!wall || !grid) return;
 
-    /* 预渲染图不依赖数据：直接铺，打开即完整（不再等数据）。
-       周更后重跑 tools/extract-wall-order.js + tools/bake-walls.py。 */
+    /* 先铺 config 里的快照，保证打开就有图 */
     covers = fromConfig();
-    build();
+    if (covers.length) build(covers);
+
+    /* 再用真实的「这周听的 100 首」替换 */
     getJSON("data/netease.json").then(function (d) {
-      if (d && Array.isArray(d.tracks)) {
-        covers = d.tracks.map(function (t) { return bigCover(t.cover); }).filter(Boolean);
+      if (!d || !Array.isArray(d.tracks) || d.tracks.length < 6) return;
+      covers = d.tracks.map(function (t) { return bigCover(t.cover); }).filter(Boolean);
+      build(covers);
+      /* ⚠️ 数据回来后必须重算每行时长，否则新行没有 --aw-dur = 不动。
+         （实测过：72 张图全加载、方向也对，但相位恒为 0 ——
+           因为 build() 重建了 DOM，旧的时长写在已经被替换掉的节点上。） */
+      applyTiming();
+      /* 再重新裁决一次"要不要在动"：第一次 build 若因为没数据而跳过，
+         init 末尾的 start() 是空操作。重新 observe 让 IO 按当前
+         真实可见性决定，比无脑 start() 更省 —— 否则离屏的屏也一直在动。 */
+      if (io) {
+        var sec = document.getElementById("listen");
+        if (sec) { io.unobserve(sec); io.observe(sec); }
+      } else {
+        start();
       }
     });
 
@@ -296,23 +309,18 @@ window.SITE_ALBUMWALL = (function () {
     }
     window.addEventListener("orientationchange", function () { fit(); }, { passive: true });
     document.addEventListener("visibilitychange", function () {
-      if (document.hidden) stopLoop(); else decide();
+      if (document.hidden) stopLoop(); else start();
     });
 
-    /* 2026-11-12：30% 预热门槛会把相邻屏也算可见 —— 实测停在 #gaming 时
-       #listen 完全离屏，这 6 条 infinite 动画仍在 running。改成 0 边距 +
-       页码精确裁决，离屏立刻 animation-play-state:paused。 */
     if (typeof IntersectionObserver === "function") {
       io = new IntersectionObserver(function (entries) {
-        decide(entries.some(function (e) { return e.isIntersecting; }));
-      }, { rootMargin: "0px" });
+        var visible = entries.some(function (e) { return e.isIntersecting; });
+        if (visible) start(); else stopLoop();
+      }, { rootMargin: "30% 0px" });
       io.observe(document.getElementById("listen"));
     }
-    document.addEventListener("site:pagechange", function (e) {
-      decide(e && e.detail ? e.detail.id === "listen" : null);
-    });
 
-    fit(); applyTiming(); decide();
+    fit(); applyTiming(); start();
   }
 
   function setSpeed(n) {
@@ -350,7 +358,7 @@ window.SITE_ALBUMWALL = (function () {
     week: function () { return weekKey; },
     weekFor: isoWeek,
     covers: function () { return covers.slice(); },
-    refresh: function () { if (grid) { build(covers); applyTiming(); decide(); } },
+    refresh: function () { if (grid) { build(covers); applyTiming(); } },
     count: function () { return grid ? grid.children.length : 0; }
   };
 })();
