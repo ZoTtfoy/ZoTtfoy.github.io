@@ -78,11 +78,9 @@
   display: flex;
   flex-direction: column;
   gap: 0;
-  /* ⚠️ will-change 在这里是**冗余的**：JS 每帧写的是 translate3d(0,y,0)，
-     3D 变换本身就会把这一列提成合成层。实测把 will-change 去掉、或让它
-     常驻，CDP 的层树读数一模一样 —— 所以不要靠它省显存，那是个假优化。
-     真要省，得从"离屏时少解码图片"下手（见 steamwall.js 的 loading="lazy"）。 */
-  will-change: transform;
+  /* 2026-11-12：撤掉 will-change。3D 变换本身就会提成合成层，
+     常驻 will-change 只多做一件事 —— 让这一列在**离屏时也常驻显存**。
+     CDP 实测 282 个合成层里，6 条 1100×13200 的列就占掉大头。 */
 }
 
 .steamwall__tile {
@@ -93,9 +91,10 @@
   height: var(--wall-tile-h, 600px);
   overflow: hidden;
   border-radius: 0;
-  /* 每张略有明暗起伏，整面墙才不死板；不做入场动画 ——
-     48 个格子同时淡入会在加载期露出大片底色，与"完全填充"相悖 */
-  opacity: var(--dim, .9);
+  /* 2026-11-12：撤掉逐瓦片 opacity。48 个 opacity<1 的元素在旋转层里
+     会各自形成半透明栅格组，列一动就要整批重画；深色主题下还会把底下
+     的站点网格透出来（用户截图里的"大块空网格"）。明暗起伏改由遮罩统一给。 */
+  /* opacity: var(--dim, .9); */
   /* ⚠️ 兜底色由 appid 派生的色相决定（JS 写 --h），**不是 --bg-soft**。
      用近白底色时，只要有一批封面没加载出来（弱网 / 图床被墙），
      屏幕上就是几块白瓦片，远看等于"这页没渲染完"。
@@ -112,7 +111,8 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
-  filter: saturate(.86) contrast(1.03);
+  /* 2026-11-12：48 个 CSS filter 会让每张封面都走一遍离屏滤镜栅格化，
+     在旋转父层里代价尤其高。实测收益远小于开销，撤掉。 */
 }
 
 /* CDN 全挂时也不能开天窗：留一块更暗的色块，颜色仍然由 --h 决定，
@@ -148,6 +148,22 @@
 }
 @supports not (background: color-mix(in srgb, red 50%, transparent)) {
   .steamwall__scrim { background: var(--bg); opacity: .62; }
+
+  [data-theme="dark"] .steamwall__scrim { opacity: .42; }
+}
+
+/* 2026-11-12：深色主题下 --bg 是 #0e1011（近黑），原来中段 26~52% 会把
+   暗色游戏封面整块压成"黑三角"，两端 70% 更像被裁掉一块。
+   深色单独降一档，保证封面色相还在、又不牺牲标题可读性（文字有三重光晕）。 */
+[data-theme="dark"] .steamwall__scrim {
+  background:
+    linear-gradient(to bottom,
+      color-mix(in srgb, var(--bg) 56%, transparent) 0%,
+      color-mix(in srgb, var(--bg) 38%, transparent) 12%,
+      color-mix(in srgb, var(--bg) 17%, transparent) 34%,
+      color-mix(in srgb, var(--bg) 14%, transparent) 56%,
+      color-mix(in srgb, var(--bg) 30%, transparent) 80%,
+      color-mix(in srgb, var(--bg) 56%, transparent) 100%);
 }
 
 /* 内容要压在背景之上 */
@@ -318,12 +334,10 @@
   border-radius: 999px;
 }
 .gb-list::-webkit-scrollbar-track { background: transparent; }
-/* 能滚的时候，底部 28px 渐隐 —— 提示"下面还有"，比画一条硬边干净 */
-.gb-list.is-scroll {
-  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 28px), transparent);
-  mask-image: linear-gradient(to bottom, #000 calc(100% - 28px), transparent);
-  padding-bottom: 8px;
-}
+/* 能滚的时候，底部渐隐由 .gb-more 那条静态渐变底带负责。
+   2026-11-12：撤掉 mask-image —— 滚动容器上的遮罩会额外生成一个合成层，
+   每帧都要把新绘出的内容重新套一次遮罩，是"中间卡片一直刷新"的来源之一。 */
+.gb-list.is-scroll { padding-bottom: 8px; }
 
 .gb-row {
   display: grid;

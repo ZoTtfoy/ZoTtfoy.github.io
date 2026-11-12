@@ -146,6 +146,17 @@ window.SITE_STEAMWALL = (function () {
   }
 
   /* ------------------------------------------------------------- 适配 */
+  /* 2026-11-12：fit() 挂在 resize / visualViewport.resize / orientationchange 上，
+     安卓地址栏一收一放会连发十几次。原来每次都无条件写 5 个 CSS 变量，
+     值没变也会让 2400×2400 旋转层的 transform 失效并重新栅格化 —— 实测
+     单次 resize 被放大成 12 次整页重排。改成只在值真的变了才写。 */
+  var fitCache = {};
+  function setWallVar(name, value) {
+    if (fitCache[name] === value) return;
+    fitCache[name] = value;
+    grid.style.setProperty(name, value);
+  }
+
   function fit() {
     if (!grid) return;
     /* ⚠️ 2026-11-11 改用**背景层自己的盒子**，不再读 window.innerHeight。
@@ -162,11 +173,11 @@ window.SITE_STEAMWALL = (function () {
     /* 旋转 45° 后，S×S 正方形的轴对齐内接正方形边长是 S/√2。
        把它撑到至少 max(w,h)×SAFETY，视口四角就都在实例里。 */
     scale = Math.SQRT2 * Math.max(w, h) * SAFETY / INST;
-    grid.style.setProperty("--wall-scale", scale.toFixed(4));
-    grid.style.setProperty("--wall-inst", INST + "px");
-    grid.style.setProperty("--wall-tile-w", TILE_W + "px");
-    grid.style.setProperty("--wall-tile-h", TILE_H + "px");
-    grid.style.setProperty("--wall-period", PERIOD + "px");
+    setWallVar("--wall-scale", scale.toFixed(4));
+    setWallVar("--wall-inst", INST + "px");
+    setWallVar("--wall-tile-w", TILE_W + "px");
+    setWallVar("--wall-tile-h", TILE_H + "px");
+    setWallVar("--wall-period", PERIOD + "px");
   }
 
   /* ------------------------------------------------------------- 渲染 */
@@ -342,15 +353,37 @@ window.SITE_STEAMWALL = (function () {
     var dy = Math.abs(y - (onScroll._y === undefined ? y : onScroll._y));
     onScroll._y = y;
     boost = Math.min(220, boost + dy * 0.12);
-    if (useWaapi && anims.length) {
+    if (!useWaapi || !anims.length) return;
+    /* 2026-11-12：原来每个 scroll 事件都写 6 个 WAAPI 动画的 playbackRate，
+       真机 touch 一秒上百次，主线程白忙。改成每帧最多写一次（boost 仍逐事件累计）。 */
+    if (onScroll._raf) return;
+    onScroll._raf = requestAnimationFrame(function () {
+      onScroll._raf = 0;
       var rate = 1 + boost / Math.max(1, BASE_RATE * SPEED);
       for (var i = 0; i < anims.length; i++) anims[i].anim.playbackRate = rate;
       clearTimeout(onScroll._t);
       onScroll._t = setTimeout(function () { boost = 0; resetRate(); }, 420);
-    }
+    });
   }
 
   /* ------------------------------------------------------------- 入口 */
+  /* 精确裁决「这一刻该不该动」。
+     forceVisible 由 IntersectionObserver / site:pagechange 传入；
+     不传时自己按 #gaming 的矩形判断（用于初始化与 visibilitychange）。
+     ⚠️ 不再用无条件 start() —— 它会把 IO 刚做出的「离屏暂停」裁决覆盖掉。 */
+  function decide(forceVisible) {
+    var visible = forceVisible;
+    if (visible == null) {
+      var sec = document.getElementById("gaming");
+      if (!sec) visible = false;
+      else {
+        var r = sec.getBoundingClientRect();
+        visible = r.bottom > 0 && r.top < (window.innerHeight || 800);
+      }
+    }
+    if (visible) start(); else stopLoop();
+  }
+
   function init() {
     (function () {
       var items = (C.gaming && C.gaming.items) || [];
@@ -391,7 +424,7 @@ window.SITE_STEAMWALL = (function () {
         var sec = document.getElementById("gaming");
         if (sec) { io.unobserve(sec); io.observe(sec); }
       } else {
-        start();
+        decide();
       }
     });
 
@@ -405,28 +438,30 @@ window.SITE_STEAMWALL = (function () {
     window.addEventListener("orientationchange", function () { fit(); }, { passive: true });
     document.addEventListener("visibilitychange", function () {
       lastT = 0;
-      if (document.hidden) stopLoop(); else start();
+      if (document.hidden) stopLoop(); else decide();
     });
 
-    /* 游戏屏离屏时把 rAF 整个停掉，别空转。
-       ⚠️ 早先是在 tick 里每帧读 getBoundingClientRect 判断 near，
-          那样即使离屏也保持一帧一次的 JS 调用，而且读 rect 本身会触发
-          强制布局 —— verify-perf 的滚动帧耗时因此翻倍。
-          改用 IntersectionObserver：只在进出时各回调一次，平时零开销。
-          rootMargin 上下各留 0.3 屏，翻页过渡还没结束就已经在动了。
-          ⚠️ 不能留一整屏：gaming 是第三屏，留 100% 会让它在用户还停在
-          首页时也算"可见"，rAF 照样常驻，等于没优化。 */
+    /* 游戏屏离屏时把动画整个停掉。
+       ⚠️ 2026-11-12 实机实测：rootMargin "30% 0px" 会把相邻屏也算"可见" ——
+          停在 #gaming 时 #listen 完全在视口外（top=-745），对面那面墙的
+          6 条 infinite 动画照样 running；反过来 #gaming 离屏时这 6 条也在跑。
+          于是任何一屏都常驻 12 条动画 + 12 个巨型合成层。
+          改成 0 边距，并用 site:pagechange 的页号做精确裁决：
+          任何时刻只让当前屏那一面墙动。 */
     if (typeof IntersectionObserver === "function") {
       io = new IntersectionObserver(function (entries) {
-        var visible = entries.some(function (e) { return e.isIntersecting; });
-        if (visible) start(); else stopLoop();
-      }, { rootMargin: "30% 0px" });
+        decide(entries.some(function (e) { return e.isIntersecting; }));
+      }, { rootMargin: "0px" });
       io.observe(document.getElementById("gaming"));
     }
+    /* 页码广播比 IO 更准：翻页目标一确定就裁决一次，不用等下一帧。 */
+    document.addEventListener("site:pagechange", function (e) {
+      decide(e && e.detail ? e.detail.id === "gaming" : null);
+    });
 
     fit();
     paint();
-    start();
+    decide();
   }
 
   /* 速度可调：0 = 静止，1 = 默认，3 = 明显流动。 */
@@ -465,6 +500,6 @@ window.SITE_STEAMWALL = (function () {
     portraitOnly: function () { return portraitOnly; },
     count: function () { return grid ? grid.children.length : 0; },
     apps: function () { return apps.slice(); },
-    refresh: function () { if (wall) { build(apps); if (!useWaapi) paint(); } }
+    refresh: function () { if (wall) { build(apps); if (!useWaapi) paint(); decide(); } }
   };
 })();

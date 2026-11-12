@@ -121,6 +121,15 @@ window.SITE_ALBUMWALL = (function () {
   }
 
   /* ------------------------------------------------------------- 适配 */
+  /* 2026-11-12：同 steamwall —— resize / visualViewport.resize 会连发十几次，
+     值没变也重写 CSS 变量会让 2400×2400 实例重新栅格化。只在值变化时写。 */
+  var fitCache = {};
+  function setWallVar(name, value) {
+    if (fitCache[name] === value) return;
+    fitCache[name] = value;
+    grid.style.setProperty(name, value);
+  }
+
   function fit() {
     if (!grid) return;
     /* ⚠️ 2026-11-11 修「手机上看背景是错的」。
@@ -141,10 +150,10 @@ window.SITE_ALBUMWALL = (function () {
        纵向是实打实的 6 行，必须 6×400×scale ≥ h。
        两个约束取大者 —— 任何一边不满足都会露白。 */
     scale = Math.max(w / PERIOD, h / INST) * SAFETY;
-    grid.style.setProperty("--aw-scale", scale.toFixed(4));
-    grid.style.setProperty("--aw-inst", INST + "px");
-    grid.style.setProperty("--aw-tile", TILE + "px");
-    grid.style.setProperty("--aw-period", PERIOD + "px");
+    setWallVar("--aw-scale", scale.toFixed(4));
+    setWallVar("--aw-inst", INST + "px");
+    setWallVar("--aw-tile", TILE + "px");
+    setWallVar("--aw-period", PERIOD + "px");
   }
 
   /* ------------------------------------------------------------- 渲染 */
@@ -266,6 +275,20 @@ window.SITE_ALBUMWALL = (function () {
   function paint() { /* 合成器动画不需要每帧重绘；保留这个名字给外部调用 */ }
 
   /* ------------------------------------------------------------- 入口 */
+  /* 精确裁决「这一刻该不该动」。与 steamwall 对称：离屏立刻 data-paused。 */
+  function decide(forceVisible) {
+    var visible = forceVisible;
+    if (visible == null) {
+      var sec = document.getElementById("listen");
+      if (!sec) visible = false;
+      else {
+        var r = sec.getBoundingClientRect();
+        visible = r.bottom > 0 && r.top < (window.innerHeight || 800);
+      }
+    }
+    if (visible) start(); else stopLoop();
+  }
+
   function init() {
     (function () {
       var l = C.listen || {};
@@ -296,7 +319,7 @@ window.SITE_ALBUMWALL = (function () {
         var sec = document.getElementById("listen");
         if (sec) { io.unobserve(sec); io.observe(sec); }
       } else {
-        start();
+        decide();
       }
     });
 
@@ -309,18 +332,23 @@ window.SITE_ALBUMWALL = (function () {
     }
     window.addEventListener("orientationchange", function () { fit(); }, { passive: true });
     document.addEventListener("visibilitychange", function () {
-      if (document.hidden) stopLoop(); else start();
+      if (document.hidden) stopLoop(); else decide();
     });
 
+    /* 2026-11-12：30% 预热门槛会把相邻屏也算可见 —— 实测停在 #gaming 时
+       #listen 完全离屏，这 6 条 infinite 动画仍在 running。改成 0 边距 +
+       页码精确裁决，离屏立刻 animation-play-state:paused。 */
     if (typeof IntersectionObserver === "function") {
       io = new IntersectionObserver(function (entries) {
-        var visible = entries.some(function (e) { return e.isIntersecting; });
-        if (visible) start(); else stopLoop();
-      }, { rootMargin: "30% 0px" });
+        decide(entries.some(function (e) { return e.isIntersecting; }));
+      }, { rootMargin: "0px" });
       io.observe(document.getElementById("listen"));
     }
+    document.addEventListener("site:pagechange", function (e) {
+      decide(e && e.detail ? e.detail.id === "listen" : null);
+    });
 
-    fit(); applyTiming(); start();
+    fit(); applyTiming(); decide();
   }
 
   function setSpeed(n) {
@@ -358,7 +386,7 @@ window.SITE_ALBUMWALL = (function () {
     week: function () { return weekKey; },
     weekFor: isoWeek,
     covers: function () { return covers.slice(); },
-    refresh: function () { if (grid) { build(covers); applyTiming(); } },
+    refresh: function () { if (grid) { build(covers); applyTiming(); decide(); } },
     count: function () { return grid ? grid.children.length : 0; }
   };
 })();

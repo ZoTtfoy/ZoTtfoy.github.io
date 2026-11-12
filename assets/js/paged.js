@@ -386,8 +386,11 @@ window.SITE_PAGED = (function () {
         if (d < min) { min = d; idx = j; }
       }
     }
+    var prevIndex = activeIndex;
     setActive(idx);
-    scheduleSettle();
+    /* 2026-11-12：原来每帧都调 scheduleSettle()，滚动期间等于每帧清/设一次
+       140ms 定时器；只有页号真的变了才需要重新裁决入场动画。 */
+    if (activeIndex !== prevIndex) scheduleSettle();
   }
 
   /* 滚动处理：位置已缓存，updateActive 是纯计算（无布局读取），成本很低。
