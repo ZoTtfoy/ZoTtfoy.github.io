@@ -115,7 +115,8 @@ zotrod-homepage/
 │       ├── core/
 │       │   └── render-kit.js     # 渲染层公共底座：小工具 + 屏模块登记表
 │       ├── sections/
-│       │   └── render-gaming.js  # Q3 游戏屏的渲染（按屏拆的第一块）
+│       │   ├── render-listen.js  # Q2 在听屏的渲染
+│       │   └── render-gaming.js # Q3 游戏屏的渲染
 │       ├── config.js             # ★★ 所有文案、链接、模块开关（内容都在这里）
 │       ├── themes.js             # ★★ 主题注册表：7 套风格的完整设计变量
 │       ├── skin.js               # 应用主题 + 切换面板逻辑

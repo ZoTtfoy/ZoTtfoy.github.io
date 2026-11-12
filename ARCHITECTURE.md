@@ -74,8 +74,8 @@ fonts → tokens → backdrop → layout → components → [30-sections 七连]
 
 ```
 config, themes          （数据）
-icons → core/render-kit → sections/render-gaming → render → sync
-→ scale → density → repair → skin → backdrop → live → steamwall
+icons → core/render-kit → sections/render-listen → sections/render-gaming → render
+→ sync → scale → density → repair → skin → backdrop → live → steamwall
 → albumwall → preload → player → paged → readability → effects
 → motion → main
 ```
@@ -169,10 +169,12 @@ npm run baseline:check  # 12 张视觉基线（需先 baseline:make）
 
 按「投入产出」排序，不是按工作量：
 
-1. **（进行中）`render.js` 按屏拆**：Q3 游戏屏已搬进
-   `sections/render-gaming.js`，`render.js` 从 1159 → 805 行。
-   接缝（kit + register + 块表收口）已跑通，下一刀按同样的办法搬
-   Q2 在听（约 235 行）→ Q1 身份区 → Q4 维修 → 外壳（meta/brand/sections/controls）。
+1. **（进行中）`render.js` 按屏拆**：Q3 游戏屏、Q2 在听屏已分别搬进
+   `sections/render-gaming.js` / `render-listen.js`，`render.js` 从
+   1159 → 580 行。接缝（kit + register + 块表收口）已跑通并复用了两次，
+   下一刀搬 Q1 身份区 → Q4 维修 → Q5/Q6 → 外壳（meta/brand/sections/controls）。
+   ⚠️ 剩下几屏有跨屏调用（`paintPreviews` 被 Q4 用、`pad2` 被 `renderSections` 用），
+   搬的时候要么一起搬、要么显式走 `K.parts.<屏>.<函数>` —— 别偷偷改成全局变量。
    每搬一屏跑一次 `npm test` + 视觉基线。
 2. **`paged.js`（1027 行）拆出测量与手势**：测量（`pickFit` / `foldQuote` / 定档）
    和手势（滚轮/触摸/键盘）是两件事，耦合在一个文件里导致谁都改不动。
