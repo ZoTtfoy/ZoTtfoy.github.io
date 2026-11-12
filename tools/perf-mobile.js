@@ -17,16 +17,25 @@ const { chromium } = require('playwright-core');
 
 const SITE = 'http://127.0.0.1:8791/';
 const DESKTOP = process.argv.includes('--desktop');
+/* --uncapped：去掉垂直同步，看「每帧真正花了多少」。
+   默认的 headless rAF 锁在 60Hz，测出来 17ms 是「活干完了在等下一帧」，
+   不是成本 —— 想判断有没有 120fps（8.3ms/帧）的余量，必须先把锁去掉。 */
+const UNCAPPED = process.argv.includes('--uncapped');
 
 const VP = DESKTOP
   ? { width: 1440, height: 900 }
   : { width: 390, height: 844, deviceScaleFactor: 2 };
-const CPU = DESKTOP ? 1 : 4;
+const CPU_ARG = (process.argv.find(a => a.startsWith('--cpu=')) || '').slice(6);
+const CPU = CPU_ARG ? Number(CPU_ARG) : (DESKTOP ? 1 : 4);
 
 function fmt(x) { return typeof x === 'number' ? x.toFixed(1) : x; }
 
 (async () => {
-  const browser = await chromium.launch();
+  const browser = await chromium.launch({
+    args: UNCAPPED
+      ? ['--disable-frame-rate-limit', '--disable-gpu-vsync', '--disable-features=CalculateNativeWinOcclusion']
+      : []
+  });
   const ctx = await browser.newContext({ viewport: VP, deviceScaleFactor: VP.deviceScaleFactor || 1 });
   const page = await ctx.newPage();
   const cdp = await ctx.newCDPSession(page);
@@ -79,10 +88,17 @@ function fmt(x) { return typeof x === 'number' ? x.toFixed(1) : x; }
     }, ms);
   }
 
-  const scroll = await scrollFps(1600);
+  /* 单次测量方差能到 40%（机器忙 / 冷启动 / 无头调度），取 3 次中位数 */
+  async function median3(fn) {
+    const rs = [];
+    for (let i = 0; i < 3; i++) rs.push(await fn());
+    rs.sort((a, b) => a.avg - b.avg);
+    return rs[1];
+  }
+  const scroll = await median3(() => scrollFps(1600));
 
   /* ---------- 连续翻页帧耗时（前 8 页，取后 4 页的中位数） ---------- */
-  const flips = await page.evaluate(async () => {
+  const flipRun = () => page.evaluate(async () => {
     const res = [];
     const P = window.SITE_PAGED;
     if (!P) return res;
@@ -99,6 +115,13 @@ function fmt(x) { return typeof x === 'number' ? x.toFixed(1) : x; }
     }
     return res;
   });
+
+  /* 每屏也取 3 次中位数：逐页比逐轮更好对，避免一次抖动带偏整轮 */
+  const runs = [];
+  for (let i = 0; i < 3; i++) runs.push(await flipRun());
+  const flips = runs[0].map((_, idx) =>
+    [0, 1, 2].map(r => runs[r][idx]).sort((a, b) => a.avg - b.avg)[1]);
+
   const flipStats = flips.map(d => {
     const s = [...d].sort((a, b) => a - b);
     return { avg: +(d.reduce((a, b) => a + b, 0) / d.length).toFixed(1),
@@ -121,13 +144,28 @@ function fmt(x) { return typeof x === 'number' ? x.toFixed(1) : x; }
     return { running: out.length, offscreen: out.filter(x => x.off).length };
   });
 
-  console.log('视口:', VP.width + 'x' + VP.height, ' DSF ' + (VP.deviceScaleFactor || 1), ' CPU ' + CPU + 'x');
+  console.log('视口:', VP.width + 'x' + VP.height, ' DSF ' + (VP.deviceScaleFactor || 1),
+              ' CPU ' + CPU + 'x' + (UNCAPPED ? '  垂直同步: 关闭' : '  垂直同步: 60Hz'));
   console.log('DOM', base.dom, ' img', base.imgs, ' 墙面img', base.wallImgs);
   console.log('running 动画', base.anims, ' 离屏仍跑', offscreen.offscreen + '/' + offscreen.running);
-  console.log('滚动: avg', fmt(scroll.avg), 'ms  p95', fmt(scroll.p95), 'ms  卡顿帧', scroll.janky + '/' + scroll.frames);
+  console.log('滚动: avg', fmt(scroll.avg), 'ms  p95', fmt(scroll.p95), 'ms  卡顿帧', scroll.janky + '/' + scroll.frames,
+              UNCAPPED ? ('  → ' + (1000 / scroll.avg).toFixed(0) + ' fps 上限') : '');
   console.log('翻页帧:');
   flipStats.forEach((s, i) =>
     console.log('  第' + (i + 2) + '屏  avg', fmt(s.avg), 'ms  max', fmt(s.max), 'ms  卡顿', s.janky));
+
+  /* --budget=8.3：给一个判定线，超了就退出码 1。
+     120Hz 的预算是 8.33ms/帧；60Hz 是 16.7ms。
+     只在关掉垂直同步时才有意义（否则永远贴着 16.7 的vsync 走）。 */
+  const budget = Number((process.argv.find(a => a.startsWith('--budget=')) || '').slice(9));
+  if (budget) {
+    const worst = Math.max.apply(null, flipStats.map(s => s.avg).concat([null]).filter(v => v != null).concat([scroll.avg]));
+    const pass = worst <= budget;
+    console.log('\n判定:', (pass ? 'PASS' : 'FAIL'),
+      '最差平均帧 ' + worst.toFixed(1) + 'ms' + (pass ? ' ≤ ' : ' > ') + budget + 'ms',
+      '(' + (budget <= 8.34 ? '120fps' : '60fps') + ' 预算)');
+    if (!pass) { await browser.close(); process.exit(1); }
+  }
 
   await browser.close();
 })().catch(e => { console.error('ERR', e); process.exit(1); });
