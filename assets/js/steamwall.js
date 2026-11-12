@@ -189,82 +189,26 @@ window.SITE_STEAMWALL = (function () {
   }
 
   /* ------------------------------------------------------------- 渲染 */
-  function build(list) {
-    if (!grid || !list.length) return 0;
-
-    /* 固定种子打乱：库里靠前的都是最常玩的，原样铺会一眼认出来，
-       也保证每次刷新布局一致（不会晃）。 */
-    var seed = 20261111;
-    function rand() {
-      seed = (seed * 1103515245 + 12345) & 0x7fffffff;
-      return seed / 0x7fffffff;
-    }
-    var pool = list.slice();
-    for (var i = pool.length - 1; i > 0; i--) {
-      var j = Math.floor(rand() * (i + 1));
-      var t = pool[i]; pool[i] = pool[j]; pool[j] = t;
-    }
-
+  /* 2026-11-12 第七轮：改用**仓库里预渲染好的列图**。
+     原来每列 8 个 <img>（整面墙 48 个），翻页时 Chromium 要反复栅格化
+     这些元素和 6 个巨型合成层；现在每列只是一张 300×1800 的 WebP 背景，
+     6 个元素、6 个请求，排列与原来逐格一致（顺序由 bake 脚本从页面导出）。
+     数据更新后重跑 tools/extract-wall-order.js + tools/bake-walls.py。 */
+  function build() {
+    if (!grid) return 0;
     var html = "";
     for (var c = 0; c < COLS; c++) {
       var factor = colSpeed(c, COLS);
-      /* 每列错开起点，避免所有列第一张都是同一张图；
-         同时保证「第 k 格」和「第 k+ROWS 格」用同一个 appid（两份完全相同）。 */
-      var seq = [];
-      for (var r = 0; r < ROWS; r++) {
-        seq.push(pool[(c * 3 + r * 5) % pool.length]);
-      }
-
-      var cells = "";
-      for (var k = 0; k < ROWS * 2; k++) {
-        var appid = seq[k % ROWS];
-        /* 明暗起伏：两份对应位置必须一致，否则循环归零会闪一下 */
-        var dim = 0.82 + (((c * 7 + (k % ROWS) * 3) % 5) * 0.035);
-        /* --h 是这张瓦片的兜底色相（见 hueOf）。图没到 / 图挂了时由它顶上，
-           绝不再露接近白色的 --bg-soft —— 那种"几块白瓦片"会让整面墙
-           看起来像没渲染完。 */
-        cells += '<span class="steamwall__tile" style="--dim:' + dim.toFixed(2) +
-          ';--h:' + hueOf(appid) + '">' +
-          /* ⚠️ 这里**不能**加 loading="lazy"（实测过，然后又撤了）：
-             整面墙 = 48 个 <img>，其中只有一部分落在视口内，
-             其余被 .steamwall 的 overflow:hidden 裁掉。
-             Chrome 的懒加载按"是否接近视口"判定，被裁掉的那些会被判成
-             "还不需要"，于是永远不加载 —— 实测只有 20/48 张到位，
-             剩下 28 格露出 --h 纯色块，墙看起来是花的。
-             画面比性能重要，所以只在请求优先级上让路（fetchpriority="low"）：
-             它不影响加不加载，只让背景图排在首屏数据后面。 */
-          '<img src="' + cdnUrl(appid, CDN_HOSTS[0]) + '" alt="" decoding="async" ' +
-          'fetchpriority="low" ' +
-          'width="' + TILE_W + '" height="' + TILE_H + '" ' +
-          'data-appid="' + appid + '" data-host="0">' +
-          "</span>";
-      }
-      html += '<div class="steamwall__col" data-col="' + c + '" ' +
-        'style="--col-speed:' + factor.toFixed(3) + '">' + cells + "</div>";
+      html += '<div class="steamwall__col" data-col="' + c +
+        '" style="--col-speed:' + factor.toFixed(3) +
+        ';background-image:url(assets/wall/steam-' + c + '.webp)"></div>';
     }
     grid.innerHTML = html;
-
-    /* 图挂了就换下一个图床，全部试完才认输（落到底色）。
-       用 addEventListener 而不是内联 onerror：内联要挂一个全局函数，
-       而这里刚好在同一个作用域里，闭包更好读也更好测。 */
-    [].forEach.call(grid.querySelectorAll(".steamwall__tile img"), function (img) {
-      img.addEventListener("error", function () {
-        var tile = img.parentNode;
-        var step = Number(img.getAttribute("data-host") || 0) + 1;
-        if (step < CDN_HOSTS.length) {
-          img.setAttribute("data-host", String(step));
-          img.src = cdnUrl(img.getAttribute("data-appid"), CDN_HOSTS[step]);
-          return;
-        }
-        if (tile) tile.classList.add("is-broken");
-      });
-    });
-
     wall.setAttribute("data-ready", "1");
     colsEls = [].slice.call(grid.querySelectorAll(".steamwall__col"));
     fit();
     buildAnims();
-    return COLS * ROWS * 2;
+    return COLS;
   }
 
   /* ------------------------------------------------------------- 运动 */
@@ -407,38 +351,19 @@ window.SITE_STEAMWALL = (function () {
     grid = $("steamWallGrid");
     if (!wall || !grid) return;
 
-    /* 先铺 config 里的快照，保证打开就有图（不等网络）。
-       但快照没探测过竖版可用性，所以拿到 steam.json 后要换成 portraitApps。 */
-    apps = fromConfig();
-    if (!apps.length) { wall.hidden = true; return; }
-    build(apps);
-
+    /* 预渲染图不依赖数据：直接铺，打开即完整（不再等 JSON）。
+       数据只在后台读一次，供自检 / 调试（apps()、portraitOnly()）。 */
     getJSON("data/steam.json").then(function (d) {
       if (!d) return;
-      var good = Array.isArray(d.portraitApps) && d.portraitApps.length >= 6
+      apps = Array.isArray(d.portraitApps) && d.portraitApps.length
         ? d.portraitApps
         : (Array.isArray(d.apps) ? d.apps : []);
-      if (!good.length) return;
-      apps = good;
       portraitOnly = !!(d.portraitApps && d.portraitApps.length >= 6);
-      build(apps);
-      paint();
-      /* ⚠️ 数据回来后必须重新裁决一次要不要跑。
-         如果 config 里没有 fallback，第一次 build 没执行，init 末尾的
-         start() 会被空 colsEls 挡掉；这里填上 colsEls 后若什么都不做，
-         rAF 永远不启动（实测：72 张图全加载、方向也对，phase 恒为 0）。
-         但不能无脑 start() —— 那会让离屏很远的屏也常驻 rAF，
-         把 IntersectionObserver 的优化整个抵消掉。
-         重新 observe 一次，让 IO 按"此刻真实可见性"决定 start / stop。 */
-      if (io) {
-        var sec = document.getElementById("gaming");
-        if (sec) { io.unobserve(sec); io.observe(sec); }
-      } else {
-        decide();
-      }
     });
 
-    window.addEventListener("scroll", onScroll, { passive: true });
+    build();
+
+    
     window.addEventListener("resize", function () { fit(); }, { passive: true });
     /* 同 albumwall：地址栏伸缩改的是 visualViewport，不是 window 尺寸，
        而背景层的 100dvh 会跟着变 —— 不重算就露边。 */

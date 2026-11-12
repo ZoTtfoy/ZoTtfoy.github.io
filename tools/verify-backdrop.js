@@ -141,8 +141,11 @@ const probe = () => {
   });
 
   /* ---------- 3. 坏图自动退回 ---------- */
-  await page.evaluate(() => window.SITE_BACKDROP.setImage('https://example.invalid/x.jpg'));
-  await page.waitForTimeout(1600);
+  /* 2026-11-12：原来用 https://example.invalid/x.jpg 触发坏链，但它依赖 DNS
+     在 1.6s 内失败 —— 本机实测要 1360ms，页面一忙就超时，断言会偶发假红。
+     改成无效的 data URL：浏览器立刻报 decode 错误，测的还是「坏链回退」。 */
+  await page.evaluate(() => window.SITE_BACKDROP.setImage('data:image/png;base64,AAAA'));
+  await page.waitForTimeout(600);
   const broken = await page.evaluate(() => ({
     flag: document.documentElement.dataset.backdropImage,
     bg: getComputedStyle(document.querySelector('.ambient__image')).backgroundImage,

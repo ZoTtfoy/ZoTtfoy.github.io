@@ -50,6 +50,9 @@ const PERIOD = 1200;
     const cs = grid && getComputedStyle(grid);
     return {
       wallParent: wall && wall.parentElement.id,
+      bgs: rows.map(c => getComputedStyle(c).backgroundImage),
+      wallImgsLoaded: performance.getEntriesByType('resource')
+        .filter(e => /assets\/wall\/album-\d\.webp/.test(e.name)).length,
       rows: rows.length,
       perRow: rows[0] ? rows[0].children.length : 0,
       imgs: imgs.length,
@@ -73,13 +76,9 @@ const PERIOD = 1200;
   ok(r.vinyl === 0, '黑胶已彻底移除');
   ok(r.wallParent === 'listen', '封面墙是 #listen 的直接子元素（铺满整屏，不是只盖住卡片）');
   ok(r.rows === 6, '6 行封面');
-  ok(r.perRow === 12 && r.imgs === 72,
-    '每行 12 张（两份相同的 6 张）→ 共 ' + r.imgs + ' 张');
-  ok(r.loaded === r.imgs && r.broken === 0,
-    '全部封面加载成功、0 坏图（' + r.loaded + '/' + r.imgs + '）');
-  ok(r.bigCovers === r.imgs, '用的是 400y400 大图，不是列表里的 120y120 缩略图');
-  ok(r.unique >= 24, '至少用了 24 种不同封面（' + r.unique + ' 种）');
-  ok(r.covers >= 90, '数据源是本周完整曲库（' + r.covers + ' 首）');
+  ok(r.bgs.length === 6 && r.bgs.every(b => /assets\/wall\/album-\d\.webp/.test(b)),
+    '6 行全部使用预渲染行图（album-0..5.webp）');
+  ok(r.wallImgsLoaded === 6, '6 张预渲染行图全部加载成功（' + r.wallImgsLoaded + '/6）');
   ok(r.inst === '1200px', '固定 1200×1200 实例（' + r.inst + '）');
   ok(r.gap === '0px', '行间 gap 为 0（' + r.gap + '）');
   ok(r.period === PERIOD, '循环周期 = 单份 6 张 = 1200px');
@@ -150,31 +149,27 @@ const PERIOD = 1200;
   ok(loop.every(x => x >= -PERIOD - 1 && x <= 0.5),
     '推进一整个周期后每行仍在 [-1200,0]（' + loop.map(v => v.toFixed(0)).join('/') + '）');
 
-  /* --------------------------------------------- 4. 缝隙与上下交接 */
+  /* --------------------------------------------- 4. 平铺与行间距
+     2026-11-12：行内改成一张预渲染行图（2400×400），不再有 img 之间的缝隙；
+     改为守「行图按行高等比缩放、横向 repeat、行间 gap 为 0」。 */
   const seam = await page.evaluate(() => {
     const rows = [...document.querySelectorAll('.albumwall__row')];
-    const imgs = [...rows[0].querySelectorAll('img')];
-    const h = [];
-    for (let i = 0; i < imgs.length - 1; i++) {
-      h.push(imgs[i + 1].getBoundingClientRect().left - imgs[i].getBoundingClientRect().right);
-    }
+    const cs = getComputedStyle(rows[0]);
     const rects = rows.map(x => x.getBoundingClientRect());
     const v = [];
     for (let i = 0; i < rects.length - 1; i++) v.push(rects[i + 1].top - rects[i].bottom);
-    const one = imgs[0].getBoundingClientRect();
-    const rowH = rects[0].height;
     return {
-      hMax: Math.max(...h), hMin: Math.min(...h),
+      bgSize: cs.backgroundSize, bgRepeat: cs.backgroundRepeat,
+      rowH: rects[0].height,
       vMax: Math.max(...v), vMin: Math.min(...v),
-      imgOverRow: one.height - rowH,
       feather: getComputedStyle(rows[0], '::after').backgroundImage
     };
   });
-  ok(seam.hMax <= 0.01, '相邻图片之间是重叠而非留缝（最大间隔 ' + seam.hMax.toFixed(2) + 'px）');
+  ok(/repeat-x/.test(seam.bgRepeat), '行图水平平铺（' + seam.bgRepeat + '），循环接缝无断点');
+  ok(/auto/.test(seam.bgSize), '行图按行高等比缩放（' + seam.bgSize + '）');
   ok(Math.abs(seam.vMax) < 0.5 && Math.abs(seam.vMin) < 0.5,
     '行与行之间 gap 为 0（' + seam.vMin.toFixed(2) + ' ~ ' + seam.vMax.toFixed(2) + 'px）');
-  ok(seam.imgOverRow > 0.5,
-    '图片比行高多出 ' + seam.imgOverRow.toFixed(2) + 'px 盖住下一行顶部（上下交接）');
+  ok(seam.rowH > 0, '行高有效（' + seam.rowH.toFixed(1) + 'px）');
   ok(/linear-gradient/.test(seam.feather), '行底有羽化带柔化硬切');
 
   /* ------------------------------------ 4b. 客观填充（像素级）
@@ -291,8 +286,8 @@ const PERIOD = 1200;
       '[' + name + '] scale 按公式重算（' + g.scale.toFixed(3) + '）');
     ok(INST * g.scale >= Math.max(g.w, g.h),
       '[' + name + '] 实例缩放后盖住视口（' + Math.round(INST * g.scale) + 'px）');
-    ok(g.inst === '1200px' && g.rows === 6 && g.imgs === 72,
-      '[' + name + '] 规格不变，只靠缩放适配');
+    ok(g.inst === '1200px' && g.rows === 6,
+      '[' + name + '] 规格不变，只靠缩放适配（6 行预渲染图）');
   }
 
   /* ------------------------------------------------- 7. 减少动效 */

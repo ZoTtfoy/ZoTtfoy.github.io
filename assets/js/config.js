@@ -402,10 +402,15 @@ window.SITE_CONFIG = {
       starsOpacity: 0.6,
       image: "assets/backdrop/mesh.svg",
       imageOpacity: 1,
-      imageBlur: 24,
+      /* 2026-11-12 第六轮：全屏 blur(24px) 每帧都要重新模糊整块背景，
+         是合成阶段最贵的一项。mesh.svg 本身是柔和渐变，去掉模糊观感差别很小。 */
+      imageBlur: 0,
       scrim: 0.2,
-      kenBurns: true,
-      parallax: true
+      /* 全屏层的无限 transform 动画，会持续触发整层重合成；关掉。 */
+      kenBurns: false,
+      /* 每帧用 JS 写 ambient.style.transform + imageEl.style.translate，
+         实测 scroll 监听 76ms/27 次、视差 loop 11.6ms/61 帧，是 JS 侧最大单项。 */
+      parallax: false
     },
   live: {
       loading: true,

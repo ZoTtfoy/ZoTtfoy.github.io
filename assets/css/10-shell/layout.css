@@ -17,14 +17,17 @@
   -webkit-backdrop-filter: saturate(160%) blur(12px);
   backdrop-filter: saturate(160%) blur(12px);
   border-bottom: 1px solid transparent;
-  transition: border-color var(--t) var(--ease), background-color var(--t) var(--ease);
+  /* ⚠️ 2026-11-12：不再给 background-color 加过渡。
+     滚动状态切换时，transition 会把每次切换拉成 0.2s 渐变；状态一抖，
+     渐变就重启，顶栏看起来在"闪"。border 过渡无害，保留。 */
+  transition: border-color var(--t) var(--ease);
 }
 .site-header.is-scrolled { border-bottom-color: var(--line); }
 
 /* 滚动期间临时关掉毛玻璃。
    原因：sticky + backdrop-filter 会让浏览器每帧重新模糊顶栏覆盖的那块区域，
    实测占滚动耗时的 5.5ms（23.5ms → 18.0ms）。
-   停手 160ms 后自动恢复模糊（由 motion.js 加/去 .is-scrolling）。
+   停手 260ms（或 scrollend）后自动恢复模糊（由 motion.js 写 html[data-scrolling]）。
 
    ⚠️ 这里原来写的是 background: var(--bg-elev) —— 那是**错的**，会让顶栏
    在滚动时"闪一下变亮"：
@@ -39,7 +42,12 @@
    （关掉模糊后必须够实，否则内容会从顶栏透出来）。
    --header-bg 本身就是"页面底色 + 72% 不透明度"，所以它在视觉上
    天然等于页面底色 —— 提到 96% 只是让它变实，不变色。 */
-.site-header.is-scrolling {
+/* 2026-11-12 第六轮：**唯一**的滚动状态开关。
+   原来这里还有一套 `.site-header.is-scrolling`（motion.js 写 class，180ms）
+   和一套 `html[data-flipping]`（paged.js 写，220ms），两套不同步：
+   一次翻页实测顶栏被切 27 次状态，停手后还要恢复两次毛玻璃。
+   现在统一成 html[data-scrolling="on"]，只在「开始滚动 / 真正停稳」各切一次。 */
+html[data-scrolling="on"] .site-header {
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
   background: color-mix(in srgb, var(--header-bg) 96%, transparent);
@@ -47,21 +55,24 @@
 /* 不支持 color-mix 的浏览器：退回半透明 header-bg。
    它比实色 --bg-elev 更接近原色，仍不会出现亮度跳变。 */
 @supports not (background: color-mix(in srgb, red 50%, transparent)) {
-  .site-header.is-scrolling { background: var(--header-bg); }
+  html[data-scrolling="on"] .site-header { background: var(--header-bg); }
 }
 
-/* 2026-11-12 第五轮：翻页期把毛玻璃关到**停稳**为止。
-   motion.js 的 is-scrolling 只有 180ms，盖不住 goTo 那段 ~700ms 平滑滚动；
-   实测只关毛玻璃就能把翻页 p90 从 66.7ms 拉回 16.8ms。
-   背景沿用 is-scrolling 的同一色源，避免翻页时顶栏忽然变亮。
-   标记由 paged.js 的 flipStart/flipRenew 维护，触摸自由滚动同样覆盖。 */
-html[data-flipping="1"] .site-header {
-  -webkit-backdrop-filter: none;
-  backdrop-filter: none;
-  background: color-mix(in srgb, var(--header-bg) 96%, transparent);
+/* 2026-11-12：移动端 / 触摸设备顶栏**永久**不用毛玻璃。
+   顶栏背景本来就是 72% 不透明的 --header-bg，模糊几乎看不出来；
+   但 backdrop-filter 会让顶栏在每次开关时重新抓取并模糊下方内容，
+   是"顶栏重渲染"最贵的一步。常关之后，滚动状态切换不再引起重绘。 */
+@media (hover: none), (max-width: 900px) {
+  .site-header {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    background: color-mix(in srgb, var(--header-bg) 96%, transparent);
+  }
 }
 @supports not (background: color-mix(in srgb, red 50%, transparent)) {
-  html[data-flipping="1"] .site-header { background: var(--header-bg); }
+  @media (hover: none), (max-width: 900px) {
+    .site-header { background: var(--header-bg); }
+  }
 }
 
 .header__inner {
