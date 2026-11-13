@@ -397,6 +397,7 @@ html[data-paged="on"] .pager { display: flex; }
     /* 不再 right:0 —— 贴死屏幕右缘时，当前项那圈光环会被裁掉一半，
        看起来就是"突出来一大截"。留 6px，并让容器自己裁掉溢出的光效。 */
     right: max(5px, env(safe-area-inset-right));
+    overflow: hidden;
     bottom: auto;
     left: auto;
     transform: translateY(-50%);
@@ -424,10 +425,10 @@ html[data-paged="on"] .pager { display: flex; }
   }
 }
 
-/* 手机：窄条贴边，把任何溢出的光效裁在容器内（宽版靠留白，不需要裁） */
-@media (max-width: 680px) {
-  .pager { overflow: hidden; }
-}
+/* 窄版统一裁掉溢出：12px 的容器放不下 2px 光环 + scale，
+   不裁就会在 681~1180 这段（平板/窄桌面）"突出来一大截"——
+   上一版只给 ≤680 加了，正好漏掉这一段。
+   label 在窄版会被一并裁掉（触屏/窄屏本来没有 hover），aria-label 仍在。 */
 
 /* 分段只在手机显示，桌面保持圆点 */
 @media (min-width: 901px) {

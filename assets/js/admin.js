@@ -658,6 +658,15 @@ window.ADMIN = {
       var bd = draft.backdrop || {};
       var bm = bd.motion || {};
 
+      body += group("背景图", "关掉后不加载任何照片，只剩底色与动效元素",
+        scalarFields([
+          { path: ["backdrop", "enabled"], label: "显示背景图（照片 / MIKU 壁纸随机）",
+            value: bd.enabled !== false, type: "bool" }
+        ]) +
+        '<p class="sheet__hint">每张图都会先裁掉底部水印带再压成 WebP。' +
+        '关掉这里不会删文件，只是不请求 —— 想换图去 config.js 的 ' +
+        '<code>backdrop.images</code> / <code>imagesMobile</code>。</p>');
+
       body += group("动效元素", "可以任意叠加，互不冲突", scalarFields([
         { path: ["backdrop", "motion", "aurora"], label: "光晕（两团缓慢漂移，跟着主题色走）", value: bm.aurora, type: "bool" },
         { path: ["backdrop", "motion", "grain"], label: "噪点（让大面积纯色不呆板）", value: bm.grain, type: "bool" },

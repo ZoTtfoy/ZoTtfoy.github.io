@@ -39,7 +39,13 @@ const JOBS = [
   { src: '00D8A79AC3C50F7BD2B3EFEB5809611E.jpg', dst: 'scene-m2.webp', width: 900, quality: 74, top: 0 },
   { src: 'D7732344920CD63DD29FA6D4C5989C01.jpg', dst: 'scene-m3.webp', width: 900, quality: 74, top: .055 },
   { src: '482997E930E1956068788B3C6FE7A53D.jpg', dst: 'scene-m4.webp', width: 900, quality: 74, top: .03 },
-  { src: '8643A44A205532B5E9867DABB7B23A37.jpg', dst: 'scene-m5.webp', width: 900, quality: 64, top: 0 }
+  { src: '8643A44A205532B5E9867DABB7B23A37.jpg', dst: 'scene-m5.webp', width: 900, quality: 64, top: 0 },
+
+  /* ---- MIKU 壁纸（safebooru，hatsune_miku + rating:safe）----
+     同人图没有相机水印，不用裁底部（cut: 0）。 */
+  { dir: 'miku', src: 'e104c71b.jpg',  dst: 'miku-d1.webp', width: 1280, quality: 72, cut: 0 },
+  { dir: 'miku', src: '344bfbad.jpg',  dst: 'miku-d2.webp', width: 1280, quality: 72, cut: 0 },
+  { dir: 'miku', src: 'miku-93901461.jpg', dst: 'miku-m1.webp', width: 900, quality: 72, cut: 0 }
 ];
 
 (async () => {
@@ -47,7 +53,7 @@ const JOBS = [
   let okCount = 0;
 
   for (const job of JOBS) {
-    const srcPath = path.join(SRC_DIR, job.src);
+    const srcPath = path.join(SRC_DIR, job.dir ? job.dir : '', job.src);
     if (!fs.existsSync(srcPath)) {
       console.log('跳过（找不到）', srcPath);
       continue;
@@ -72,7 +78,7 @@ const JOBS = [
       cx.imageSmoothingQuality = 'high';
       cx.drawImage(img, 0, sy, sw, sh, 0, 0, tw, th);
       return { url: cv.toDataURL('image/webp', quality), w: tw, h: th };
-    }, { cut: CUT_BOTTOM, width: job.width, quality: job.quality, top: job.top || 0 });
+    }, { cut: job.cut == null ? CUT_BOTTOM : job.cut, width: job.width, quality: job.quality, top: job.top || 0 });
 
     await page.close();
 

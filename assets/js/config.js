@@ -422,17 +422,22 @@ window.SITE_CONFIG = {
          桌面横图 / 手机竖图分成两组，每次打开**随机挑一张**（见 backdrop.js 的
          pickFrom）；手机只会下载 mobile 那组里被选中的一张。
          image / imageMobile 是数组为空时的兜底，不要删。 */
+      /* 后台「显示背景图」开关：false 时一张都不加载，只剩底色与动效 */
+      enabled: true,
       images: [
         "assets/backdrop/scene-d1.webp",
         "assets/backdrop/scene-d2.webp",
-        "assets/backdrop/scene-d3.webp"
+        "assets/backdrop/scene-d3.webp",
+        "assets/backdrop/miku-d1.webp",
+        "assets/backdrop/miku-d2.webp"
       ],
       imagesMobile: [
         "assets/backdrop/scene-m1.webp",
         "assets/backdrop/scene-m2.webp",
         "assets/backdrop/scene-m3.webp",
         "assets/backdrop/scene-m4.webp",
-        "assets/backdrop/scene-m5.webp"
+        "assets/backdrop/scene-m5.webp",
+        "assets/backdrop/miku-m1.webp"
       ],
       image: "assets/backdrop/scene-d1.webp",
       imageMobile: "assets/backdrop/scene-m1.webp",

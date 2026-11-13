@@ -288,6 +288,13 @@ window.SITE_BACKDROP = (function () {
     imageEl = $("ambientImage");
 
     applyFlags();
+    /* 后台开关：关掉就一张都不加载，连预加载都不发 —— 只剩底色与动效。 */
+    var offByUrl = false;
+    try { offByUrl = /[?&]bg=off\b/.test(location.search); } catch (e) {}
+    if (B.enabled === false || offByUrl) {
+      root.dataset.backdropImage = "off";
+      return;
+    }
     /* 只预加载当前视口会用到的那一张：手机不下载桌面图，反之亦然。 */
     var isPhone = false;
     try { isPhone = !!(window.matchMedia && window.matchMedia("(max-width: 680px)").matches); } catch (e) {}
