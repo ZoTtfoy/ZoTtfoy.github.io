@@ -214,6 +214,15 @@ if (C.repair?.xianyu) usedIcons.add(C.repair.xianyu.icon);
 (C.gaming?.items || []).forEach(it => { if (!it.iconImage) usedIcons.add(it.icon); });
 for (const name of usedIcons) check(!!ctx.SITE_ICONS[name], '图标存在: ' + name);
 
+/* 2026-11-13：闲鱼只用「闲鱼」两个字 —— 不设计、不绘制、不拼装自定义图形。
+   这两条守住「以后别又手绘一个鱼形回来」。 */
+const xy = ctx.SITE_ICONS.xianyu;
+check(typeof xy === 'string' && xy.indexOf('word:') === 0,
+  '闲鱼是文字标记（word:闲鱼），不是手绘路径');
+const xyHtml = ctx.siteIcon('xianyu');
+check(xyHtml.indexOf('闲鱼') >= 0 && !/<svg|<path|<circle|<rect|<polygon|<polyline/i.test(xyHtml),
+  '闲鱼图标直接输出文字「闲鱼」，没有任何图形元素');
+
 /* ============================================================ Q1 · 我 */
 check(H('heroName').includes(C.site.name), 'Q1 名字渲染');
 check(H('heroGreet').includes(C.profile.greet), 'Q1 问候语渲染');

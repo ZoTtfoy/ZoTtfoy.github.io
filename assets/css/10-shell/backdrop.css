@@ -275,3 +275,28 @@ html[data-backdrop-image="on"] .hero__role {
 @media print {
   .ambient { display: none !important; }
 }
+
+/* ==========================================================================
+ *  8. 综合纹章背景（2026-11-13，第 9 项）
+ * --------------------------------------------------------------------------
+ *  六组符号（维修 / 音乐 / 电子 / 数码 / 生活 / 游戏）画在一份 SVG 里，
+ *  用 CSS mask 取 alpha、用 background-color: var(--text) 上色：
+ *    · 颜色自动跟随明暗与八套风格，不用出浅色/深色两份图
+ *    · 纯静态，零 JS、零动画、零逐帧成本 —— 低端档也照常显示
+ *    · 排在网格之上、微粒与噪点之下，不参与遮罩，不影响文字对比度
+ *  ?motif=off 可关（skin.js 写 data-motif="off"），做 A/B 与排查用。
+ * ========================================================================== */
+.ambient__motif {
+  background-color: var(--text);
+  -webkit-mask-image: url("../../backdrop/motif.svg");
+  mask-image: url("../../backdrop/motif.svg");
+  -webkit-mask-size: 1200px 800px;
+  mask-size: 1200px 800px;
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-repeat: repeat;
+  mask-repeat: repeat;
+  opacity: .065;
+}
+html[data-theme="dark"] .ambient__motif { opacity: .10; }
+html[data-motif="off"] .ambient__motif { display: none; }

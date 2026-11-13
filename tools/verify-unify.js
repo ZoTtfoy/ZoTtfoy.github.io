@@ -91,7 +91,14 @@ const FAMILY = ['.ccard', '.game-board', '.social', '.calc'];
   const bc = uniqBy('borderC');
   ok(bc.length === 1, '白卡描边颜色统一（' + bc.join(' / ') + '）');
   const bg = uniqBy('bg');
-  ok(bg.length === 1, '白卡底色统一（' + bg.join(' / ') + '）');
+  /* 2026-11-13 液态玻璃：.game-board 压在**彩色封面墙**上，玻璃层单独把它的
+     底调到 95%，否则 20% 透明度会把整张战绩板染成彩虹（截图实测）。
+     这是唯一的有意例外：关掉玻璃时仍应全家族严格同色；开启时允许恰好两种，
+     且除战绩板外必须完全一致。 */
+  const others = FAMILY.filter(x => x !== '.game-board').map(x => styles[x].bg);
+  const othersSame = others.every(v => v === others[0]);
+  ok(othersSame && (bg.length === 1 || (bg.length === 2 && styles['.game-board'].bg !== others[0])),
+     '白卡底色统一，战绩板为唯一有意例外（' + bg.join(' / ') + '）');
   const sh = uniqBy('shadow');
   ok(sh.length === 1 && sh[0] === 'has', '白卡都带同一道投影（' + sh.join(' / ') + '）');
 
@@ -127,10 +134,14 @@ const FAMILY = ['.ccard', '.game-board', '.social', '.calc'];
     /* 过渡是 var(--t-fast)，但帧率由环境决定（无头下 ~18fps），
        所以等条件成立而不是等固定时长。 */
     let after = before;
-    for (let i = 0; i < 10; i++) {
+    /* 2026-11-13：不能只等描边变化就 break。玻璃层给 hover 加了更多过渡属性后，
+       border-color 是数值插值、第一帧就有微小差异，而 transform 从 none 插值时
+       头几帧仍读成 none —— 只等描边会在过渡起点就退出，于是 .game-board 的
+       「上浮」被误判为没发生。等两个属性都到位（或超时）再判。 */
+    for (let i = 0; i < 12; i++) {
       await page.waitForTimeout(140);
       after = await read();
-      if (after.bc !== before.bc) break;
+      if (after.bc !== before.bc && after.tf !== before.tf) break;
     }
     ok(after.bc !== before.bc, sel + ' 悬停时描边加深');
     ok(after.tf !== before.tf, sel + ' 悬停时上浮（transform 变化）');

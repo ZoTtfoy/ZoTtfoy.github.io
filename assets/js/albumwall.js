@@ -317,6 +317,12 @@ window.SITE_ALBUMWALL = (function () {
     });
 
     fit(); applyTiming(); decide();
+
+    /* 与 steamwall 对称：实测档位晚于 init，运行中降级要立刻反映到墙上。
+       decide() 会重新走 start()，而 start() 会读 SITE_PERF.staticWall()。 */
+    if (window.SITE_PERF && window.SITE_PERF.onChange) {
+      window.SITE_PERF.onChange(function () { decide(); });
+    }
   }
 
   function setSpeed(n) {

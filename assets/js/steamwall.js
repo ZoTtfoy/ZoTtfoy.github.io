@@ -400,6 +400,16 @@ window.SITE_STEAMWALL = (function () {
     fit();
     paint();
     decide();
+
+    /* 档位是 load 之后**实测帧表现**才定的，可能比 init 晚 2~3 秒。
+       CSS 的 html[data-wall="static"] { animation:none } 只能停 CSS 动画，
+       这面墙用的是 WAAPI（buildAnims 里 el.animate），必须 JS 显式 pause。
+       所以订阅运行中的降级/升级，别让结论只停留在初始那一瞬间。 */
+    if (window.SITE_PERF && window.SITE_PERF.onChange) {
+      window.SITE_PERF.onChange(function () {
+        if (window.SITE_PERF.staticWall()) stopLoop(); else decide();
+      });
+    }
   }
 
   /* 速度可调：0 = 静止，1 = 默认，3 = 明显流动。 */

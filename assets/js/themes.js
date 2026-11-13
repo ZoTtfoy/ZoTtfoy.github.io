@@ -297,6 +297,51 @@ window.SITE_THEMES = {
         "toast-bg": "#e4f5ee", "toast-fg": "#071310",
         "grain-opacity": ".06"
       }
+    },
+
+    /* -------------------------------------------------------- 8 液态玻璃 */
+    /* 2026-11-13 新增。配色只是"底子"：真正的玻璃质感由
+       90-overrides/unify.css 末尾的「液态玻璃效果层」统一叠加，
+       所以这一套和另外 7 套都会自动获得玻璃（见那里的注释）。
+       这里刻意把底色压到偏冷的低饱和、把 elevation 拉开，
+       好让半透明卡片底下透出的东西看得出层次。 */
+    {
+      id: "liquid",
+      name: "液态玻璃",
+      desc: "冷调通透底 + 半透明折射层。适合配综合纹章背景。",
+      swatch: ["#eef3f7", "#080f15", "#1f6b91"],
+      base: {
+        "font-sans": '"MiSans", "MiSans VF", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", sans-serif',
+        "font-display": '"MiSans", "MiSans VF", "Inter", -apple-system, "PingFang SC", sans-serif',
+        "font-mono": '"MiSans", ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace',
+        "r-sm": "12px", "r-md": "22px", "r-lg": "30px",
+        "tracking-title": "-.035em",
+        "border-w": "1px"
+      },
+      light: {
+        "bg": "#eef3f7", "bg-elev": "#ffffff", "bg-soft": "#e3ebf2",
+        "text": "#13202b", "text-2": "#4a5d6c", "text-3": "#63747f",
+        "line": "rgba(19,32,43,.09)", "line-strong": "rgba(19,32,43,.18)",
+        "accent": "#1f6b91", "accent-fg": "#ffffff", "accent-soft": "rgba(31,107,145,.10)",
+        "glow-a": "rgba(31,107,145,.20)", "glow-b": "rgba(120,180,220,.18)",
+        "shadow-sm": "0 1px 2px rgba(15,45,70,.05), 0 8px 24px rgba(15,45,70,.06)",
+        "shadow-md": "0 2px 6px rgba(15,45,70,.06), 0 22px 52px rgba(15,45,70,.11)",
+        "header-bg": "rgba(238,243,247,.66)",
+        "toast-bg": "#13202b", "toast-fg": "#ffffff",
+        "grain-opacity": ".10"
+      },
+      dark: {
+        "bg": "#080f15", "bg-elev": "#101b24", "bg-soft": "#16242f",
+        "text": "#eaf3f8", "text-2": "#9bb0bf", "text-3": "#6d8291",
+        "line": "rgba(234,243,248,.10)", "line-strong": "rgba(234,243,248,.20)",
+        "accent": "#5cc4e8", "accent-fg": "#08131a", "accent-soft": "rgba(92,196,232,.13)",
+        "glow-a": "rgba(92,196,232,.18)", "glow-b": "rgba(80,140,210,.15)",
+        "shadow-sm": "0 1px 2px rgba(0,0,0,.38), 0 8px 26px rgba(0,0,0,.30)",
+        "shadow-md": "0 2px 6px rgba(0,0,0,.4), 0 24px 56px rgba(0,0,0,.52)",
+        "header-bg": "rgba(8,15,21,.66)",
+        "toast-bg": "#eaf3f8", "toast-fg": "#08131a",
+        "grain-opacity": ".05"
+      }
     }
   ],
 

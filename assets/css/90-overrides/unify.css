@@ -139,3 +139,138 @@
 [data-fs-raised] {
   /* 不做视觉标记，只作为可追溯的钩子 */
 }
+
+/* ==========================================================================
+ *  六、液态玻璃效果层（2026-11-13，第 7 项）
+ * --------------------------------------------------------------------------
+ *  为什么要放在本文件末尾：unify.css 是**最后一张样式表**，本来就是
+ *  "卡片最终外观"的收口处。玻璃不是又一套卡片，而是叠在这套卡片语言之上的
+ *  效果层 —— 放这里既能压住前面所有分屏样式，也不用新增一张表、多一个请求。
+ *
+ *  为什么是「全局」而不是「第 8 套主题专属」：
+ *    下面所有变量都从 --bg-elev / --line-strong 派生（color-mix 实时求值），
+ *    skin.js 换主题时只改这两个变量，玻璃会自动跟着换色。
+ *    所以 ink / paper / noir / aurora / terminal / clay / mint / liquid
+ *    八套风格 × 两明暗，全部获得同一套折射与高光语言。
+ *
+ *  ⚠️ 性能门控（与 core/perf-tier.js 的实测档位联动）：
+ *    · 只有 data-perf="high" 才加 backdrop-filter —— 那是每帧重算的模糊，
+ *      低端机上正是掉帧大头。data-perf="low" 退化成"半透明实底 + 高光描边"，
+ *      **形式一致、不模糊**，和静态背景墙是同一套降级思路。
+ *    · ≤900px 的顶栏永久不加模糊：整屏宽的 backdrop-filter 在地址栏收放时
+ *      会连发十几次重算，这是上一轮实测过的坑。
+ *    · ?glass=off 一键关掉整个效果层，便于 A/B 与排查。
+ * ========================================================================== */
+
+:root {
+  --glass-tint: color-mix(in srgb, var(--bg-elev) 80%, transparent);
+  /* 文字密集的磁贴 / 次级卡用更实的底，别让背景封面把字吃掉 */
+  --glass-tint-strong: color-mix(in srgb, var(--bg-elev) 93%, transparent);
+  --glass-line: color-mix(in srgb, var(--line-strong) 60%, transparent);
+  --glass-hi: rgba(255, 255, 255, .55);
+  --glass-blur: 18px;
+  --glass-sheen: linear-gradient(155deg,
+      rgba(255, 255, 255, .17) 0%,
+      rgba(255, 255, 255, 0) 40%,
+      rgba(255, 255, 255, .05) 100%);
+  --glass-shadow: 0 1px 2px rgba(12, 24, 36, .05), 0 14px 36px rgba(12, 24, 36, .08);
+}
+
+html[data-theme="dark"] {
+  --glass-hi: rgba(255, 255, 255, .13);
+  --glass-sheen: linear-gradient(155deg,
+      rgba(255, 255, 255, .10) 0%,
+      rgba(255, 255, 255, 0) 44%,
+      rgba(255, 255, 255, .035) 100%);
+  --glass-shadow: 0 1px 2px rgba(0, 0, 0, .35), 0 16px 40px rgba(0, 0, 0, .32);
+}
+
+/* 手机上把模糊半径收小：卡片面积小，8px 足够有"透"的感觉，成本也低 */
+@media (max-width: 900px) {
+  :root { --glass-blur: 8px; }
+}
+
+html[data-glass="on"] .ccard,
+html[data-glass="on"] .game-board,
+html[data-glass="on"] .social,
+html[data-glass="on"] .calc,
+html[data-glass="on"] .preview,
+html[data-glass="on"] .track,
+html[data-glass="on"] .gb-cta,
+html[data-glass="on"] .skin-panel,
+html[data-glass="on"] .mobile-nav,
+html[data-glass="on"] .pager,
+html[data-glass="on"] .site-header {
+  border-color: var(--glass-line);
+  background-color: var(--glass-tint);
+  background-image: var(--glass-sheen);
+  /* 内高光 = 玻璃边缘那道亮线；外影负责把卡片从背景里"抬"出来 */
+  box-shadow: var(--glass-shadow), inset 0 1px 0 var(--glass-hi);
+}
+
+html[data-glass="on"] .track,
+html[data-glass="on"] .preview,
+html[data-glass="on"] .site-header {
+  background-color: var(--glass-tint-strong);
+}
+
+/* 游戏屏的战绩板正压在**彩色封面墙**上：20% 透明度会被封面染成一整片
+   彩虹渐变，数字虽仍能读但非常花（截图实测）。它比别处更需要实底。 */
+html[data-glass="on"] .game-board {
+  background-color: color-mix(in srgb, var(--bg-elev) 95%, transparent);
+}
+
+/* ⚠️ 2026-11-13 A/B 实测（1440×900 无头软件渲染）：
+     every-card blur  → 滚动 43.7ms
+     glass=off        → 25.5ms
+     无 blur 的玻璃   → 22.9ms
+   也就是说**卡片上的 backdrop-filter 一个人把滚动成本翻了一倍**（十几张卡
+   各建一层模糊，滚动时反复重算）。真机有 GPU 会好些，但这条回归护栏不该靠
+   "真机会更快"糊过去。
+
+   所以：模糊只给**数量固定、面积小、不在内容流里反复经过**的浮层
+   （顶栏 / 页码 / 主题面板 / 移动导航）。卡片族的玻璃感由
+   半透明底 + 双层高光 + 斜向 sheen 表达 —— 截图对比下差别极小，
+   而滚动成本回到基线。这也是"液态玻璃"更常见的做法：材质感来自
+   折射与边缘光，不是每块内容都去糊一遍背景。 */
+@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  html[data-glass="on"][data-perf="high"] .site-header,
+  html[data-glass="on"][data-perf="high"] .pager,
+  html[data-glass="on"][data-perf="high"] .skin-panel,
+  html[data-glass="on"][data-perf="high"] .mobile-nav {
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.15);
+    backdrop-filter: blur(var(--glass-blur)) saturate(1.15);
+  }
+  /* 顶栏是整屏宽的一层，手机上无论档位都不模糊 */
+  @media (max-width: 900px) {
+    html[data-glass="on"] .site-header {
+      -webkit-backdrop-filter: none !important;
+      backdrop-filter: none !important;
+    }
+  }
+}
+
+/* 低端档：把底色调得更实一点，保证没有模糊辅助时文字仍然清楚 */
+html[data-glass="on"][data-perf="low"] .ccard,
+html[data-glass="on"][data-perf="low"] .game-board,
+html[data-glass="on"][data-perf="low"] .social,
+html[data-glass="on"][data-perf="low"] .calc,
+html[data-glass="on"][data-perf="low"] .track,
+html[data-glass="on"][data-perf="low"] .preview {
+  background-color: color-mix(in srgb, var(--bg-elev) 96%, transparent);
+}
+
+/* 优化既有主题的 hover：保留统一层那 1px 的轻微上浮（这是既有交互契约，
+   去掉会让 verify-unify 的断言失去守门对象），额外补一层"折射增强"：
+   描边转实、外圈透出主色 —— 八套主题因此有了一致的悬停语言。 */
+@media (hover: hover) {
+  html[data-glass="on"] .ccard:hover,
+  html[data-glass="on"] .game-board:hover,
+  html[data-glass="on"] .social:hover {
+    border-color: var(--line-strong);
+    box-shadow:
+      var(--glass-shadow),
+      inset 0 1px 0 var(--glass-hi),
+      0 0 0 1px color-mix(in srgb, var(--accent) 28%, transparent);
+  }
+}

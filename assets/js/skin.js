@@ -61,6 +61,13 @@ window.SITE_SKIN = (function () {
       root.style.setProperty("--" + k, vars[k]);
     });
 
+    /* 2026-11-13：液态玻璃与综合纹章默认全局开（HTML 上已写 data-*="on"）。
+       ?glass=off / ?motif=off 用来做 A/B 与排查，不落 localStorage。 */
+    try {
+      if (/[?&]glass=off\b/.test(location.search)) root.dataset.glass = "off";
+      if (/[?&]motif=off\b/.test(location.search)) root.dataset.motif = "off";
+    } catch (eGlass) { /* 无 location 的自检桩忽略 */ }
+
     root.dataset.skin = skin.id;
     root.dataset.theme = mode;
     root.dataset.modeRaw = modeRaw;

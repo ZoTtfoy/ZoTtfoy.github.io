@@ -43,6 +43,13 @@
    纵向尺寸用带 vh 的 clamp：高屏（844 / 932）自动长开把屏填满，
    矮屏（568 / 667）收在可读下限，不再靠缩字号去凑高度。 */
 @media (max-width: 680px) {
+  /* 闲鱼是「文字标记」而不是 SVG：32px 槽里两个 11px 汉字刚好，
+     与旁边 16px 的图形图标视觉重量相当。
+     ⚠️ 必须写在 section-media.css（它在 components.css **之后**加载）：
+        若放进 layout.css，会被后加载的 components.css 里同特异性的
+        .social__icon .icon--word 压回 30px/13px。 */
+  .social__icon .icon--word { width: 24px; height: 24px; font-size: 11px; }
+
   /* ---------------------------------------------------------- Q1 身份区 */
   /* 名字跟着屏宽走：320px → 28px，390px → 34px，430px → 37px。
      不再为了塞下一屏把它压到 20px。 */

@@ -1,24 +1,37 @@
 /* ==========================================================================
  *  设备档位 / 静态背景墙：node tools/verify-perf-tier.js
  * --------------------------------------------------------------------------
- *  守的是「低端设备不该被背景运算拖住」这条：
- *    · ?perf=low  → <html data-perf="low" data-wall="static">，两面墙的
- *      动画一个都不许在跑；但**图还在**（列/行元素与 background-image 保留），
- *      内容一点都不能少。
- *    · ?perf=high → 不写 data-wall，墙按原来的节奏滚。
- *  另外守一条防退化：默认档位不能把所有人都判成 low ——
- *  那样墙就永远不滚了，等于把功能做没了。
+ *  2026-11-13 起档位**只看实测帧表现**（平均帧耗时 + 帧数/慢帧数），
+ *  不再看核心数、内存、网络类型这些静态猜测。这里守四条：
+ *
+ *    1. ?perf=low  → data-perf=low / data-wall=static，两面墙动画一个都不许跑，
+ *       但**图还在**（列/行元素与 background-image 保留），内容一点都不能少。
+ *    2. ?perf=high → 不写 data-wall，墙按原来的节奏滚。
+ *    3. 源码里不许再出现硬件猜测指标（防有人图省事又加回去）。
+ *    4. 真实采样链路走得通：默认档位跑完两轮采样；把 rAF 打桩成 34ms/帧
+ *       模拟掉帧设备后，档位必须自动降到 low 并把墙停掉。
  * ========================================================================== */
 const { chromium } = require('playwright-core');
+const fs = require('fs');
+const path = require('path');
 
+const ROOT = path.resolve(__dirname, '..');
 const SITE = process.argv[2] || 'http://127.0.0.1:8791/';
 const notes = [], fails = [];
 const ok = (c, m) => c ? notes.push('OK  ' + m) : fails.push(m);
 
-async function probe(browser, url) {
+async function probe(browser, url, waitSample) {
   const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
   await page.goto(url, { waitUntil: 'load', timeout: 60000 });
-  await page.waitForTimeout(1200);
+  if (waitSample) {
+    /* 采样在 load 后 900ms 起、两轮各 800ms，等它出结论 */
+    await page.waitForFunction(
+      () => window.SITE_PERF && window.SITE_PERF.metrics().length >= 2,
+      { timeout: 10000 }
+    ).catch(() => {});
+  } else {
+    await page.waitForTimeout(1200);
+  }
   const r = await page.evaluate(() => {
     const root = document.documentElement;
     const cols = document.querySelectorAll('.steamwall__col');
@@ -35,6 +48,7 @@ async function probe(browser, url) {
       wall: root.getAttribute('data-wall'),
       cols: cols.length, rows: rows.length,
       running, withBg,
+      metrics: window.SITE_PERF ? window.SITE_PERF.metrics() : [],
       summary: window.SITE_PERF ? window.SITE_PERF.summary() : '(无 SITE_PERF)'
     };
   });
@@ -46,7 +60,7 @@ async function probe(browser, url) {
   const browser = await chromium.launch();
   const base = SITE.replace(/\/$/, '/');
 
-  /* ---------- 低端档 ---------- */
+  /* ---------- 低端档（强制） ---------- */
   const low = await probe(browser, base + '?perf=low');
   ok(low.perf === 'low', '?perf=low 时 <html data-perf="low">（' + low.summary + '）');
   ok(low.wall === 'static', '?perf=low 时 <html data-wall="static">');
@@ -56,15 +70,70 @@ async function probe(browser, url) {
   ok(low.withBg === low.cols + low.rows,
      '低端档背景图仍在（' + low.withBg + ' 个元素有 background-image）');
 
-  /* ---------- 高端档 ---------- */
+  /* ---------- 高端档（强制） ---------- */
   const high = await probe(browser, base + '?perf=high');
   ok(high.perf === 'high', '?perf=high 时 <html data-perf="high">');
   ok(high.wall === null, '高端档不写 data-wall');
+  ok(high.metrics.length === 0, '强制档位跳过采样（不浪费两轮 rAF）');
 
-  /* ---------- 默认档位不能把所有人判成 low ---------- */
-  const def = await probe(browser, base);
-  ok(def.perf === 'high' || (def.perf === 'low' && def.summary !== 'low'),
-     '默认档位是按能力判的，不是无条件降级（' + def.summary + '）');
+  /* ---------- 源码里不许有静态硬件猜测 ---------- */
+  const src = fs.readFileSync(path.join(ROOT, 'assets/js/core/perf-tier.js'), 'utf8');
+  /* 只看**可执行代码**：文件头特意写了「刻意不看 hardwareConcurrency…」，
+     把注释也扫进去会误报。 */
+  const code = src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+  for (const key of ['hardwareConcurrency', 'deviceMemory', 'effectiveType', 'saveData']) {
+    ok(!code.includes(key), '判档代码不含 ' + key + '（不靠硬件猜）');
+  }
+  ok(/sampleRound/.test(code) && /avgMs/.test(code) && /slowRatio/.test(code),
+     '判档代码确实按「渲染时间 + 帧数」采样');
+
+  /* ---------- 默认档位：两轮实测真的跑完了 ---------- */
+  /* 自动化环境下默认跳过采样（软件渲染不代表真机），
+     用 ?perf=auto 显式打开，验证的才是采样链路本身。 */
+  const def = await probe(browser, base + '?perf=auto', true);
+  ok(def.metrics.length >= 2, '默认档位完成两轮帧采样（' + def.metrics.length + ' 轮）');
+  ok(def.metrics.every(m => typeof m.avgMs === 'number' && m.frames > 0 && typeof m.slow === 'number'),
+     '每轮都记录了平均帧耗时 / 实际帧数 / 慢帧数');
+  ok(def.perf === 'high' || (def.perf === 'low' && def.summary.includes('实测')),
+     '默认档位按实测结论，不是无条件降级（' + def.summary + '）');
+
+  /* ---------- 自动化环境默认不降级：墙照常滚，行为校验才测得准 ---------- */
+  const auto = await probe(browser, base);
+  ok(auto.metrics.length === 0 && auto.summary.includes('自动化环境'),
+     'webdriver 环境跳过实测、保持 high（' + auto.summary + '）');
+  ok(auto.wall === null, '自动化环境不写 data-wall，墙动画照常运行');
+
+  /* ---------- 模拟掉帧设备：rAF 打桩成 34ms/帧（≈29fps） ---------- */
+  const slow = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+  await slow.addInitScript(() => {
+    /* 用真实 performance.now() 当时间戳，只是把投递节奏拉到 34ms */
+    window.requestAnimationFrame = (cb) => window.setTimeout(() => cb(performance.now()), 34);
+    window.cancelAnimationFrame = (id) => window.clearTimeout(id);
+  });
+  await slow.goto(base + '?perf=auto', { waitUntil: 'load', timeout: 60000 });
+  await slow.waitForFunction(
+    () => document.documentElement.getAttribute('data-perf') === 'low',
+    { timeout: 12000 }
+  ).catch(() => {});
+  const dropped = await slow.evaluate(() => {
+    const P = window.SITE_PERF;
+    const els = document.querySelectorAll('.steamwall__col, .albumwall__row');
+    const running = [].slice.call(els).reduce((n, el) =>
+      n + el.getAnimations().filter(a => a.playState === 'running').length, 0);
+    return {
+      perf: document.documentElement.getAttribute('data-perf'),
+      wall: document.documentElement.getAttribute('data-wall'),
+      running: running,
+      metrics: P ? P.metrics() : [],
+      summary: P ? P.summary() : ''
+    };
+  });
+  await slow.close();
+  ok(dropped.perf === 'low', '模拟 29fps 设备后自动判为 low（' + dropped.summary + '）');
+  ok(dropped.metrics.length >= 2 && dropped.metrics.every(m => m.avgMs > 22),
+     '判低依据是实测帧耗时超标（' + dropped.metrics.map(m => m.avgMs + 'ms').join(' / ') + '）');
+  ok(dropped.wall === 'static' && dropped.running === 0,
+     '运行中降级后墙动画确实停了（running=' + dropped.running + '）');
 
   await browser.close();
 

@@ -1,0 +1,78 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800">
+  <!-- ===================================================================
+       综合纹章 —— 主页背景的第 9 项改造（2026-11-13）
+       六组线索性符号，对应这个人的六个面：
+         维修(齿轮/螺丝) · 音乐(波形) · 电子(电路) ·
+         数码(芯片)     · 生活(叶片) · 游戏(十字键)
+       全部只用线性笔画，不填色：作为 CSS mask 使用时按 alpha 取值，
+       最终颜色由 CSS 里的文字色变量决定，
+       因此浅色/深色主题、八套风格都自动适配，不需要出两份图。
+       图形尺寸刻意做大（120~170px）、线宽统一 2.6，
+       在 opacity .075 下是"看得出有东西，但不抢内容"的层次。
+       =================================================================== -->
+  <g fill="none" stroke="#000" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+
+    <!-- 把六组符号串起来的电路走线 / 星图连线，压得比主体更淡 -->
+    <g stroke-width="1.4" opacity=".55">
+      <path d="M0 214h208 M292 214h198 M690 214h186 M1076 214h124"/>
+      <path d="M0 600h164 M404 600h182 M786 600h164 M1150 600h50"/>
+      <path d="M214 0v96 M214 332v148 M214 548v252"/>
+      <path d="M690 0v72 M690 332v148 M690 548v252"/>
+      <path d="M1076 0v96 M1076 332v148 M1076 548v252"/>
+      <path d="M292 214l-78 82 M690 214l78 82 M876 600l-90-82"/>
+    </g>
+
+    <!-- ① 维修：螺丝/齿轮（外圈虚线 + 八齿） -->
+    <g transform="translate(126 128) rotate(-12) scale(1.35)">
+      <circle cx="50" cy="50" r="17"/>
+      <circle cx="50" cy="50" r="31" stroke-dasharray="7 9"/>
+      <path d="M50 19V7 M50 81v12 M19 50H7 M81 50h12 M28 28l-9-9 M72 72l9 9 M72 28l9-9 M28 72l-9 9"/>
+      <circle cx="50" cy="50" r="4" fill="#000" stroke="none"/>
+    </g>
+
+    <!-- ② 音乐：波形 + 一枚音符头 -->
+    <g transform="translate(500 96) rotate(7) scale(1.2)">
+      <path d="M6 54h16l10-30 14 62 13-46 9 18h28"/>
+      <path d="M96 28v34"/>
+      <ellipse cx="89" cy="64" rx="10" ry="7" transform="rotate(-18 89 64)" fill="#000" stroke="none"/>
+      <path d="M96 28c14 4 20 10 22 20"/>
+    </g>
+
+    <!-- ③ 电子：电路走线与焊点 -->
+    <g transform="translate(922 138) scale(1.25)">
+      <path d="M6 22h34l18 18h34 M6 76h26l20-20h40 M58 40V12 M92 56v26"/>
+      <circle cx="58" cy="10" r="5" fill="#000" stroke="none"/>
+      <circle cx="92" cy="84" r="5" fill="#000" stroke="none"/>
+      <circle cx="104" cy="40" r="5"/>
+      <path d="M104 40l10-10"/>
+    </g>
+
+    <!-- ④ 数码：芯片与引脚 -->
+    <g transform="translate(232 486) rotate(-6) scale(1.45)">
+      <rect x="29" y="29" width="42" height="42" rx="7"/>
+      <rect x="43" y="43" width="14" height="14" rx="2"/>
+      <path d="M40 29V17 M60 29V17 M40 71v12 M60 71v12 M29 40H17 M29 60H17 M71 40h12 M71 60h12"/>
+    </g>
+
+    <!-- ⑤ 生活：叶片与叶脉 -->
+    <g transform="translate(626 466) rotate(-10) scale(1.3)">
+      <path d="M16 82C16 44 42 18 88 14 90 56 64 82 16 82Z"/>
+      <path d="M16 82C32 64 52 48 76 32"/>
+      <path d="M40 60l-2-16 M58 46l-2-16"/>
+    </g>
+
+    <!-- ⑥ 游戏：十字键 + 两颗按键 -->
+    <g transform="translate(1000 548) rotate(12) scale(1.35)">
+      <path d="M38 6h20v30h30v20H58v30H38V56H8V36h30Z"/>
+      <circle cx="86" cy="18" r="6"/>
+      <circle cx="100" cy="34" r="6"/>
+    </g>
+
+    <!-- 散落的刻度点，让平铺边界不那么机械 -->
+    <g stroke-width="1.6" opacity=".6">
+      <circle cx="410" cy="330" r="3"/><circle cx="810" cy="330" r="3"/>
+      <circle cx="120" cy="700" r="3"/><circle cx="560" cy="700" r="3"/>
+      <circle cx="1120" cy="410" r="3"/><circle cx="360" cy="120" r="3"/>
+    </g>
+  </g>
+</svg>

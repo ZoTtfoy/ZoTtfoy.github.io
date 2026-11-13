@@ -1,4 +1,4 @@
-/* 背景系统自检：各层显隐 + 7 套主题 × 2 明暗的图片可读性 */
+/* 背景系统自检：各层显隐 + 8 套主题 × 2 明暗的图片可读性 */
 const { chromium } = require('playwright-core');
 
 const URL = 'http://127.0.0.1:8791/';
@@ -155,7 +155,7 @@ const probe = () => {
   ok(broken.bg === 'none', '坏链不残留 background-image');
   ok(!broken.text3, '无图时不覆盖 --text-3（不影响原主题）');
 
-  /* ---------- 4. 七套主题 × 两明暗，最坏图片下的可读性 ---------- */
+  /* ---------- 4. 八套主题 × 两明暗，最坏图片下的可读性 ---------- */
   const THEMES = await page.evaluate(() => window.SITE_THEMES.list.map(t => t.id));
   ok(THEMES.length >= 5, '读到 ' + THEMES.length + ' 套主题');
 

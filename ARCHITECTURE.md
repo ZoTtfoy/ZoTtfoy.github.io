@@ -41,11 +41,11 @@ tools/                                   # 校验与开发工具（不进产物�
 | 目录 | 职责 | 文件 |
 | --- | --- | --- |
 | `00-base` | 变量、字体、字重阶梯 | tokens, typography |
-| `10-shell` | 骨架、背景、翻页 | layout, paged, backdrop |
+| `10-shell` | 骨架、背景、翻页 | layout, paged, backdrop（含综合纹章层） |
 | `20-components` | 通用组件、动效、皮肤面板 | components, skin, effects, motion |
 | `30-sections` | 各屏专属 | profile, link-cards, listen, repair, mailbox, section-media, xianyu, gaming, live, gallery |
 | `40-responsive` | **只看视口**的全局分级 | fit（按可用高度分档）, density（按视口密度） |
-| `90-overrides` | 卡片语言统一层 | unify |
+| `90-overrides` | 卡片语言统一层 + 液态玻璃效果层 | unify |
 
 **实际的加载顺序**（与目录名顺序不同，见 `index.html` 顶部注释）：
 
@@ -66,6 +66,11 @@ fonts → tokens → backdrop → layout → components → [30-sections 七连]
 （`--bg-elev` 底 + 1px `--line` 边 + 一次写全的过渡），并给出全站可读性兜底钩子。
 不要往里加屏专属规则。
 
+2026-11-13 起文件末尾多一节「液态玻璃效果层」：它叠在白卡语言之上，
+变量由 `--bg-elev` / `--line-strong` 用 `color-mix` 实时派生，
+所以换主题自动换色。模糊只在 `data-perf="high"` 时启用，
+`data-perf="low"` 退化为半透明实底；手机顶栏永不模糊。
+
 ## 三、JS：加载顺序即依赖
 
 `config.js` 与 `themes.js` 是**非 defer** 的，在 `<head>` 里同步执行 ——
@@ -76,7 +81,8 @@ fonts → tokens → backdrop → layout → components → [30-sections 七连]
 config, themes          （数据）
 icons → core/render-kit → sections/render-profile → sections/render-listen
 → sections/render-gaming → sections/render-repair → sections/render-links
-→ render → sync → scale → density → repair → skin → backdrop → live → steamwall
+→ render → sync → scale → density → repair → skin → backdrop → live
+→ core/perf-tier → steamwall
 → albumwall → preload → player → paged → readability → effects
 → motion → main
 ```
@@ -153,7 +159,7 @@ index.html 的骨架被填满
 ## 五、校验闸门
 
 ```bash
-npm test              # 27 个脚本 / 约 2000 项断言，7 分钟
+npm test              # 30 个脚本 / 2171 项断言，7 分钟
 npm run test:list     # 看看会跑哪些
 npm run test:all      # 连已知超时/已知红项一起跑
 npm run serve         # 本地 8791
@@ -220,3 +226,61 @@ npm run baseline:check  # 12 张视觉基线（需先 baseline:make）
 2. **改文件**：`assets/js/config.js`（文案/链接/开关都在这里）。
 3. **换风格**：右上角调色板，或 `themes.html` 并排对比后应用；
    配色/圆角/字体在 `assets/js/themes.js`。
+
+
+## 七、视觉层与设备档位（2026-11-13）
+
+### 判档：只信实测帧，不猜硬件
+
+`core/perf-tier.js` 在 `load` 后 900ms 开始两轮 rAF 采样（每轮 800ms），
+记录**平均帧耗时**与**实际帧数 / 慢帧数**；两轮都超标（`avgMs > 22` 或
+慢帧占比 > 30% 或帧数 < 12）才判 `low`，写 `data-wall="static"` 停掉两面墙的
+滚动，但图一张不少。结论晚于墙的 `init()`，所以提供 `onChange()` 订阅，
+墙在**运行中**也能停下 WAAPI 动画。
+
+刻意不看 `hardwareConcurrency` / `deviceMemory` / `effectiveType` / UA：
+4 核旗舰与 8 核低端都存在，核心数猜不准，网络慢也不等于渲染慢。
+
+⚠️ **webdriver 环境跳过自动采样**（`navigator.webdriver`）：无头软件栅格化
+实测约 24ms/帧，拿它做降级决策会污染全部行为校验，也不代表任何真机。
+自检用 `?perf=auto` 显式打开采样链路；`?perf=low|high` 强制档位。
+
+| 参数 | 用途 |
+| --- | --- |
+| `?perf=low` / `?perf=high` | 强制档位，跳过采样 |
+| `?perf=auto` | 在自动化环境里也强制真实采样 |
+| `?glass=off` / `?motif=off` | 关掉玻璃 / 综合纹章，做 A/B 与排查 |
+
+### 液态玻璃（第 7 项）
+
+第 8 套主题 `liquid` 只提供**冷调底子**；真正的玻璃在 `unify.css` 末尾统一叠加，
+因此 8 套风格 × 2 明暗全部生效。三条硬约束：
+
+1. `backdrop-filter` 只在 `data-perf="high"` 出现，**且只给浮层**
+   （`.site-header` / `.pager` / `.skin-panel` / `.mobile-nav`）。A/B 实测：
+   逐卡模糊 43.7ms / 关玻璃 25.5ms / 无模糊的玻璃 22.9ms（1440×900 软件渲染滚动）。
+   卡片的玻璃感来自半透明底 + 内高光 + 斜向 sheen，不靠糊背景。
+   判低时连浮层也不模糊，全部是"半透明实底 + 内高光"。
+2. ≤900px 的顶栏永久不模糊 —— 整屏宽的重算是实测过的掉帧大头。
+3. 游戏屏 `.game-board` 单独调到 95% 实底：它压在彩色封面墙上，
+   20% 透明度会被染成彩虹（截图实测）。这是白卡家族**唯一**的有意例外，
+   `verify-unify` 专门守这一条。
+
+### 综合纹章背景（第 9 项）
+
+`backdrop/motif.svg` 画六组线稿：齿轮（维修）/ 波形（音乐）/ 电路（电子）/
+芯片（数码）/ 叶片（生活）/ 十字键（游戏），加一层电路走线串起来。
+用 CSS `mask-image` 取 alpha、`background-color: var(--text)` 上色 ——
+颜色随主题自动换，不用出浅/深两份图；纯静态，零 JS，低端档照常显示。
+
+### 布局（第 8 项）
+
+`fit.css` 的手机断点把每屏顶部缓冲 34→18px、章节标题下边距 40→26px，
+每屏内容整体上移约 28px；390×844 仍放 6 首、360×780 放 5 首，无屏退化成可滚动。
+玻璃层的通透边界进一步降低了视觉拥挤感。**没有再动行长/字号** ——
+每改一次都要重算 paged 档位，而收益低于把一屏内容推到下一档的风险。
+
+### 新增校验
+
+`verify-glass.js`（21 项）、`verify-perf-tier.js`（21 项，含 rAF 打桩模拟 29fps
+设备）、`verify.js` 里两条「闲鱼必须是纯文字、不许有图形元素」。

@@ -4,6 +4,23 @@
 
 .icon { width: 20px; height: 20px; }
 
+/* 文字标记（word: 前缀）：不画图形，直接把品牌名摆进图标槽。
+   2026-11-13 用户要求闲鱼只用「闲鱼」两个字，不设计/绘制/拼装自定义图标。
+   flex 居中 + nowrap，两个汉字在任何缩放下都不会折行。 */
+.icon--word {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -.08em;
+  white-space: nowrap;
+  color: currentColor;
+}
+
 /* ------------------------------------------------------------------ 品牌 */
 .brand { display: inline-flex; align-items: center; gap: 11px; font-weight: 600; letter-spacing: -.02em; }
 .brand__mark {
@@ -306,6 +323,8 @@
   transition: background-color var(--t) var(--ease), color var(--t) var(--ease);
 }
 .social__icon .icon { width: 20px; height: 20px; }
+/* 44px 的图标槽放得下两个 13px 汉字，比挤成 10px 清楚得多 */
+.social__icon .icon--word { width: 30px; height: 30px; font-size: 13px; letter-spacing: -.06em; }
 .social__text { display: flex; flex-direction: column; min-width: 0; }
 .social__label { font-size: .93rem; font-weight: 500; }
 .social__handle {
