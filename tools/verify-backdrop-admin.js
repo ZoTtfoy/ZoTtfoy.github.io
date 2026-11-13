@@ -89,6 +89,46 @@ function findCred() {
   ok(panel.toggles >= 6, '有 6 个以上开关（4 个动效 + Ken Burns + 视差）');
   ok(panel.hasUpload && panel.hasClear && panel.hasFile, '上传 / 清除 / 文件选择器齐全');
 
+  /* ---------------------------------------------- 随机图库（2026-11-14 新增）
+     站点是"每次打开从图库随机抽一张"，后台必须能增删，否则只能手改 config。 */
+  const lib = await page.evaluate(() => {
+    const groups = [...document.querySelectorAll('.bd-lib')];
+    return {
+      groups: groups.length,
+      heads: groups.map(g => g.querySelector('.bd-lib__head').textContent.replace(/\s+/g, ' ').trim()),
+      thumbs: document.querySelectorAll('.bd-thumb').length,
+      broken: [...document.querySelectorAll('.bd-thumb img')].filter(i => i.complete && i.naturalWidth === 0).length,
+      addInputs: document.querySelectorAll('[data-bd-new]').length,
+      addBtns: document.querySelectorAll('[data-bd-add]').length,
+      removeBtns: document.querySelectorAll('[data-bd-rm]').length
+    };
+  });
+  ok(lib.groups === 2, '图库分桌面 / 手机两组（' + lib.groups + '）');
+  ok(lib.thumbs === lib.removeBtns && lib.thumbs >= 4,
+    '每张缩略图都有移除按钮（' + lib.thumbs + ' 张）');
+  ok(lib.broken === 0, '缩略图没有破图（坏 ' + lib.broken + ' 张）');
+  ok(lib.addInputs === 2 && lib.addBtns === 2, '每组都有"加入图库"的输入框与按钮');
+
+  /* 增删真的改到 draft：移除第一张 → 计数减一；再加回来 → 计数复原 */
+  const libBefore = lib.thumbs;
+  await page.evaluate(() => document.querySelector('[data-bd-rm="d"][data-bd-i="0"]').click());
+  await page.waitForTimeout(250);
+  const afterRm = await page.evaluate(() => document.querySelectorAll('.bd-thumb').length);
+  ok(afterRm === libBefore - 1, '点 ✕ 后少一张（' + libBefore + ' → ' + afterRm + '）');
+  await page.evaluate(() => {
+    const inp = document.querySelector('[data-bd-new="d"]');
+    inp.value = 'assets/backdrop/scene-d1.webp';
+    document.querySelector('[data-bd-add="d"]').click();
+  });
+  await page.waitForTimeout(250);
+  const afterAdd = await page.evaluate(() => ({
+    n: document.querySelectorAll('.bd-thumb').length,
+    head: document.querySelector('.bd-lib__head').textContent.replace(/\s+/g, ' ').trim(),
+    dup: [...document.querySelectorAll('.bd-thumb img')].filter(i => /scene-d1/.test(i.src)).length
+  }));
+  ok(afterAdd.n === libBefore, '加回来后又成 ' + afterAdd.n + ' 张（' + afterAdd.head + '）');
+  ok(afterAdd.dup === 1, '同一张不会被重复加入（scene-d1 出现 ' + afterAdd.dup + ' 次）');
+
   /* 选一个预设 */
   await page.click('[data-bd-url="assets/backdrop/dunes.svg"]');
   await page.waitForTimeout(400);

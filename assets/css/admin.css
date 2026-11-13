@@ -638,3 +638,54 @@
 @media (prefers-reduced-motion: reduce) {
   .sheet__panel { animation: none; }
 }
+
+/* ------------------------------------------------- 背景图库：缩略图网格
+   每张 96×54（16:9），右上角一个 ✕。移除后从 draft 里 splice，保存时写回 config。
+   缩略图直接引用正式资源路径，所以看到的就是线上那张。 */
+.bd-lib { margin: 10px 0 4px; }
+.bd-lib__head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: .76rem;
+}
+.bd-lib__head b { font-weight: 600; color: var(--text); }
+.bd-lib__head span { color: var(--text-3); }
+.bd-lib__grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.bd-thumb {
+  position: relative;
+  margin: 0;
+  width: 96px;
+  height: 54px;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  background: var(--bg-soft, #eee);
+}
+.bd-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.bd-thumb__x {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, .55);
+  color: #fff;
+  font-size: 10px;
+  line-height: 16px;
+  text-align: center;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity .15s var(--ease);
+}
+.bd-thumb:hover .bd-thumb__x,
+.bd-thumb__x:focus-visible { opacity: 1; }

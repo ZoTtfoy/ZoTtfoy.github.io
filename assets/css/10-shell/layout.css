@@ -328,3 +328,30 @@ html[data-scrolling="on"] .site-header {
 .calc__trail__item:focus-visible {
   outline-offset: 2px;
 }
+
+/* ====================================================== 禁止拖拽选中文字
+   2026-11-14 按用户要求全站关掉鼠标拖拽选择：在封面上划一下、拖着看背景、
+   顺手拖一下卡片，都会把文字刷成蓝色，观感很差。
+
+   必须保住的两类东西：
+     1. 输入类控件 —— 不能选中就没法改内容（后台编辑器全靠它）；
+     2. pre / code —— 后台的配置预览要能复制出去。
+   复制按钮走的是 navigator.clipboard，不受影响；它有一条 execCommand 降级
+   路径会临时插入 textarea 再 select()，textarea 在例外名单里，所以也还好。 */
+html {
+  -webkit-user-select: none;
+  user-select: none;
+}
+input,
+textarea,
+select,
+pre,
+code,
+[contenteditable="true"],
+[contenteditable=""],
+[data-selectable] {
+  -webkit-user-select: text;
+  user-select: text;
+}
+/* 拖拽图片时不要出现"半透明幽灵图" */
+img { -webkit-user-drag: none; user-drag: none; }

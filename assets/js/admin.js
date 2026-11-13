@@ -658,14 +658,45 @@ window.ADMIN = {
       var bd = draft.backdrop || {};
       var bm = bd.motion || {};
 
+
       body += group("背景图", "关掉后不加载任何照片，只剩底色与动效元素",
         scalarFields([
           { path: ["backdrop", "enabled"], label: "显示背景图（照片 / MIKU 壁纸随机）",
             value: bd.enabled !== false, type: "bool" }
         ]) +
         '<p class="sheet__hint">每张图都会先裁掉底部水印带再压成 WebP。' +
-        '关掉这里不会删文件，只是不请求 —— 想换图去 config.js 的 ' +
-        '<code>backdrop.images</code> / <code>imagesMobile</code>。</p>');
+        '关掉这里不会删文件，只是不请求。</p>');
+
+      /* 2026-11-14：图库搬进后台。
+         站点早就是"每次打开从图库里随机抽一张"，但这一页只能改单张兜底图，
+         想加一张得去 config.js 手改数组 —— 用户要"更新后台编辑器"指的就是这里。 */
+      var LIB = [
+        { key: "d", prop: "images",       title: "桌面 · 横图", hint: "1280 宽" },
+        { key: "m", prop: "imagesMobile", title: "手机 · 竖图", hint: "900 宽" }
+      ];
+      var libHtml = LIB.map(function (g) {
+        var list = Array.isArray(bd[g.prop]) ? bd[g.prop] : [];
+        var thumbs = list.map(function (url, i) {
+          return '<figure class="bd-thumb">' +
+            '<img src="' + esc(url) + '" alt="" loading="lazy" decoding="async">' +
+            '<button class="bd-thumb__x" type="button" data-bd-rm="' + g.key + '" data-bd-i="' + i +
+              '" aria-label="从图库移除">✕</button>' +
+            '</figure>';
+        }).join("");
+        return '<div class="bd-lib">' +
+          '<div class="bd-lib__head"><b>' + esc(g.title) + '</b>' +
+            '<span>' + list.length + ' 张 · ' + esc(g.hint) + '</span></div>' +
+          (thumbs ? '<div class="bd-lib__grid">' + thumbs + '</div>'
+                  : '<p class="sheet__hint">（空 —— 会退回下面的兜底图）</p>') +
+          '<div class="row">' +
+            '<input class="input" type="text" data-bd-new="' + g.key + '" ' +
+              'placeholder="assets/backdrop/xxx.webp 或 https://…">' +
+            '<button class="btn btn--quiet btn--sm" type="button" data-bd-add="' + g.key +
+              '">+ 加入图库</button>' +
+          '</div></div>';
+      }).join("");
+
+      body += group("随机图库", "每次打开随机抽一张，同一会话里会避开上一次那张", libHtml);
 
       body += group("动效元素", "可以任意叠加，互不冲突", scalarFields([
         { path: ["backdrop", "motion", "aurora"], label: "光晕（两团缓慢漂移，跟着主题色走）", value: bm.aurora, type: "bool" },
@@ -706,7 +737,7 @@ window.ADMIN = {
         '</button>';
       }).join("");
 
-      body += group("背景图片", "选一张内置的，或上传自己的", 
+      body += group("兜底图", "图库为空、或图库那张加载失败时用它", 
         '<div class="bd-grid">' + presetHtml + '</div>' +
         '<div class="row">' +
           '<button class="btn btn--quiet btn--sm" type="button" data-bd-upload>上传图片</button>' +
@@ -1121,6 +1152,31 @@ window.ADMIN = {
         var urlField = $('[data-path="site.avatar"]');
         if (urlField) urlField.value = "";
         toast("已清除头像");
+        return;
+      }
+
+      /* ---- 背景图库 ---- */
+      if (b.dataset.bdAdd) {
+        var gk = b.dataset.bdAdd;
+        var inp = document.querySelector('[data-bd-new="' + gk + '"]');
+        var url = inp ? inp.value.trim() : "";
+        if (!url) { toast("先填图片地址"); if (inp) inp.focus(); return; }
+        var prop = gk === "m" ? "imagesMobile" : "images";
+        if (!Array.isArray(draft.backdrop[prop])) draft.backdrop[prop] = [];
+        if (draft.backdrop[prop].indexOf(url) >= 0) { toast("这张已经在图库里了"); return; }
+        draft.backdrop[prop].push(url);
+        mark(); renderPanel();
+        toast("已加入" + (gk === "m" ? "手机" : "桌面") + "图库");
+        return;
+      }
+      if (b.dataset.bdRm != null) {
+        var gk2 = b.dataset.bdRm, i2 = +b.dataset.bdI;
+        var prop2 = gk2 === "m" ? "imagesMobile" : "images";
+        var arr2 = draft.backdrop[prop2] || [];
+        /* 只在"删掉最后一张"时拦一下：那会退回兜底图，效果变化比较大 */
+        if (arr2.length <= 1 && !confirm("这是图库里最后一张，移除后会退回兜底图。确定？")) return;
+        arr2.splice(i2, 1);
+        mark(); renderPanel();
         return;
       }
 
