@@ -140,6 +140,14 @@ await page.goto(URL, { waitUntil: 'load' });
         insideViewport: r.right <= window.innerWidth + 1 && r.bottom <= window.innerHeight + 1 && r.x >= -1,
         intersectArea: area,
         gapRight: Math.round(r.x - maxRight),
+        /* 用户 2026-11-14 明确的两条：水平居中于「磁贴右边缘 ↔ 屏幕右边缘」，
+           垂直居中于视口。这里量出来，交给下面断言。 */
+        cx: Math.round(r.x + r.width / 2),
+        cy: Math.round(r.y + r.height / 2),
+        vh: innerHeight,
+        /* 期望中点 = (内容右边缘 + 视口右边缘) / 2 —— 注意是**内容**右边缘，
+           写成 pager 自己的右边缘就成了恒等式，测什么都过（第一版就写错了）。 */
+        midH: Math.round((maxRight + window.innerWidth) / 2),
         contentBottom: Math.round(maxBottom),
         dotCount: dots.length,
         /* 只数**可见**的屏。config.sections 里可以把某屏设成 enabled:false
@@ -166,10 +174,16 @@ await page.goto(URL, { waitUntil: 'load' });
       if (vp.width >= 1181) {
         ok(pager.gapRight >= 8,
           tag + '页码与正文留出间隙（' + pager.gapRight + 'px，要求 ≥8）');
+        /* 左右留白等宽 = 页码中心恰好在「内容右边缘 + 视口右边缘」的中点 */
+        ok(Math.abs(pager.cx - pager.midH) <= 3,
+          tag + '页码水平居中于留白（中心 ' + pager.cx + ' / 应为 ' + pager.midH + '）');
       } else {
         ok(pager.gapRight >= 0,
           tag + '页码不压正文（间隙 ' + pager.gapRight + 'px）');
       }
+      /* 垂直：贴 y 轴正中间（不随卡片高度浮动） */
+      ok(Math.abs(pager.cy - pager.vh / 2) <= 2,
+        tag + '页码垂直居中于视口（中心 ' + pager.cy + ' / 视口中线 ' + (pager.vh / 2) + '）');
       ok(pager.dotCount === pager.pageCount, tag + '页码数量与页数一致（' + pager.dotCount + '）');
       // 2026-11-13：底部分段式进度条已移除，窄屏也改为侧边圆点
       // （用户要求"只保留侧边进度提示"）。所以两种视口守同一条不变量。

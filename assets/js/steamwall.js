@@ -240,9 +240,12 @@ window.SITE_STEAMWALL = (function () {
          免得并排两列显示一模一样的封面。 */
       var asset = c % ASSETS;
       var drop = Math.floor(c / ASSETS) * TILE_H;
+      /* ⚠️ 图片地址放 data-bg，**不直接写进 style**：
+         写进 style 的话浏览器在墙还没滚到时就把它下载了 —— 6 张列图约 640KB，
+         而墙在第二屏。见 armBgs()。 */
       html += '<div class="steamwall__col" data-col="' + c + '" data-asset="' + asset +
-        '" style="--col-speed:' + factor.toFixed(3) +
-        ';background-image:url(assets/wall/steam-' + asset + '.webp)' +
+        '" data-bg="assets/wall/steam-' + asset + '.webp"' +
+        ' style="--col-speed:' + factor.toFixed(3) +
         (drop ? ';background-position:0 -' + drop + 'px' : '') + '"></div>';
     }
     grid.innerHTML = html;
@@ -252,7 +255,67 @@ window.SITE_STEAMWALL = (function () {
     colsEls = [].slice.call(grid.querySelectorAll(".steamwall__col"));
     fit();
     buildAnims();
+    armBgs();
     return COLS;
+  }
+
+  /* --------------------------------------------------------- 列图懒加载
+     实测线上首屏：12 张列图（两面墙）共 1.45MB，占整页 2.6MB 的 55% ——
+     而它们分别在第二、三屏，首屏一个像素都用不到。更糟的是它们和
+     字体、CSS 抢同一条带宽。
+     现在改为：滚到附近（前后各 1.5 屏）／空闲／load 后 600ms，谁先到算谁。
+     墙本身有 background-color 兜底，没铺图时是一面纯色墙，不会开天窗。 */
+  var bgsDone = false, bgIo = null;
+
+  function applyBgs() {
+    if (bgsDone || !colsEls.length) return;
+    bgsDone = true;
+    if (bgIo) { bgIo.disconnect(); bgIo = null; }
+    for (var i = 0; i < colsEls.length; i++) {
+      var el = colsEls[i];
+      var src = el.getAttribute("data-bg");
+      if (src && !el.style.backgroundImage) el.style.backgroundImage = 'url("' + src + '")';
+    }
+  }
+
+  function armBgs() {
+    bgsDone = false;
+    if (bgIo) { bgIo.disconnect(); bgIo = null; }
+    if (!wall) { applyBgs(); return; }
+    if (typeof IntersectionObserver === "function") {
+      bgIo = new IntersectionObserver(function (es) {
+        for (var i = 0; i < es.length; i++) {
+          if (!es[i].isIntersecting) continue;
+          /* ⚠️ 不能只信 isIntersecting：注册那一刻布局可能还没被 paged 定成
+             一屏高（和 steamwall 列数那个 bug 同源），会误报"露出来了"，
+             于是 321ms 就把 815KB 拉下来 —— 实测过。
+             用矩形再核一遍，真的在视口里才铺。 */
+          var r = wall.getBoundingClientRect();
+          if (r.bottom > 0 && r.top < (window.innerHeight || 0)) { applyBgs(); return; }
+        }
+      /* 0 而不是 150%：墙就在**下一屏**，任何正的外扩都会把下一屏算成"附近"
+         （150% 命中首屏、60% 命中第二屏，各踩过一次），等于没懒加载。
+         只认"真的露出来了"，其余交给下面 2s 延时 + 首次交互。 */
+      }, { rootMargin: "0px" });
+      bgIo.observe(wall);
+    }
+    var kick = function () { applyBgs(); };
+    var armed = false;
+    function soon() {
+      if (armed) return;
+      armed = true;
+      /* ⚠️ 必须用固定延时，不能用 requestIdleCallback 当"稍后"：
+         本地 0.3s 就 load 完了，页面立刻进入空闲，idle 回调会马上触发 ——
+         等于没延后（第一版实测就是这样，首屏照样拉满 1.45MB）。
+         2s 之后再铺，确保不和首屏的 CSS / 字体抢带宽。 */
+      setTimeout(kick, 2000);
+      /* 用户一动就提前铺：他要翻页了，别等 2s 走完 */
+      ["pointerdown", "wheel", "touchstart", "keydown"].forEach(function (ev) {
+        window.addEventListener(ev, kick, { once: true, passive: true });
+      });
+    }
+    if (document.readyState === "complete") soon();
+    else window.addEventListener("load", soon, { once: true });
   }
 
   /* ------------------------------------------------------------- 运动 */

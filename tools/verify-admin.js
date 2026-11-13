@@ -195,7 +195,8 @@ if (typeof ctx.ADMIN_MERGE === 'function') {
 const renderSrc = require('./lib/render-src').renderSource();
 const htmlSrc = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
 check(renderSrc.includes('SITE_CONFIG'), '渲染层依赖 SITE_CONFIG 全局');
-check(htmlSrc.includes('assets/js/config.js'), '页面已引入 config.js');
+/* 资源现在带版本戳（assets/js/config.js?v=2026xxxx），不能用全串相等 */
+check(/assets\/js\/config\.js(\?v=[\w.]+)?["']/.test(htmlSrc), '页面已引入 config.js');
 check(/window\.SITE_CONFIG\s*=/.test(source), '生成文件导出的是 window.SITE_CONFIG');
 
 /* ---------- 6. admin.html 资源引用齐全 ---------- */
@@ -204,7 +205,9 @@ const adminHtml = fs.readFileSync(path.join(ROOT, 'admin.html'), 'utf8');
  [/<script src="(assets\/js\/[^"]+)"/g, 'JS']].forEach(([re, kind]) => {
   let m;
   while ((m = re.exec(adminHtml)) !== null) {
-    check(fs.existsSync(path.join(ROOT, m[1])), `admin.html 引用的 ${kind} 存在: ${m[1]}`);
+    /* 资源带 ?v= 版本戳（缓存失效用），判存在性要看路径本身 */
+    const clean = m[1].split("?")[0];
+    check(fs.existsSync(path.join(ROOT, clean)), `admin.html 引用的 ${kind} 存在: ${clean}`);
   }
 });
 check(/name="robots" content="noindex/.test(adminHtml), '管理页已设为不被搜索引擎收录');

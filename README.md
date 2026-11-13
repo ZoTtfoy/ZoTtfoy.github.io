@@ -2043,6 +2043,17 @@ node tools/verify-perf.js
 **改了 config.js 但页面没变？**
 先强制刷新（Ctrl/Cmd + Shift + R）。线上请确认 `git push` 成功、Actions 显示绿色对勾，再等 1–2 分钟。
 
+**推送成功、等了五分钟、页面还是旧的？**（遇到过两次，都在页码上）
+GitHub Pages 对所有静态文件发 `Cache-Control: max-age=600`，浏览器十分钟内不会
+重新取 CSS/JS —— 页面停在你打开它的那一刻。现在每次部署前跑一次：
+
+```
+npm run stamp        # 给 index/admin/themes.html 里的 css/js 加 ?v=YYYYMMDDHHmm
+```
+
+URL 变了，缓存必然失效，**按 F5 就行**（不用 Ctrl+Shift+R）。脚本是幂等的，
+重复跑只换戳不叠层。不跑也不会坏，只是又回到"等十分钟"的老样子。
+
 **Actions 失败 / 页面 404？**
 检查 Settings → Pages 的 Source 是否为 **GitHub Actions**（不是 "Deploy from a branch"），以及仓库是否为 Public（或账号具备 Pages 权限）。
 

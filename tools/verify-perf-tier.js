@@ -32,6 +32,13 @@ async function probe(browser, url, waitSample) {
   } else {
     await page.waitForTimeout(1200);
   }
+  /* 2026-11-14：两面墙的列图/行图改成 load 后 2s 才铺（首屏省 1.45MB），
+     所以这里要等它们真的到位再断言"背景图仍在"，否则测的是"还没加载"。
+     等的是"元素有了 background-image"，不是固定时长。 */
+  await page.waitForFunction(() => {
+    const els = [...document.querySelectorAll('.steamwall__col, .albumwall__row')];
+    return els.length > 0 && els.every(el => getComputedStyle(el).backgroundImage !== 'none');
+  }, { timeout: 6000 }).catch(() => {});
   const r = await page.evaluate(() => {
     const root = document.documentElement;
     const cols = document.querySelectorAll('.steamwall__col');

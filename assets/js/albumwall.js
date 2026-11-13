@@ -172,9 +172,11 @@ window.SITE_ALBUMWALL = (function () {
     var html = "";
     for (var r = 0; r < ROWS; r++) {
       var dir = r % 2 === 0 ? "left" : "right";
+      /* 图片地址放 data-bg，不写进 style：写进 style 会在首屏就下载 6 张
+         行图（约 815KB），而这面墙在第二屏。见 armBgs()。 */
       html += '<div class="albumwall__row" data-row="' + r + '" data-dir="' + dir + '" ' +
-        'style="--row-rate:' + ROW_RATE[r].toFixed(3) +
-        ';background-image:url(assets/wall/album-' + r + '.webp)"></div>';
+        'data-bg="assets/wall/album-' + r + '.webp" ' +
+        'style="--row-rate:' + ROW_RATE[r].toFixed(3) + '"></div>';
     }
     grid.innerHTML = html;
     wall.setAttribute("data-ready", "1");
@@ -183,7 +185,63 @@ window.SITE_ALBUMWALL = (function () {
     installKeyframes();
     fit();
     applyTiming();
+    armBgs();
     return ROWS;
+  }
+
+  /* 行图懒加载：同 steamwall —— 6 张行图约 815KB，首屏用不上。
+     滚到前后各 1.5 屏之内、或空闲、或 load 后 600ms，谁先到算谁。 */
+  var bgsDone = false, bgIo = null;
+
+  function applyBgs() {
+    if (bgsDone || !rowEls.length) return;
+    bgsDone = true;
+    if (bgIo) { bgIo.disconnect(); bgIo = null; }
+    for (var i = 0; i < rowEls.length; i++) {
+      var el = rowEls[i];
+      var src = el.getAttribute("data-bg");
+      if (src && !el.style.backgroundImage) el.style.backgroundImage = 'url("' + src + '")';
+    }
+  }
+
+  function armBgs() {
+    bgsDone = false;
+    if (bgIo) { bgIo.disconnect(); bgIo = null; }
+    if (!wall) { applyBgs(); return; }
+    if (typeof IntersectionObserver === "function") {
+      bgIo = new IntersectionObserver(function (es) {
+        for (var i = 0; i < es.length; i++) {
+          if (!es[i].isIntersecting) continue;
+          /* ⚠️ 不能只信 isIntersecting：注册那一刻布局可能还没被 paged 定成
+             一屏高（和 steamwall 列数那个 bug 同源），会误报"露出来了"，
+             于是 321ms 就把 815KB 拉下来 —— 实测过。
+             用矩形再核一遍，真的在视口里才铺。 */
+          var r = wall.getBoundingClientRect();
+          if (r.bottom > 0 && r.top < (window.innerHeight || 0)) { applyBgs(); return; }
+        }
+      /* 0 而不是 150%：墙就在**下一屏**，任何正的外扩都会把下一屏算成"附近"
+         （150% 命中首屏、60% 命中第二屏，各踩过一次），等于没懒加载。
+         只认"真的露出来了"，其余交给下面 2s 延时 + 首次交互。 */
+      }, { rootMargin: "0px" });
+      bgIo.observe(wall);
+    }
+    var kick = function () { applyBgs(); };
+    var armed = false;
+    function soon() {
+      if (armed) return;
+      armed = true;
+      /* ⚠️ 必须用固定延时，不能用 requestIdleCallback 当"稍后"：
+         本地 0.3s 就 load 完了，页面立刻进入空闲，idle 回调会马上触发 ——
+         等于没延后（第一版实测就是这样，首屏照样拉满 1.45MB）。
+         2s 之后再铺，确保不和首屏的 CSS / 字体抢带宽。 */
+      setTimeout(kick, 2000);
+      /* 用户一动就提前铺：他要翻页了，别等 2s 走完 */
+      ["pointerdown", "wheel", "touchstart", "keydown"].forEach(function (ev) {
+        window.addEventListener(ev, kick, { once: true, passive: true });
+      });
+    }
+    if (document.readyState === "complete") soon();
+    else window.addEventListener("load", soon, { once: true });
   }
 
   /* ------------------------------------------------------------- 运动

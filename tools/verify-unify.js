@@ -209,7 +209,8 @@ const FAMILY = ['.ccard', '.game-board', '.social', '.calc'];
   /* -------------------------------------------- 5. 统一层被真正加载 */
   const loaded = await page.evaluate(() =>
     [...document.querySelectorAll('link[rel="stylesheet"]')].map(l => l.getAttribute('href')));
-  const idx = loaded.findIndex(h => /unify\.css$/.test(h || ''));
+  /* href 现在带 ?v= 版本戳（tools/stamp-assets.js），不能只匹配结尾 */
+  const idx = loaded.findIndex(h => /unify\.css(\?|$)/.test(h || ''));
   ok(idx === loaded.length - 1,
     'unify.css 是最后一张样式表（第 ' + (idx + 1) + '/' + loaded.length + ' 张）');
 

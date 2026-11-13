@@ -439,7 +439,9 @@ for (const key of Object.keys(C.sections || {})) {
 const refs = [...html.matchAll(/(?:src|href)="((?:assets|[\w.-]+)\/[^"#:]+|\.nojekyll)"/g)].map(x => x[1]);
 for (const ref of new Set(refs)) {
   if (ref.startsWith('http') || ref.startsWith('#') || ref.startsWith('data:')) continue;
-  check(fs.existsSync(path.join(ROOT, ref)), '资源存在: ' + ref);
+  /* 资源带 ?v= 版本戳（见 tools/stamp-assets.js），判存在性看路径本身 */
+  const clean = ref.split('?')[0];
+  check(fs.existsSync(path.join(ROOT, clean)), '资源存在: ' + clean);
 }
 
 // CSS / JS 括号平衡
