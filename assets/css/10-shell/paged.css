@@ -300,7 +300,15 @@ html[data-paged="on"] .section.is-entering .game:nth-child(n+4) { animation-dela
   /* 2026-11-13：原来用固定的 --w 算留白，在 900~1180 这段"卡片几乎占满视口"
      的宽度上 calc 会变成负数、退回 18px，于是页码压到磁贴上。
      改用容器**实际**宽度 min(--w, 100vw - 两侧 gutter)，永远落在留白里。 */
-  right: max(12px, calc((100vw - min(var(--w), 100vw - 2 * var(--gutter))) / 2 - 40px));
+  /* ⚠️ 2026-11-13 第二次修：原来的 `- 40px` 是个"估宽"——胶囊实际宽 38px，
+     于是 pager 左边缘恒等于「内容右边界 + 2px」。数学上确实没重叠，
+     视觉上就是贴死了（用户两次反馈"和磁贴打架"）。
+     现在宽度与间距都写成变量，按真实值算：内容和页码之间固定留 --pager-gap。 */
+  --pager-w: 38px;               /* 圆点 20 + 左右内边距 8×2 + 描边 1×2 */
+  --pager-gap: 12px;             /* 与正文之间至少留这么多，别再来 2px */
+  right: max(12px,
+    calc((100vw - min(var(--w), 100vw - 2 * var(--gutter))) / 2
+         - var(--pager-w) - var(--pager-gap)));
   z-index: 50;
   transform: translateY(-50%);
   display: none;                 /* 只有翻页模式才出现 */
@@ -310,7 +318,11 @@ html[data-paged="on"] .section.is-entering .game:nth-child(n+4) { animation-dela
   border: 1px solid var(--line);
   border-radius: var(--r-full);
   background: var(--bg-elev);
-  box-shadow: var(--shadow-sm);
+  /* 不再用 --shadow-sm / --glass-shadow：它们带 40px 环境影，会越过间隙
+     糊在卡片右边缘上。厚度感由 6px 内的近距离阴影给。
+     这个变量是给 90-overrides 的玻璃组留的口子（见那边的注释）。 */
+  --pager-shadow: 0 4px 14px -6px rgba(0, 0, 0, .28);
+  box-shadow: var(--pager-shadow);
   -webkit-backdrop-filter: blur(10px);
   backdrop-filter: blur(10px);
 }
@@ -384,6 +396,44 @@ html[data-paged="on"] .pager { display: flex; }
    手机屏幕窄，浮在右侧的圆点会压在卡片上。改成贴着屏幕底边的分段进度：
    只占 3px 高、落在页面留白里，既能看出「第几页 / 共几页」，又完全挡不到内容。 */
 .pager__track { display: none; }
+
+/* ---------------------------------------- 页码：留白不够时先丢底板，再丢整条
+   三分档，依据是**右侧留白还剩多少**（不是拍脑袋的断点）：
+     留白 = (100vw - min(--w, 100vw - 2×gutter)) / 2
+     · ≥ 62px（约 ≥ 1320）：38px 胶囊 + 12px 间距，全都要
+     · 33~61px（1181~1319）：放不下 38+12+下限 12 —— 去掉底板只留圆点，
+       24px + 10px 间距，圆点仍然贴着内容外侧
+     · < 33px（≤1180）：连圆点的点击区都放不下，用贴屏幕边的 12px 细条
+
+   1181~1319 这段是"最常见却没人测"的区间：1280 笔记本正好在里头，
+   留白只有 48~70px —— 上一版就是在这段里恒等于 2px 间隙。 */
+@media (min-width: 1181px) and (max-width: 1319px) {
+  .pager {
+    --pager-w: 24px;
+    --pager-gap: 10px;
+    padding: 8px 2px;
+    border: 0;
+    background: transparent;
+    /* 三个变量一路传到 90-overrides 的玻璃组：它那边的选择器权重更高，
+       不从这里交接口子，直接写 border/background/box-shadow 会被盖掉。 */
+    --pager-line: transparent;
+    --pager-bg: transparent;
+    --pager-sheen: none;
+    --pager-shadow: none;
+    box-shadow: none;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+  /* 没有底板兜底，圆点要自己保证在花背景上也看得见：
+     一圈与底色同色系的描边相当于"最小可读性保障" */
+  .pager__dot::before {
+    box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--bg) 55%, transparent);
+  }
+  .pager__dot.is-current::before {
+    box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--bg) 55%, transparent),
+                0 0 0 3.5px var(--accent-soft);
+  }
+}
 
 /* 2026-11-13：断点从 900 提到 1180（= --w）。
    900~1180 这段容器几乎占满视口，两侧留白只有 40px 左右，

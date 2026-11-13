@@ -44,6 +44,9 @@ async function blockExternalImages(ctx) {
 const URL = 'http://127.0.0.1:8791/';
 const VIEWPORTS = [
   { name: 'desktop', width: 1440, height: 900 },
+  /* 2026-11-13：1280/1366 是"最常见却一直没测"的区间 —— 右侧留白只有 48px，
+     页码在这里最容易贴到卡片上（上一版恒等于 2px，用户两次反馈"打架"）。 */
+  { name: 'laptop', width: 1280, height: 800 },
   { name: 'tablet', width: 820, height: 1180 },
   { name: 'phone', width: 390, height: 844 }
 ];
@@ -118,11 +121,12 @@ await page.goto(URL, { waitUntil: 'load' });
       const dots = [...p.querySelectorAll('.pager__dot')].map(d => d.getBoundingClientRect());
       /* 取正文容器的右边界 */
       /* 取所有页的正文容器，算与页码的相交面积 */
-      let area = 0, maxBottom = 0;
+      let area = 0, maxBottom = 0, maxRight = 0;
       document.querySelectorAll('.hero__inner, .section .container').forEach(c => {
         const cr = c.getBoundingClientRect();
         if (cr.bottom > c.parentElement.getBoundingClientRect().bottom) return;
         maxBottom = Math.max(maxBottom, cr.bottom);
+        if (cr.width) maxRight = Math.max(maxRight, cr.right);
         const ox = Math.max(0, Math.min(r.right, cr.right) - Math.max(r.x, cr.x));
         const oy = Math.max(0, Math.min(r.bottom, cr.bottom) - Math.max(r.y, cr.y));
         area = Math.max(area, Math.round(ox * oy));
@@ -135,6 +139,7 @@ await page.goto(URL, { waitUntil: 'load' });
         right: Math.round(r.right), bottom: Math.round(r.bottom),
         insideViewport: r.right <= window.innerWidth + 1 && r.bottom <= window.innerHeight + 1 && r.x >= -1,
         intersectArea: area,
+        gapRight: Math.round(r.x - maxRight),
         contentBottom: Math.round(maxBottom),
         dotCount: dots.length,
         /* 只数**可见**的屏。config.sections 里可以把某屏设成 enabled:false
@@ -154,6 +159,17 @@ await page.goto(URL, { waitUntil: 'load' });
       ok(pager.intersectArea === 0,
         tag + '页码与内容零重叠（相交面积 ' + pager.intersectArea + 'px²，正文底边 ' +
         pager.contentBottom + ' / 页码顶边 ' + pager.y + '）');
+      /* 2026-11-13：只判"零重叠"是不够的 —— 上一版恒等于 2px 间隙，
+         数学上不重叠、视觉上就是贴死。桌面分档现在保证 ≥10px，
+         这里按 8px 留一点余量守住它。≤1180 用贴屏幕边的细条，
+         本来就靠正文容器的内边距让位（实测 3px），不套用这条。 */
+      if (vp.width >= 1181) {
+        ok(pager.gapRight >= 8,
+          tag + '页码与正文留出间隙（' + pager.gapRight + 'px，要求 ≥8）');
+      } else {
+        ok(pager.gapRight >= 0,
+          tag + '页码不压正文（间隙 ' + pager.gapRight + 'px）');
+      }
       ok(pager.dotCount === pager.pageCount, tag + '页码数量与页数一致（' + pager.dotCount + '）');
       // 2026-11-13：底部分段式进度条已移除，窄屏也改为侧边圆点
       // （用户要求"只保留侧边进度提示"）。所以两种视口守同一条不变量。

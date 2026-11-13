@@ -199,13 +199,24 @@ html[data-glass="on"] .track,
 html[data-glass="on"] .gb-cta,
 html[data-glass="on"] .skin-panel,
 html[data-glass="on"] .mobile-nav,
-html[data-glass="on"] .pager,
 html[data-glass="on"] .site-header {
   border-color: var(--glass-line);
   background-color: var(--glass-tint);
   background-image: var(--glass-sheen);
   /* 内高光 = 玻璃边缘那道亮线；外影负责把卡片从背景里"抬"出来 */
   box-shadow: var(--glass-shadow), inset 0 1px 0 var(--glass-hi);
+}
+
+/* 页码单独一个口子。
+   它是唯一"只有 38px 宽、离正文只 12px"的玻璃件：玻璃组那个
+   0 16px 40px 的环境影会越过间隙糊在卡片右边缘上（用户两次反馈
+   "和磁贴打架 / 光效突出来一大截"）。这三个变量由 10-shell/paged.css
+   按"留白够不够"分档接管，默认值与玻璃组完全一致，别处观感不变。 */
+html[data-glass="on"] .pager {
+  border-color: var(--pager-line, var(--glass-line));
+  background-color: var(--pager-bg, var(--glass-tint));
+  background-image: var(--pager-sheen, var(--glass-sheen));
+  box-shadow: var(--pager-shadow, var(--glass-shadow)), inset 0 1px 0 var(--glass-hi);
 }
 
 html[data-glass="on"] .track,
