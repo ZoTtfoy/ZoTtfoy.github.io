@@ -76,7 +76,10 @@ html[data-wall="static"] .albumwall__row { animation: none !important; }
 
 .steamwall__col {
   width: var(--wall-tile-w, 200px);
-  height: calc(var(--wall-period, 1200px) * 2);
+  /* 2026-11-13：列数改成随视口自适应后，实例可能比"两个周期"还高
+     （12 列 = 2400，加一个周期 = 3600）。高度由 JS 按 INST + PERIOD 写，
+     这里只留兜底值 —— 写死 2×period 会在宽屏上让列底露白。 */
+  height: var(--wall-col-h, calc(var(--wall-period, 1200px) * 2));
   margin-top: calc(-1 * var(--wall-period, 1200px));
   align-self: start;
   display: flex;

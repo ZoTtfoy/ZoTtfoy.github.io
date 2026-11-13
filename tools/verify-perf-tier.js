@@ -65,7 +65,8 @@ async function probe(browser, url, waitSample) {
   ok(low.perf === 'low', '?perf=low 时 <html data-perf="low">（' + low.summary + '）');
   ok(low.wall === 'static', '?perf=low 时 <html data-wall="static">');
   ok(low.running === 0, '低端档两面墙没有任何动画在跑（实测 ' + low.running + ' 条）');
-  ok(low.cols === 6 && low.rows === 6,
+  /* 列数自 2026-11-13 起随视口自适应（6~12），这里只守"墙还在、结构没塌" */
+  ok(low.cols >= 6 && low.rows === 6,
      '低端档墙面结构不变（列 ' + low.cols + ' / 行 ' + low.rows + '）');
   ok(low.withBg === low.cols + low.rows,
      '低端档背景图仍在（' + low.withBg + ' 个元素有 background-image）');

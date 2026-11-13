@@ -75,14 +75,26 @@ window.SITE_STEAMWALL = (function () {
      ⚠️ BASE_RATE / boost 必须同步减半，否则屏幕上的流速会翻倍。
      ⚠️ 本文件历史注释里写的 2400 / 400 / 600 / 4800 是**旧设计像素**，
         现在分别是 1200 / 200 / 300 / 2400，几何推导关系不变。 */
-  var INST = 1200;               // 实例边长（正方形）
   var TILE_W = 200;              // 格子宽（2:3 竖版）
   var TILE_H = 300;              // 格子高
-  var COLS = INST / TILE_W;      // 6 列（不变）
   var ROWS = 4;                  // 单份 4 格 = 1200px
   var PERIOD = ROWS * TILE_H;    // 一份的高度，也是循环周期 = 1200
   var SAFETY = 1.12;             // 旋转后的覆盖余量
   var BASE_RATE = 24;            // px/s（原 48，随实例减半，屏幕流速不变）
+
+  /* ⚠️ 2026-11-13：列数不再写死 6。
+     屏幕上"一格多大" = √2 × max(W,H) × SAFETY / COLS —— **与 TILE_W 无关**。
+     所以列数固定时，窗口一大封面就等比变大：1600 窗口下一格 422px，
+     而列图源只有 300px 宽（Steam library_600x900 缩到 300×450 烤的），
+     等于把 300px 的图放大 1.4 倍铺在屏幕上 —— 又大又糊。
+     现在反过来：假设"一格 300px ≈ 源图 1:1"，按视口反推列数。
+       1084 → 6 列（和不改一样）   1600 → 9 列   1920 → 11 列   2560 → 12 列（封顶）
+     列图只有 6 份，多出来的列复用它们并错开一格，不额外下载字节。 */
+  var ASSETS = 6;                // assets/wall/steam-0..5.webp 的份数
+  var TARGET_TILE = 300;         // 屏幕上希望一格多少 CSS px
+  var MAX_COLS = 12;             // 上限：列高 = INST + PERIOD，再多层就太长了
+  var COLS = 6;                  // 当前列数（build/fit 按视口算）
+  var INST = COLS * TILE_W;      // 实例边长（正方形）
 
   var wall = null, grid = null;
   var colsEls = [];
@@ -165,6 +177,23 @@ window.SITE_STEAMWALL = (function () {
     grid.style.setProperty(name, value);
   }
 
+  /* 一格 300px 时需要的列数。小屏夹到 6（改动前就是 6，小屏观感不变） */
+  function colsFor(w, h) {
+    var need = Math.ceil(Math.SQRT2 * Math.max(w, h) * SAFETY / TARGET_TILE);
+    return Math.max(6, Math.min(MAX_COLS, need));
+  }
+
+  function applyVars() {
+    setWallVar("--wall-scale", scale.toFixed(4));
+    setWallVar("--wall-inst", INST + "px");
+    setWallVar("--wall-tile-w", TILE_W + "px");
+    setWallVar("--wall-tile-h", TILE_H + "px");
+    setWallVar("--wall-period", PERIOD + "px");
+    /* 列必须比实例高出一个周期：位移 d ∈ [0,PERIOD] 时，内容覆盖
+       [-PERIOD+d, H-PERIOD+d]，要盖住 [0,INST] 就得 H ≥ INST + PERIOD。 */
+    setWallVar("--wall-col-h", (INST + PERIOD) + "px");
+  }
+
   function fit() {
     if (!grid) return;
     /* ⚠️ 2026-11-11 改用**背景层自己的盒子**，不再读 window.innerHeight。
@@ -178,14 +207,14 @@ window.SITE_STEAMWALL = (function () {
     var w = wall ? wall.clientWidth : 0;
     var h = wall ? wall.clientHeight : 0;
     if (!w || !h) { w = window.innerWidth || 1280; h = window.innerHeight || 800; }
+    /* 列数变了就重铺（跨过阈值才发生，不是每次 resize 都来）。
+       build() 末尾会再调一次 fit()，那时 already 相等，不会递归下去。 */
+    var need = colsFor(w, h);
+    if (need !== COLS) { build(need); return; }
     /* 旋转 45° 后，S×S 正方形的轴对齐内接正方形边长是 S/√2。
        把它撑到至少 max(w,h)×SAFETY，视口四角就都在实例里。 */
     scale = Math.SQRT2 * Math.max(w, h) * SAFETY / INST;
-    setWallVar("--wall-scale", scale.toFixed(4));
-    setWallVar("--wall-inst", INST + "px");
-    setWallVar("--wall-tile-w", TILE_W + "px");
-    setWallVar("--wall-tile-h", TILE_H + "px");
-    setWallVar("--wall-period", PERIOD + "px");
+    applyVars();
   }
 
   /* ------------------------------------------------------------- 渲染 */
@@ -194,16 +223,31 @@ window.SITE_STEAMWALL = (function () {
      这些元素和 6 个巨型合成层；现在每列只是一张 300×1800 的 WebP 背景，
      6 个元素、6 个请求，排列与原来逐格一致（顺序由 bake 脚本从页面导出）。
      数据更新后重跑 tools/extract-wall-order.js + tools/bake-walls.py。 */
-  function build() {
+  function build(n) {
     if (!grid) return 0;
+    if (n == null) {
+      var w0 = wall ? wall.clientWidth : 0, h0 = wall ? wall.clientHeight : 0;
+      if (!w0 || !h0) { w0 = window.innerWidth || 1280; h0 = window.innerHeight || 800; }
+      n = colsFor(w0, h0);
+    }
+    COLS = Math.max(6, Math.min(MAX_COLS, n));
+    INST = COLS * TILE_W;
+
     var html = "";
     for (var c = 0; c < COLS; c++) {
       var factor = colSpeed(c, COLS);
-      html += '<div class="steamwall__col" data-col="' + c +
+      /* 列图只有 6 份：第 7 列起复用第 0 列那张，并往下错开一格，
+         免得并排两列显示一模一样的封面。 */
+      var asset = c % ASSETS;
+      var drop = Math.floor(c / ASSETS) * TILE_H;
+      html += '<div class="steamwall__col" data-col="' + c + '" data-asset="' + asset +
         '" style="--col-speed:' + factor.toFixed(3) +
-        ';background-image:url(assets/wall/steam-' + c + '.webp)"></div>';
+        ';background-image:url(assets/wall/steam-' + asset + '.webp)' +
+        (drop ? ';background-position:0 -' + drop + 'px' : '') + '"></div>';
     }
     grid.innerHTML = html;
+    /* repeat(var(--n)) 在部分浏览器里不受支持，直接写死成具体次数 */
+    grid.style.gridTemplateColumns = "repeat(" + COLS + ", " + TILE_W + "px)";
     wall.setAttribute("data-ready", "1");
     colsEls = [].slice.call(grid.querySelectorAll(".steamwall__col"));
     fit();

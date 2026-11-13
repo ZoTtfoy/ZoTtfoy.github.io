@@ -155,13 +155,17 @@ async function coverage(page, shotOn, shotOff) {
   });
 
   ok(!r.wallHidden, '封面墙没有被隐藏');
-  ok(r.cols === 6, '固定 6 列（' + r.cols + '）');
-  ok(r.bgs.length === 6 && r.bgs.every(b => /assets\/wall\/steam-\d\.webp/.test(b)),
-    '6 列全部使用预渲染列图（steam-0..5.webp）');
-  ok(r.wallImgsLoaded === 6, '6 张预渲染列图全部加载成功（' + r.wallImgsLoaded + '/6）');
+  /* 2026-11-13：列数改成随视口自适应（一格 ≈300px ≈ 源图 1:1），
+     不再写死 6 —— 写死时 1600 窗口一格 422px，把 300px 的列图放大 1.4 倍，
+     用户看到的就是"放得太大、发糊"。这里守的是新不变量。 */
+  ok(r.cols >= 6 && r.cols <= 12, '列数随视口自适应（' + r.cols + ' 列，夹在 6~12）');
+  ok(r.bgs.length === r.cols && r.bgs.every(b => /assets\/wall\/steam-\d\.webp/.test(b)),
+    '每列都用预渲染列图（' + r.cols + ' 列 / 6 份图循环）');
+  ok(new Set(r.bgs).size === 6, '6 份列图全部用上（' + new Set(r.bgs).size + ' 份）');
+  ok(r.wallImgsLoaded === 6, '6 张预渲染列图全部加载成功（' + r.wallImgsLoaded + '/6，复用的列不重复下载）');
   ok(r.apps >= 30, '数据源里有足够多的游戏（' + r.apps + ' 个 appid）');
   ok(/^0px/.test(r.gap), '网格间隙为 0（' + r.gap + '），斜拼时不会露出白线');
-  ok(r.cssInst === '1200px', '实例是固定的 1200×1200（' + r.cssInst + '）');
+  ok(r.cssInst === (r.cols * 200) + 'px', '实例边长 = 列数 × 200（' + r.cssInst + '）');
   ok(r.period === PERIOD, '循环周期 = 一份 4 格 = 1200px（' + r.period + '）');
 
   /* 向右倾斜 45°：cos45 = sin45 = 0.7071，且 b 必须为正 */
@@ -173,14 +177,19 @@ async function coverage(page, shotOn, shotOff) {
   /* ---------------------------------------------- 2. 等比缩放覆盖公式 */
   const geom = await page.evaluate(() => ({
     w: innerWidth, h: innerHeight,
-    scale: window.SITE_STEAMWALL.scale()
+    scale: window.SITE_STEAMWALL.scale(),
+    inst: parseFloat(getComputedStyle(document.getElementById('steamWallGrid')).width)
   }));
-  const inner = INST * geom.scale / Math.SQRT2;   // 旋转后轴对齐内接正方形边长
+  const inner = geom.inst * geom.scale / Math.SQRT2;   // 旋转后轴对齐内接正方形边长
   ok(inner >= Math.max(geom.w, geom.h) * 1.05,
     '1440×900 覆盖成立：内接 ' + Math.round(inner) + 'px ≥ 视口 ' +
     Math.max(geom.w, geom.h) + 'px（scale=' + geom.scale.toFixed(3) + '）');
-  ok(Math.abs(geom.scale - Math.SQRT2 * Math.max(geom.w, geom.h) * 1.12 / INST) < 0.001,
-    'scale 严格等于 √2 × max(W,H) × 1.12 / 1200');
+  ok(Math.abs(geom.scale - Math.SQRT2 * Math.max(geom.w, geom.h) * 1.12 / geom.inst) < 0.001,
+    'scale 严格等于 √2 × max(W,H) × 1.12 / 实例边长');
+  /* 用户诉求的可量化版本：一格在屏幕上不超过源图太多，否则就是"放大了发糊" */
+  const tilePx = 200 * geom.scale;
+  ok(tilePx >= 200 && tilePx <= 400,
+    '一格屏幕尺寸 ' + Math.round(tilePx) + 'px 落在 200~400（源图 300px，1:1 附近）');
 
   /* -------------------------------------------- 3. 完全填充（像素对比）
      ⚠️ 截图前先把遮罩去掉。
@@ -251,8 +260,8 @@ async function coverage(page, shotOn, shotOff) {
   const rates = await page.evaluate(() =>
     [...document.querySelectorAll('.steamwall__col')]
       .map(c => +c.style.getPropertyValue('--col-speed')));
-  ok(rates.length === 6 && new Set(rates.map(v => v.toFixed(3))).size === 6,
-    '6 列倍率各不相同（' + rates.map(v => v.toFixed(2)).join(' / ') + '）');
+  ok(rates.length === r.cols && new Set(rates.map(v => v.toFixed(3))).size === rates.length,
+    rates.length + ' 列倍率各不相同（' + rates.map(v => v.toFixed(2)).join(' / ') + '）');
   ok(Math.min(...rates) >= 0.5 && Math.max(...rates) <= 1.5,
     '倍率落在 0.55~1.45 的正弦分布内');
 
@@ -306,14 +315,17 @@ async function coverage(page, shotOn, shotOff) {
       cols: document.querySelectorAll('.steamwall__col').length,
       tiles: document.querySelectorAll('.steamwall__tile').length
     }));
-    const need = Math.SQRT2 * Math.max(g.w, g.h) * 1.12 / INST;
+    const instPx = parseFloat(g.inst);
+    const need = Math.SQRT2 * Math.max(g.w, g.h) * 1.12 / instPx;
     ok(Math.abs(g.scale - need) < 0.001,
       '[' + name + '] scale 按公式重算（' + g.scale.toFixed(3) + '）');
-    ok(g.inst === '1200px' && g.cols === 6,
-      '[' + name + '] 实例规格不变，只靠缩放适配（6 列预渲染图）');
-    ok(INST * g.scale / Math.SQRT2 >= Math.max(g.w, g.h) * 1.05,
+    ok(g.cols >= 6 && g.cols <= 12 && instPx === g.cols * 200,
+      '[' + name + '] 列数自适应且实例 = 列数×200（' + g.cols + ' 列 / ' + g.inst + '）');
+    ok(instPx * g.scale / Math.SQRT2 >= Math.max(g.w, g.h) * 1.05,
       '[' + name + '] 覆盖成立（内接 ' +
-      Math.round(INST * g.scale / Math.SQRT2) + 'px）');
+      Math.round(instPx * g.scale / Math.SQRT2) + 'px）');
+    ok(200 * g.scale <= 400,
+      '[' + name + '] 一格不超过 400px（' + Math.round(200 * g.scale) + 'px）');
   }
 
   /* ------------------------------------------------ 6. 减少动效时停转 */
