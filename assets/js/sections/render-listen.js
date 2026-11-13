@@ -73,36 +73,19 @@
       : (window.siteIcon ? '<span class="track__pic track__pic--none">' +
           window.siteIcon("music") + "</span>" : "");
 
-    /* 播放按钮的三种形态：
-         ① playable === true  → 站内播放按钮（player.js 接管）
-         ② playable === false → 外链，title 说明"需要会员"
-         ③ 未定义（老数据）    → 外链。保守总比放一个按不出声的按钮好。
-       ⚠️ outer/url 里的 `.mp3` 必须拼在 id 后面，写成 ?ext=mp3 不生效。 */
-    var songId = (function () {
-      var m = /[?&]id=(\d+)/.exec(t.url || "");
-      return m ? m[1] : "";
-    })();
-
-    var action = "";
-    if (t.url) {
-      if (t.playable === true && songId) {
-        action = '<button class="track__go track__play" type="button"' +
-          ' data-play="' + esc(t.url) + '"' +
-          ' data-src="https://music.163.com/song/media/outer/url?id=' + songId + '.mp3"' +
-          ' aria-pressed="false" aria-label="播放 ' + esc(t.title || "") + '">' +
-          icon("play") + "</button>";
-      } else {
-        var why = t.playable === false ? "（网易云会员 / 版权曲）" : "";
-        action = '<a class="track__go" href="' + esc(t.url) + '"' +
-          ' target="_blank" rel="noopener noreferrer"' +
-          ' title="在网易云打开' + why + '"' +
-          ' aria-label="在网易云打开 ' + esc(t.title || "") + why + '">' +
-          icon("play") + "</a>";
-      }
-    }
+    /* 2026-11-13：不再做站内播放 —— 整块磁贴就是一个外链，点哪都去网易云歌曲页。
+       播放键删掉后也就不再有"可播 / 不可播"两种形态，playable 字段不再参与渲染。
+       覆盖层用 <a> 而不是把 <li> 改成 <a>：.track 是 grid 容器、又是 <ul> 的直接子元素，
+       换标签会连带改 .track-list 的子元素选择器与 data-reveal 的观察目标。 */
+    var hit = t.url
+      ? '<a class="track__hit" href="' + esc(t.url) + '"' +
+        ' target="_blank" rel="noopener noreferrer" draggable="false"' +
+        ' aria-label="在网易云打开 ' + esc(t.title || "") + '"></a>'
+      : "";
 
     return '<li class="track" style="' + delay(i, 45) + '" data-reveal ' +
              'data-idx="' + (i + 1) + '">' +
+             hit +
              '<span class="track__idx' + top3 + '">' + String(i + 1).padStart(2, "0") + "</span>" +
              cover +
              '<span class="track__main">' +
@@ -110,7 +93,6 @@
                (meta ? '<span class="track__meta">' + esc(meta) + "</span>" : "") +
              "</span>" +
              plays +
-             action +
            "</li>";
   }
 
@@ -130,42 +112,15 @@
       ? "https://music.163.com/#/user/home?id=" + encodeURIComponent(uid)
       : "https://music.163.com/";
 
-    /* 四种状态，页脚说四种话 —— 关键是别让"数字是真的"冒充"歌也是真的"：
-         · 排行已同步        → 已同步
-         · 我喜欢的音乐      → 已同步 · 收藏（内容真实，但语义不是"排行"，必须点明）
-         · 只有累计听歌      → 排行待同步（数字是真的，歌还是兜底）
-         · 什么都没有        → 示例数据 · 等待首次同步 */
-    var src;
-    if (listenMeta.live && listenMeta.source === "liked") {
-      src = '<span class="listen__src is-live is-liked" title="听歌排行未公开，当前显示的是「我喜欢的音乐」">' +
-              '<span class="live-dot" aria-hidden="true"></span>已同步 · 收藏</span>';
-    } else if (listenMeta.live) {
-      src = '<span class="listen__src is-live"><span class="live-dot" aria-hidden="true"></span>已同步</span>';
-    } else if (listenMeta.total) {
-      src = '<span class="listen__src is-pending">排行待同步</span>';
-    } else {
-      src = '<span class="listen__src">示例数据 · 等待首次同步</span>';
-    }
-
+    /* 2026-11-13：页脚的「已同步 / 排行待同步 / 示例数据」状态指示器已移到后台
+       （admin 的「在听」页会显示数据来源与同步时间）。这里只说两件事：
+       累计听歌多少首、去哪儿看完整主页。 */
     var stat = listenMeta.total
       ? '<span class="listen__stat">累计听歌 <b>' + fmtNum(listenMeta.total) + "</b> 首</span>"
       : "";
 
-    /* 试听说明。只在"部分可播"时出现 ——
-       全可播不用解释，全不可播时的每一行本来就是外链，也不用解释。
-       偏偏"部分可播"最容易让人困惑："为什么第 4 首能放，第 1 首点了却跳走？"
-       一句话把原因（会员 / 版权）说在前面，比让用户逐个试要好。 */
-    var note = "";
-    if (listenMeta.playableCount > 0 && listenMeta.playableCount < listenMeta.shownCount) {
-      /* 文案刻意短：「1/6 可试听」。长版本（"站内试听 1/6 首 · 其余为会员曲"）
-         在 320px 上会把页脚挤成两行，多出的 20 多 px 正好顶出屏幕。
-         完整原因放进 title，鼠标悬停能看到，读屏也会念。 */
-      note = '<span class="listen__note" title="网易云的 VIP 与付费版权曲不提供外链音频，只能去客户端听">' +
-             listenMeta.playableCount + "/" + listenMeta.shownCount + " 可试听</span>";
-    }
-
     var html =
-      '<span class="listen__meta">' + src + stat + note + "</span>" +
+      '<span class="listen__meta">' + stat + "</span>" +
       /* 窄屏（≤400px）只留箭头，文字用 font-size:0 收掉 ——
          320px 下「去网易云看看」会把页脚挤成两行，多出的 29px
          正好把这一屏顶出屏幕。文字仍在 DOM 里，读屏照常念。 */

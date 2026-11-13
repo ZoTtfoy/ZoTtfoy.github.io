@@ -24,7 +24,9 @@
 
 .ambient {
   position: fixed;
-  inset: -24px;              /* 比视口略大，给视差留出余量 */
+  /* 2026-11-13：原来固定 -24px —— 在 4K 上这点余量不够（视差/缩放一开就露边），
+     在 320 宽的小屏上又白占 7% 宽度。改成随视口：小屏 16、大屏 32。 */
+  inset: calc(-1 * clamp(16px, 2vmax, 32px));
   z-index: 0;
   overflow: hidden;
   pointer-events: none;
@@ -40,6 +42,9 @@
 .ambient__image {
   inset: -6%;                 /* 略放大，避免 Ken Burns 缩放时露出边缘 */
   opacity: 0;
+  /* 由 backdrop.js 写 --bd-image；手机用 --bd-image-mobile（竖图），
+     没配就退回桌面那张。 */
+  background-image: var(--bd-image, none);
   background-position: center;
   background-size: cover;
   background-repeat: no-repeat;
@@ -290,8 +295,11 @@ html[data-backdrop-image="on"] .hero__role {
   background-color: var(--text);
   -webkit-mask-image: url("../../backdrop/motif.svg");
   mask-image: url("../../backdrop/motif.svg");
-  -webkit-mask-size: 1200px 800px;
-  mask-size: 1200px 800px;
+  /* tile 尺寸随视口：1440 宽约 1200，2560 宽封顶 1600（再大就铺不满 2 个周期，
+     符号会显得孤零零），1280 宽约 1060（避免只剩半个齿轮）。 */
+  --motif-w: clamp(1000px, 83vmax, 1600px);
+  -webkit-mask-size: var(--motif-w) calc(var(--motif-w) * 2 / 3);
+  mask-size: var(--motif-w) calc(var(--motif-w) * 2 / 3);
   -webkit-mask-position: center;
   mask-position: center;
   -webkit-mask-repeat: repeat;
@@ -306,8 +314,9 @@ html[data-theme="dark"] .ambient__motif { opacity: .085; }
    缩到 680×453（保持 3:2），一个屏幕里能看见一组半到两组完整符号。 */
 @media (max-width: 680px) {
   .ambient__motif {
-    -webkit-mask-size: 760px 507px;
-    mask-size: 760px 507px;
+    --motif-w: 760px;
+    -webkit-mask-size: var(--motif-w) calc(var(--motif-w) * 2 / 3);
+    mask-size: var(--motif-w) calc(var(--motif-w) * 2 / 3);
     /* ⚠️ 两个坑都要避开：
        1) 不能用 center —— 桌面构图的中心是**故意留空**的（让位给头像/标题），
           手机上居中正好停在留空区，一组符号都看不见。
@@ -332,3 +341,17 @@ html[data-motif="on"] .ambient__grid { opacity: .22; }
 }
 
 html[data-motif="off"] .ambient__motif { display: none; }
+
+/* 2026-11-13：有照片背景时，纹章与网格必须退场。
+   照片本身就是细节层，再叠 64px 网格 + 六组线稿就是三重纹理 ——
+   深色下尤其明显（齿轮浮在树影上、电路压在车身上），像没擦干净的草稿。
+   留 0.02 / 0.08 而不是完全隐藏：纯色区域还能看到一点点"电子感"的痕迹。 */
+html[data-backdrop-image="on"][data-motif="on"] .ambient__motif { opacity: .02; }
+html[data-backdrop-image="on"][data-motif="on"] .ambient__grid { opacity: .08; }
+
+/* 手机换竖图：桌面那张横图在 9:16 上会被 cover 裁到只剩中间一条 */
+@media (max-width: 680px) {
+  .ambient__image {
+    background-image: var(--bd-image-mobile, var(--bd-image, none));
+  }
+}

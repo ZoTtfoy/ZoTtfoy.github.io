@@ -443,6 +443,25 @@ window.ADMIN = {
       '">+ 添加一项</button></div>');
   }
 
+  /* 2026-11-13：页面页脚的「已同步 / 待同步」指示器移到后台。
+     访客不需要知道同步细节，但维护的人需要 —— 这里只读一次 data/netease.json，
+     把曲目数、来源、同步时间摊开。读不到就直说，不假装"已同步"。 */
+  var SYNC_STATE = null;      // null = 读取中，'error' = 读取失败，对象 = 成功
+  function loadSyncState() {
+    fetch("data/netease.json?t=" + Date.now())
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) {
+        SYNC_STATE = d ? {
+          tracks: (d.tracks || []).length,
+          total: d.totalSongs || 0,
+          source: d.source || "rank",
+          updated: d.updated ? String(d.updated).replace("T", " ").slice(0, 16) + " UTC" : "未知"
+        } : "error";
+        if (activeTab === "listen") renderPanel();
+      })
+      .catch(function () { SYNC_STATE = "error"; });
+  }
+
   function renderPanel() {
     var body = "";
 
@@ -518,6 +537,18 @@ window.ADMIN = {
         { path: ["listen", "title"], label: "标题", value: getPath(draft, ["listen", "title"]) },
         { path: ["listen", "lead"], label: "副标题", value: getPath(draft, ["listen", "lead"]), full: true }
       ]));
+
+      body += group("同步状态", "只在后台显示，访客看不到",
+        '<p class="sheet__hint">' +
+          (SYNC_STATE === null
+            ? "正在读取 <code>data/netease.json</code>…"
+            : SYNC_STATE === "error"
+              ? "读不到 <code>data/netease.json</code> —— 同步任务可能还没跑过，页面会退回兜底曲目。"
+              : "曲目 <strong>" + SYNC_STATE.tracks + "</strong> 首 · 来源 <strong>" +
+                SYNC_STATE.source + "</strong> · 累计听歌 <strong>" +
+                SYNC_STATE.total + "</strong> 首 · 同步于 <strong>" +
+                SYNC_STATE.updated + "</strong>") +
+        '</p>');
 
       body += group("网易云账号", "",
         '<p class="sheet__hint">' +
@@ -1513,6 +1544,7 @@ window.ADMIN = {
     $("#app").hidden = false;
     renderTabs();
     renderPanel();
+    loadSyncState();
     bindEditor();
     bindSheet();
     if (restored) {

@@ -130,6 +130,9 @@ function restore() {
           return e ? e.textContent : null;
         }),
         foot: document.getElementById('listenFoot').innerText.replace(/\s+/g, ' ').trim(),
+        /* 2026-11-13：整块磁贴是一个外链，不再有播放按钮 */
+        hits: rows.map(r => { const a = r.querySelector('.track__hit'); return a ? a.getAttribute('href') : null; }),
+        hasPlayBtn: rows.some(r => r.querySelector('.track__play, .track__go, [data-play]')),
         cols: getComputedStyle(ul).gridTemplateColumns.split(' ').length,
         titles: rows.map(r => r.querySelector('.track__title').textContent)
       };
@@ -147,8 +150,8 @@ function restore() {
       return {
         hasPlays: rows.some(r => r.querySelector('.track__plays')),
         hasHeat: rows.some(r => r.querySelector('.track__heat')),
-        srcText: src ? src.textContent.trim() : '',
-        srcClass: src ? src.className : '',
+        /* 页脚的同步状态指示器已移除；这里单独取一次，守住"别再长回来" */
+        oldSrc: !!document.querySelector('.listen__src'),
         heatTitles: rows.map(r => {
           const h = r.querySelector('.track__heat');
           return h ? h.getAttribute('title') : null;
@@ -180,40 +183,30 @@ function restore() {
 
       ok(/累计听歌/.test(d.foot), '页脚有「累计听歌」');
       ok(/累计听歌\s*[\d,]{3,}/.test(d.foot), '累计听歌是个六位数级别的数字');
-    } else if (/已同步/.test(shape.srcText)) {
-      /* ---- 形态 rank / liked：真实曲目，但没有绝对次数 ---- */
-      ok(!shape.hasPlays, '匿名来源下不印播放次数（不编造绝对量）');
-      /* 页脚必须如实标注来源，两种都是"对"的，取决于数据从哪来：
-           rank  → 已同步
-           liked → 已同步 · 收藏（不能让人以为这是听歌排行）
-         断言跟着 data/netease.json 里的 source 走，而不是写死一种。 */
-      const src = (() => {
-        try { return JSON.parse(fs.readFileSync(DATA, 'utf8')).source || 'rank'; }
-        catch { return 'rank'; }
-      })();
-      if (src === 'liked') {
-        ok(/收藏/.test(shape.srcText), '来源是收藏时页脚明确标出（' + shape.srcText + '）');
-      } else {
-        ok(!/收藏/.test(shape.srcText), '来源是听歌排行时不误标成收藏（' + shape.srcText + '）');
-      }
-      ok(/累计听歌/.test(d.foot), '页脚有「累计听歌」');
     } else {
       skip('data/netease.json 里没有曲目数据，跳过渲染断言');
       skip('提示：--sample（真实次数）/ --sample-score（相对热度）可强制验证');
     }
 
+    /* ---------- 2026-11-13：磁贴改成整行外链 ---------- */
+    ok(d.hits.every(h => h && h.indexOf('music.163.com') > 0),
+      '每个磁贴整体是一个指向网易云歌曲页的链接（' + d.hits.filter(Boolean).length + '/' + d.n + '）');
+    ok(!d.hasPlayBtn, '磁贴里不再有播放按钮（playable / data-play 都不参与渲染）');
+    ok(!shape.oldSrc, '页脚不再显示同步状态指示器（已移到后台）');
+    ok(!/已同步|待同步|示例数据/.test(d.foot), '页脚文案里也没有同步状态残留');
+
     /* 不重叠：所有形态都要成立（热度条和次数占同一格，更容易撞） */
     const noOverlap = await page.evaluate(() => {
       const ov = (a, c) => a.x < c.r - 0.5 && c.x < a.r - 0.5 && a.y < c.b - 0.5 && c.y < a.b - 0.5;
       return [...document.querySelectorAll('#trackList .track')].every(row => {
-        const ps = ['track__idx', 'track__title', 'track__meta', 'track__plays', 'track__heat', 'track__go']
+        const ps = ['track__idx', 'track__title', 'track__meta', 'track__plays', 'track__heat']
           .map(c => row.querySelector('.' + c)).filter(Boolean)
           .map(e => { const b = e.getBoundingClientRect(); return { x: b.x, r: b.right, y: b.y, b: b.bottom }; });
         for (let i = 0; i < ps.length; i++) for (let j = i + 1; j < ps.length; j++) if (ov(ps[i], ps[j])) return false;
         return true;
       });
     });
-    ok(noOverlap, '序号 / 曲名 / 副标 / 数值 / 播放键互不重叠');
+    ok(noOverlap, '序号 / 曲名 / 副标 / 数值互不重叠');
 
     /* 前三名高亮：排行榜靠它表达次序，且不占宽度（不加任何图标） */
     const topMarks = await page.evaluate(() => {

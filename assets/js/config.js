@@ -362,13 +362,13 @@ window.SITE_CONFIG = {
               icon: "tiktok",
               label: "抖音",
               handle: "日常短片",
-              url: "https://www.douyin.com/"
+              url: "https://www.douyin.com/user/MS4wLjABAAAA1wmaICfSyWU3l7uxzi4msOXCMa9uf83zrgTTbk3Wg1c"
             },
           {
               icon: "xiaohongshu",
               label: "小红书",
               handle: "生活记录",
-              url: "https://www.xiaohongshu.com/"
+              url: "https://www.xiaohongshu.com/user/profile/62c6c97d000000000303ea99"
             },
           {
               icon: "xianyu",
@@ -418,7 +418,10 @@ window.SITE_CONFIG = {
         },
       gridSize: 64,
       starsOpacity: 0.6,
-      image: "assets/backdrop/mesh.svg",
+      /* 2026-11-13：换成自己的照片（底部 12% 已裁掉，去掉了相机水印与时间戳）。
+         桌面横图 / 手机竖图分开，手机不会下载桌面那张。 */
+      image: "assets/backdrop/scene-desktop.webp",
+      imageMobile: "assets/backdrop/scene-mobile.webp",
       imageOpacity: 1,
       /* 2026-11-12 第六轮：全屏 blur(24px) 每帧都要重新模糊整块背景，
          是合成阶段最贵的一项。mesh.svg 本身是柔和渐变，去掉模糊观感差别很小。 */

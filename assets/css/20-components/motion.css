@@ -127,7 +127,6 @@ html[data-motion="off"] .ambient__orb { animation: none; }
   .preview:active,
   .game:active,
   .calc__opt:active,
-  .track__go:active,
   .mailbox__mail:active {
     transform: scale(.97);
     transition-duration: .1s;

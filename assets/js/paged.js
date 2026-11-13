@@ -624,10 +624,17 @@ window.SITE_PAGED = (function () {
     window.addEventListener("wheel", function (e) {
       if (!wheelPagingAllowed(e)) return;
 
-      /* 起点的可滚动祖先还能朝这个方向滚 → 整个事件让给浏览器。
-         这一步必须在 wheelAcc 累加之前 return，否则列表滚到底之后
-         会带着之前攒的量突然翻页。 */
-      if (canScrollBy(scrollOwnerOf(e.target), e.deltaY)) return;
+      /* 起点的可滚动祖先还能朝这个方向滚 → 列表自己滚，页面**不许动**。
+         ⚠️ 只 return 是不够的：浏览器的默认滚动照样执行，于是列表在滚、
+         页面也在滚 —— 用户实测「鼠标放到游戏卡上滑动，页面还是上下」就是这么来的。
+         必须 preventDefault 拦掉页面，再把位移手动写给列表。
+         deltaMode === 1 是行模式（Firefox 常见），按 16px 一行换算。 */
+      var owner = scrollOwnerOf(e.target);
+      if (canScrollBy(owner, e.deltaY)) {
+        e.preventDefault();
+        owner.scrollTop += e.deltaMode === 1 ? e.deltaY * 16 : e.deltaY;
+        return;
+      }
 
       var now = Date.now();
       if (now < wheelLockedUntil) { e.preventDefault(); return; }

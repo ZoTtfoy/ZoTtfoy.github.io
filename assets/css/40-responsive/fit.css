@@ -155,7 +155,6 @@ html[data-paged="on"] [data-fit="snug"] .preview__cover { display: none; }
 html[data-paged="on"] [data-fit="snug"] .preview__meta { display: none; }
 
 html[data-paged="on"] [data-fit="snug"] .track { padding: 8px 10px; }
-html[data-paged="on"] [data-fit="snug"] .track__go { display: none; }
 html[data-paged="on"] [data-fit="snug"] .listen__foot { margin-top: 8px; }
 
 html[data-paged="on"] [data-fit="snug"] .game { padding: 10px; }
@@ -220,7 +219,6 @@ html[data-paged="on"] [data-fit="micro"] .preview__top { margin-bottom: 2px; }
 
 /* Q2 */
 html[data-paged="on"] [data-fit="micro"] .track { padding: 6px 9px; }
-html[data-paged="on"] [data-fit="micro"] .track__go { display: none; }
 html[data-paged="on"] [data-fit="micro"] .listen__foot { margin-top: 6px; }
 
 /* Q3 */

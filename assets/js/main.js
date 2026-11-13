@@ -51,9 +51,9 @@ window.SITE_BOOT = (function () {
     /* ---- 纯装饰与事件委托：挂在最后，挂了也不影响功能 ---- */
     { name: "steamwall", mod: "SITE_STEAMWALL", fn: "init" },
     { name: "albumwall", mod: "SITE_ALBUMWALL", fn: "init" },
-    { name: "effects", mod: "SITE_EFFECTS", fn: "init" },
-    { name: "player", mod: "SITE_PLAYER", fn: "init",
-      why: "只在 #trackList 上挂事件委托，必须等 render 把列表画出来" }
+    { name: "effects", mod: "SITE_EFFECTS", fn: "init" }
+    /* 2026-11-13：player 已退役 —— 听歌磁贴改成整行外链，站内不再播放。
+       文件也一并删除，省一个请求与 200 行没人走的代码。 */
   ];
 
   /* 不在表里启动的模块：它们自己在 DOMContentLoaded 里跑，重复调会重复请求。

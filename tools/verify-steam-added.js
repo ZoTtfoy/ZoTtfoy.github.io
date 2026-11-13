@@ -93,19 +93,12 @@ const g = (appid, name) => ({ appid, name: name || ('Game ' + appid) });
   ok(legacy.added.length === 1 && legacy.added[0].appid === 2,
      '旧版 JSON（无 added 字段）当成空记录，仍能算出新增');
 
-  /* ---- 与前端的承接口径 ---- */
+  /* ---- 与前端的承接口径（2026-11-13 起前端不再渲染这块）----
+     记账仍然照做：data/steam.json 里的 added 字段保留，只是不再展示。
+     这里守住"别再被加回页面"—— 如果要做，先在 verify-gaming 里说明理由。 */
   const renderSrc = require('./lib/render-src').renderSource();
-  ok(/function recentlyAddedHtml/.test(renderSrc), '渲染层有 recentlyAddedHtml');
-  /* 用「两个空格缩进的收尾大括号」圈住函数体：屏模块里的函数都是两层缩进。
-     早先写的是 \n\}（列 0），在 CRLF / 拆分后的文件里会一路吞到文件尾，
-     看似通过其实是匹配错了范围。 */
-  const fnBlock = (renderSrc.match(/function recentlyAddedHtml[\s\S]*?\r?\n  \}/) || [''])[0];
-  ok(/\.at\b|\.at\s*\|\||item\.at/.test(fnBlock) || /\bat\b/.test(fnBlock),
-     '前端记录里用到了 at 字段（日期）');
-  ok(/slice\(\s*0\s*,\s*8\s*\)/.test(fnBlock) || /8/.test(fnBlock),
-     '前端最多铺 8 个封面（其余走 +N）');
-  /* 后端上限必须 >= 前端展示数，否则"+"里那部分永远空着 */
-  ok(lib.ADDED_LIMIT >= 8, '后端保留条数（' + lib.ADDED_LIMIT + '）不少于前端展示的 8 个');
+  ok(!/recentlyAddedHtml|gb-new/.test(renderSrc),
+     '渲染层已不再渲染「最近入库」（数据仍记账，只是不展示）');
 
   /* ---- 脚本确实用了这个纯函数（而不是自己又写了一份）---- */
   const scriptSrc = fs.readFileSync(path.join(ROOT, 'scripts/sync-steam.mjs'), 'utf8');

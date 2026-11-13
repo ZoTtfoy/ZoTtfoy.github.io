@@ -385,7 +385,6 @@ window.SITE_RENDER = (function () {
     previewCard: previewCard,  // sync.js 用
     renderGameStats: Q3.renderGameStats, // sync.js 用：读 data/steam.json 后画模块
     fitBoardList: Q3.fitBoardList, // sync.js / 翻页完成后重算可见行数
-    recentlyAddedHtml: Q3.recentlyAddedHtml,
     /* 调试接口（排查用）：
        SITE_RENDER.renderOnly('gaming')  只重画某一块
        SITE_RENDER.report()              每块的成败与耗时 */

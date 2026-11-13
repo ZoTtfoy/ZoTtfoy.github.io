@@ -9,8 +9,9 @@
  *    external, map-pin, clock, heart, send, sun, moon, menu, close, copy,
  *    check, arrow-up, arrow-down, arrow-up-right, juejin, instagram
  *  品牌实心图标：github, x, linkedin, youtube, telegram, discord,
- *    qq, wechat, bilibili, netease, qqmusic, weibo, zhihu,
+ *    qq, wechat, bilibili, netease, weibo, zhihu,
  *    tiktok（抖音）, xiaohongshu（小红书）
+ *    qqmusic（QQ 音乐，社区线稿，见下方注释）
  *  文字标记：xianyu（闲鱼）—— 直接显示「闲鱼」两个字，不用任何图形
  *
  *  ⚠️ 品牌标识一律用**官方实心路径**，不要手绘。手绘的企鹅和双气泡
@@ -102,7 +103,7 @@ window.SITE_ICONS = {
        网易云音乐           → thesvg
      这些都是**实心填充**路径（fill + stroke:none），与原手绘的描边风格不同 ——
      品牌标识本身就该是实心的，描边描不出企鹅和两个气泡的神态。
-     下面的 qqmusic 是手绘实心版本（公开库没有），风格与上面保持一致。 */
+     ⚠️ QQ 音乐是唯一例外，见下方 qqmusic 的注释：它的公开矢量只有社区线稿。 */
 
   /* QQ：官方企鹅 */
   qq:        "<path fill=\"currentColor\" stroke=\"none\" d=\"M21.395 15.035a40 40 0 0 0-.803-2.264l-1.079-2.695c.001-.032.014-.562.014-.836C19.526 4.632 17.351 0 12 0S4.474 4.632 4.474 9.241c0 .274.013.804.014.836l-1.08 2.695a39 39 0 0 0-.802 2.264c-1.021 3.283-.69 4.643-.438 4.673.54.065 2.103-2.472 2.103-2.472 0 1.469.756 3.387 2.394 4.771-.612.188-1.363.479-1.845.835-.434.32-.379.646-.301.778.343.578 5.883.369 7.482.189 1.6.18 7.14.389 7.483-.189.078-.132.132-.458-.301-.778-.483-.356-1.233-.646-1.846-.836 1.637-1.384 2.393-3.302 2.393-4.771 0 0 1.563 2.537 2.103 2.472.251-.03.581-1.39-.438-4.673\"/>",
@@ -120,10 +121,17 @@ window.SITE_ICONS = {
      ⚠️ Simple Icons / Iconify 都没有 QQ 音乐的矢量标记（只有 arcticons 的
      48×48 线框版，与本组实心风格冲突），所以这个是手绘。
      音符的几何是**一条连续轮廓**：符干(矩形) + 符尾(斜四边形) + 符头(圆)，
-     顺时针一笔画完。早期版本把符头画小、整体偏右下，20px 下糊成一团，
-     现在符头半径 2.7、整体外接框 7.7..17.1 × 5.6..18.3，正好落在
-     方块（2..22）的视觉中心。 */
-  qqmusic:   '<path fill="currentColor" stroke="none" fill-rule="evenodd" d="M6 2h12a4 4 0 0 1 4 4v12a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V6a4 4 0 0 1 4-4zM11.5 5.6h1.6l4 1.1v2.4l-4-1.1v7.6a2.7 2.7 0 1 1-1.6-2.47z"/>',
+     QQ 音乐（2026-11-13 起）：改用 Arcticons 的社区线稿（圆环唱片 + 音符），
+     CC BY-SA 4.0，经 Iconify 分发：api.iconify.design/arcticons/qq-music.svg
+     为什么不是"官方"：y.qq.com 只提供 logo.png / favicon.ico，没有 SVG；
+     Simple Icons、Font Awesome、Iconify 的 logos 集合都没有这个品牌。
+     与其自己拼一个"像"的方块音符，不如用一个真实存在的第三方图标。
+     坐标系是 48，而外层 viewBox 是 24 —— 用 scale(.5) 折半，并把
+     stroke-width 乘 2（3.4）抵消缩放，屏幕上仍是 1.7px 左右。 */
+  qqmusic:   '<g transform="scale(.5)" stroke-width="3.4">' +
+             '<circle cx="24" cy="24" r="21.5" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/>' +
+             '<path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" d="M33.235 8.5c-3.736 3.173-8.608 4.076-15.715.507l9.44 10.012c4.308 4.307 4.257 8.173 4.5 12.103.266 4.296-1.537 6.736-4.067 7.805-3.655 1.544-9.574-.164-11.681-3.526-1.748-2.787-1.001-7.727 1.621-10.045 4.699-4.153 10.14-3.406 13.84 2.063"/>' +
+             "</g>",
 
 
   /* ---- 2026-11-13 补齐：列表里新出现的平台 ---- */
@@ -190,7 +198,7 @@ window.SITE_ICONS = {
    实心图标没有描边，所以放大视框不会让 stroke-width 变粗。 */
 var SOLID_BRAND = {
   github: 1, x: 1, linkedin: 1, youtube: 1, telegram: 1, discord: 1,
-  qq: 1, wechat: 1, bilibili: 1, netease: 1, qqmusic: 1, weibo: 1, zhihu: 1,
+  qq: 1, wechat: 1, bilibili: 1, netease: 1, weibo: 1, zhihu: 1,
   tiktok: 1, xiaohongshu: 1,
   steam: 1, valorant: 1, rhodes: 1, xiaoheihe: 1
 };

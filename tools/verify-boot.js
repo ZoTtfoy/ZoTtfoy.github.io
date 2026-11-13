@@ -94,7 +94,6 @@ const ok = (c, m) => c ? notes.push('OK  ' + m) : fails.push(m);
      'scale → density → foldQuote → paged 依次执行（measure 三连不能提前）');
   ok(order("live", "paged"), 'live 早于 paged（时钟/一言会撑高首页）');
   ok(idx("readable") > idx("paged"), 'readable 晚于 paged（要读最终生效的字号）');
-  ok(idx("player") > idx("render"), 'player 晚于 render（事件委托挂在 #trackList 上）');
 
   /* ---------- 输出 ---------- */
   ok(jsErrors.length === 0, '页面没有 JS 报错'

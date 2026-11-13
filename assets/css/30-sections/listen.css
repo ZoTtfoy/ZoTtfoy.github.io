@@ -217,10 +217,11 @@
    .track__main 用 display:contents 把曲名和副标提升成网格项。 */
 .track {
   display: grid;
-  /* 序号 | 封面 | 主内容 | 按钮
-     加封面只多占了原来序号那一列的右侧一点 —— 序号本来就只有 2 个字符宽，
-     封面紧挨着它，曲名那列仍然拿到绝大部分宽度。 */
-  grid-template-columns: auto auto minmax(0, 1fr) auto;
+  /* 序号 | 封面 | 主内容
+     2026-11-13 去掉右侧播放键后回到三列，多出来的宽度全给曲名。
+     position: relative 是给 .track__hit 那层整行链接用的。 */
+  position: relative;
+  grid-template-columns: auto auto minmax(0, 1fr);
   align-items: center;
   column-gap: 10px;
   row-gap: 1px;
@@ -319,79 +320,29 @@
    实测后四首只差 1px、看不出区别，却把曲名最缺的宽度吃掉了。 */
 .track__idx.is-top { color: var(--accent); font-weight: 600; }
 
-.track__go {
-  grid-area: 1 / 4 / 2 / 5;
-  justify-self: end;
-  display: grid;
-  place-items: center;
-  width: 24px;
-  height: 24px;
-  border-radius: var(--r-xs);
-  color: var(--text-3);
-  transition: color var(--t-fast) var(--ease), background-color var(--t-fast) var(--ease);
-}
-.track__go .icon { width: 12px; height: 12px; }
-.track__go:hover { color: var(--text); background: var(--bg-soft); }
-
-/* ------------------------------------------------------- 播放按钮与播放态
-   只有"数据里确认可播"的曲目才会渲染成 <button>。其余是外链，
-   看起来一样但右下角的语义不同（一个播，一个跳网易云）——
-   所以可播的那个平时就带一点强调色，让人一眼知道"这个能点出声音"。 */
-.track__play {
-  color: var(--accent);
-  background: var(--accent-soft);
-}
-.track__play .icon { width: 12px; height: 12px; margin-left: 1px; }
-.track__play:hover { color: var(--accent-fg); background: var(--accent); }
-
-/* 播放中：整块磁贴亮起来 + 左侧一条强调色竖线。
-   不做"跳动的均衡器条"——那需要 3~5 个动画元素 × 6 首常驻，
-   而这一屏本来就紧张。一条静态竖线加变色足够了。 */
-.track.is-playing {
-  border-color: var(--accent);
-  background: var(--bg-elev);
-  box-shadow: inset 2px 0 0 var(--accent);
-}
-.track.is-playing .track__title { color: var(--text); font-weight: 600; }
-.track.is-playing .track__pic {
-  box-shadow: 0 0 0 2px var(--accent), inset 0 0 0 1px rgb(0 0 0 / .08);
-}
-.track.is-playing .track__play { color: var(--accent-fg); background: var(--accent); }
-
-/* 行内进度条：绝对定位在底边，高 2px。
-   不占布局高度 —— 一屏装 6 首的预算里没有多余的 8px 给它。
-   进度由 player.js 写成 --p（0~1），这里只负责画。 */
-.track { position: relative; }
-.track.is-playing::after {
-  content: "";
+/* ---------------------------------------------------------- 整行链接覆盖层
+   2026-11-13：不再有站内播放，整块磁贴点哪都去网易云歌曲页。
+   用一层绝对定位的 <a> 而不是改 <li> 标签，布局与入场动画都不用动。 */
+.track__hit {
   position: absolute;
-  left: 0;
-  bottom: 0;
-  height: 2px;
-  width: calc(100% * var(--p, 0));
-  background: var(--accent);
-  border-radius: 0 2px 2px 0;
-  transition: width .25s linear;
+  inset: 0;
+  z-index: 1;
+  border-radius: inherit;
 }
-/* 播完或被拦下时把进度条收掉，不要留一条半截的线 */
-.track.is-blocked::after { display: none; }
-.track.is-blocked .track__go { opacity: .5; }
+.track__hit {
+  /* 触摸屏上整行是 <a>：不关掉链接拖拽与长按菜单，纵向滑动会被浏览器
+     当成"拖链接"而发出 touchcancel，翻页手势就断了（verify-swipe 实测）。 */
+  -webkit-user-drag: none;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.track__hit:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.track { cursor: pointer; }
 
-/* 触屏上按钮要够大 —— 但**不能改布局尺寸**。
-   ⚠️ 最早写的是 `.track__go { width: 32px; height: 32px }`，
-   它把磁贴第一行从 25px 撑到 32px，六行就是 +42px，
-   393×852 上 Q2 直接从 roomy 掉到 tight（整屏留白被压）。
-   改用伪元素向外扩 4px 的热区：视觉 24px 不变，可点区变成 32px，
-   布局完全不受影响 —— 这也是 WCAG 2.5.8「目标尺寸」推荐的做法。 */
-@media (pointer: coarse) {
-  .track__go { position: relative; }
-  .track__go::after {
-    content: "";
-    position: absolute;
-    inset: -4px;
-    border-radius: var(--r-sm);
-  }
-}
 
 .listen__foot {
   position: relative;

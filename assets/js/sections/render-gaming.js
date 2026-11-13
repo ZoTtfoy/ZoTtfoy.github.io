@@ -111,53 +111,6 @@
       "</span>";
   }
 
-  /* ---------- 最近入库 ----------
-     Steam 的 Web API **没有"购买时间"** 这个字段（GetOwnedGames 只给
-     rtime_last_played = 最后游玩）。所以这条是"记账"算出来的：
-     每次同步把全库 appid 存进 data/steam.json，下次对比，新出现的即新入库。
-     第一次同步只建基线（ownedSince 记下日期），之后才会陆续有内容。
-     ⚠️ 没有数据时整条不渲染 —— 空标题比没有更难看。 */
-  function recentlyAddedHtml(added, since) {
-    var list = arr(added).filter(function (g) { return g && g.appid; });
-
-    /* 空态：一条记录都没有时，早先整块不渲染 —— 那一行就凭空少了 30px，
-       看起来像"这块坏了"。现在补一句实话：从哪天开始记账。
-       Steam 接口没有"购买时间"，记录只能从第一次建立基线那天算起，
-       所以这个日期是准的，不是占位文案。 */
-    if (!list.length) {
-      if (!since) return "";
-      return '<span class="gb-new is-empty">' +
-          '<span class="gb-new__label">最近入库' +
-            '<i>' + esc(String(since).slice(5).replace("-", "/")) + " 起</i>" +
-          "</span>" +
-          '<span class="gb-new__hint">还没有新入库</span>' +
-        "</span>";
-    }
-
-    var MAX = 8;
-    var head = list.slice(0, MAX).map(function (g) {
-      var url = "https://cdn.akamai.steamstatic.com/steam/apps/" + g.appid + "/header.jpg";
-      /* --h 是这块的兜底色相：新入库的游戏最容易没有 header.jpg，
-         图挂了就藏起 img，露出 .gb-new__item 自己的色相渐变，
-         而不是留一个空洞（列表行的 is-blank 是同一套思路）。 */
-      return '<span class="gb-new__item" style="--h:' + hueOf(g.appid) + '"' +
-               ' title="' + esc(g.name || "") +
-               (g.at ? "（" + esc(g.at) + " 入库）" : "") + '">' +
-               '<img src="' + esc(url) + '" alt="" loading="lazy" decoding="async"' +
-               ' onerror="this.style.display=\'none\'">' +
-             "</span>";
-    }).join("");
-
-    return '<span class="gb-new">' +
-        '<span class="gb-new__label">最近入库' +
-          (since ? '<i>' + esc(String(since).slice(5).replace("-", "/")) + " 起</i>" : "") +
-        "</span>" +
-        '<span class="gb-new__row">' + head +
-          (list.length > MAX ? '<b class="gb-new__more">+' + (list.length - MAX) + "</b>" : "") +
-        "</span>" +
-      "</span>";
-  }
-
   /* 列表里一行。封面挂了就换下一个源，全挂了露兜底图标 ——
      绝不出现"空黑框"（深空当铺的 header.jpg 就是 404）。 */
   function rowHtml(g, i, maxH) {
@@ -208,10 +161,16 @@
     if (!box) return 0;
 
     var lib = !Array.isArray(data) && data ? data.lib : null;
-    var added = !Array.isArray(data) && data ? data.added : null;
-    var since = !Array.isArray(data) && data ? data.ownedSince : "";
     var rows = arr(Array.isArray(data) ? data : (data && data.recent))
       .filter(function (g) { return g && (g.hours > 0 || (g.ach && g.ach.total > 0)); })
+      /* 2026-11-13：按「最近游玩时长」降序。hours2w 是 Steam 的最近两周时长，
+         真的最近玩过才非零；为 0 的再按总时长降序，列表仍然是"玩得多的在前"。
+         （Steam 的 rtime_last_played 目前同步脚本没抓，将来补上可换成 last 降序。） */
+      .sort(function (a, b) {
+        var d = (Number(b.hours2w) || 0) - (Number(a.hours2w) || 0);
+        if (d) return d;
+        return (Number(b.hours) || 0) - (Number(a.hours) || 0);
+      })
       .slice(0, ROW_LIMIT);
 
     if (!rows.length) { box.hidden = true; box.innerHTML = ""; fitBoardList(); return 0; }
@@ -220,17 +179,8 @@
 
     box.innerHTML =
       boardSummaryHtml(lib, rows.length) +
-      recentlyAddedHtml(added, since) +
       '<span class="gb-list" id="gbList">' +
         rows.map(function (g, i) { return rowHtml(g, i, maxH); }).join("") +
-      "</span>" +
-      /* 列表被截断时，底部给一条渐隐 + 一句"查看全部" —— 
-         不然滚到一半的人不知道下面还有。 */
-      '<span class="gb-more" id="gbMore" hidden>' +
-        '<span class="gb-more__fade"></span>' +
-        '<span class="gb-more__txt">查看全部' +
-          (lib && lib.totalGames ? " " + lib.totalGames + " 款" : "") +
-          icon("arrow-up-right") + "</span>" +
       "</span>";
 
     box.hidden = false;
@@ -255,7 +205,6 @@
         改成两者都减区块的 top，差值就是**布局内**的位置，与滚动无关。 */
   function fitBoardList() {
     var list = $("gbList");
-    var more = $("gbMore");
     var board = $("gameBoard");
     var sec = $("gaming");
     if (!list || !board || !sec || !list.firstElementChild) return 0;
@@ -277,17 +226,13 @@
        下一轮按更大的高度算 → 行更多），所以取 min(区块高, 视口高)。 */
     var budget = Math.min(sec.clientHeight, window.innerHeight || 800);
 
-    /* "查看全部"要先显形才量得到高度；它现在是列表下方的独立底带 */
-    if (more) more.hidden = false;
-    var strip = (more && more.offsetHeight) || 46;
-
     /* 归零再量：列表可能还带着上一轮的 max-height 与底带 */
     list.style.maxHeight = "none";
     board.style.paddingBottom = "";
     var listTop = list.getBoundingClientRect().top - secTop;
     /* 尾部余量 22：给页码条 / 回顶按钮留的。原来是 18，实测 920×720 那档
        容器 579 + 上下内边距 144 = 723 > 720，正好差 3~4px。 */
-    var room = budget - listTop - padBottom - 22 - strip;
+    var room = budget - listTop - padBottom - 22;
 
     var bt = parseFloat(getComputedStyle(list).borderTopWidth) || 0;
     var avail = room - bt;
@@ -312,31 +257,18 @@
     }
 
     var fit = measureFits(avail);
-    var useStrip = true;
 
-    /* 连一行都放不下时，先把"查看全部"的底带也让出来（920×720 那档就差这 4px）。
-       让出底带还放不下，才退到"只画一行"—— 空白面板比略溢出更糟。 */
-    if (fit.n < 1) {
-      fit = measureFits(avail + strip);
-      useStrip = false;
-    }
-
-    if (fit.n >= kids.length) {             /* 全装得下：不滚、不留底带 */
+    if (fit.n >= kids.length) {             /* 全装得下：不滚 */
       list.classList.remove("is-scroll");
-      board.style.paddingBottom = "";
-      if (more) more.hidden = true;
       return kids.length;
     }
 
     if (fit.n < 1) {                        /* 极矮窗口：保底一行 */
       fit.n = 1;
       fit.sum = kids[0].getBoundingClientRect().height;
-      useStrip = false;
     }
 
-    /* 列表 = 整整 fit.n 行；需要时底带单独占 strip，两者不重叠 */
-    board.style.paddingBottom = useStrip ? strip + "px" : "";
-    if (more) more.hidden = !useStrip;
+    /* 列表 = 整整 fit.n 行；其余靠列表自己滚（滚轮在 paged.js 里让给它） */
     list.style.maxHeight = (fit.sum + bt) + "px";
     list.classList.add("is-scroll");
 
@@ -388,7 +320,6 @@
   K.register("gaming", {
     renderGaming: renderGaming,
     renderGameStats: renderGameStats,
-    fitBoardList: fitBoardList,
-    recentlyAddedHtml: recentlyAddedHtml
+    fitBoardList: fitBoardList
   });
 })(window.SITE_RENDER_KIT);

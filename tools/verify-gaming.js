@@ -170,24 +170,16 @@ ok(/\.gb-head__icon\s*\{[\s\S]{0,240}color:\s*var\(--game/.test(gameCssDecl),
 ok(!/\.gb-head__id\s*\{[\s\S]{0,300}cursor:\s*pointer/.test(gameCssDecl),
    '好友码只是文字（不是可点按钮）');
 
-/* 「最近入库」的封面兜底：新入库的游戏最容易没有 header.jpg（预购 / 锁区 / 刚上架），
-   图挂了必须露一块有色相的空位，而不是一个透明洞。
-   两个条件缺一不可 —— 藏图（display:none）+ 容器自己有渐变底。 */
-const newItemBlock = (gameCssDecl.match(/\.gb-new__item\s*\{[\s\S]*?\}/) || [''])[0];
-ok(/linear-gradient/.test(newItemBlock) && /var\(--h/.test(newItemBlock),
-   '最近入库的封面块自带色相兜底（图挂了不是洞）');
-const newHtmlBlock = (renderSrc.match(/function recentlyAddedHtml[\s\S]*?\n  \}/) || [''])[0];
-ok(/--h:/.test(newHtmlBlock) && /hueOf\(/.test(newHtmlBlock),
-   '最近入库按 appid 写行内 --h（每款一个色）');
-ok(/onerror="this\.style\.display=\\?'none\\?'"/.test(newHtmlBlock),
-   '最近入库的图挂了是 display:none（visibility:hidden 会留空位）');
+/* 2026-11-13：用户要求删掉「最近入库」与「查看全部」。
+   这里守住"别再长回来"—— 渲染层与样式里都不许残留。 */
+ok(!/recentlyAddedHtml|gb-new/.test(renderSrc), '渲染层不再有「最近入库」');
+ok(!/\.gb-new/.test(gameCssDecl), '样式里不再有「最近入库」');
+ok(!/gb-more|查看全部/.test(renderSrc), '渲染层不再有「查看全部」');
+ok(!/\.gb-more/.test(gameCssDecl), '样式里不再有「查看全部」');
 
-/* 空态：一条入库记录都没有时，那一行不能凭空消失（会让下方列表跳一下）。
-   渲染端给出"从哪天开始记账"，数据端的 ownedSince 就是那个日期。 */
-ok(/gb-new is-empty/.test(renderSrc) && /还没有新入库/.test(renderSrc),
-   '最近入库有空态（没有记录时也占住那一行）');
-ok(/\.gb-new\.is-empty/.test(gameCssDecl) && /\.gb-new__hint/.test(gameCssDecl),
-   '空态有对应样式（.gb-new.is-empty / .gb-new__hint）');
+/* 排序：按最近游玩时长（hours2w）降序，并列时退回总时长 */
+ok(/sort\(function \(a, b\)[\s\S]{0,300}hours2w/.test(renderSrc),
+   '游戏列表按最近游玩时长降序（hours2w，并列退回 hours）');
 
 /* 行数上限：数据端抓 30、渲染端也只画 30。两处任一漏掉，另一端就白做。 */
 const syncSrc = fs.readFileSync(path.join(ROOT, 'scripts/sync-steam.mjs'), 'utf8');
@@ -200,8 +192,11 @@ ok(/ROW_LIMIT = 30\b/.test(renderSrc) && /slice\(0, ROW_LIMIT\)/.test(renderSrc)
 const pagedJSSrc = fs.readFileSync(path.join(ROOT, 'assets/js/paged.js'), 'utf8');
 ok(/function scrollOwnerOf/.test(pagedJSSrc), 'paged.js 有可滚动祖先探测');
 ok(/function canScrollBy/.test(pagedJSSrc), 'paged.js 能判断容器还能不能朝手势方向滚');
-ok(/canScrollBy\(scrollOwnerOf\(e\.target\), e\.deltaY\)/.test(pagedJSSrc),
-   '滚轮：起点在可滚动容器里就放行');
+ok(/var owner = scrollOwnerOf\(e\.target\)/.test(pagedJSSrc) &&
+   /canScrollBy\(owner, e\.deltaY\)/.test(pagedJSSrc) &&
+   /owner\.scrollTop \+=/.test(pagedJSSrc) &&
+   /e\.preventDefault\(\)/.test(pagedJSSrc),
+   '滚轮：起点在可滚动容器里就交给它自己滚，并拦住页面滚动');
 ok(/canScrollBy\(owner, dy\)/.test(pagedJSSrc),
    '触摸：起点在可滚动容器里就放行');
 
@@ -516,25 +511,19 @@ async function browserChecks() {
     ok(!boardInfo.hasCopyBtn, tag + '模块里没有"复制 UID"按钮');
     ok(boardInfo.nested === 0, tag + '除了这个按钮，容器里没有别的交互元素');
 
-    /* 「查看全部」是绝对定位压在列表底部的，所以必须**一行都不许压住**。
-       这里的判据是"完全落在列表可视区内的行，其底边不能越过渐隐顶边"：
-       只压到下一行（被裁掉的那一行）是设计如此，压到完整行就是 bug。
-       曾经写死让 26px 而它实际高 46px，于是每屏都压掉 20px。 */
-    const stripInfo = await page.evaluate(() => {
+    /* 2026-11-13：查看全部已删，列表改为自己滚（滚轮由 paged.js 让给它）。
+       这里守「列表真的可滚」—— 否则"滚轮聚焦"就是空话：列表没有溢出行，
+       scrollOwnerOf 找不到滚动容器，滚轮还是会翻页。 */
+    const scrollInfo = await page.evaluate(() => {
       const list = document.getElementById('gbList');
-      const more = document.getElementById('gbMore');
-      const listR = list.getBoundingClientRect();
-      if (more.hidden) return { hidden: true, covered: 0, strip: 0 };
-      const moreR = more.getBoundingClientRect();
-      const fully = [...list.children]
-        .map(el => el.getBoundingClientRect())
-        .filter(b => b.top >= listR.top - 1 && b.bottom <= listR.bottom + 1);
-      const covered = fully.filter(b => b.bottom > moreR.top + 1).length;
-      return { hidden: false, covered, strip: Math.round(moreR.height),
-               maxH: list.style.maxHeight, fullyVisible: fully.length };
+      return {
+        scrollable: list.scrollHeight > list.clientHeight + 2,
+        client: list.clientHeight, scroll: list.scrollHeight,
+        overflowY: getComputedStyle(list).overflowY
+      };
     });
-    ok(stripInfo.hidden || stripInfo.covered === 0,
-       tag + '「查看全部」没有压住任何完整行（压住 ' + stripInfo.covered + ' 行，条高 ' + stripInfo.strip + '）');
+    ok(scrollInfo.scrollable && scrollInfo.overflowY !== 'hidden',
+       tag + '列表可滚（' + scrollInfo.client + '/' + scrollInfo.scroll + '，滚轮才会让给它）');
 
     /* 封面墙的几何中心必须落在**屏幕正中心**。
        这里是实测过 1px 偏差的：区块有 `border-top: 1px`，而绝对定位的包含块是

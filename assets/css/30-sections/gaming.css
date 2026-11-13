@@ -377,7 +377,7 @@ html[data-wall="static"] .albumwall__row { animation: none !important; }
   border-radius: 999px;
 }
 .gb-list::-webkit-scrollbar-track { background: transparent; }
-/* 能滚的时候，底部渐隐由 .gb-more 那条静态渐变底带负责。
+/* 能滚的时候，靠列表自己的滚动条与边缘渐隐表达，不再有底部提示带。
    2026-11-12：撤掉 mask-image —— 滚动容器上的遮罩会额外生成一个合成层，
    每帧都要把新绘出的内容重新套一次遮罩，是"中间卡片一直刷新"的来源之一。 */
 .gb-list.is-scroll { padding-bottom: 8px; }
@@ -485,33 +485,6 @@ html[data-wall="static"] .albumwall__row { animation: none !important; }
 .gb-row.is-done .gb-row__ach-num b { color: var(--accent); }
 .gb-row__ach.is-none { font-size: .78rem; color: var(--text-3); }
 
-/* ------------------------------------------------------- ④ "查看全部" */
-/* 列表被截断时贴在卡片底部：一条渐隐 + 一句提示。
-   整块是个链接，所以这里 pointer-events: none —— 点它等于点卡片。 */
-.gb-more {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 46px;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  padding-bottom: 7px;
-  background: linear-gradient(to bottom, transparent, var(--bg-elev) 62%);
-  pointer-events: none;
-}
-.gb-more[hidden] { display: none; }
-.gb-more__fade { display: none; }   /* 渐变交给父级，占位留着不影响结构 */
-.gb-more__txt {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: .72rem;
-  color: var(--text-2);
-}
-.gb-more__txt .icon { width: 12px; height: 12px; }
-
 /* --------------------------------------------------------------- 窄屏 */
 @media (max-width: 680px) {
   .game-board { margin-top: 10px; }
@@ -570,72 +543,4 @@ html[data-vp="mini"] .gb-row__hours { font-size: .8rem; }
    （别处的 .section__head 下边距是 clamp(40px,6vw,72px)，一屏里占掉 72px。） */
 #gaming .section__head { margin-bottom: clamp(18px, 2.4vw, 28px); }
 
-/* ------------------------------------------------------- ⑤ 最近入库 */
-/* 一条横向的封面带，放在三格数据下面、列表上面。
-   数据来自"两次同步的差集"（Steam 接口没有购买时间，见 render.js 的注释）。
-   没有新入库时整条不渲染，所以这里不需要 :empty 之类的兜底。 */
-.gb-new {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 0 16px 12px;
-  min-width: 0;
-}
-.gb-new__label {
-  flex: none;
-  display: flex;
-  align-items: baseline;
-  gap: 5px;
-  font-size: .72rem;
-  color: var(--text-2);
-  white-space: nowrap;
-}
-.gb-new__label i {
-  font-style: normal;
-  font-size: .66rem;
-  color: var(--text-3);
-}
-.gb-new__row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  min-width: 0;
-  overflow: hidden;
-}
-.gb-new__item {
-  flex: none;
-  display: block;
-  width: 64px;
-  aspect-ratio: 16 / 9;
-  overflow: hidden;
-  border-radius: var(--r-xs);
-  /* 底色不是装饰，是**兜底**：刚入库的游戏常常还没有 header.jpg
-     （预购 / 锁区 / 新上架），图挂了就露出这一层色相。
-     色相来自 appid（render.js 写行内 --c），和列表行的条同源，
-     所以"图没了"只是一块有颜色的空位，不会是一个洞。 */
-  background:
-    linear-gradient(135deg,
-      hsl(var(--h, 210) 46% 42%),
-      hsl(calc(var(--h, 210) + 26) 40% 30%));
-}
-.gb-new__item img { display: block; width: 100%; height: 100%; object-fit: cover; }
-.gb-new__more {
-  font-family: var(--font-mono);
-  font-size: .7rem;
-  font-weight: 600;
-  color: var(--text-3);
-}
-/* 空态：还没有新入库。
-   不是"这块没做"，而是"从哪天开始记账" —— 所以字要比记录淡一档，
-   位置仍占着那条 30px，避免这一行忽有忽无导致下面的列表跳动。 */
-.gb-new.is-empty { min-height: 28px; }
-.gb-new__hint {
-  font-size: .72rem;
-  color: var(--text-3);
-}
 
-@media (max-width: 680px) {
-  .gb-new { gap: 8px; padding: 0 12px 10px; }
-  .gb-new__label i { display: none; }
-  .gb-new__item { width: 48px; }
-}

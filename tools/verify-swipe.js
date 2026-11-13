@@ -129,6 +129,13 @@ ok(s.active === before2 + 1, "长距离上滑 500px 只翻一页（" + before2 +
  *
  *  所以：手势压到 1 步（touchStart → touchMove → touchEnd），
  *  并把两次抬手间隔量出来；超过 250ms 就明说跳过，而不是报一个假失败。 */
+/* 2026-11-13：必须回到首页再做这一组。
+   上一组结束时停在游戏屏，而游戏列表现在是**可滚容器**（删掉"查看全部"
+   之后它必须自己滚）—— 从列表上开始的手势会被让给列表，本来就不该翻页。
+   在这里滑，测到的会是"列表滚了"而不是"锁生效"。 */
+await page.evaluate(() => window.SITE_PAGED.goTo(0));
+await page.waitForTimeout(900);
+s = await state();
 const before3 = s.active;
 await page.waitForTimeout(400);          /* 先让上一组的锁自然过期 */
 await swipe(700, 400, 1, 0);
@@ -151,7 +158,9 @@ if (between3 > 250) {
    而真实的锁时长一点问题都没有。所以先把位置退回到后面确实还有两屏的地方。 */
 {
   const total = s.pages;
-  if (s.active + 2 > total - 1) {
+  /* 回到第 2 屏（听歌）再滑：这里没有可滚容器，手势一定落到翻页逻辑上。
+     游戏屏的列表会吃掉纵向手势（这是设计），不能用来测"两下各翻一页"。 */
+  if (s.active !== 1 || s.active + 2 > total - 1) {
     await page.evaluate(() => window.SITE_PAGED.goTo(1));
     await page.waitForTimeout(900);
     s = await state();
@@ -160,9 +169,12 @@ if (between3 > 250) {
     "第 4 组起点后面还有两屏可翻（第 " + s.active + " 屏 / 共 " + s.pages + " 屏）");
 
   const before4 = s.active;
-  await swipe(700, 400, 4, 6);
+  /* 起点放在页面上部（y 300→100），不要用 y=700：
+     第一下翻到游戏屏之后，第二下会落在可滚列表上而被让给列表 ——
+     那不是锁失效，是列表该滚。 */
+  await swipe(300, 100, 4, 6);
   await page.waitForTimeout(420);
-  await swipe(700, 400, 4, 6);
+  await swipe(300, 100, 4, 6);
   await page.waitForTimeout(1000);
   s = await state();
   ok(s.active === before4 + 2,

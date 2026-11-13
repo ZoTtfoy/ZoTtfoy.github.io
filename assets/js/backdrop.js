@@ -137,13 +137,28 @@ window.SITE_BACKDROP = (function () {
   }
 
   /* ------------------------------------------------------------ 背景图片 */
-  function setImage(url) {
+  /* 2026-11-13：改成写 CSS 变量（--bd-image / --bd-image-mobile），
+     不再直接写 imageEl.style.backgroundImage —— 内联样式会盖掉 @media，
+     手机就没法换一张竖图。变量只在真正被 background-image 引用时才会发请求，
+     所以手机只下载 mobile 那张、桌面只下载桌面那张。 */
+  /* CSS 变量里的 url() 是相对**声明它样式表**解析的（backdrop.css 在
+     assets/css/10-shell/），写 config 里的 "assets/backdrop/x.webp" 会被拼成
+     assets/css/10-shell/assets/backdrop/x.webp —— 404。统一补成站点绝对路径。 */
+  function absUrl(u) {
+    if (!u) return u;
+    if (/^(https?:|data:|\/)/.test(u)) return u;
+    return "/" + u.replace(/^\.?\//, "");
+  }
+
+  function setImage(url, mobileUrl) {
     if (!imageEl) return;
-    var u = typeof url === "string" ? url.trim() : "";
+    var u = absUrl(typeof url === "string" ? url.trim() : "");
+    var m = absUrl(typeof mobileUrl === "string" ? mobileUrl.trim() : "");
 
     if (!u) {
       root.dataset.backdropImage = "off";
-      imageEl.style.backgroundImage = "";
+      root.style.removeProperty("--bd-image");
+      root.style.removeProperty("--bd-image-mobile");
       applyTextGuard();
       return;
     }
@@ -153,13 +168,16 @@ window.SITE_BACKDROP = (function () {
     probe.decoding = "async";
 
     probe.onload = function () {
-      imageEl.style.backgroundImage = 'url("' + u.replace(/"/g, '\\"') + '")';
+      root.style.setProperty("--bd-image", 'url("' + u.replace(/"/g, '\\"') + '")');
+      if (m) root.style.setProperty("--bd-image-mobile", 'url("' + m.replace(/"/g, '\\"') + '")');
+      else root.style.removeProperty("--bd-image-mobile");
       root.dataset.backdropImage = "on";
       applyTextGuard();
     };
     probe.onerror = function () {
       root.dataset.backdropImage = "off";
-      imageEl.style.backgroundImage = "";
+      root.style.removeProperty("--bd-image");
+      root.style.removeProperty("--bd-image-mobile");
       applyTextGuard();
       if (window.console && console.warn) {
         console.warn("[backdrop] 背景图加载失败，已自动退回纯色背景：" + u);
@@ -167,6 +185,7 @@ window.SITE_BACKDROP = (function () {
     };
     probe.src = u;
   }
+
 
   /* -------------------------------------------------------------- 视差
      两个方向叠加，幅度都很小：
@@ -236,7 +255,7 @@ window.SITE_BACKDROP = (function () {
     imageEl = $("ambientImage");
 
     applyFlags();
-    setImage(B.image);
+    setImage(B.image, B.imageMobile);
 
     // 主题 / 明暗切换后，遮罩颜色取自 --bg，会自动跟着变，这里只需重算一次 kenBurns 等
     var syncMotion = function () {
