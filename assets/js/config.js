@@ -511,9 +511,13 @@ window.SITE_CONFIG = {
       showThemeToggle: true
     },
   hero: {
+      /* 2026-11-14：primary 原来指向 #repair，而 sections.repair.enabled = false，
+         那个屏早被关掉了 —— 按钮点了完全没反应（用户报的"定向按钮失效"）。
+         改指第一屏内容；render-profile 里另有一道兜底：目标屏不存在/被关，
+         自动退到第一个启用的屏，不会再留死链。 */
       primary: {
           label: "看看我做什么",
-          target: "#repair"
+          target: "#listen"
         },
       secondary: {
           label: "找到我",

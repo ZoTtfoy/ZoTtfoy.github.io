@@ -120,6 +120,16 @@ html[data-loading="0"] .splash { display: none; }
   opacity: .55;
 }
 .hero__quote.is-swapping { opacity: 0; }
+/* 可点击时给鼠标一个明确暗示：之前只在 <button> 上写了 cursor，
+   而实际元素是 <p role="button">，光标一直是箭头，看起来像不可点。 */
+.hero__quote[role="button"] { cursor: pointer; }
+.hero__quote[role="button"]:hover { color: var(--text); }
+.hero__quote[role="button"]:hover::before { opacity: .9; }
+.hero__quote[role="button"]:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+  border-radius: var(--r-sm);
+}
 .hero__quote__from {
   margin-left: 8px;
   /* 原 .78em —— 在父级（约 .9rem）上再乘一次，实际只有 ~11px，

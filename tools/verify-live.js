@@ -188,15 +188,15 @@ const rc = makeCtx(onCfg, { reduced: true });
 vm.runInContext(onCfg, rc.ctx);
 vm.runInContext(liveSrc, rc.ctx, { filename: 'live-rm.js' });
 rc.ctx.SITE_LIVE.init();
-ok(rc.nodes.liveQuote.hidden === false, '减少动效下仍然显示一言（只是不可点击换句）');
-ok(rc.nodes.liveQuote.getAttribute('role') === null, '减少动效下不挂 button 语义');
+ok(rc.nodes.liveQuote.hidden === false, '减少动效下仍然显示一言');
+/* 2026-11-14 改：减少动效关掉的应该是淡入淡出，不是功能本身。
+   之前这里直接 return，导致这批用户点了完全没反应。 */
+ok(rc.nodes.liveQuote.getAttribute('role') === 'button', '减少动效下仍可点击换句（只是不做动画）');
 
 /* --- 一言：本地列表随机且会换 ---
-   ⚠️ 必须先把 quoteRemote 关掉。
-   live.js 里只有「本地模式」才挂 role=button / tabindex（可点换句）；
-   远程模式（hitokoto）是被动的，点它不会换。
-   config 里 quoteRemote 默认是 true —— 不关它，这段测的就是远程分支，
-   role 当然不是 button。 */
+   2026-11-14：点击换句改成**两种模式都挂**（远程模式以前是纯被动的，
+   线上 quoteRemote=true 于是点了没反应 —— 用户报的就是这个）。
+   这里只测本地分支的取词逻辑；远程分支见浏览器段。 */
 const noRemote = onCfg.replace(/quoteRemote:\s*true/, 'quoteRemote: false');
 const qc = makeCtx(noRemote);
 vm.runInContext(noRemote, qc.ctx);
@@ -284,9 +284,14 @@ async function browserChecks() {
     });
     await page.waitForTimeout(300);
     await page.locator('#liveQuote').click();
-    await page.waitForTimeout(400);
+    /* 远程模式点了要发一次 hitokoto（1.4s 超时后回落本地），所以等得比一帧久。
+       300ms 只看"有字"是测不出毛病的 —— 之前这条断言从来没验到"真的换了"。 */
+    await page.waitForTimeout(2600);
     const q2 = await page.evaluate(() => document.getElementById('liveQuote').textContent);
-    ok(!!q1 && !!q2, '[浏览器] 打开配置后一言有点击交互（' + q1.slice(0, 8) + ' → ' + q2.slice(0, 8) + '）');
+    ok(!!q1 && !!q2 && q1 !== q2,
+      '[浏览器] 点一言真的换了一句（' + q1.slice(0, 8) + ' → ' + q2.slice(0, 8) + '）');
+    ok(await page.evaluate(() => document.getElementById('liveQuote').getAttribute('role') === 'button'),
+      '[浏览器] 一言带 button 语义（键盘也能换）');
     await ctx.close();
   }
 

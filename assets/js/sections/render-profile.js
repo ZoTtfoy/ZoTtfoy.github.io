@@ -61,12 +61,39 @@
     var sec = h.secondary || { label: "游戏 ID", target: "#gaming" };
     if (a) {
       a.innerHTML = "<span>" + esc(pri.label) + "</span>" + icon("arrow-down", "btn__icon");
-      if (pri.target) a.setAttribute("href", pri.target);
+      a.setAttribute("href", sageTarget(pri.target));
     }
     if (b) {
       b.innerHTML = "<span>" + esc(sec.label) + "</span>" + icon("arrow-up-right", "btn__icon");
-      if (sec.target) b.setAttribute("href", sec.target);
+      b.setAttribute("href", sageTarget(sec.target));
     }
+  }
+
+  /* --------------------------------------------------- 首屏按钮的落点校验
+     2026-11-14：用户报「个人主页的定向按钮失效」。根因是 href 指向 #repair，
+     而 sections.repair.enabled 是 false —— 那个 section 被 hidden 掉，
+     点了什么都不会发生，也没有任何报错。
+
+     这里统一做一次校验：目标屏不存在、或被关掉、或压根不是本页的锚点，
+     就退到"第一个启用的屏"，并 console.warn 一句。
+     宁可跳错一屏，也不要留一个点了没反应的按钮。 */
+  function sageTarget(target) {
+    var t = String(target || "").trim();
+    if (!t || t.charAt(0) !== "#") return t || "#main";
+    var el = document.getElementById(t.slice(1));
+    var sec = el && el.closest ? el.closest("[data-section]") : null;
+    var hidden = !el || el.hidden || (sec && sec.hidden);
+    if (!hidden) return t;
+
+    var first = null;
+    var nodes = document.querySelectorAll("[data-section]");
+    for (var i = 0; i < nodes.length; i++) {
+      if (!nodes[i].hidden) { first = nodes[i].id; break; }
+    }
+    if (window.console && console.warn) {
+      console.warn("[hero] 按钮目标 " + t + " 不存在或已关闭，改跳到 #" + (first || "main"));
+    }
+    return first ? "#" + first : "#main";
   }
 
   /* ---------- 外链摘要卡（Q1 两个 + Q4 闲鱼一个） ----------

@@ -159,7 +159,8 @@ window.SITE_LIVE = (function () {
       .replace(/"/g, "&quot;");
   }
 
-  function fetchRemoteQuote() {
+  function fetchRemoteQuote(timeoutMs) {
+    var LIMIT = timeoutMs || 5000;
     /* ⚠️ 先确认 fetch 存在再调。
        `fetch(...)` 在 fetch 未定义时抛的是 ReferenceError，不是 Promise rejection ——
        它不会走到下面的 .catch，而是直接冒泡出 initQuote，
@@ -173,7 +174,7 @@ window.SITE_LIVE = (function () {
       var settled = false;
       var to = setTimeout(function () {
         if (!settled) { settled = true; resolve(null); }
-      }, 5000);
+      }, LIMIT);
 
       try {
         fetch("https://v1.hitokoto.cn/?encode=json&max_length=24")
@@ -204,27 +205,46 @@ window.SITE_LIVE = (function () {
 
     el.hidden = false;
     renderQuote(pickQuote());
-    if (reduced()) return;   // 减少动效时不做换句动画
 
-    // 点一下换一句（本地列表时才有意义）
-    if (!L.quoteRemote) {
-      el.setAttribute("role", "button");
-      el.setAttribute("tabindex", "0");
-      el.setAttribute("title", "换一句");
-      el.setAttribute("aria-label", "换一句");
-
-      var swap = function () {
+    /* ⚠️ 2026-11-14：点击换句以前只在**本地列表**时才挂 —— 而 config 里
+       quoteRemote 是 true，于是线上点了没反应（用户报的就是这个）。
+       现在两种模式都能点：本地模式换本地下一句，联网模式再取一句。
+       「减少动效」也不再直接 return —— 它该关的是淡入淡出，不是功能本身。 */
+    var busy = false;
+    function swap() {
+      if (busy) return;
+      busy = true;
+      /* 先拿到新句子再动画面 —— 反过来的话联网模式要空着等最多 5s，
+         那段时间 title 还写着"换一句"，看起来就是"点了没反应"。 */
+      var apply = function (q) {
+        if (reduced()) { renderQuote(q); busy = false; return; }
         el.classList.add("is-swapping");
         setTimeout(function () {
-          renderQuote(pickQuote());
+          renderQuote(q);
           el.classList.remove("is-swapping");
-        }, 220);
+          busy = false;
+        }, 180);
       };
-      el.addEventListener("click", swap);
-      el.addEventListener("keydown", function (e) {
-        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); swap(); }
-      });
-    } else {
+      if (L.quoteRemote) {
+        /* 点击走短超时：1.4s 拿不到就退回本地列表，别让人干等 */
+        fetchRemoteQuote(1400).then(function (q) {
+          apply(q && q.text ? q : pickQuote());
+        });
+        return;
+      }
+      apply(pickQuote());
+    }
+
+    el.setAttribute("role", "button");
+    el.setAttribute("tabindex", "0");
+    el.setAttribute("title", "换一句");
+    el.setAttribute("aria-label", "换一句（点击或回车）");
+    el.addEventListener("click", swap);
+    el.addEventListener("keydown", function (e) {
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); swap(); }
+    });
+
+    if (L.quoteRemote) {
       fetchRemoteQuote().then(function (q) {
         if (q && q.text) renderQuote(q);
       });

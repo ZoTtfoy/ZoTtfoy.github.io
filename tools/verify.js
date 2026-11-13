@@ -417,8 +417,13 @@ check(!H('navList').includes('>01<') || enabledKeys.length === 0,
 for (const key of ['heroPrimary', 'heroSecondary']) {
   const el = byId.get(key);
   const href = el ? el.getAttribute('href') : null;
-  check(!!href && href.charAt(0) === '#' && byId.has(href.slice(1)),
-    key + ' 指向真实存在的屏（' + href + '）');
+  const target = href && href.charAt(0) === '#' ? byId.get(href.slice(1)) : null;
+  check(!!target, key + ' 指向真实存在的屏（' + href + '）');
+  /* ⚠️ 2026-11-14：光"存在"不够。#repair 一直躺在 DOM 里，只是 hidden ——
+     配置里 sections.repair.enabled = false 把它关掉之后，按钮指向它就成了
+     死链：点了没有任何反应，控制台也不报错。用户报的"定向按钮失效"就是这个。
+     所以这里必须连"目标屏是否启用"一起判。 */
+  check(!!target && !target.hidden, key + ' 指向的屏是启用的（' + href + '）');
 }
 
 /* 六个页面 id 必须都在 DOM 里，否则翻页引擎会漏页 */
