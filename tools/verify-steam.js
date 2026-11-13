@@ -326,6 +326,12 @@ async function coverage(page, shotOn, shotOff) {
       Math.round(instPx * g.scale / Math.SQRT2) + 'px）');
     ok(200 * g.scale <= 400,
       '[' + name + '] 一格不超过 400px（' + Math.round(200 * g.scale) + 'px）');
+    /* 列数必须与视口一一对应。这条守的是一个真实事故：
+       首次测量若发生在 paged 把每屏压成 100vh 之前（线上冷启动常见），
+       量到的是 3050px 的"自然高度"，列数会算成 12 并一直错下去。 */
+    const want = Math.max(6, Math.min(12, Math.ceil(Math.SQRT2 * Math.max(g.w, g.h) * 1.12 / 300)));
+    ok(g.cols === want,
+      '[' + name + '] 列数与视口匹配（' + g.cols + '，应为 ' + want + '）');
   }
 
   /* ------------------------------------------------ 6. 减少动效时停转 */

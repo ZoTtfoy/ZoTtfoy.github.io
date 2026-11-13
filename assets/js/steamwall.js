@@ -412,6 +412,21 @@ window.SITE_STEAMWALL = (function () {
 
     
     window.addEventListener("resize", function () { fit(); }, { passive: true });
+
+    /* ⚠️ 2026-11-13：光挂 resize 不够 —— **首次测量可能早于翻页布局**。
+       线上实测：steamwall.init() 跑的那一刻，游戏屏还没被压成 1 屏高，
+       wall.clientHeight 量到 3050px，于是按 12 列建墙、scale 也按 3050 算；
+       等 paged 把每屏定成 100vh 之后，窗口并没有 resize，fit() 不会重跑，
+       整面墙就一直按错误的高度渲染（1600 窗口上格子 402px，比源图还大）。
+       本地跑得快没撞上，线上每次冷启动都可能这样。
+       用 ResizeObserver 盯住墙自己的盒子：布局一稳定就重算，
+       列数没变时 applyVars 只写几个变量（有值缓存），代价可以忽略。 */
+    if (typeof ResizeObserver === "function") {
+      var ro = new ResizeObserver(function () { fit(); });
+      ro.observe(wall);
+    } else {
+      window.addEventListener("load", function () { fit(); });
+    }
     /* 同 albumwall：地址栏伸缩改的是 visualViewport，不是 window 尺寸，
        而背景层的 100dvh 会跟着变 —— 不重算就露边。 */
     if (window.visualViewport) {
