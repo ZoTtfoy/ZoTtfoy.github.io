@@ -9,7 +9,7 @@
     "test:all": "node tools/run-all.js --all",
     "test:list": "node tools/run-all.js --list",
     "baseline:make": "node tools/visual-baseline.js --make",
-    "baseline:check": "node tools/visual-baseline.js --check && python tools/compare-baseline.py"
+    "baseline:check": "node tools/visual-baseline.js --check && node tools/compare-baseline.js"
   },
   "devDependencies": {
     "playwright-core": "^1.65.0"

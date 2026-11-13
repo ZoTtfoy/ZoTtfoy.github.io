@@ -141,7 +141,7 @@ zotrod-homepage/
 │   ├── run-all.js                # ★ 一键跑全部校验（npm test）
 │   ├── serve.js                  # 本地服务器（Node，零依赖，并发够拉封面）
 │   ├── visual-baseline.js        # 视觉基线：12 张截图（3 屏 × 2 明暗 × 2 视口）
-│   ├── compare-baseline.py       # 基线像素对比（阈值 8 / 容差 0.3%）
+│   ├── compare-baseline.js       # 基线像素对比（阈值 8 / 容差 0.3%）
 │   ├── verify.js                 # 站点自检
 │   ├── verify-admin.js           # 编辑器自检
 │   ├── verify-theme.js           # 主题自检（含对比度计算）

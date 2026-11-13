@@ -296,7 +296,39 @@ html[data-backdrop-image="on"] .hero__role {
   mask-position: center;
   -webkit-mask-repeat: repeat;
   mask-repeat: repeat;
-  opacity: .065;
+  /* 2026-11-13 第二版：符号改成环形构图、线宽收到 2.2，整体可以再淡一点 ——
+     目标是"凑近才看出是齿轮/波形/芯片"，而不是第一版那种草稿纸感。 */
+  opacity: .055;
 }
-html[data-theme="dark"] .ambient__motif { opacity: .10; }
+html[data-theme="dark"] .ambient__motif { opacity: .085; }
+
+/* 手机上 1200px 的 tile 只露出一小角，符号会被切得认不出来。
+   缩到 680×453（保持 3:2），一个屏幕里能看见一组半到两组完整符号。 */
+@media (max-width: 680px) {
+  .ambient__motif {
+    -webkit-mask-size: 760px 507px;
+    mask-size: 760px 507px;
+    /* ⚠️ 两个坑都要避开：
+       1) 不能用 center —— 桌面构图的中心是**故意留空**的（让位给头像/标题），
+          手机上居中正好停在留空区，一组符号都看不见。
+       2) 也不能用 50% —— tile(760) 比盒子(438) 宽时，百分比会产生负偏移，
+          把左边的齿轮推到屏幕外。只有 0 0 是从 tile 左上角开始排，
+          齿轮落在 (89,106)、芯片落在 (106,365)，正好是屏幕可见区。 */
+    -webkit-mask-position: 0 0;
+    mask-position: 0 0;
+    /* 手机上符号只有桌面的 0.63 倍、线宽约 1.4px，同样不透明度看起来会更淡，
+       所以补一档（浅 .07 / 深 .10）。 */
+    opacity: .07;
+  }
+  html[data-theme="dark"] .ambient__motif { opacity: .10; }
+}
+
+/* 纹章开启时让网格退位：64px 机械网格 + 自由构图的线稿是两种线条语言，
+   叠在一起实测像草稿纸。网格只保留"极淡参照"这层意思，不再与纹章争。 */
+html[data-motif="on"] .ambient__grid { opacity: .22; }
+/* 手机上视口窄，64px 网格只有 6 列，密度感比桌面强得多；再压一档 */
+@media (max-width: 680px) {
+  html[data-motif="on"] .ambient__grid { opacity: .15; }
+}
+
 html[data-motif="off"] .ambient__motif { display: none; }
