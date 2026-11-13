@@ -199,6 +199,12 @@ window.SITE_BACKDROP = (function () {
     // 先用 Image 预加载，成功才真的铺上去 —— 避免坏链留下空白
     var probe = new Image();
     probe.decoding = "async";
+    /* 背景是首屏第一眼看到的东西，必须排在 Steam / 相册封面之前抓。
+       默认优先级下（不在 DOM 里的 Image 是 Low）它会和 12 张封面抢带宽：
+       实测线上慢网时封面 36~70s 陆续到位，背景图被挤到 73s 才出来 ——
+       那时遮罩层早就铺好了，用户看到的就是一块纯色。
+       这些封面都在第二三屏，本来也声明了 fetchpriority="low"。 */
+    try { probe.fetchPriority = "high"; } catch (e) { /* 老浏览器忽略即可 */ }
 
     probe.onload = function () {
       root.style.setProperty("--bd-image", 'url("' + u.replace(/"/g, '\\"') + '")');
