@@ -41,11 +41,15 @@ const JOBS = [
   { src: '482997E930E1956068788B3C6FE7A53D.jpg', dst: 'scene-m4.webp', width: 900, quality: 74, top: .03 },
   { src: '8643A44A205532B5E9867DABB7B23A37.jpg', dst: 'scene-m5.webp', width: 900, quality: 64, top: 0 },
 
-  /* ---- MIKU 壁纸（safebooru，hatsune_miku + rating:safe）----
-     同人图没有相机水印，不用裁底部（cut: 0）。 */
-  { dir: 'miku', src: 'e104c71b.jpg',  dst: 'miku-d1.webp', width: 1280, quality: 72, cut: 0 },
-  { dir: 'miku', src: '344bfbad.jpg',  dst: 'miku-d2.webp', width: 1280, quality: 72, cut: 0 },
-  { dir: 'miku', src: 'miku-93901461.jpg', dst: 'miku-m1.webp', width: 900, quality: 72, cut: 0 }
+  /* ---- MIKU 壁纸：**已停用**（2026-11-13 22:10）----
+     用户看到其中一张后明确表示"这种图不要放进网站"。
+     同批三张一起撤下 —— 从 safebooru 抓的图我这边看不到内容，
+     不该不确认就上生产。
+     原图还在 _materials/miku/，等用户逐张确认再启用；
+     取消注释前先确认「哪几张、放桌面还是手机」。 */
+  // { dir: 'miku', src: 'e104c71b.jpg',  dst: 'miku-d1.webp', width: 1280, quality: 72, cut: 0 },
+  // { dir: 'miku', src: '344bfbad.jpg',  dst: 'miku-d2.webp', width: 1280, quality: 72, cut: 0 },
+  // { dir: 'miku', src: 'miku-93901461.jpg', dst: 'miku-m1.webp', width: 900, quality: 72, cut: 0 }
 ];
 
 (async () => {

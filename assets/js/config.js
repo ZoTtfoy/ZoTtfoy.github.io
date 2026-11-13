@@ -427,17 +427,14 @@ window.SITE_CONFIG = {
       images: [
         "assets/backdrop/scene-d1.webp",
         "assets/backdrop/scene-d2.webp",
-        "assets/backdrop/scene-d3.webp",
-        "assets/backdrop/miku-d1.webp",
-        "assets/backdrop/miku-d2.webp"
+        "assets/backdrop/scene-d3.webp"
       ],
       imagesMobile: [
         "assets/backdrop/scene-m1.webp",
         "assets/backdrop/scene-m2.webp",
         "assets/backdrop/scene-m3.webp",
         "assets/backdrop/scene-m4.webp",
-        "assets/backdrop/scene-m5.webp",
-        "assets/backdrop/miku-m1.webp"
+        "assets/backdrop/scene-m5.webp"
       ],
       image: "assets/backdrop/scene-d1.webp",
       imageMobile: "assets/backdrop/scene-m1.webp",
