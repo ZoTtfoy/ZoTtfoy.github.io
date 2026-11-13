@@ -108,7 +108,7 @@ async function shoot(page, target) {
       contentType: 'application/json',
       body: '{"hitokoto":"BASELINE","from":"baseline"}'
     }));
-    await page.goto(SITE, { waitUntil: 'load', timeout: 90000 });
+    await page.goto(SITE + (SITE.indexOf('?') >= 0 ? '&' : '?') + 'bg=0', { waitUntil: 'load', timeout: 90000 });
     /* 字体分片是异步加载的：不等它，两次截图的换行/行高会差一档，
        内容区就会出现 5~20% 的假差异（实测踩到过）。 */
     await page.evaluate(() => (document.fonts && document.fonts.ready) || null);

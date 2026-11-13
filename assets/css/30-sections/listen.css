@@ -221,7 +221,10 @@
      2026-11-13 去掉右侧播放键后回到三列，多出来的宽度全给曲名。
      position: relative 是给 .track__hit 那层整行链接用的。 */
   position: relative;
-  grid-template-columns: auto auto minmax(0, 1fr);
+  /* ⚠️ 列数必须留在 4：.track__plays 写的是 grid-area: 2 / 4 / 3 / 5，
+     第 4 列不存在时浏览器会建隐式列，把曲名列挤窄、长标题立刻截断。
+     去掉播放键只是把那格空出来，不是把列删掉。 */
+  grid-template-columns: auto auto minmax(0, 1fr) auto;
   align-items: center;
   column-gap: 10px;
   row-gap: 1px;

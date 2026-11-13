@@ -297,7 +297,10 @@ html[data-paged="on"] .section.is-entering .game:nth-child(n+4) { animation-dela
 .pager {
   position: fixed;
   top: 50%;
-  right: max(18px, calc((100vw - var(--w)) / 2 - 56px));
+  /* 2026-11-13：原来用固定的 --w 算留白，在 900~1180 这段"卡片几乎占满视口"
+     的宽度上 calc 会变成负数、退回 18px，于是页码压到磁贴上。
+     改用容器**实际**宽度 min(--w, 100vw - 两侧 gutter)，永远落在留白里。 */
+  right: max(12px, calc((100vw - min(var(--w), 100vw - 2 * var(--gutter))) / 2 - 40px));
   z-index: 50;
   transform: translateY(-50%);
   display: none;                 /* 只有翻页模式才出现 */
@@ -321,6 +324,8 @@ html[data-paged="on"] .pager { display: flex; }
   position: relative;
   display: flex;
   align-items: center;
+  /* 圆点在点击区里居中：否则光环贴着左边缘，看起来永远偏一格 */
+  justify-content: center;
   gap: 0;
   height: 26px;
   padding: 0 7px;
@@ -346,8 +351,8 @@ html[data-paged="on"] .pager { display: flex; }
 .pager__dot.is-current { color: var(--accent); }
 .pager__dot.is-current::before {
   opacity: 1;
-  transform: scale(1.5);
-  box-shadow: 0 0 0 4px var(--accent-soft);
+  transform: scale(1.4);
+  box-shadow: 0 0 0 3px var(--accent-soft);
 }
 
 /* 悬停时向左滑出标签 */
@@ -380,13 +385,18 @@ html[data-paged="on"] .pager { display: flex; }
    只占 3px 高、落在页面留白里，既能看出「第几页 / 共几页」，又完全挡不到内容。 */
 .pager__track { display: none; }
 
-@media (max-width: 900px) {
-  /* 2026-11-13：底部分段式进度条已移除（用户要求只保留侧边页码）。
-     手机上没有桌面的 --w 留白，所以把页码贴到屏幕最右侧、站到正文容器外面，
-     与内容零重叠；同时去掉毛玻璃 —— 这层只有十几像素宽，每帧重算不值得。 */
+/* 2026-11-13：断点从 900 提到 1180（= --w）。
+   900~1180 这段容器几乎占满视口，两侧留白只有 40px 左右，
+   放不下 36px 的宽版页码 —— 原来就是在这段压到磁贴上的。
+   留白不足时直接切"细条"版本，永远站在内容外面。 */
+@media (max-width: 1180px) {
+  /* 手机/平板：页码贴在屏幕最右侧、站到正文容器外面，与内容零重叠；
+     同时去掉毛玻璃 —— 这层只有十几像素宽，每帧重算不值得。 */
   .pager {
     top: 50%;
-    right: 0;
+    /* 不再 right:0 —— 贴死屏幕右缘时，当前项那圈光环会被裁掉一半，
+       看起来就是"突出来一大截"。留 6px，并让容器自己裁掉溢出的光效。 */
+    right: max(5px, env(safe-area-inset-right));
     bottom: auto;
     left: auto;
     transform: translateY(-50%);
@@ -394,8 +404,9 @@ html[data-paged="on"] .pager { display: flex; }
     /* 宽度必须 ≤ 20px：手机正文容器的右边界在 370 左右，
        right:0 时页码占 [390-w, 390]，w>20 就会压到正文上。
        圆点本体仍是 6px，只是把 26px 的点击热区收窄到 22px / 左右各 4px。 */
-    padding: 6px 1px;
-    padding-right: max(1px, env(safe-area-inset-right));
+    /* 宽 12px：圆点 6 + 左右各 3。再宽就会压到正文容器的内边距上
+       （verify-visual 用真实矩形相交面积量，260px² 就是这里来的）。 */
+    padding: 6px 0;
     gap: 2px;
     border: 0;
     border-radius: var(--r-full) 0 0 var(--r-full);
@@ -405,7 +416,17 @@ html[data-paged="on"] .pager { display: flex; }
     backdrop-filter: none;
   }
   .pager__track { display: none; }
-  .pager__dot { height: 22px; padding: 0 4px; }
+  .pager__dot { height: 22px; padding: 0 3px; }
+  /* 手机上点更小、没有 hover，光环只留 2px，控制在容器内 */
+  .pager__dot.is-current::before {
+    transform: scale(1.25);
+    box-shadow: 0 0 0 2px var(--accent-soft);
+  }
+}
+
+/* 手机：窄条贴边，把任何溢出的光效裁在容器内（宽版靠留白，不需要裁） */
+@media (max-width: 680px) {
+  .pager { overflow: hidden; }
 }
 
 /* 分段只在手机显示，桌面保持圆点 */

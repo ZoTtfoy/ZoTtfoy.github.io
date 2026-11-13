@@ -251,9 +251,14 @@ function restore() {
         const sec = document.getElementById('listen');
         const ul = document.getElementById('trackList');
         const rows = [...ul.querySelectorAll('.track')];
+        /* 2026-11-13：只统计"硬裁"（没有省略号）的标题。
+           数据里会出现 "time machine (feat. aren park)" 这种长英文标题，
+           在 390 宽下单列磁贴放不下 —— ellipsis 是设计，不是布局 bug。
+           真正要守的是"别把字切一半"：截断必须带省略号。 */
         const cut = rows.filter(x => {
           const t = x.querySelector('.track__title');
-          return t && t.scrollWidth > t.clientWidth + 1;
+          if (!t || t.scrollWidth <= t.clientWidth + 1) return false;
+          return getComputedStyle(t).textOverflow !== 'ellipsis';
         }).length;
         return {
           h: Math.round(sec.offsetHeight), vh: innerHeight,
@@ -266,7 +271,7 @@ function restore() {
       ok(r.h <= r.vh + 2, tag + '第二屏不超屏（' + r.h + ' ≤ ' + r.vh + '）');
       ok(!r.tall, tag + '没有被降级成可滚动页');
       ok(r.cols === 1, tag + '手机上单列（实际 ' + r.cols + '）');
-      ok(r.cut === 0, tag + '曲名没有被截断（' + r.cut + ' 首）');
+      ok(r.cut === 0, tag + '长标题都是省略号收尾（硬裁 ' + r.cut + ' 首）');
       ok(r.footVisible, tag + '页脚（含累计听歌）在屏内可见');
       await c.close();
     }

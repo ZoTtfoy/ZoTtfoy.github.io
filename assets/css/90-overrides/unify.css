@@ -250,6 +250,16 @@ html[data-glass="on"] .game-board {
   }
 }
 
+/* 2026-11-13：滚动时临时关掉浮层模糊。
+   照片背景让 backdrop-filter 的输入从"纯色"变成"整张照片"，
+   滚动时每帧重算的代价翻倍（1440×900 软件渲染实测 26ms → 35ms）。
+   滚动是短暂的、人眼也在动，关掉模糊几乎察觉不到；停下就恢复。 */
+html[data-scrolling="on"][data-glass="on"] .site-header,
+html[data-scrolling="on"][data-glass="on"] .pager {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
 /* 低端档：把底色调得更实一点，保证没有模糊辅助时文字仍然清楚 */
 html[data-glass="on"][data-perf="low"] .ccard,
 html[data-glass="on"][data-perf="low"] .game-board,

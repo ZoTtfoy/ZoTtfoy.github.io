@@ -188,7 +188,12 @@ async function scrollFps(page) {
     return { gbcr, longtasks };
   });
 
-  const fps = await scrollFps(page);
+  /* 单次测量的方差实测能到 40%（机器一热就从 26ms 跳到 44ms），
+     取 3 次中位数 —— 闸门要拦的是"真的变慢"，不是"这一次机器忙"。 */
+  const runs = [];
+  for (let i = 0; i < 3; i++) runs.push(await scrollFps(page));
+  runs.sort((a, b) => a.avg - b.avg);
+  const fps = runs[1];
   console.log('\n=== 滚动 ===');
   console.log('getBoundingClientRect', stats.gbcr, '次 | 长任务', stats.longtasks, '个');
   console.log('帧耗时 平均', fps.avg + 'ms', '| p95', fps.p95 + 'ms', '| 卡顿帧', fps.janky);

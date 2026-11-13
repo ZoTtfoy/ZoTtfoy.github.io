@@ -150,10 +150,43 @@ window.SITE_BACKDROP = (function () {
     return "/" + u.replace(/^\.?\//, "");
   }
 
-  function setImage(url, mobileUrl) {
+  /* 每次打开随机挑一张。同一会话里排除"上一次用过的那张"，
+     否则连着两次刷到同一张，看起来就像"根本没随机"。 */
+  function pickFrom(list, key) {
+    var pool = Array.isArray(list) ? list.filter(function (u) {
+      return typeof u === "string" && u.trim();
+    }) : [];
+    if (!pool.length) return "";
+    if (pool.length === 1) return pool[0];
+    var last = "";
+    try { last = sessionStorage.getItem(key) || ""; } catch (e) {}
+    var rest = pool.filter(function (u) { return u !== last; });
+    if (!rest.length) rest = pool;
+    var chosen = rest[Math.floor(Math.random() * rest.length)];
+    try { sessionStorage.setItem(key, chosen); } catch (e) {}
+    return chosen;
+  }
+
+  /* ?bg=N 固定用第 N 张（0 起），给自检与截图用；不传就是随机。 */
+  var forcedBg = null;
+  try {
+    var bgm = /[?&]bg=(\d+)\b/.exec(location.search);
+    if (bgm) forcedBg = Number(bgm[1]);
+  } catch (e) { /* 无 location 的环境忽略 */ }
+
+  /* ⚠️ 自动化环境（Playwright）固定用第 0 张。
+     随机背景会让视觉基线每次截图都不同、verify-backdrop 的 8 套主题
+     测到的也不是同一张图 —— 那是"测不准"，不是"测得严"。
+     真实访客仍然随机；想手动指定用 ?bg=N。 */
+  try {
+    if (forcedBg === null && window.navigator && window.navigator.webdriver) forcedBg = 0;
+  } catch (e) { /* ignore */ }
+
+  function setImage(url, mobileUrl, preferMobile) {
     if (!imageEl) return;
     var u = absUrl(typeof url === "string" ? url.trim() : "");
     var m = absUrl(typeof mobileUrl === "string" ? mobileUrl.trim() : "");
+    var probeUrl = preferMobile && m ? m : u;
 
     if (!u) {
       root.dataset.backdropImage = "off";
@@ -183,7 +216,7 @@ window.SITE_BACKDROP = (function () {
         console.warn("[backdrop] 背景图加载失败，已自动退回纯色背景：" + u);
       }
     };
-    probe.src = u;
+    probe.src = probeUrl;
   }
 
 
@@ -255,7 +288,15 @@ window.SITE_BACKDROP = (function () {
     imageEl = $("ambientImage");
 
     applyFlags();
-    setImage(B.image, B.imageMobile);
+    /* 只预加载当前视口会用到的那一张：手机不下载桌面图，反之亦然。 */
+    var isPhone = false;
+    try { isPhone = !!(window.matchMedia && window.matchMedia("(max-width: 680px)").matches); } catch (e) {}
+    var dList = B.images, mList = B.imagesMobile;
+    var u = forcedBg !== null && dList && dList.length
+      ? dList[forcedBg % dList.length] : (pickFrom(dList, "bd-last-d") || B.image);
+    var m = forcedBg !== null && mList && mList.length
+      ? mList[forcedBg % mList.length] : (pickFrom(mList, "bd-last-m") || B.imageMobile);
+    setImage(u, m, isPhone);
 
     // 主题 / 明暗切换后，遮罩颜色取自 --bg，会自动跟着变，这里只需重算一次 kenBurns 等
     var syncMotion = function () {

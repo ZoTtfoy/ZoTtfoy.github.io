@@ -29,10 +29,17 @@ const OUT_DIR = path.join(ROOT, 'assets/backdrop');
 const CUT_BOTTOM = 0.12;   // 切掉底部 12%（水印带 + 余量）
 
 const JOBS = [
-  /* 桌面：巷子那张，生活/维修气质最贴，横向 4096×2304 */
-  { src: '4B46386E1FB716DE67B301120CA5FFE0.jpg', dst: 'scene-desktop.webp', width: 1600, quality: 74 },
-  /* 手机：黄昏停车场，原生 9:16 竖图 1440×2560 */
-  { src: '396E569DA00C271700E5267676EA6EEA.jpg', dst: 'scene-mobile.webp', width: 900, quality: 74 }
+  /* ---- 桌面（横图）：3 张 ---- */
+  { src: '4B46386E1FB716DE67B301120CA5FFE0.jpg', dst: 'scene-d1.webp', width: 1280, quality: 72, top: 0 },
+  { src: '6FA9E21F30F134CF7EDD85141E9C42D1.jpg', dst: 'scene-d2.webp', width: 1280, quality: 72, top: 0 },
+  { src: 'FCB02D2A2BFDE8A2E2F67084F7D26DF0.jpg', dst: 'scene-d3.webp', width: 1280, quality: 72, top: 0 },
+  /* ---- 手机（竖图）：5 张 ----
+     D773 / 4829 是带上下黑边的截图，先把顶部黑边一起裁掉再缩。 */
+  { src: '396E569DA00C271700E5267676EA6EEA.jpg', dst: 'scene-m1.webp', width: 900, quality: 74, top: 0 },
+  { src: '00D8A79AC3C50F7BD2B3EFEB5809611E.jpg', dst: 'scene-m2.webp', width: 900, quality: 74, top: 0 },
+  { src: 'D7732344920CD63DD29FA6D4C5989C01.jpg', dst: 'scene-m3.webp', width: 900, quality: 74, top: .055 },
+  { src: '482997E930E1956068788B3C6FE7A53D.jpg', dst: 'scene-m4.webp', width: 900, quality: 74, top: .03 },
+  { src: '8643A44A205532B5E9867DABB7B23A37.jpg', dst: 'scene-m5.webp', width: 900, quality: 64, top: 0 }
 ];
 
 (async () => {
@@ -48,12 +55,13 @@ const JOBS = [
     const page = await browser.newPage({ viewport: { width: 800, height: 600 } });
     await page.goto('file:///' + srcPath.replace(/\\/g, '/'));
 
-    const dataUrl = await page.evaluate(async ({ cut, width, quality }) => {
+    const dataUrl = await page.evaluate(async ({ cut, width, quality, top }) => {
       const img = document.querySelector('img');
       if (!img) throw new Error('no img');
       if (img.decode) { try { await img.decode(); } catch (e) {} }
       const sw = img.naturalWidth;
-      const sh = Math.round(img.naturalHeight * (1 - cut));   // 只取上方 (1-cut)
+      const sy = Math.round(img.naturalHeight * top);          // 跳过顶部黑边
+      const sh = Math.round(img.naturalHeight * (1 - top - cut)); // 再切掉底部水印带
       const scale = Math.min(1, width / sw);
       const tw = Math.round(sw * scale);
       const th = Math.round(sh * scale);
@@ -62,9 +70,9 @@ const JOBS = [
       const cx = cv.getContext('2d');
       cx.imageSmoothingEnabled = true;
       cx.imageSmoothingQuality = 'high';
-      cx.drawImage(img, 0, 0, sw, sh, 0, 0, tw, th);
+      cx.drawImage(img, 0, sy, sw, sh, 0, 0, tw, th);
       return { url: cv.toDataURL('image/webp', quality), w: tw, h: th };
-    }, { cut: CUT_BOTTOM, width: job.width, quality: job.quality });
+    }, { cut: CUT_BOTTOM, width: job.width, quality: job.quality, top: job.top || 0 });
 
     await page.close();
 

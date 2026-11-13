@@ -419,9 +419,23 @@ window.SITE_CONFIG = {
       gridSize: 64,
       starsOpacity: 0.6,
       /* 2026-11-13：换成自己的照片（底部 12% 已裁掉，去掉了相机水印与时间戳）。
-         桌面横图 / 手机竖图分开，手机不会下载桌面那张。 */
-      image: "assets/backdrop/scene-desktop.webp",
-      imageMobile: "assets/backdrop/scene-mobile.webp",
+         桌面横图 / 手机竖图分成两组，每次打开**随机挑一张**（见 backdrop.js 的
+         pickFrom）；手机只会下载 mobile 那组里被选中的一张。
+         image / imageMobile 是数组为空时的兜底，不要删。 */
+      images: [
+        "assets/backdrop/scene-d1.webp",
+        "assets/backdrop/scene-d2.webp",
+        "assets/backdrop/scene-d3.webp"
+      ],
+      imagesMobile: [
+        "assets/backdrop/scene-m1.webp",
+        "assets/backdrop/scene-m2.webp",
+        "assets/backdrop/scene-m3.webp",
+        "assets/backdrop/scene-m4.webp",
+        "assets/backdrop/scene-m5.webp"
+      ],
+      image: "assets/backdrop/scene-d1.webp",
+      imageMobile: "assets/backdrop/scene-m1.webp",
       imageOpacity: 1,
       /* 2026-11-12 第六轮：全屏 blur(24px) 每帧都要重新模糊整块背景，
          是合成阶段最贵的一项。mesh.svg 本身是柔和渐变，去掉模糊观感差别很小。 */
