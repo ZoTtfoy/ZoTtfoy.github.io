@@ -7,7 +7,7 @@
 > 📐 **先看结构再看内容**：[`ARCHITECTURE.md`](ARCHITECTURE.md) —— CSS 六层的层叠契约、
 > JS 18 个模块的启动顺序、数据流、以及「改了什么必须跑什么」。这份 README 按屏讲设计取舍。
 >
-> 改完东西跑一条命令：`npm test`（30 个脚本、2171 项断言）；
+> 改完东西跑一条命令：`npm test`（31 个脚本、2185 项断言）；
 > 动了 CSS 顺序或 DOM 结构再跑 `npm run baseline:check`（12 张视觉基线）。
 
 ---

@@ -37,9 +37,12 @@ const val = (name, dflt) => {
   return hit ? hit.slice(name.length + 3) : dflt;
 };
 
-/* 已知会超时的一项：verify-density 在 d7c8756 与更早的快照上都跑不完
-   （实测 220s 无输出），是既有问题，不是回归。默认跳过，--all 才跑。 */
-const KNOWN_SLOW = new Set(['verify-density']);
+/* 已知会超时的项：目前没有。
+   （verify-density 曾在这张名单里 —— 144 档 × 2.3s 实测整脚本 347s，
+   贴着 420s 超时线，于是默认跳过；一道没人跑的闸门等于没有闸门。
+   2026-11-13 改成默认 54 档（约 165s）/ --full 144 档，重新纳入全套。
+   想彻底扫一遍：node tools/verify-density.js --full。 */
+const KNOWN_SLOW = new Set([]);
 
 /* 已知会红的一项：目前没有。
    （verify-perf 曾经在这张名单里 —— 预算写的是"演进前的目标值"，而退回
