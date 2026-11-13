@@ -38,17 +38,18 @@ const JOBS = [
   { src: '396E569DA00C271700E5267676EA6EEA.jpg', dst: 'scene-m1.webp', width: 900, quality: 74, top: 0 },
   { src: '00D8A79AC3C50F7BD2B3EFEB5809611E.jpg', dst: 'scene-m2.webp', width: 900, quality: 74, top: 0 },
   { src: 'D7732344920CD63DD29FA6D4C5989C01.jpg', dst: 'scene-m3.webp', width: 900, quality: 74, top: .055 },
-  { src: '482997E930E1956068788B3C6FE7A53D.jpg', dst: 'scene-m4.webp', width: 900, quality: 74, top: .03 },
+  /* 4829 是行车记录仪截图：上方 22% 是纯黑的车顶、下方 32% 是仪表台，
+     原来只切 3% 黑边，页面上会留下一条硬黑带。按内容边界重切。 */
+  { src: '482997E930E1956068788B3C6FE7A53D.jpg', dst: 'scene-m4.webp', width: 900, quality: 74, top: .225, cut: .32 },
   { src: '8643A44A205532B5E9867DABB7B23A37.jpg', dst: 'scene-m5.webp', width: 900, quality: 64, top: 0 },
 
-  /* ---- MIKU 壁纸：**已停用**（2026-11-13 22:10）----
-     用户看到其中一张后明确表示"这种图不要放进网站"。
-     同批三张一起撤下 —— 从 safebooru 抓的图我这边看不到内容，
-     不该不确认就上生产。
-     原图还在 _materials/miku/，等用户逐张确认再启用；
-     取消注释前先确认「哪几张、放桌面还是手机」。 */
-  // { dir: 'miku', src: 'e104c71b.jpg',  dst: 'miku-d1.webp', width: 1280, quality: 72, cut: 0 },
-  // { dir: 'miku', src: '344bfbad.jpg',  dst: 'miku-d2.webp', width: 1280, quality: 72, cut: 0 },
+  /* ---- MIKU 壁纸：逐张过审后才进库（2026-11-13 22:40）----
+     d1 / d2 用户明确说"比较满意"，本地视觉复核也干净（无水印、无文字、
+     人物姿态正常、横向构图适合做桌面背景），重新启用。
+     m1 永久排除：用户两次否掉（"这种雷霆图不要放到我的网站里"），
+     原图留在 _materials/miku/miku-93901461.jpg，仅作留档，不再烘焙。 */
+  { dir: 'miku', src: 'e104c71b.jpg', dst: 'miku-d1.webp', width: 1280, quality: 70, cut: 0 },
+  { dir: 'miku', src: '344bfbad.jpg', dst: 'miku-d2.webp', width: 1280, quality: 70, cut: 0 },
   // { dir: 'miku', src: 'miku-93901461.jpg', dst: 'miku-m1.webp', width: 900, quality: 72, cut: 0 }
 ];
 

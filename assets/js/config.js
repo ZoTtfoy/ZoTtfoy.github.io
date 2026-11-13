@@ -424,9 +424,16 @@ window.SITE_CONFIG = {
          image / imageMobile 是数组为空时的兜底，不要删。 */
       /* 后台「显示背景图」开关：false 时一张都不加载，只剩底色与动效 */
       enabled: true,
+      /* miku-d1 / miku-d2（2026-11-13 22:40 加回）：用户逐张看过，
+         这两张「比较满意」，本地视觉复核也干净（无水印、无文字、构图横向）。
+         同批的 m1 用户两次否掉，永久排除，不要往这里加。
+         插在照片之间只是方便扫一眼看出池子里有两类图 —— 抽取是均匀的，
+         顺序不影响概率。 */
       images: [
         "assets/backdrop/scene-d1.webp",
+        "assets/backdrop/miku-d1.webp",
         "assets/backdrop/scene-d2.webp",
+        "assets/backdrop/miku-d2.webp",
         "assets/backdrop/scene-d3.webp"
       ],
       imagesMobile: [
