@@ -136,7 +136,7 @@ function findCred() {
     active: document.querySelector('[data-bd-url="assets/backdrop/dunes.svg"]').classList.contains('is-active'),
     field: document.querySelector('[data-path="backdrop.image"]').value,
     previewBg: getComputedStyle(document.querySelector('[data-bd-img]')).backgroundImage,
-    draft: JSON.parse(localStorage.getItem('zotrod-draft-v1') || '{}').backdrop?.image
+    draft: (JSON.parse(localStorage.getItem('zotrod-draft-v1') || '{}').data || {}).backdrop?.image
   }));
   ok(picked.active, '点击预设后高亮');
   ok(/dunes\.svg/.test(picked.field), '图片地址框同步（' + picked.field + '）');
@@ -155,27 +155,31 @@ function findCred() {
   const after = await page.evaluate(() => ({
     out: document.querySelector('[data-out-for="backdrop.scrim"]').textContent,
     previewScrim: getComputedStyle(document.querySelector('[data-bd-scrim]')).opacity,
-    draft: JSON.parse(localStorage.getItem('zotrod-draft-v1') || '{}').backdrop?.scrim
+    draft: (JSON.parse(localStorage.getItem('zotrod-draft-v1') || '{}').data || {}).backdrop?.scrim
   }));
   ok(after.out === '0.3', '滑杆数值实时显示（' + after.out + '）');
   ok(Math.abs(parseFloat(after.previewScrim) - 0.3) < 0.02,
      '预览遮罩跟着变（' + before + ' → ' + after.previewScrim + '）');
   ok(Math.abs(Number(after.draft) - 0.3) < 0.001, '草稿记录了新遮罩值');
 
-  /* 模糊滑杆 */
-  await page.evaluate(() => {
+  /* 模糊滑杆：上限 2026-11-14 从 40 收到 8（全屏那层超过 8px 照片就糊成色块，
+     旧草稿里的 24 正是"背景图不显示"那次事故的元凶）。这里直接把 value 设成
+     超过上限的值，浏览器会夹到 max，所以断言按 max=8 来。 */
+  const blurMax = await page.evaluate(() => {
     const r = document.querySelector('input[data-path="backdrop.imageBlur"]');
     r.value = '12';
     r.dispatchEvent(new Event('input', { bubbles: true }));
+    return { max: r.max, val: r.value };
   });
+  ok(Number(blurMax.max) === 8, '模糊上限被收到 8（' + blurMax.max + '）');
   await page.waitForTimeout(400);
   /* 断言带容差：滑杆值走一遍 Number → style → getComputedStyle，
      浮点往返后会得到 11.9932px 这类值（偶发，不是 bug）。
      卡死 bl=12 会变成 flaky test —— 那种测试比没有更糟。 */
   const blur = await page.evaluate(() => getComputedStyle(document.querySelector('[data-bd-img]')).filter);
   const blurNum = parseFloat((/blur\(([\d.]+)px\)/.exec(blur) || [])[1]);
-  ok(Math.abs(blurNum - 12) < 0.5,
-     '模糊滑杆映射到预览 filter（' + blur + '，误差 ' + Math.abs(blurNum - 12).toFixed(2) + 'px）');
+  ok(Math.abs(blurNum - Number(blurMax.val)) < 0.5,
+     '模糊滑杆映射到预览 filter（' + blur + '，滑杆值 ' + blurMax.val + '）');
 
   /* 上传：用一张真实的 PNG */
   const tmp = path.join(ROOT, '.tmp-bd.png');
@@ -186,7 +190,7 @@ function findCred() {
   await page.setInputFiles('[data-bd-file]', tmp);
   await page.waitForTimeout(1200);
   const uploaded = await page.evaluate(() => ({
-    draft: (JSON.parse(localStorage.getItem('zotrod-draft-v1') || '{}').backdrop || {}).image || '',
+    draft: ((JSON.parse(localStorage.getItem('zotrod-draft-v1') || '{}').data || {}).backdrop || {}).image || '',
     field: document.querySelector('[data-path="backdrop.image"]').value,
     previewBg: getComputedStyle(document.querySelector('[data-bd-img]')).backgroundImage
   }));
@@ -207,6 +211,42 @@ function findCred() {
   ok(cleared.field === '', '清除后地址框为空');
   ok(cleared.active === 1, '清除后只有「不用图」高亮');
   ok(cleared.previewBg === 'none', '清除后预览无图');
+
+  /* ------------------------------------------------ 草稿版本锁（2026-11-14）
+     事故背景：编辑器里躺着一份 11-12 的旧草稿，用户点发布 → 整份 config.js
+     被旧值覆盖（抖音/小红书消失、掘金回来、背景被 mesh.svg + 24px 模糊顶掉）。
+     现在草稿带 base 指纹，对不上就丢弃。这里把两种情况都验一遍。 */
+  await page.evaluate(() => {
+    /* 老格式：直接存 draft，没有 base —— 正是把线上配置倒灌回去的那批数据 */
+    localStorage.setItem("zotrod-draft-v1", JSON.stringify({ site: { role: "旧草稿里的角色" } }));
+  });
+  await page.reload({ waitUntil: "load" });
+  await page.waitForTimeout(900);
+  const stale = await page.evaluate(() => ({
+    role: (document.querySelector('[data-path="site.role"]') || {}).value,
+    live: window.SITE_CONFIG && window.SITE_CONFIG.site ? window.SITE_CONFIG.site.role : null,
+    stillThere: !!localStorage.getItem("zotrod-draft-v1")
+  }));
+  ok(stale.role === stale.live,
+    '旧格式草稿被丢弃，界面显示线上值（' + String(stale.role).slice(0, 10) + '）');
+  ok(stale.stillThere === false, '过期草稿同时从 localStorage 清掉');
+
+  /* 正常路径：改一个字段 → 草稿带上指纹 → 刷新后能恢复 */
+  await page.fill('[data-path="site.role"]', "验证用的临时值");
+  await page.waitForTimeout(400);
+  const stamped = await page.evaluate(() => {
+    const raw = localStorage.getItem("zotrod-draft-v1");
+    if (!raw) return null;
+    try { const o = JSON.parse(raw); return { hasBase: !!o.base, role: o.data && o.data.site && o.data.site.role }; }
+    catch (e) { return "parse-error"; }
+  });
+  ok(stamped && stamped.hasBase, '新草稿带上了版本指纹（' + JSON.stringify(stamped) + '）');
+  await page.reload({ waitUntil: "load" });
+  await page.waitForTimeout(900);
+  const restored = await page.evaluate(() => (document.querySelector('[data-path="site.role"]') || {}).value);
+  ok(restored === "验证用的临时值", '指纹一致时草稿能正常恢复（' + restored + '）');
+  /* 收尾：把草稿清掉，免得影响别的断言 */
+  await page.evaluate(() => localStorage.removeItem("zotrod-draft-v1"));
 
   if (errs.length) fails.push('控制台错误: ' + JSON.stringify(errs.slice(0, 3)));
 

@@ -126,17 +126,45 @@ window.ADMIN = {
     else clearDraft();
   }
 
+  /* --------------------------------------------------- 草稿的版本锁
+     2026-11-14 事故：编辑器里存着一份 11-12 的旧草稿，用户在编辑器里点发布，
+     整份 config.js 被那份旧草稿覆盖 —— 抖音/小红书/闲鱼消失、掘金回来了，
+     背景参数也被旧默认值（mesh.svg + 24px 模糊）顶掉，界面糊成一片色块。
+
+     根因是草稿只存"内容"、不存"基于哪一版线上配置"。线上改过之后，
+     草稿里的每个字段仍然会盖掉新值，而且编辑器完全看不出来。
+
+     现在草稿记下生成时的配置指纹：指纹对不上 = 这份草稿过期了，
+     直接丢弃（并告知），宁可让用户重做几个字段，也不能让旧值倒灌。 */
+  var DRAFT_BASE = "";
+
+  function configStamp() {
+    var s = JSON.stringify(window.SITE_CONFIG || {});
+    var h = 5381;
+    for (var i = 0; i < s.length; i++) h = ((h * 33) ^ s.charCodeAt(i)) >>> 0;
+    return s.length + "-" + h.toString(36);
+  }
+
   function saveDraft() {
-    try { localStorage.setItem(DRAFT_KEY, JSON.stringify(draft)); } catch (e) {}
+    try {
+      localStorage.setItem(DRAFT_KEY, JSON.stringify({ base: DRAFT_BASE, at: Date.now(), data: draft }));
+    } catch (e) {}
   }
   function clearDraft() {
     try { localStorage.removeItem(DRAFT_KEY); } catch (e) {}
   }
+  /* 返回 { data, stale }：data 为 null 表示没有可用的草稿 */
   function loadDraft() {
-    try {
-      var raw = localStorage.getItem(DRAFT_KEY);
-      return raw ? JSON.parse(raw) : null;
-    } catch (e) { return null; }
+    var raw = null;
+    try { raw = localStorage.getItem(DRAFT_KEY); } catch (e) {}
+    if (!raw) return { data: null, stale: false };
+    var o = null;
+    try { o = JSON.parse(raw); } catch (e) { return { data: null, stale: false }; }
+    /* 老格式（直接存 draft，没有 base）一律按过期处理：
+       它们正是把线上配置倒灌回 11-12 的那批数据。 */
+    if (!o || !o.data || !o.base) return { data: null, stale: true };
+    if (o.base !== DRAFT_BASE) return { data: null, stale: true };
+    return { data: o.data, stale: false };
   }
 
   /* 用当前配置补全旧草稿。
@@ -762,8 +790,10 @@ window.ADMIN = {
         scalarFields([
           { path: ["backdrop", "imageOpacity"], label: "图片不透明度", value: bd.imageOpacity == null ? 0.35 : bd.imageOpacity,
             type: "range", min: 0.05, max: 1, step: 0.05, hint: "越大图片越明显" },
-          { path: ["backdrop", "imageBlur"], label: "模糊", value: bd.imageBlur == null ? 0 : bd.imageBlur,
-            type: "range", min: 0, max: 40, step: 1, hint: "想弱化图片细节就调大" },
+          /* ⚠️ 上限从 40 收到 8：全屏那一层只要超过 8px，照片就糊成一块色块，
+             看起来像"背景图没加载"。旧草稿里的 24 正是那次事故的元凶之一。 */
+          { path: ["backdrop", "imageBlur"], label: "模糊（建议 0）", value: bd.imageBlur == null ? 0 : Math.min(8, bd.imageBlur),
+            type: "range", min: 0, max: 8, step: 1, hint: "超过 4px 照片就开始糊；8px 基本只剩色块" },
           { path: ["backdrop", "scrim"], label: "遮罩强度", value: bd.scrim == null ? 0.65 : bd.scrim,
             type: "range", min: 0.15, max: 0.95, step: 0.05, hint: "★ 这个直接决定文字能不能读清，不建议低于 0.5" },
           { path: ["backdrop", "kenBurns"], label: "图片缓慢推近拉远（Ken Burns）", value: bd.kenBurns, type: "bool" },
@@ -1602,7 +1632,10 @@ window.ADMIN = {
   }
 
   function enter() {
-    var restored = loadDraft();
+    DRAFT_BASE = configStamp();
+    var got = loadDraft();
+    if (got.stale) clearDraft();
+    var restored = got.data;
     draft = pruneDraft(restored ? mergeDefaults(window.SITE_CONFIG, restored)
                                 : JSON.parse(JSON.stringify(window.SITE_CONFIG)));
     $("#gate").hidden = true;
@@ -1617,6 +1650,9 @@ window.ADMIN = {
       toast("已恢复上次未发布的草稿");
     } else {
       mark(false);
+      if (got.stale) {
+        toast("线上配置已更新，上次的旧草稿已作废 —— 现在显示的就是线上版本");
+      }
     }
     $("#resetBtn").addEventListener("click", function () {
       if (!confirm("放弃所有未发布的改动，回到线上版本？")) return;

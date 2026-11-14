@@ -754,7 +754,9 @@ async function browserChecks() {
     ok(typed.dirty, '[编辑器] 修改 ID 后标记为未发布');
 
     const parsed = await page.evaluate(() => {
-      const draft = JSON.parse(localStorage.getItem('zotrod-draft-v1') || 'null');
+      /* 2026-11-14：草稿结构改成 { base, at, data }（加版本锁），内容在 data 里 */
+      const rec = JSON.parse(localStorage.getItem('zotrod-draft-v1') || 'null');
+      const draft = rec && rec.data ? rec.data : null;
       const g = draft && draft.gaming && draft.gaming.items && draft.gaming.items[0];
       return g ? { uid: g.uid } : null;
     });
