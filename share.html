@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>分享 · Zotrod，我的名片</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; padding: clamp(24px, 5vw, 56px) 16px 64px;
+    background: radial-gradient(90% 60% at 15% 0%, #1c2c24, #0c1110 70%);
+    color: #eef3ef; font: 15px/1.7 "Microsoft YaHei", "PingFang SC", system-ui, sans-serif;
+  }
+  .wrap { max-width: 720px; margin: 0 auto; }
+  h1 { font-size: clamp(24px, 5vw, 34px); margin: 0 0 6px; letter-spacing: -.02em; }
+  .sub { color: #9db2a5; margin: 0 0 30px; font-size: 14px; }
+  h2 { font-size: 17px; margin: 34px 0 12px; color: #dfeae2; }
+  .card {
+    background: rgba(255,255,255,.045); border: 1px solid rgba(255,255,255,.09);
+    border-radius: 14px; padding: 18px; margin-bottom: 14px;
+  }
+  .preview { width: 100%; border-radius: 10px; display: block; border: 1px solid rgba(255,255,255,.08); }
+  .row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
+  a.btn, button.btn {
+    appearance: none; border: 1px solid rgba(255,255,255,.15); background: rgba(255,255,255,.07);
+    color: #eef3ef; border-radius: 10px; padding: 10px 16px; font: inherit; font-size: 14px;
+    text-decoration: none; cursor: pointer; transition: background .15s, border-color .15s;
+  }
+  a.btn:hover, button.btn:hover { background: rgba(127,224,173,.16); border-color: #7fe0ad; }
+  .btn--main { background: #7fe0ad; color: #10201a; border-color: #7fe0ad; font-weight: 700; }
+  .btn--main:hover { background: #9cf0c2; }
+  .poster { width: min(100%, 320px); display: block; margin: 0 auto; border-radius: 12px; }
+  .hint { color: #9db2a5; font-size: 13px; margin: 10px 0 0; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 9px 8px; border-bottom: 1px solid rgba(255,255,255,.07); vertical-align: top; }
+  th { color: #9db2a5; font-weight: 600; white-space: nowrap; }
+  code { background: rgba(255,255,255,.08); padding: 1px 5px; border-radius: 4px; font-size: 12px; word-break: break-all; }
+  #toast {
+    position: fixed; left: 50%; bottom: 28px; transform: translate(-50%, 12px);
+    background: #eaf5ee; color: #14241b; padding: 10px 18px; border-radius: 999px;
+    font-size: 13px; opacity: 0; pointer-events: none; transition: all .25s;
+  }
+  #toast.on { opacity: 1; transform: translate(-50%, 0); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Zotrod，我的名片</h1>
+  <p class="sub">分享工具页 · 这一页不会被搜索引擎收录</p>
+
+  <h2>链接卡片预览</h2>
+  <div class="card">
+    <img class="preview" src="assets/meta/og-cover-v3.jpg" alt="分享卡片预览">
+    <div class="row">
+      <button class="btn btn--main" id="copy">复制主页链接</button>
+      <button class="btn" id="sysShare">系统分享</button>
+      <a class="btn" id="qq" href="#" target="_blank" rel="noopener noreferrer">发给 QQ 好友</a>
+      <a class="btn" id="qzone" href="#" target="_blank" rel="noopener noreferrer">发到 QQ 空间</a>
+    </div>
+    <p class="hint">QQ 的两个按钮会打开腾讯的分享页，由它去抓取主页上的 og 标签生成卡片。</p>
+  </div>
+
+  <h2>微信里怎么发</h2>
+  <div class="card">
+    <img class="poster" src="assets/meta/share-poster-v3.jpg" alt="带二维码的分享海报">
+    <p class="hint">
+      微信不读普通网页的 og 标签，静态站也没有公众号 JS-SDK 的签名能力，
+      所以<strong>链接在微信里通常只是一串文字</strong>。最稳的做法是把上面这张图存下来，
+      直接当图片发到聊天或朋友圈 —— 它本身就是一张卡片，对方长按二维码即可打开主页。<br>
+      也可以先在微信里打开主页，再点右上角「… → 发送给朋友」，这时微信会带标题和缩略图。
+    </p>
+    <div class="row">
+      <a class="btn" href="assets/meta/share-poster-v3.jpg" target="_blank" rel="noopener noreferrer">查看原图 / 长按保存</a>
+      <a class="btn" href="assets/meta/share-poster-v3.jpg" download="Zotrod-我的名片.jpg">下载海报</a>
+    </div>
+  </div>
+
+  <h2>各平台实际支持</h2>
+  <div class="card">
+    <table>
+      <tr><th>平台</th><th>结果</th><th>依据</th></tr>
+      <tr><td>X / TG / Discord / 微博</td><td>大图卡片</td><td>读 <code>og:*</code> / <code>twitter:card</code>，已配好</td></tr>
+      <tr><td>QQ 好友 / QQ 空间</td><td>多数有卡片</td><td>腾讯抓取器读 og + 方形封面；有缓存，首次可能要等几小时</td></tr>
+      <tr><td>微信（普通静态站）</td><td>多半只有文字链接</td><td>需要认证公众号 + JS-SDK 签名 + 备案域名才能自定义</td></tr>
+      <tr><td>微信（发海报图）</td><td>一定有卡片</td><td>不依赖任何平台接口</td></tr>
+    </table>
+    <p class="hint">
+      另外注意：本站挂在 <code>zottfoy.github.io</code>，这个域名在微信里有时会被腾讯安全拦截，
+      出现「已停止访问」时点「继续访问」即可。想要微信里完全稳定，需要换成自己的已备案域名。
+    </p>
+  </div>
+</div>
+<div id="toast"></div>
+<script>
+  (function () {
+    var URL = "https://zottfoy.github.io/";
+    var TITLE = "Zotrod，我的名片";
+    var DESC = "Zotrod，我的名片";
+    var IMG = "https://zottfoy.github.io/assets/meta/og-square-v3.jpg";
+
+    var q = function (s) { return document.querySelector(s); };
+    var toast = function (m) {
+      var t = q("#toast"); t.textContent = m; t.classList.add("on");
+      clearTimeout(t._t); t._t = setTimeout(function () { t.classList.remove("on"); }, 1800);
+    };
+    var copy = function (text) {
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(function () { toast("已复制链接"); },
+          function () { toast("复制失败，请手动复制"); });
+        return;
+      }
+      var ta = document.createElement("textarea");
+      ta.value = text; ta.style.cssText = "position:fixed;opacity:0";
+      document.body.appendChild(ta); ta.select();
+      try { document.execCommand("copy") ? toast("已复制链接") : toast("复制失败"); }
+      catch (e) { toast("复制失败"); }
+      document.body.removeChild(ta);
+    };
+
+    q("#copy").addEventListener("click", function () { copy(URL); });
+    q("#sysShare").addEventListener("click", function () {
+      if (!navigator.share) { toast("这个浏览器不支持系统分享，请用上面的复制"); return; }
+      navigator.share({ title: TITLE, text: DESC, url: URL }).catch(function () {});
+    });
+    q("#qq").href = "https://connect.qq.com/widget/shareqq/index.html?url=" +
+      encodeURIComponent(URL) + "&title=" + encodeURIComponent(TITLE) +
+      "&summary=" + encodeURIComponent(DESC) + "&pics=" + encodeURIComponent(IMG);
+    q("#qzone").href = "https://sns.qzone.qq.com/cgi-bin/qzshare/cgi_qzshare_onekey?url=" +
+      encodeURIComponent(URL) + "&title=" + encodeURIComponent(TITLE) +
+      "&summary=" + encodeURIComponent(DESC) + "&pics=" + encodeURIComponent(IMG);
+  })();
+</script>
+</body>
+</html>

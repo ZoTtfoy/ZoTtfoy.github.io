@@ -117,15 +117,29 @@ const OG_W = 1200, OG_H = 630;
     ok(exists, 'og:image 文件存在（' + imgPath + '）');
     if (exists) {
       const buf = fs.readFileSync(abs);
-      const isPng = buf[1] === 0x50 && buf[2] === 0x4E && buf[3] === 0x47;
-      ok(isPng, '分享图真的是 PNG（不是改了扩展名的其他格式）');
-      if (isPng) {
-        const w = buf.readUInt32BE(16), h = buf.readUInt32BE(20);
-        ok(w === OG_W && h === OG_H,
-          '分享图实际尺寸 ' + w + '×' + h + ' = 声明的尺寸');
+      /* 2026-11-15：封面从 401KB 的 PNG 换成 28KB 的 JPEG ——
+         微信 JS-SDK / 部分抓取器对 >300KB 的图直接放弃。这里改成 PNG/JPEG 都收，
+         并把体积上限收到 300KB、顺手验真实尺寸（JPEG 要扫 SOF 段）。 */
+      const isPng = buf[1] === 0x50 && buf[2] === 0x4e && buf[3] === 0x47;
+      const isJpeg = buf[0] === 0xff && buf[1] === 0xd8;
+      ok(isPng || isJpeg, '分享图是 PNG 或 JPEG 位图（不是改了扩展名的其他格式）');
+      let w = 0, h = 0;
+      if (isPng) { w = buf.readUInt32BE(16); h = buf.readUInt32BE(20); }
+      else if (isJpeg) {
+        let i = 2;
+        while (i < buf.length - 9) {
+          if (buf[i] !== 0xff) { i++; continue; }
+          const m = buf[i + 1];
+          if (m >= 0xc0 && m <= 0xcf && m !== 0xc4 && m !== 0xc8 && m !== 0xcc) {
+            h = buf.readUInt16BE(i + 5); w = buf.readUInt16BE(i + 7); break;
+          }
+          i += 2 + buf.readUInt16BE(i + 2);
+        }
       }
-      ok(buf.length < 5 * 1024 * 1024,
-        '分享图体积 ' + Math.round(buf.length / 1024) + 'KB（< 5MB，微信不限流）');
+      ok(w === OG_W && h === OG_H,
+        '分享图实际尺寸 ' + w + '×' + h + ' = 声明的尺寸（' + OG_W + '×' + OG_H + '）');
+      ok(buf.length < 300 * 1024,
+        '分享图体积 ' + Math.round(buf.length / 1024) + 'KB（< 300KB，微信/QQ 不会放弃抓取）');
     }
   } else {
     const head = await page.evaluate(async (u) => {

@@ -2062,3 +2062,51 @@ URL 变了，缓存必然失效，**按 F5 就行**（不用 Ctrl+Shift+R）。�
 
 **想恢复「跟随系统主题」？**
 在浏览器控制台执行 `localStorage.removeItem('zotrod-theme')` 后刷新。
+
+---
+
+## 十三、分享卡片（QQ / 微信）
+
+打开 `share.html` 是给维护者用的工具页：复制主页链接、调系统分享、发到 QQ 好友 /
+QQ 空间、以及拿微信海报。这一页设了 `noindex`，不会进搜索引擎。
+
+### 站内已经配好的
+
+`index.html` 的 `<head>` 里有一整套静态标签（抓取器不执行 JS，所以必须是硬编码的）：
+
+| 标签 | 作用 |
+|---|---|
+| `og:title` / `og:description` | 卡片标题与摘要，定稿文案 **Zotrod，我的名片** |
+| `og:image`（两张） | 1200×630 宽幅 + 600×600 方形，均为 JPEG、< 300KB、绝对 HTTPS |
+| `og:url` / `og:type` / `og:site_name` | 规范地址与站点名 |
+| `twitter:card=summary_large_image` | X 上的大图版式 |
+| `link[rel=image_src]` / `itemprop=image` | 国内老抓取器的兜底入口 |
+
+素材由 `node tools/make-share-cards.js` 一次生成三张：
+`og-cover-v3.jpg`、`og-square-v3.jpg`、`share-poster-v3.jpg`；
+二维码源图 `assets/meta/qr.png` 已入库，重生成不依赖外网。
+`node tools/verify-share.js` 守着文案、图片体积/尺寸、绝对地址与工具页入口。
+
+### 为什么微信里多半还是一条裸链接
+
+微信基本不读 OG 协议。**真正可控的链接卡片必须用公众号 JS-SDK**：
+`wx.updateAppMessageShareData` / `updateTimelineShareData`，前置条件是
+① 已认证的公众号 ② 后台配置 JS 接口安全域名 ③ 服务端用 `jsapi_ticket` 算签名。
+GitHub Pages 是纯静态站，没有服务端，也没有备案域名可绑，这条路走不通。
+
+另外 `github.io` 域名偶尔会被腾讯手机管家拦截，微信里出现「已停止访问该网页」，
+点「继续访问」即可；想彻底稳定只能换成自己的已备案域名。
+
+### 没有公众号时怎么办
+
+1. **发海报**：`share-poster-v3.jpg` 本身就是一张卡片，带二维码，对方长按识别即可打开。
+   这是唯一不依赖任何平台接口、百分百稳定的方案。
+2. **在微信内打开再转发**：先把主页在微信里打开一次，再点右上角
+   「… → 发送给朋友」，这时微信通常会带标题和缩略图（版本差异较大）。
+3. **直接粘贴裸链接**：一般只会显示一串文字，这是微信的正常行为，不是配置错了。
+
+### 改了标签没生效？
+
+QQ / 微信对同一 URL 的卡片缓存可达 24 小时。所以换封面时**必须换文件名**
+（`v2` → `v3`），只改 `<meta>` 不换图片地址等于没改。
+另外 QQ 侧建议在 QQ 里把链接发给自己（文件传输助手）预热一次抓取。

@@ -9,48 +9,65 @@
        对方"你是从 zottfoy.github.io 来的"。这一站没有依赖 Referer 的功能，
        所以直接关掉 —— 外链封面只应该看到"有人要这张图"。 -->
   <meta name="referrer" content="no-referrer">
-  <meta name="description" content="Zotrod 的个人主页 —— 联系方式、最近在听、在玩的游戏，以及维修报价。">
   <meta name="theme-color" content="#fbfbf9">
 
   <!-- ═══════════════════════════════════════════════════════════════════
-       社交分享标签（Open Graph + Twitter Card）
+       分享卡片（2026-11-15 重做）
        ───────────────────────────────────────────────────────────────────
-       为什么两种都写：微信 / TG / Discord / Slack 读 og:*，
-       X（Twitter）在没有 twitter:* 时会退回读 og:*，但卡片类型会退化成
-       普通链接（没有大图）。补上 twitter:card=summary_large_image
-       才能拿到 1200×630 的大图版式。
+       文案按用户定稿：只留「Zotrod，我的名片」，其余一律不写。
 
-       ⚠️ og:image 必须是**位图**和**绝对地址**：
-         · 微信 / TG 的抓取器不渲染 SVG，所以用 PNG；
-         · 相对路径在部分平台上解析失败，所以写全 https:// 开头。
-         目标是 1200×630 —— 低于 600×315 会被某些平台裁成小图。
+       ⚠️ 三条实测/平台约束，改之前先看：
+       1. 图必须是**绝对 HTTPS 地址 + 位图 + 小于 300KB**。
+          原来的 og-cover.png 是 401KB 的 PNG，微信/QQ 抓取器常直接放弃；
+          现在换成 JPEG（28KB / 17KB）。
+       2. 同时给宽幅和**方形**两张：QQ / 微信的小方块缩略图会把 1200×630
+          中心裁掉，方图是居中构图，怎么裁都完整。
+       3. 文件名带 v3：QQ / 微信对同一 URL 的卡片缓存可达 24 小时，
+          改标签不换文件名等于没改。
+
+       下面这些 og:* 对 X / TG / Discord / QQ浏览器 / 微博 有效。
+       **微信是特例**：它基本不读 OG，链接卡片要走公众号 JS-SDK（见 README
+       「分享卡片」一节）；没有公众号时，最稳的是把 share-poster-v3.jpg
+       作为图片发出去 —— 那张图自带二维码，聊天里本身就是一张"卡片"。
        ═══════════════════════════════════════════════════════════════════ -->
+  <meta name="description" content="Zotrod，我的名片">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Zotrod">
   <meta property="og:locale" content="zh_CN">
-  <meta property="og:title" content="Zotrod · 个人主页">
-  <meta property="og:description" content="Zotrod 的个人主页 —— 联系方式、听歌排行、在玩的游戏，以及一份透明的维修报价。">
+  <meta property="og:title" content="Zotrod，我的名片">
+  <meta property="og:description" content="Zotrod，我的名片">
   <meta property="og:url" content="https://zottfoy.github.io/">
-  <meta property="og:image" content="https://zottfoy.github.io/assets/meta/og-cover.png">
-  <meta property="og:image:secure_url" content="https://zottfoy.github.io/assets/meta/og-cover.png">
-  <meta property="og:image:type" content="image/png">
+  <meta property="og:image" content="https://zottfoy.github.io/assets/meta/og-cover-v3.jpg">
+  <meta property="og:image:secure_url" content="https://zottfoy.github.io/assets/meta/og-cover-v3.jpg">
+  <meta property="og:image:type" content="image/jpeg">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
-  <meta property="og:image:alt" content="Zotrod 的个人主页：把复杂的东西，做得简单一点。">
+  <meta property="og:image:alt" content="Zotrod，我的名片">
+  <meta property="og:image" content="https://zottfoy.github.io/assets/meta/og-square-v3.jpg">
+  <meta property="og:image:type" content="image/jpeg">
+  <meta property="og:image:width" content="600">
+  <meta property="og:image:height" content="600">
+  <meta property="og:image:alt" content="Zotrod，我的名片">
 
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Zotrod · 个人主页">
-  <meta name="twitter:description" content="联系方式、听歌排行、在玩的游戏，以及一份透明的维修报价。">
-  <meta name="twitter:image" content="https://zottfoy.github.io/assets/meta/og-cover.png">
-  <meta name="twitter:image:alt" content="Zotrod 的个人主页">
+  <meta name="twitter:title" content="Zotrod，我的名片">
+  <meta name="twitter:description" content="Zotrod，我的名片">
+  <meta name="twitter:image" content="https://zottfoy.github.io/assets/meta/og-cover-v3.jpg">
+  <meta name="twitter:image:alt" content="Zotrod，我的名片">
+
+  <!-- 国内抓取器兜底：部分 QQ / 微信老版本不认 property=og:*，
+       只找 image_src 链接或 itemprop=image。用方形图，缩略图不裁字。 -->
+  <link rel="image_src" href="https://zottfoy.github.io/assets/meta/og-square-v3.jpg">
+  <meta itemprop="name" content="Zotrod，我的名片">
+  <meta itemprop="image" content="https://zottfoy.github.io/assets/meta/og-square-v3.jpg">
 
   <title>Zotrod · 个人主页</title>
 
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%2316181a'/%3E%3Ctext x='32' y='44' font-size='38' font-family='Arial,Helvetica,sans-serif' font-weight='700' text-anchor='middle' fill='%23ffffff'%3EZ%3C/text%3E%3C/svg%3E">
 
   <!-- config.js 只定义数据，放最前面：既供下方主题初始化使用，也避免刷新闪白屏 -->
-  <script src="assets/js/config.js?v=202611142147"></script>
-  <script src="assets/js/themes.js?v=202611142147"></script>
+  <script src="assets/js/config.js?v=202611150226"></script>
+  <script src="assets/js/themes.js?v=202611150226"></script>
   <script>
     /* 首屏立即套用主题，避免刷新时闪一下默认配色。
        这里只做「注入变量」这一件事，完整逻辑在 assets/js/skin.js。 */
@@ -99,35 +116,35 @@
 
   <!-- defer：并行下载 + 顺序执行。config.js / themes.js 上面已同步加载，
        因为它们要给首屏内联脚本用；其余都在解析完成后、DOMContentLoaded 之前执行。 -->
-  <script defer src="assets/js/icons.js?v=202611142147"></script>
+  <script defer src="assets/js/icons.js?v=202611150226"></script>
   <!-- 渲染层：kit 先于所有屏模块，render.js 最后收口（块表 + 调试接口）。
        顺序是契约，别按目录名重排；理由见 ARCHITECTURE.md 第三节。 -->
-  <script defer src="assets/js/core/render-kit.js?v=202611142147"></script>
-  <script defer src="assets/js/sections/render-profile.js?v=202611142147"></script>
-  <script defer src="assets/js/sections/render-listen.js?v=202611142147"></script>
-  <script defer src="assets/js/sections/render-gaming.js?v=202611142147"></script>
-  <script defer src="assets/js/sections/render-repair.js?v=202611142147"></script>
-  <script defer src="assets/js/sections/render-links.js?v=202611142147"></script>
-  <script defer src="assets/js/render.js?v=202611142147"></script>
-  <script defer src="assets/js/sync.js?v=202611142147"></script>
-  <script defer src="assets/js/scale.js?v=202611142147"></script>
-  <script defer src="assets/js/density.js?v=202611142147"></script>
-  <script defer src="assets/js/repair.js?v=202611142147"></script>
-  <script defer src="assets/js/skin.js?v=202611142147"></script>
-  <script defer src="assets/js/backdrop.js?v=202611142147"></script>
-  <script defer src="assets/js/live.js?v=202611142147"></script>
+  <script defer src="assets/js/core/render-kit.js?v=202611150226"></script>
+  <script defer src="assets/js/sections/render-profile.js?v=202611150226"></script>
+  <script defer src="assets/js/sections/render-listen.js?v=202611150226"></script>
+  <script defer src="assets/js/sections/render-gaming.js?v=202611150226"></script>
+  <script defer src="assets/js/sections/render-repair.js?v=202611150226"></script>
+  <script defer src="assets/js/sections/render-links.js?v=202611150226"></script>
+  <script defer src="assets/js/render.js?v=202611150226"></script>
+  <script defer src="assets/js/sync.js?v=202611150226"></script>
+  <script defer src="assets/js/scale.js?v=202611150226"></script>
+  <script defer src="assets/js/density.js?v=202611150226"></script>
+  <script defer src="assets/js/repair.js?v=202611150226"></script>
+  <script defer src="assets/js/skin.js?v=202611150226"></script>
+  <script defer src="assets/js/backdrop.js?v=202611150226"></script>
+  <script defer src="assets/js/live.js?v=202611150226"></script>
   <!-- 设备档位：低端机不滚动背景墙（墙的图还在，只是不动） -->
-  <script defer src="assets/js/core/perf-tier.js?v=202611142147"></script>
-  <script defer src="assets/js/steamwall.js?v=202611142147"></script>
-  <script defer src="assets/js/albumwall.js?v=202611142147"></script>
+  <script defer src="assets/js/core/perf-tier.js?v=202611150226"></script>
+  <script defer src="assets/js/steamwall.js?v=202611150226"></script>
+  <script defer src="assets/js/albumwall.js?v=202611150226"></script>
   <!-- 预取闸门：等两面封面墙建好 DOM 之后，先把第 1/2 屏的图 decode 完再放行，
        第 3 屏并发预取。放在这两面墙之后，因为它要读它们的 <img>。 -->
-  <script defer src="assets/js/preload.js?v=202611142147"></script>
-  <script defer src="assets/js/paged.js?v=202611142147"></script>
-  <script defer src="assets/js/readability.js?v=202611142147"></script>
-  <script defer src="assets/js/effects.js?v=202611142147"></script>
-  <script defer src="assets/js/motion.js?v=202611142147"></script>
-  <script defer src="assets/js/main.js?v=202611142147"></script>
+  <script defer src="assets/js/preload.js?v=202611150226"></script>
+  <script defer src="assets/js/paged.js?v=202611150226"></script>
+  <script defer src="assets/js/readability.js?v=202611150226"></script>
+  <script defer src="assets/js/effects.js?v=202611150226"></script>
+  <script defer src="assets/js/motion.js?v=202611150226"></script>
+  <script defer src="assets/js/main.js?v=202611150226"></script>
 
   <!-- 字体必须第一个：@font-face 越早被解析，首屏文字越快用上 MiSans。
        woff2 就在 assets/fonts/（随仓库走，不走外部 CDN），
@@ -152,38 +169,38 @@
            全局只看视口（fit / density）的规则才放 40-responsive。
            屏内断点跟它所属的屏一起加载，避免两层媒体查询互相压。
        ──────────────────────────────────────────────────────────────── -->
-  <link rel="stylesheet" href="assets/css/fonts.css?v=202611142147">
-  <link rel="stylesheet" href="assets/css/00-base/tokens.css?v=202611142147">
-  <link rel="stylesheet" href="assets/css/10-shell/backdrop.css?v=202611142147">
-  <link rel="stylesheet" href="assets/css/10-shell/layout.css?v=202611142147">
-  <link rel="stylesheet" href="assets/css/20-components/components.css?v=202611142147">
+  <link rel="stylesheet" href="assets/css/fonts.css?v=202611150226">
+  <link rel="stylesheet" href="assets/css/00-base/tokens.css?v=202611150226">
+  <link rel="stylesheet" href="assets/css/10-shell/backdrop.css?v=202611150226">
+  <link rel="stylesheet" href="assets/css/10-shell/layout.css?v=202611150226">
+  <link rel="stylesheet" href="assets/css/20-components/components.css?v=202611150226">
   <!-- 各屏结构模块。顺序 = 原 blocks.css 的行序，别重排：
        Q4 的报价位上原本就压着 xianyu 的覆盖规则。 -->
-  <link rel="stylesheet" href="assets/css/30-sections/profile.css?v=202611142147">
-  <link rel="stylesheet" href="assets/css/30-sections/link-cards.css?v=202611142147">
-  <link rel="stylesheet" href="assets/css/30-sections/listen.css?v=202611142147">
-  <link rel="stylesheet" href="assets/css/30-sections/repair.css?v=202611142147">
-  <link rel="stylesheet" href="assets/css/30-sections/mailbox.css?v=202611142147">
-  <link rel="stylesheet" href="assets/css/30-sections/section-media.css?v=202611142147">
-  <link rel="stylesheet" href="assets/css/30-sections/xianyu.css?v=202611142147">
-  <link rel="stylesheet" href="assets/css/20-components/skin.css?v=202611142147">
-  <link rel="stylesheet" href="assets/css/10-shell/paged.css?v=202611142147">
-  <link rel="stylesheet" href="assets/css/30-sections/gaming.css?v=202611142147">
-  <link rel="stylesheet" href="assets/css/40-responsive/fit.css?v=202611142147">
-  <link rel="stylesheet" href="assets/css/30-sections/live.css?v=202611142147">
-  <link rel="stylesheet" href="assets/css/20-components/effects.css?v=202611142147">
-  <link rel="stylesheet" href="assets/css/20-components/motion.css?v=202611142147">
+  <link rel="stylesheet" href="assets/css/30-sections/profile.css?v=202611150226">
+  <link rel="stylesheet" href="assets/css/30-sections/link-cards.css?v=202611150226">
+  <link rel="stylesheet" href="assets/css/30-sections/listen.css?v=202611150226">
+  <link rel="stylesheet" href="assets/css/30-sections/repair.css?v=202611150226">
+  <link rel="stylesheet" href="assets/css/30-sections/mailbox.css?v=202611150226">
+  <link rel="stylesheet" href="assets/css/30-sections/section-media.css?v=202611150226">
+  <link rel="stylesheet" href="assets/css/30-sections/xianyu.css?v=202611150226">
+  <link rel="stylesheet" href="assets/css/20-components/skin.css?v=202611150226">
+  <link rel="stylesheet" href="assets/css/10-shell/paged.css?v=202611150226">
+  <link rel="stylesheet" href="assets/css/30-sections/gaming.css?v=202611150226">
+  <link rel="stylesheet" href="assets/css/40-responsive/fit.css?v=202611150226">
+  <link rel="stylesheet" href="assets/css/30-sections/live.css?v=202611150226">
+  <link rel="stylesheet" href="assets/css/20-components/effects.css?v=202611150226">
+  <link rel="stylesheet" href="assets/css/20-components/motion.css?v=202611150226">
   <!-- 视口密度分级：缩到某个阈值就让装饰退场，放大再回来 -->
-  <link rel="stylesheet" href="assets/css/40-responsive/density.css?v=202611142147">
+  <link rel="stylesheet" href="assets/css/40-responsive/density.css?v=202611150226">
   <!-- 字体与字重：覆盖前面散落的 font-weight 字面量。
        ⚠️ 必须在 unify.css **之前** —— unify 的职责是"最后一层收口"，
           自检脚本（verify-unify）也是按这个不变量断言的。
           unify.css 里没有任何 font-weight / font-family，
           所以放到它前面不会丢掉本文件的字重规则。 -->
-  <link rel="stylesheet" href="assets/css/00-base/typography.css?v=202611142147">
+  <link rel="stylesheet" href="assets/css/00-base/typography.css?v=202611150226">
   <!-- 必须最后加载：它定义的是"白卡"这件事的最终值，
        前面几个文件里分散的圆角 / 阴影 / hover 写法会被它统一覆盖。 -->
-  <link rel="stylesheet" href="assets/css/90-overrides/unify.css?v=202611142147">
+  <link rel="stylesheet" href="assets/css/90-overrides/unify.css?v=202611150226">
 </head>
 
 <body>
