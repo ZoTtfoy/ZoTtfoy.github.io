@@ -1,5 +1,5 @@
 {
-  "updated": "2026-11-13T09:28:23.811Z",
+  "updated": "2026-11-14T08:55:56.001Z",
   "steamId": "76561199120970154",
   "source": "inventory",
   "inventoryTotal": 280,
@@ -223,7 +223,7 @@
   "lib": {
     "source": "api",
     "totalGames": 143,
-    "totalHours": 3786,
+    "totalHours": 3789,
     "perfect": 5,
     "partial": false
   },
@@ -231,8 +231,8 @@
     {
       "appid": 1172470,
       "name": "Apex Legends",
-      "hours": 2490.9,
-      "hours2w": 26.8,
+      "hours": 2493.1,
+      "hours2w": 24.9,
       "last": "",
       "cover": "https://cdn.akamai.steamstatic.com/steam/apps/1172470/header.jpg",
       "coverFallback": "",
@@ -444,6 +444,19 @@
       }
     },
     {
+      "appid": 4001890,
+      "name": "How to Fish",
+      "hours": 16,
+      "hours2w": 0.2,
+      "last": "",
+      "cover": "",
+      "coverFallback": "",
+      "ach": {
+        "have": 26,
+        "total": 31
+      }
+    },
+    {
       "appid": 1078920,
       "name": "Main Assembly",
       "hours": 16,
@@ -454,19 +467,6 @@
       "ach": {
         "have": 7,
         "total": 21
-      }
-    },
-    {
-      "appid": 4001890,
-      "name": "How to Fish",
-      "hours": 15.8,
-      "hours2w": 0,
-      "last": "",
-      "cover": "",
-      "coverFallback": "",
-      "ach": {
-        "have": 24,
-        "total": 31
       }
     },
     {
