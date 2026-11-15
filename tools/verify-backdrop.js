@@ -58,9 +58,9 @@ const probe = () => {
        换成仍存在于「关于我」和「其他」屏上的小字。换 class 要同步改这里。 */
     title: pick('.profile__name'),
     lead: pick('.profile__intro'),
-    meta: pick('.about__fact__label'),
+    meta: pick('.about__card__label'),
     eyebrow: pick('.eyebrow'),
-    cardDesc: pick('.about__fact__label'),
+    cardDesc: pick('.about__card__label'),
     gameNote: pick('.social__handle')
   };
 };

@@ -290,9 +290,22 @@ window.ADMIN = {
           '</label>';
       }
 
+      /* csv：逗号分隔的字符串数组（about.tags 这类「一行标签」）。
+         事件层早就有 data-csv 的写入逻辑，这里补上它的渲染出口 ——
+         以前只有半个功能，后台根本没地方改标签。 */
+      if (f.type === "csv") {
+        var csvVal = Array.isArray(f.value) ? f.value.join(", ") : (f.value || "");
+        return '<label class="field' + (f.full ? ' field--full' : '') + '">' +
+                 '<span class="field__label">' + esc(f.label) +
+                 (f.hint ? '<span class="field__hint">' + esc(f.hint) + '</span>' : '') +
+                 '</span>' +
+                 '<input class="input" type="text" data-csv="' + esc(path) +
+                 '" value="' + esc(csvVal) + '"></label>';
+      }
+
       return '<label class="field' + (f.full ? ' field--full' : '') + '">' +
-        '<span class="field__label">' + esc(f.label) + '</span>' +
-        (f.type === "area"
+               '<span class="field__label">' + esc(f.label) + '</span>' +
+               (f.type === "area"
           ? '<textarea class="area" data-path="' + path + '">' + esc(f.value) + '</textarea>'
           : f.type === "bool"
             ? '<label class="switch"><input type="checkbox" data-path="' + path + '"' +
@@ -381,15 +394,17 @@ window.ADMIN = {
       ]
     },
 
-    /* 2026-11-15：维修屏下线，报价表改成「关于我」的信息卡 */
-    aboutFacts: {
-      path: ["about", "facts"], title: "信息卡",
-      desc: "两列排布，建议 4 张；图标名见 icons.js（layers / gamepad / note / mail …）",
-      make: function () { return { icon: "sparkles", label: "新信息", value: "" }; },
+    /* 2026-11-15：「关于我」改成「描述卡 + 标签行」。
+       ⚠️ 笔记里「找搭子 / 对搭子的要求」那段按用户要求不收录，
+          如果用户想加回来，在这里新增一张卡即可，不用改代码。 */
+    aboutCards: {
+      path: ["about", "cards"], title: "描述卡",
+      desc: "两列排布，建议 4 张；图标名见 icons.js（gamepad / music / wrench / heart …）",
+      make: function () { return { icon: "sparkles", label: "新卡片", text: "" }; },
       fields: [
         { k: "icon",  label: "图标名" },
-        { k: "label", label: "标签（坐标 / 日常 …）" },
-        { k: "value", label: "内容", full: true }
+        { k: "label", label: "小标题" },
+        { k: "text",  label: "内容", full: true, type: "area" }
       ]
     },
 
@@ -615,9 +630,9 @@ window.ADMIN = {
       body += renderList("gaming");
     }
 
-    /* ---------------------------------------------------------- Q4 · 维修 */
+    /* -------------------------------------------------------- Q2 · 关于我 */
     /* 2026-11-15：维修屏整屏下线，这里换成插在首屏与「在听」之间的「关于我」。
-       文案与信息卡都从 config.about 读，改完发布即与前台一致。 */
+       标题 / 正文 / 描述卡 / 标签都从 config.about 读，发布即与前台一致。 */
     if (activeTab === "about") {
       body += group("标题文案", "", scalarFields([
         { path: ["about", "eyebrow"], label: "小标签", value: getPath(draft, ["about", "eyebrow"]) },
@@ -631,7 +646,18 @@ window.ADMIN = {
             type: "area", full: true }
         ]));
 
-      body += renderList("aboutFacts");
+      body += renderList("aboutCards");
+
+      /* 标签行：一行逗号分隔即可，前台按顺序渲染成胶囊，
+         不写死数量 —— 想加 / 想删都在这里改。 */
+      /* 默认留空：用户明确要求不把小红书笔记里的话题标签搬上来。
+         这个入口只留给自己以后想加短词时用，前台 :empty 时不占位置。 */
+      body += group("标签（可选）", "默认留空；想加短词就用逗号分隔，前台自动换行，别一次塞太多把这一屏撑高",
+        scalarFields([
+          { path: ["about", "tags"], label: "标签（逗号分隔，留空则不显示）",
+            value: getPath(draft, ["about", "tags"]), type: "csv", full: true,
+            hint: "留空即不显示这一行" }
+        ]));
     }
 
     if (activeTab === "links") {

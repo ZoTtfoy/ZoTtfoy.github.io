@@ -79,6 +79,15 @@ const literals = (block.match(/"[^"]{6,}"/g) || []).filter(function (s) {
 check(literals.length === 0, 'ADMIN 区块只含盐与摘要，无其他明文' +
   (literals.length ? '（发现: ' + literals.join(', ') + '）' : ''));
 
+/* 2026-11-15：「关于我」改成 cards + tags，后台必须同步。
+   这两条守住"前台改了结构、后台还在编辑旧 facts"这种前后不一致。 */
+check(/aboutCards:\s*\{/.test(adminSrc) && /\["about",\s*"cards"\]/.test(adminSrc),
+  '后台「关于我」页编辑 cards（描述卡）');
+check(/type:\s*"csv"/.test(adminSrc) && /data-csv=/.test(adminSrc),
+  '后台有可编辑的标签行入口（csv → 数组）');
+check(!/aboutFacts|\["about",\s*"facts"\]/.test(adminSrc),
+  '后台不再引用已下线的 facts 字段');
+
 /* 若仓库外的凭据文件存在，校验其中的口令确实能通过 */
 const credPath = path.join(ROOT, '..', '管理凭据.txt');
 if (fs.existsSync(credPath)) {
@@ -158,23 +167,28 @@ if (typeof ctx.ADMIN_MERGE === 'function') {
   check(merged.ui.skin === 'paper', '草稿里改过的主题保留');
   check(Array.isArray(merged.gaming.items) && merged.gaming.items.length > 0,
     '数组缺失时回落到默认值');
-  check(merged.about.title === '旧标题' && Array.isArray(merged.about.facts),
-    '关于我这一屏：草稿标题保留、facts 被补全');
+  check(merged.about.title === '旧标题' && Array.isArray(merged.about.cards),
+    '关于我这一屏：草稿标题保留、cards 被补全');
+  check(Array.isArray(merged.about.tags),
+    '关于我的标签数组被补全（默认空数组）');
   check(!!merged.live && !!merged.quotes && !!merged.music, '其余模块也补齐');
 
   /* ⚠️ 已删字段不许复活。
      规则是「结构以代码为准，内容以草稿为准」：草稿里 base 没有的键直接忽略。
-     维修屏 2026-11-15 整屏下线后，用关于我的 facts 做同样的验证。 */
+     2026-11-15「关于我」改成 cards / tags 后，用旧 facts 模拟老草稿。 */
   const stale = JSON.parse(JSON.stringify(full));
   stale.about.oldFacts = [{ label: '旧信息', value: 'x' }];
   delete stale.about.body;
+  delete stale.about.tags;
   const noRevive = ctx.ADMIN_MERGE(full, stale);
   check(typeof noRevive.about.body === 'string' && noRevive.about.body.length > 0,
     '草稿里删掉的正文字段回落到默认值，不被清成空');
   check(!('oldFacts' in noRevive.about),
     '草稿里已删除的字段（about.oldFacts）不会复活');
-  check(Array.isArray(noRevive.about.facts) && noRevive.about.facts.length > 0,
-    '关于我的信息卡数组仍在');
+  check(Array.isArray(noRevive.about.cards) && noRevive.about.cards.length > 0,
+    '关于我的描述卡数组仍在');
+  check(Array.isArray(noRevive.about.tags),
+    '关于我的标签数组回落到默认空数组');
 
   /* 废弃字段清理：老草稿里的 repair / services 等不应被带进新 config。
      ⚠️ about 已经是正式屏，绝不能出现在丢弃名单里。 */
@@ -183,7 +197,7 @@ if (typeof ctx.ADMIN_MERGE === 'function') {
     : null;
   check(pruned && !pruned.repair && !pruned.services && !pruned.interests && !pruned.social,
     '已下线章节（repair/services/interests/social）会被清理掉');
-  check(pruned && !!pruned.profile && !!pruned.about && Array.isArray(pruned.about.facts),
+  check(pruned && !!pruned.profile && !!pruned.about && Array.isArray(pruned.about.cards),
     '清理后「关于我」等正式章节完好');
 }
 

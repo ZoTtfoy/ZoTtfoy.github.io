@@ -44,12 +44,20 @@ const STEAM_PLATFORM = 753;
 const EVENT_TYPE = /(特卖|游戏节|大奖|节日|促销|活动|Sale|Fest|Awards)/i;
 
 async function loadChromium() {
-  try {
-    const mod = await import("playwright-core");
-    return mod.chromium;
-  } catch {
-    return null;
+  /* CI 里装 `playwright`（它自己带配套版本的 Chromium）；
+     本机只装了 playwright-core + 本机缓存的浏览器。两个都试，谁在谁上。 */
+  for (const name of ["playwright", "playwright-core"]) {
+    try {
+      const mod = await import(name);
+      if (mod && mod.chromium) return mod.chromium;
+    } catch { /* 试下一个 */ }
   }
+  return null;
+}
+
+/* CI runner 上统一加 --no-sandbox；本机不加，保持和以前一样。 */
+function launchBrowser(chromium) {
+  return chromium.launch(process.env.CI ? { args: ["--no-sandbox"] } : {});
 }
 
 /* SteamID 的三种给法，优先级从高到低：
@@ -259,7 +267,7 @@ async function collectViaBadges(page, base) {
 
 /* ------------------------------------------------------- 路线② 公开资料页 */
 async function collectViaPage(chromium, steamId, fallbackCount) {
-  const browser = await chromium.launch();
+  const browser = await launchBrowser(chromium);
   try {
     const ctx = await browser.newContext({ locale: "zh-CN", userAgent: UA });
     const page = await ctx.newPage();
@@ -410,7 +418,7 @@ async function main() {
   let descriptions = [];
   let total = 0;
   if (!API_ONLY) {
-  const browser = await chromium.launch();
+  const browser = await launchBrowser(chromium);
   const ctx = await browser.newContext({
     /* 中文界面能让 market_hash_name 的 type 直接是中文游戏名，
        但 appid 前缀不受语言影响 —— 语言只影响可读性。 */
@@ -423,19 +431,32 @@ async function main() {
 
   let lastAsset = null;
   let rounds = 0;
-  let total = 0;
+  /* ⚠️ 这里**不要**再声明 total —— 外层已经有一个同名变量，
+     函数里写的 inventoryTotal 读的是外层那份。以前这里多写一个 let，
+     把库存件数写成了 0（阴影变量），2026-11-15 修掉。 */
 
   try {
     /* 分页：接口单次最多给 2000，但实际会按 more_items 分批。
-       实测 280 件的库存一轮就能取完，这里留到 6 轮以防库存很大。 */
+       实测 280 件的库存一轮就能取完，这里留到 6 轮以防库存很大。
+       ⚠️ 2026-11-15：请求本身可能直接抛（本机实测 ERR_CONNECTION_TIMED_OUT）。
+          以前这个异常会冒泡到最外层 catch，整条同步链直接终止 —— 战绩、时长
+          也跟着不更新。现在把它当"这次没抓到库存"处理：记一行日志、跳出循环，
+          后面照常走 API，并沿用旧封面墙。 */
     while (rounds < 6) {
       const url =
         `https://steamcommunity.com/inventory/${steamId}/753/6` +
         `?l=schinese&count=2000` +
         (lastAsset ? `&start_assetid=${lastAsset}` : "");
 
-      const resp = await page.goto(url, { waitUntil: "domcontentloaded", timeout: 30000 });
-      const body = await page.evaluate(() => document.body.innerText);
+      let resp = null;
+      let body = "";
+      try {
+        resp = await page.goto(url, { waitUntil: "domcontentloaded", timeout: 30000 });
+        body = await page.evaluate(() => document.body.innerText);
+      } catch (e) {
+        log("库存接口请求失败：" + String(e.message || e).split("\n")[0]);
+        break;   /* 下面 found 为空的分支会统一说明「沿用旧墙」 */
+      }
 
       let json = null;
       try { json = JSON.parse(body); } catch { /* 不是 JSON */ }
@@ -466,10 +487,14 @@ async function main() {
   if (API_ONLY) {
     log("--api-only：跳过库存抓取，沿用 data/steam.json 里已有的封面墙数据");
   } else if (!found.length) {
-    log("没有从库存里提取到任何 appid");
-    log("可能原因：① 库存是私密的 ② 库存里没有卡牌/表情（全新账号常见）");
-    process.exit(0);
+    /* 2026-11-15 改：以前这里直接 exit(0)，于是 CI 里一旦被 Steam 限流，
+       连战绩/时长都不更新了 —— 封面墙把整条同步链绑架了。
+       现在只标记"这次没抓到"，后面沿用旧墙，战绩照常写。 */
+    log("没有从库存里提取到任何 appid（库存私密 / 没卡牌 / 被限流）");
+    log("这次沿用旧封面墙，战绩与时长照常更新");
   }
+
+  const inventoryOk = !API_ONLY && found.length > 0;
 
   /* 按「是不是特卖活动」排序：真游戏排前面，活动排后面。
      前端只取前 N 个铺墙，这样墙上都是能认出来的游戏封面。 */
@@ -501,7 +526,7 @@ async function main() {
   /* --api-only 时 games 是空的（没跑库存），这一整块直接跳过，
      写文件时沿用旧 JSON 里的封面墙数据，别把墙清空。 */
   const portraitApps = [];
-  if (!API_ONLY) {
+  if (inventoryOk) {
     for (let i = 0; i < games.length; i += 6) {
       const batch = games.slice(i, i + 6);
       const res = await Promise.all(batch.map((g) => hasPortrait(g.appid)));
@@ -528,7 +553,15 @@ async function main() {
     log("--api-only 但没有拿到 API 数据（key 无效 / 网络失败），这次不写文件");
     process.exit(0);
   }
-  if (!board) board = await collectViaPage(chromium, steamId, games.length);
+  if (!board) {
+    /* 公开资料页同样可能超时 / 被限流。抓不到就让它保持 null，
+       下面会沿用上一次的 lib / recent / added，而不是让异常终止整条链。 */
+    try {
+      board = await collectViaPage(chromium, steamId, games.length);
+    } catch (e) {
+      log("公开资料页也没抓到：" + String(e.message || e).split("\n")[0]);
+    }
+  }
 
   if (board && board.rows.length) {
     log(`战绩：${board.rows.length} 行 / 共 ${board.totalGames} 款 / ` +
@@ -564,6 +597,19 @@ async function main() {
     log("最近入库：没有新游戏");
   }
 
+  /* 只有"抓到库存 + 至少探到一张竖图"才更新封面墙。
+     CDN 被限流时 hasPortrait 会全部返回 false，若照写就会把墙清空 ——
+     这种失败必须静默沿用旧数据。 */
+  const keepWall = !inventoryOk || portraitApps.length === 0;
+  if (keepWall && prev) log("封面墙沿用上一次结果（这次没拿到可用竖图）");
+  /* 极端情况：第一次跑就全失败（无库存、无战绩、无历史文件）。
+     这时写出去只会得到一份空壳 JSON，不如不写，等下一次重跑。 */
+  if (!prev && !board && keepWall) {
+    log("这次库存与战绩都没拿到，也没有历史文件 —— 不写 data/steam.json");
+    process.exit(0);
+  }
+  const oldWall = keepWall && prev ? prev : null;
+
   await fs.mkdir(path.dirname(OUT), { recursive: true });
   await fs.writeFile(
     OUT,
@@ -572,36 +618,38 @@ async function main() {
         updated: new Date().toISOString(),
         steamId,
         source: "inventory",
-        inventoryTotal: API_ONLY && prev ? prev.inventoryTotal : total,
+        inventoryTotal: oldWall ? prev.inventoryTotal : total,
         /* apps 只放真游戏 —— 活动 appid 的封面大多 404，铺上去会是空白格。
            --api-only 时沿用上一次本机抓的那份（不然封面墙会被清空）。 */
-        apps: API_ONLY && prev ? (prev.apps || []) : games.map((g) => g.appid),
+        apps: oldWall ? (prev.apps || []) : games.map((g) => g.appid),
         /* portraitApps 是逐张探测过、一定能加载的竖版封面，
            前端的封面墙只用这一份。apps 保留完整清单供别处引用。 */
         portraitBase: PORTRAIT("{id}"),
-        portraitApps: API_ONLY && prev ? (prev.portraitApps || []) : portraitApps,
-        portraitChecked: API_ONLY && prev ? prev.portraitChecked : games.length,
-        games: API_ONLY && prev
+        portraitApps: oldWall ? (prev.portraitApps || []) : portraitApps,
+        portraitChecked: oldWall ? prev.portraitChecked : games.length,
+        games: oldWall
           ? (prev.games || [])
           : games.slice(0, 24).map((g) => ({ appid: g.appid, name: g.name })),
-        events: API_ONLY && prev ? (prev.events || []) : events.map((e) => e.appid),
+        events: oldWall ? (prev.events || []) : events.map((e) => e.appid),
         /* lib：顶部那条数据（游戏数量 / 总时长 / 完美通关）
            + rows：列表里的几行（duration / 2w / 成就 / 封面）
            partial=true 表示"总时长"只统计了列表里这几款，不是全库。 */
+        /* 战绩也走"失败沿用"：API 偶发 5xx / key 临时失效 / 资料页被限时，
+           不能把已有的 143 款 / 3791 小时清空成 null。 */
         lib: board ? {
           source: board.source,
           totalGames: board.totalGames,
           totalHours: board.totalHours,
           perfect: board.perfect,
           partial: board.partial
-        } : null,
-        recent: board ? board.rows : [],
+        } : (prev ? prev.lib : null),
+        recent: board ? board.rows : (prev ? prev.recent : []),
         /* owned：全库 appid 快照（下次同步的基线，目前没在前端用）
            added：最近入库（新 → 旧，最多 12 条，带日期）
            ownedSince：基线建立的日期（前端在 empty 状态下用它说话） */
         owned: (board && board.owned) || (prev && prev.owned) || [],
-        added,
-        ownedSince
+        added: board ? added : (prev ? prev.added : []),
+        ownedSince: board ? ownedSince : (prev ? prev.ownedSince : today)
       },
       null,
       2

@@ -188,18 +188,42 @@ window.SITE_CONFIG = {
             }
         ]
     },
+  /* 2026-11-15 按用户的小红书笔记重写「关于我」。
+     ⚠️ 用户明确要求三件事：
+        ① 不收录「找搭子 / 对搭子的要求」那段；
+        ② 不把笔记里的话题标签（#…）搬上来；
+        ③ 删掉「比较无聊，熟了会分享一些日常」，四张卡写成短句。
+     这一屏只讲喜欢什么，刻意保持口语、不写成简介腔。
+     cards 是数组，后台「关于我」页可直接增删排序；
+     tags 默认留空（后台仍可自己加），前台 :empty 时不占位置。 */
   about: {
       eyebrow: "02 / ABOUT ME",
       title: "关于我",
-      lead: "看庭前花开花落，望天上云卷云舒。",
-      body: "你好，我是 Zotrod。这里是我的个人主页 —— 写一点关于我的事、我做的事情，以及一些不务正业的爱好。\n" +
-            "平时主要泡在游戏和音乐里，偶尔折腾点小工具。不追求花哨，把复杂的东西做得简单一点就好。",
-      facts: [
-          { icon: "layers",   label: "坐标", value: "中国 · 河南" },
-          { icon: "gamepad",  label: "日常", value: "享受游戏 / 热爱生活" },
-          { icon: "note",     label: "在听", value: "网易云音乐" },
-          { icon: "mail",     label: "联系", value: "Zotrod@163.com" }
-        ]
+      lead: "喜欢什么，平时在做什么。",
+      body: "爱好甜食和拌饭，喜欢宅在家里和好朋友打游戏。",
+      cards: [
+          {
+              icon: "gamepad",
+              label: "打游戏",
+              text: "瓦 / Apex / 音游，慢的快的都喜欢"
+            },
+          {
+              icon: "music",
+              label: "听歌写歌",
+              text: "电子、日语、轻音乐；偶尔 FL Studio"
+            },
+          {
+              icon: "wrench",
+              label: "修修补补",
+              text: "鼠标键盘电脑，装系统、解 bug"
+            },
+          {
+              icon: "heart",
+              label: "口味日常",
+              text: "甜食、拌饭，宅家和朋友打游戏"
+            }
+        ],
+      tags: []
     },
   links: {
       eyebrow: "05 / ELSEWHERE",

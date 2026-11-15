@@ -9,17 +9,19 @@ name: Sync external data
 #   Variable NETEASE_UID       你的数字 UID（或直接改 config.js 的 listen.neteaseUid）
 #   Variable STEAM_ID          17 位 SteamID64（不填则读 config.js 里那张 Steam 卡）
 #
-# 关于 Steam 的两条路：
-#   · 库存抓取（封面墙用的 apps / portraitApps）必须真实浏览器 —— 裸 fetch 会被
-#     TLS 指纹挡住，Actions 里跑不了。所以这条只在本机跑：
-#         node scripts/sync-steam.mjs
-#   · 但「游戏库统计 + 最近入库」只需要 Web API，不需要浏览器。它跑的是：
-#         node scripts/sync-steam.mjs --api-only
-#     --api-only 会沿用上一次本机抓的封面墙数据，只更新战绩与 owned 快照。
-#     「最近入库」靠两次同步的 appid 差集算出来（Steam 接口没有购买时间字段），
-#     所以这条必须每天跑 —— 断一天，那天入库的游戏就要等到下一次才被发现。
+# 关于 Steam（2026-11-15 起全自动，不用再本机手跑）：
+#   · 封面墙 apps / portraitApps 来自**公开库存接口**，不需要 API key、不需要登录，
+#     但必须真实浏览器（裸 fetch 会被 TLS 指纹挡）。CI 里装 Playwright Chromium 即可。
+#   · 战绩 / 总时长 / 最近入库走 Web API，用 Secret STEAM_API_KEY —— key 只存在于
+#     这次 runner 的环境变量里，不进仓库、不进前端、不进日志。
+#   · 一次 `node scripts/sync-steam.mjs` 同时做完上面两件事。
+#   · 安全：key 绝不下放到浏览器；本工作流只由 schedule / workflow_dispatch 触发，
+#     没有 pull_request_target，fork 的 PR 拿不到任何 secret。
+#   · 容错：库存抓不到（限流/私密）时沿用旧封面墙，战绩照常更新；
+#     竖版封面全部探测失败时也不会把墙清空。
+#   · 「最近入库」靠两次同步的 appid 差集算（Steam 没有购买时间字段），所以每天必跑。
 #
-# 不配置也能跑：没配的项自动跳过，其余照旧。
+# 没配 STEAM_API_KEY 也能跑：封面墙照抓，战绩退回公开资料页。
 
 on:
   schedule:
@@ -53,16 +55,24 @@ jobs:
         with:
           node-version: "20"
 
-      # 先跑 Steam：它只依赖 API，最稳；而且「最近入库」每天都可能变，
-      # 万一后面网易云那条挂了，这一条不该被牵连。
-      - name: Sync Steam 战绩与最近入库（API only）
-        if: env.STEAM_API_KEY != ''
-        timeout-minutes: 10
-        run: node scripts/sync-steam.mjs --api-only
+      - name: Install Playwright Chromium
+        # playwright（不是 core）自带配套版本的浏览器，install 一次即可。
+        # --with-deps 会补齐 libgtk / libnss 等系统库，缺了在干净 runner 上必崩。
+        run: |
+          npm install --no-save playwright@1.65.0
+          npx playwright install --with-deps chromium
 
-      - name: Skip notice
+      # 一次跑完：公开库存 → 封面墙；Web API → 战绩 / 总时长 / 最近入库。
+      # 先跑 Steam，是因为「最近入库」每天都可能变，不该被后面网易云那条牵连。
+      - name: Sync Steam（封面墙 + 战绩 + 最近入库）
+        timeout-minutes: 15
+        run: node scripts/sync-steam.mjs
+        env:
+          CI: true
+
+      - name: Skip notice (no key)
         if: env.STEAM_API_KEY == ''
-        run: echo "没有配置 STEAM_API_KEY，跳过 Steam 同步（页面继续用仓库里已有的 data/steam.json）"
+        run: echo "没有 STEAM_API_KEY：封面墙仍已抓取，战绩退回公开资料页（全库时长不可用）"
 
       - name: Run sync
         timeout-minutes: 10
@@ -76,6 +86,6 @@ jobs:
           if git diff --staged --quiet; then
             echo "数据没有变化，跳过提交"
           else
-            git commit -m "chore(sync): 更新在听 / 游戏战绩 / 最近入库"
+            git commit -m "chore(sync): 更新封面墙 / 在听 / 游戏战绩 / 最近入库"
             git push
           fi

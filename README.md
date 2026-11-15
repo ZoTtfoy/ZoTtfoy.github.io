@@ -78,7 +78,7 @@ zotrod-homepage/
 │   └── previews.json             # 同步产物：摘要卡统计（自动生成）
 ├── scripts/
 │   ├── sync.mjs                  # 同步脚本：网易云播放记录（Node 原生，无依赖）
-│   ├── sync-steam.mjs            # 同步脚本：Steam 库存 + 战绩（--api-only 可免浏览器）
+│   ├── sync-steam.mjs            # 同步脚本：Steam 库存 + 战绩（CI 完整跑，--api-only 可免浏览器）
 │   └── lib/
 │       └── steam-added.mjs       # 「最近入库」差集记账（纯函数，可离线测试）
 ├── assets/
@@ -789,10 +789,10 @@ cookie 大约 3~12 个月会失效。失效后页面会停在最后一次成功�
 > 并且要像小黑盒那样显示「游戏时长 + 成就」。下线用的是 `hidden: true`，
 > 数据都还在，把那一行删掉就回来。
 >
-> 同一轮还定了一件事：**整块战绩板是一个 `<a>`**，点哪都进 Steam 主页。
-> 早先那个「点一下复制好友码」的按钮已经删掉 —— 好友码只剩展示。
-> 因为整块是链接，板子里**不能再套任何交互元素**（嵌套 `<a>` 是非法结构，
-> 点击会打架）。`verify-gaming.js` 有一条断言专门守这个。
+> 2026-11-13 起：**战绩板容器是 `<div>`，右上角只有一枚「前往主页」CTA**。
+> 早先是整块 `<a>`，但要在磁贴里放主页按钮就变成链接套链接（非法结构、
+> 点击会打架），所以退回容器 + 唯一 CTA。`verify-gaming.js` 守三条：
+> 容器不是链接、CTA 只有一个、CTA 指向 Steam 档案并在新标签打开。
 
 ### 战绩列表：数据怎么来的（以及怎么变成全量）
 
@@ -821,28 +821,34 @@ node scripts/sync-steam.mjs
 > 为什么公开页只给几款：`/profiles/<id>/games?tab=all` 现在要登录才给看，
 > 而不登录能看到的是资料页的「最新动态」—— 就几款。
 
-### 两种跑法：本机全量 / CI 只跑 API
+### 两种跑法：完整同步 / 只跑 API
 
 库存抓取（`apps` / `portraitApps`，封面墙用的那两份）**必须真实浏览器**：
-裸 TLS 请求会被挡，差异在 TLS 指纹不在 IP。所以那条路只能在有 Chromium 的机器上跑。
+裸 TLS 请求会被挡，差异在 TLS 指纹不在 IP。
 
-但「游戏库统计 + 最近入库」只依赖 Web API，不需要浏览器。为此有第二个模式：
+2026-11-15 起，`.github/workflows/sync.yml` 会在 runner 上装 Playwright
+Chromium，然后跑**完整模式** `node scripts/sync-steam.mjs` —— 封面墙、战绩、
+全库时长、最近入库一次做完，不用再本机手跑。
+`--api-only` 保留给本机临时补数据用（跳过库存、沿用旧封面墙）。
 
-```bash
-node scripts/sync-steam.mjs --api-only
-```
-
-| | `node scripts/sync-steam.mjs` | `--api-only` |
+| | 完整模式（默认，CI 用这个） | `--api-only` |
 | --- | --- | --- |
 | 需要 Chromium | 是 | 否 |
 | 抓库存 / 封面墙 | ✅ | 跳过，**沿用上次结果** |
 | 战绩（数量 / 时长 / 成就） | ✅ | ✅ |
 | 最近入库（差集） | ✅ | ✅ |
-| 能跑在 GitHub Actions | ❌ | ✅ |
+| 能跑在 GitHub Actions | ✅（装了 Chromium） | ✅ |
 
-CI 里就是这样跑的（`.github/workflows/sync.yml`，Secret `STEAM_API_KEY`）。
-`--api-only` 拿不到数据时**直接退出、不写文件** —— 宁可这一天没更新，
-也不能把已有的封面墙和 `added` 记录冲成空。
+容错是分链的，任何一条失败都不会拖垮其它条：
+
+- 库存抓不到（私密 / 限流）→ 沿用上一次封面墙，战绩与时长照常更新；
+- 竖版封面探测全失败 → 同样沿用旧墙，不会把墙清空；
+- Web API 失败（5xx / key 临时失效）→ `lib` / `recent` / `added` 沿用旧值；
+- 第一次跑就全失败且没有历史文件 → 不写 `data/steam.json`，等下次重跑。
+
+`STEAM_API_KEY` 只放在 Actions Secret 里，只进 runner 的环境变量，
+不进仓库、不进前端、不进日志；工作流只由 `schedule` / `workflow_dispatch`
+触发，没有 `pull_request_target`，fork 的 PR 拿不到 secret。
 
 ### 「最近入库」：为什么需要自己记账
 
@@ -1210,15 +1216,24 @@ node scripts/sync-steam.mjs        # 需 playwright-core + 本地 chromium
 > **2026-11-15：维修屏整屏删除**（原先那一章讲的是报价表和四步估价器，
 > 现随功能一起删掉）。想恢复的话在 git 历史里找本章前一版即可。
 
-「关于我」插在首屏与「在听」之间，是站里唯一纯文字 + 信息卡的一屏：
+「关于我」插在首屏与「在听」之间，是站里唯一纯文字 + 描述卡的一屏：
 
 | 部分 | 来源 | 说明 |
 | --- | --- | --- |
 | 标题三件套 | `config.about` 的 `eyebrow` / `title` / `lead` | 由 `render.js` 的 `renderSections()` 统一填 |
 | 正文 | `about.body` | `render-about.js` 用 `K.text()` 把 `\n` 转成 `<br>` |
-| 信息卡 | `about.facts[]` | 2×2 网格，图标名走 `icons.js`；数量不写死 |
+| 描述卡 | `about.cards[]` | 2×2 网格，`{ icon, label, text }`；图标名走 `icons.js`，数量不写死，文字保持短句 |
+| 标签行 | `about.tags[]` | 逗号分隔的字符串数组，自动换行成胶囊；**默认空数组**，`about__tags:empty` 时不占位 |
 
-后台「关于我」页可以直接编辑这些字段并增删信息卡，发布后与前台一致。
+内容取自用户的小红书笔记里的「喜欢什么」，按本人要求做了三处删减，
+`verify.js` 有断言守着，别又加回来：
+
+1. 不收录「找搭子 / 对搭子的要求」那段；
+2. 不搬笔记里的话题标签（`#…`）；
+3. 删掉「比较无聊，熟了会分享一些日常」，四张卡压成一行短句。
+
+后台「关于我」页可以编辑标题 / 正文、增删排序描述卡、用逗号改标签（留空即不显示），
+发布后与前台一致。
 样式在 `30-sections/about.css`，为了不把整站拖进低档位，窄屏/矮屏会单独压字号
 与卡片内边距（`data-fit="micro"` / `data-vp="tight"`）。
 

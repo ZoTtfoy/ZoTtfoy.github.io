@@ -206,7 +206,7 @@ for (const key of ['links']) {
 }
 (C.profile?.contacts || []).forEach(it => usedIcons.add(it.icon));
 (C.profile?.previews || []).forEach(it => usedIcons.add(it.icon));
-(C.about?.facts || []).forEach(f => usedIcons.add(f.icon));
+(C.about?.cards || []).forEach(c => usedIcons.add(c.icon));
 (C.gaming?.items || []).forEach(it => { if (!it.iconImage) usedIcons.add(it.icon); });
 for (const name of usedIcons) check(!!ctx.SITE_ICONS[name], '图标存在: ' + name);
 
@@ -329,14 +329,36 @@ check(games.every(g => !g.color || /^#[0-9a-f]{3,8}$/i.test(g.color)), '品牌�
    换成插在首屏与「在听」之间的关于我。这里守文案来自配置、信息卡数量一致。 */
 const aboutCfg = C.about || {};
 check(!!aboutCfg.title && !!aboutCfg.lead, '关于我配置了标题与副标题');
-check(H('aboutBody').includes('about__text'), '关于我正文渲染');
+check(H('aboutBody').includes(ctx.SITE_RENDER.esc((aboutCfg.body || '').split('\n')[0])),
+  '关于我正文渲染');
 check((aboutCfg.body || '').length === 0 || H('aboutBody').includes('<br>') || !aboutCfg.body.includes('\n'),
   '正文换行被转成 <br>');
-check(count('aboutFacts', /class="about__fact"/g) === (aboutCfg.facts || []).length,
-  '信息卡数量与配置一致（' + (aboutCfg.facts || []).length + ' 张）');
-check((aboutCfg.facts || []).every(f => H('aboutFacts').includes(ctx.SITE_RENDER.esc(f.value))),
-  '信息卡内容来自配置');
-check(!/undefined|NaN/.test(H('aboutBody') + H('aboutFacts')), '关于我没有 undefined / NaN 泄漏');
+check(count('aboutCards', /class="about__card"/g) === (aboutCfg.cards || []).length,
+  '描述卡数量与配置一致（' + (aboutCfg.cards || []).length + ' 张）');
+check((aboutCfg.cards || []).every(c => H('aboutCards').includes(ctx.SITE_RENDER.esc(c.text))),
+  '描述卡内容来自配置');
+check(count('aboutTags', /class="about__tag"/g) === (aboutCfg.tags || []).length,
+  '标签数量与配置一致（' + (aboutCfg.tags || []).length + ' 个）');
+check((aboutCfg.tags || []).every(t => H('aboutTags').includes(ctx.SITE_RENDER.esc(t))),
+  '标签内容来自配置');
+/* 2026-11-15 用户三条明确要求，用断言守住别又加回来：
+   ① 不收录「找搭子 / 对搭子的要求」；
+   ② 不搬笔记里的话题标签（#…）；
+   ③ 删掉「比较无聊…」，四张卡写成短句。 */
+const aboutText = [aboutCfg.lead || '', aboutCfg.body || '']
+  .concat((aboutCfg.cards || []).reduce((a, c) => a.concat([c.label || '', c.text || '']), []))
+  .concat(aboutCfg.tags || [])
+  .join(' ');
+check(!/找搭子|对搭子|菜强都无所谓/.test(aboutText),
+  '「关于我」只讲喜好，不含找搭子段落');
+check((aboutCfg.tags || []).length === 0 && !/#[^\s]/.test(aboutText),
+  '不收录笔记里的话题标签');
+check(!/比较无聊|熟了会分享/.test(aboutText), '已删掉「比较无聊，熟了会分享一些日常」');
+check((aboutCfg.cards || []).length === 4 &&
+      (aboutCfg.cards || []).every(c => (c.text || '').length > 0 && (c.text || '').length <= 24),
+  '四张描述卡都是短句（≤ 24 字）');
+check(!/undefined|NaN/.test(H('aboutBody') + H('aboutCards') + H('aboutTags')),
+  '关于我没有 undefined / NaN 泄漏');
 
 /* ============================================================ Q5 · 其他 */
 check(count('linksGrid', /class="social"/g) === (C.links?.items || []).length,
@@ -500,6 +522,24 @@ check(/preload: false/.test(cfgSrc2), '预取闸门默认关闭（排查期）')
 const preloadSrc2 = fs.readFileSync(path.join(ROOT, 'assets/js/preload.js'), 'utf8');
 check(/live\.preload === true/.test(preloadSrc2), '闸门读 config 开关');
 check(/preload=\(\[01\]\)/.test(preloadSrc2), '闸门支持 ?preload=1/0 强制开关');
+
+/* -------------------------------------------- CI 自动同步（2026-11-15）
+   这三条守「别又退回 --api-only，害得用户还得本机手抓封面墙」。
+   workflow 是 YAML，静态检查关键行就够，不需要引第三方解析器。 */
+const wfSrc = fs.readFileSync(path.join(ROOT, '.github/workflows/sync.yml'), 'utf8');
+const wfBody = wfSrc.split('\non:', 1)[0] + wfSrc.slice(wfSrc.indexOf('\npermissions:'));
+check(/npx playwright install --with-deps chromium/.test(wfBody),
+  'CI 会安装 Chromium（封面墙需要真实浏览器）');
+check(/^\s*run: node scripts\/sync-steam\.mjs\s*$/m.test(wfBody) &&
+      !/run: node scripts\/sync-steam\.mjs --api-only/.test(wfBody),
+  'CI 跑完整同步，封面墙 + 战绩 + 时长一次拿全');
+check(/STEAM_API_KEY: \$\{\{ secrets\.STEAM_API_KEY \}\}/.test(wfSrc) &&
+      !/pull_request_target/.test(wfSrc.split('\non:')[1].split('\npermissions:')[0]),
+  'API key 只来自 Secret，且触发器不含 PR');
+const syncSrc = fs.readFileSync(path.join(ROOT, 'scripts/sync-steam.mjs'), 'utf8');
+check(/库存接口请求失败/.test(syncSrc) && /公开资料页也没抓到/.test(syncSrc) &&
+      /封面墙沿用上一次结果/.test(syncSrc),
+  '库存 / 资料页 / 竖图三条链失败时都各自容错，不清空已有数据');
 
 console.log(notes.join('\n'));
 console.log('\n检查项: ' + notes.length + '，失败: ' + failures.length);

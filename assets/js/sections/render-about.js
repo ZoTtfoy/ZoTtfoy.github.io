@@ -1,11 +1,12 @@
 /* ==========================================================================
  *  render-about.js —— Q2「关于我」
  * --------------------------------------------------------------------------
- *  2026-11-15 新增：维修屏整屏下线，在首屏与「在听」之间补这一屏。
- *  内容全部来自 config.about，后台「关于我」页可直接改，前后统一。
+ *  2026-11-15：内容按用户的小红书笔记里的「喜欢什么」重写，
+ *  结构从「正文 + 4 张信息卡」变成「正文 + 描述卡 + 标签行」。
+ *  ⚠️ 笔记里「对搭子的要求」那段按用户要求不用，别又加回来。
  *
- *  ⚠️ facts 是数组，后台可增删排序 —— 这里不要写死四张卡的数量。
- *  ⚠️ body 里的 \n 用 K.text() 转成 <br>，所以后台换行是所见即所得。
+ *  ⚠️ cards / tags 都是数组，后台可增删排序 —— 这里别写死数量。
+ *  ⚠️ body 里的 \n 走 K.text() 转成 <br>，后台换行所见即所得。
  * ========================================================================== */
 (function (K) {
   "use strict";
@@ -16,14 +17,19 @@
   function renderAbout() {
     var d = C.about || {};
 
-    set("aboutBody", '<p class="about__text">' + text(d.body || "") + "</p>");
+    set("aboutBody", text(d.body || ""));
 
-    set("aboutFacts", arr(d.facts).map(function (f, i) {
-      return '<div class="about__fact" style="' + delay(i, 65) + '" data-reveal>' +
-               '<span class="about__fact__icon">' + icon(f.icon || "sparkles") + "</span>" +
-               '<span class="about__fact__label">' + esc(f.label || "") + "</span>" +
-               '<span class="about__fact__value">' + esc(f.value || "") + "</span>" +
+    set("aboutCards", arr(d.cards).map(function (c, i) {
+      return '<div class="about__card" style="' + delay(i, 60) + '" data-reveal>' +
+               '<span class="about__card__icon">' + icon(c.icon || "sparkles") + "</span>" +
+               '<span class="about__card__label">' + esc(c.label || "") + "</span>" +
+               '<span class="about__card__text">' + esc(c.text || "") + "</span>" +
              "</div>";
+    }).join(""));
+
+    set("aboutTags", arr(d.tags).map(function (t, i) {
+      return '<span class="about__tag" style="' + delay(i, 35) + '" data-reveal>' +
+               esc(t) + "</span>";
     }).join(""));
   }
 
