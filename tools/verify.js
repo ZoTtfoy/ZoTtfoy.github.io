@@ -114,10 +114,7 @@ const documentStub = {
   body: new El('body'),
   getElementById(id) {
     const el = byId.get(id);
-    /* 少数 id 是渲染期才产出的（index.html 里没有），不算缺失：
-       quoteDetails —— 报价表由 render.js 用字符串拼进 #repairQuote，
-       结构是 <details id="quoteDetails">，所以 HTML 里搜不到。 */
-    if (!el && id !== 'quoteDetails') missingIds.add(id);
+    if (!el) missingIds.add(id);
     return el || null;
   },
   querySelector(sel) { return metaSel[sel] || null; },
@@ -172,16 +169,15 @@ ctx.window = ctx;
 vm.createContext(ctx);
 
 /* ---------- 依次执行站点脚本 ---------- */
-/* sync.js / repair.js 也一起加载：它们都有「元素不存在就直接退出」的保护，
-   在这里跑一遍能确保这两个新文件本身没有语法或运行时问题。 */
+/* sync.js 也一起加载：它有「元素不存在就直接退出」的保护。 */
 /* 顺序要和 index.html 一致：kit 先于屏模块，render.js 最后收口。 */
 const scripts = ['assets/js/config.js','assets/js/themes.js','assets/js/icons.js',
                  'assets/js/core/render-kit.js','assets/js/sections/render-profile.js',
                  'assets/js/sections/render-listen.js',
-                 'assets/js/sections/render-gaming.js','assets/js/sections/render-repair.js',
+                 'assets/js/sections/render-gaming.js','assets/js/sections/render-about.js',
                  'assets/js/sections/render-links.js',
                  'assets/js/render.js',
-                 'assets/js/core/perf-tier.js','assets/js/sync.js','assets/js/repair.js',
+                 'assets/js/core/perf-tier.js','assets/js/sync.js',
                  'assets/js/skin.js','assets/js/live.js','assets/js/paged.js','assets/js/effects.js',
                  'assets/js/motion.js','assets/js/main.js'];
 for (const rel of scripts) {
@@ -210,7 +206,7 @@ for (const key of ['links']) {
 }
 (C.profile?.contacts || []).forEach(it => usedIcons.add(it.icon));
 (C.profile?.previews || []).forEach(it => usedIcons.add(it.icon));
-if (C.repair?.xianyu) usedIcons.add(C.repair.xianyu.icon);
+(C.about?.facts || []).forEach(f => usedIcons.add(f.icon));
 (C.gaming?.items || []).forEach(it => { if (!it.iconImage) usedIcons.add(it.icon); });
 for (const name of usedIcons) check(!!ctx.SITE_ICONS[name], '图标存在: ' + name);
 
@@ -328,58 +324,19 @@ check(!games.some(g => g.iconImage) || H('gameRail').includes('game__logo'),
 check(!/undefined|NaN/.test(H('gameRail')), '游戏卡片没有 undefined / NaN 泄漏');
 check(games.every(g => !g.color || /^#[0-9a-f]{3,8}$/i.test(g.color)), '品牌色都是合法色值');
 
-/* ============================================================ Q4 · 维修 */
-check(count('repairPreview', /class="preview(?:\s|")/g) === (C.repair?.xianyu ? 1 : 0),
-  'Q4 闲鱼摘要卡渲染');
-const quoteRows = (C.repair?.quote?.rows || []);
-check(count('repairQuote', /class="quote__row"/g) === quoteRows.length,
-  '报价表行数与配置一致');
-check(count('repairQuote', /class="quote__group"/g) ===
-  new Set(quoteRows.map(r => r.group)).size, '报价表按 group 正确分栏');
-check((quoteRows.length === 0) || H('repairQuote').includes(quoteRows[0].item), '报价表项目名来自配置');
-
-/* 计算器：配置层校验 + 渲染校验 */
-const calc = C.repair?.calculator || {};
-check((calc.devices || []).length > 0, '计算器配了设备选项');
-check((calc.services || []).length > 0, '计算器配了项目选项');
-/* 2026-11-11 流程改版：材料不再问读者，改取 materialDefault；
-   原来的「加项」拆成「维修方式 methods」与「加急 rushes」两步。
-   材料仍然必须有 —— 它是价格公式里的一环，只是不出现在问题里。 */
-check((calc.materials || []).length > 0, '计算器配了材料（价格前提，不出现在流程里）');
-check((calc.methods || []).length >= 2, '计算器配了至少两种维修方式（同城/快递）');
-check((calc.rushes || []).length >= 2, '计算器配了加急的两种选择');
-check((calc.materials || []).some(m => m.id === (calc.materialDefault || 'oem')),
-  'materialDefault 指向一个真实存在的材料');
-check([...(calc.devices || []), ...(calc.materials || [])].every(
-  x => typeof x.factor === 'number' && x.factor > 0), '系数都是正数');
-check([...(calc.methods || []), ...(calc.rushes || [])].every(
-  x => typeof x.add === 'number' && x.add >= 0), '方式与加急的附加费都是非负数');
-check((calc.services || []).every(x => typeof x.price === 'number' && x.price >= 0),
-  '项目价格都是非负数');
-check((calc.extras || []).every(x => typeof x.add === 'number'), '加项都是固定金额');
-check(Array.isArray(calc.range) && calc.range.length === 2 && calc.range[0] < calc.range[1],
-  '区间上下限合法');
-check((calc.services || []).every(x => !x.devices ||
-  x.devices.every(d => (calc.devices || []).some(dev => dev.id === d))),
-  '项目支持列表里的设备 id 都存在（拼错会导致该选项永远不可选）');
-check(typeof ctx.SITE_REPAIR === 'object' && typeof ctx.SITE_REPAIR.compute === 'function',
-  '计算器模块已注册且暴露 compute');
-
-/* 算法校验：手算一遍和 compute() 对一次 */
-{
-  const dev = calc.devices?.[0], svc = calc.services?.[0], mat = calc.materials?.[0];
-  const ext = (calc.extras || []).find(e => e.id === 'none') || calc.extras?.[0];
-  if (dev && svc && mat && ext) {
-    ctx.SITE_REPAIR.state.device = dev.id;
-    ctx.SITE_REPAIR.state.service = svc.id;
-    ctx.SITE_REPAIR.state.material = mat.id;
-    ctx.SITE_REPAIR.state.extra = ext.id;
-    const r = ctx.SITE_REPAIR.compute();
-    const mid = svc.price * dev.factor * mat.factor + ext.add;
-    check(r && r.lo === Math.round(mid * calc.range[0]) && r.hi === Math.round(mid * calc.range[1]),
-      '计算器结果 = 项目价 × 设备系数 × 材料系数 + 加项，再按区间展开');
-  }
-}
+/* ========================================================== Q2 · 关于我
+   2026-11-15：维修屏整屏下线（计算器、报价表、闲鱼卡连同脚本一起删掉），
+   换成插在首屏与「在听」之间的关于我。这里守文案来自配置、信息卡数量一致。 */
+const aboutCfg = C.about || {};
+check(!!aboutCfg.title && !!aboutCfg.lead, '关于我配置了标题与副标题');
+check(H('aboutBody').includes('about__text'), '关于我正文渲染');
+check((aboutCfg.body || '').length === 0 || H('aboutBody').includes('<br>') || !aboutCfg.body.includes('\n'),
+  '正文换行被转成 <br>');
+check(count('aboutFacts', /class="about__fact"/g) === (aboutCfg.facts || []).length,
+  '信息卡数量与配置一致（' + (aboutCfg.facts || []).length + ' 张）');
+check((aboutCfg.facts || []).every(f => H('aboutFacts').includes(ctx.SITE_RENDER.esc(f.value))),
+  '信息卡内容来自配置');
+check(!/undefined|NaN/.test(H('aboutBody') + H('aboutFacts')), '关于我没有 undefined / NaN 泄漏');
 
 /* ============================================================ Q5 · 其他 */
 check(count('linksGrid', /class="social"/g) === (C.links?.items || []).length,
@@ -411,23 +368,24 @@ check(!H('navList').includes('>01<') || enabledKeys.length === 0,
   check(navHrefs.length === enabledKeys.length,
     '导航条数与启用模块一致（导航 ' + navHrefs.length + ' / 配置 ' + enabledKeys.length + '）');
 }
+/* 顶栏只留文字：2026-11-15 用户要求去掉 01/02/03 序号。 */
+check(!/nav__num|pad2\(/.test(fs.readFileSync(path.join(ROOT, 'assets/js/render.js'), 'utf8')),
+  '顶栏不再渲染数字序号（只留文字）');
+
 /* 首屏两个按钮的 target 必须是真实存在的锚点。
-   6 屏重构删掉了 about / services 等旧屏，配置里的 #services 就成了死按钮 ——
-   点了没反应，比没有按钮更糟。 */
+   屏被删掉后配置里残留的锚点就成了死按钮，点了没反应，比没有按钮更糟。 */
 for (const key of ['heroPrimary', 'heroSecondary']) {
   const el = byId.get(key);
   const href = el ? el.getAttribute('href') : null;
   const target = href && href.charAt(0) === '#' ? byId.get(href.slice(1)) : null;
   check(!!target, key + ' 指向真实存在的屏（' + href + '）');
-  /* ⚠️ 2026-11-14：光"存在"不够。#repair 一直躺在 DOM 里，只是 hidden ——
-     配置里 sections.repair.enabled = false 把它关掉之后，按钮指向它就成了
-     死链：点了没有任何反应，控制台也不报错。用户报的"定向按钮失效"就是这个。
-     所以这里必须连"目标屏是否启用"一起判。 */
+  /* ⚠️ 光"存在"不够：目标屏可能被 hidden，点了没有任何反应也不报错。
+     所以这里连"是否启用"一起判。 */
   check(!!target && !target.hidden, key + ' 指向的屏是启用的（' + href + '）');
 }
 
-/* 六个页面 id 必须都在 DOM 里，否则翻页引擎会漏页 */
-for (const id of ['top', 'listen', 'gaming', 'repair', 'links', 'contact']) {
+/* 六个可见屏的 id 必须都在 DOM 里，否则翻页引擎会漏页 */
+for (const id of ['top', 'about', 'listen', 'gaming', 'links', 'contact']) {
   check(byId.has(id), '页面存在: #' + id);
 }
 check(H('themeToggle').includes('<svg'), '主题按钮图标');

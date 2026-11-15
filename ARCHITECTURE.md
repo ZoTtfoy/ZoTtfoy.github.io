@@ -43,7 +43,7 @@ tools/                                   # 校验与开发工具（不进产物�
 | `00-base` | 变量、字体、字重阶梯 | tokens, typography |
 | `10-shell` | 骨架、背景、翻页 | layout, paged, backdrop（含综合纹章层） |
 | `20-components` | 通用组件、动效、皮肤面板 | components, skin, effects, motion |
-| `30-sections` | 各屏专属 | profile, link-cards, listen, repair, mailbox, section-media, xianyu, gaming, live, gallery |
+| `30-sections` | 各屏专属 | profile, about, link-cards, listen, mailbox, section-media, gaming, live, gallery |
 | `40-responsive` | **只看视口**的全局分级 | fit（按可用高度分档）, density（按视口密度） |
 | `90-overrides` | 卡片语言统一层 + 液态玻璃效果层 | unify |
 
@@ -80,8 +80,8 @@ fonts → tokens → backdrop → layout → components → [30-sections 七连]
 ```
 config, themes          （数据）
 icons → core/render-kit → sections/render-profile → sections/render-listen
-→ sections/render-gaming → sections/render-repair → sections/render-links
-→ render → sync → scale → density → repair → skin → backdrop → live
+→ sections/render-gaming → sections/render-about → sections/render-links
+→ render → sync → scale → density → skin → backdrop → live
 → core/perf-tier → steamwall
 → albumwall → preload → player → paged → readability → effects
 → motion → main
@@ -101,7 +101,7 @@ icons → core/render-kit → sections/render-profile → sections/render-listen
 
 **顺序是契约**：kit → 所有屏模块 → `render.js`。反了就找不到 `parts`，
 `render.js` 里的 `var G = K.parts.gaming` 直接是 undefined。
-屏模块之间也有先后：`render-repair` 复用 Q1 的 `paintPreviews`，
+屏模块之间也有先后：各屏模块复用 Q1 的 `paintPreviews`，
 所以 `render-profile` 必须排在它前面（已经写进 `index.html` 的注释）。
 
 三条规矩：
@@ -127,7 +127,7 @@ icons → core/render-kit → sections/render-profile → sections/render-listen
 四条硬约束（现在由 `tools/verify-boot.js` 断言，不再只是注释）：
 
 1. `render` 第一 —— 它的产物是后面每一步的前提。
-2. `scale → density → repair.foldQuote → paged` 依次，一步都不能提前 ——
+2. `scale → density → paged` 依次，一步都不能提前 ——
    任何一步提前，`paged` 量到的都是「还没让位」的旧高度。
 3. `live` 早于 `paged` —— 时钟/一言/进度条会撑高首页。
 4. `readable` 晚于 `paged` —— 它要读「最终生效」的字号。
@@ -192,7 +192,7 @@ npm run baseline:check  # 12 张视觉基线（需先 baseline:make）
 按「投入产出」排序，不是按工作量：
 
 1. **（已完成）`render.js` 按屏拆**：1159 → 394 行，六屏全部搬进
-   `sections/render-*.js`（profile / listen / gaming / repair / links），
+   `sections/render-*.js`（profile / about / listen / gaming / links），
    `render.js` 只剩外壳（meta / 头像 / 品牌 / 导航 / 控件）+ 块表 + 启动。
    剩下的欠账：`hexToRgba` / `applyAccent` 仍在外壳里，属于主题而非渲染，
    将来可以并进 `skin.js`。
@@ -268,7 +268,7 @@ npm run baseline:check  # 12 张视觉基线（需先 baseline:make）
 
 ### 综合纹章背景（第 9 项）
 
-`backdrop/motif.svg` 画六组线稿：齿轮（维修）/ 波形（音乐）/ 电路（电子）/
+`backdrop/motif.svg` 画六组线稿：齿轮 / 波形（音乐）/ 电路（电子）/
 芯片（数码）/ 叶片（生活）/ 十字键（游戏）。用 CSS `mask-image` 取 alpha、
 `background-color: var(--text)` 上色 —— 颜色随主题自动换，不用出浅/深两份图；
 纯静态，零 JS，低端档照常显示。

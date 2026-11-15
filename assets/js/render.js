@@ -6,10 +6,10 @@
  *    ② 块表 BLOCKS：谁先画、画在哪个容器上（layer 顺序一处可见）
  *    ③ 启动：逐块 try/catch、data-render 标记、?render=xxx 单块调试
  *
- *  六屏的渲染都已搬到 sections/ 下：
- *    Q1 身份区  render-profile.js      Q4 维修    render-repair.js
- *    Q2 在听    render-listen.js       Q5/Q6     render-links.js
- *    Q3 游戏    render-gaming.js
+ *  各屏渲染都在 sections/ 下（2026-11-15 维修屏下线、新增「关于我」）：
+ *    Q1 身份区  render-profile.js      Q4 其他/邮箱  render-links.js
+ *    Q2 关于我  render-about.js        Q3 游戏       render-gaming.js
+ *    Q3 在听    render-listen.js
  *  共用小工具在 core/render-kit.js。
  *
  *  ⚠️ 别再往这个文件里写屏专属代码。要加一屏：
@@ -37,18 +37,18 @@ window.SITE_RENDER = (function () {
 
      ⚠️ 加载顺序是契约：kit → 屏模块 → 本文件。反了这里全是 undefined，
         页面会静默空白（每块都被 try/catch 兜住，控制台有 [render] xxx 失败）。
-     ⚠️ 屏之间也有先后：Q4 的闲鱼卡复用 Q1 的 paintPreviews，
-        所以 render-profile 必须排在 render-repair 之前。 */
+     ⚠️ 屏之间也有先后：各屏复用 Q1 的 paintPreviews，
+        所以 render-profile 必须排在它们之前。 */
   var Q1 = K.parts.profile || {};
   var Q2 = K.parts.listen || {};
   var Q3 = K.parts.gaming || {};
-  var Q4 = K.parts.repair || {};
+  var Q4 = K.parts.about || {};
   var Q56 = K.parts.links || {};
 
   var renderProfile = Q1.renderProfile;
   var renderListen = Q2.renderListen;
   var renderGaming = Q3.renderGaming;
-  var renderRepair = Q4.renderRepair;
+  var renderAbout = Q4.renderAbout;
   var renderLinks = Q56.renderLinks;
   var renderContact = Q56.renderContact;
   var previewCard = Q1.previewCard;
@@ -169,15 +169,16 @@ window.SITE_RENDER = (function () {
      块表里的条目仍是 `fn: renderGaming`（上面那个别名），
      所以 layer 顺序、data-render 标记、?render=gaming 调试开关全部照旧。 */
 
-  /* ====================================================== Q4 · 维修
-     已搬到 assets/js/sections/render-repair.js（74 行）。 */
+  /* ==================================================== Q2 · 关于我
+     维修屏已下线，这一屏是 2026-11-15 新增的，见 sections/render-about.js。 */
 
   /* ============================================ Q5 外链 / Q6 邮箱
      两屏都很小（合计 43 行），合并搬到 assets/js/sections/render-links.js。 */
 
 
   /* ---------- 导航 + 模块开关 / 排序 ---------- */
-  function pad2(n) { return (n < 10 ? "0" : "") + n; }
+  /* 2026-11-15：顶栏不再显示数字序号（用户要求只留文字）。
+     原先给每个导航项补的两位编号已整段去掉，列表索引也不再参与渲染。 */
 
   function renderSections() {
     var conf = C.sections || {};
@@ -197,7 +198,7 @@ window.SITE_RENDER = (function () {
     list.forEach(function (key, i) {
       var label = esc(conf[key].label || key);
       navHtml += '<li><a class="nav__link" href="#' + key + '" data-nav="' + key + '">' +
-                 '<span class="nav__num">' + pad2(i + 2) + "</span>" + label + "</a></li>";
+                 label + "</a></li>";
       mNavHtml += '<li><a href="#' + key + '" data-mnav="' + key + '">' +
                   "<span>" + label + "</span>" + icon("arrow-up-right") + "</a></li>";
     });
@@ -287,7 +288,7 @@ window.SITE_RENDER = (function () {
     /* layer 2：内容块 */
     { name: "listen",   layer: 2, fn: renderListen,   sel: "#listen" },
     { name: "gaming",   layer: 2, fn: renderGaming,   sel: "#gaming" },
-    { name: "repair",   layer: 2, fn: renderRepair,   sel: "#repair" },
+    { name: "about",    layer: 2, fn: renderAbout,    sel: "#about" },
     /* layer 3：其余导航与页脚 */
     { name: "links",    layer: 3, fn: renderLinks,    sel: null },
     { name: "contact",  layer: 3, fn: renderContact,  sel: "#contact" }

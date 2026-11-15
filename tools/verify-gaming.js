@@ -114,13 +114,13 @@ ok(isSteamProfile(steamCard && steamCard.steam && steamCard.steam.profileUrl),
 ok(steamCard && steamCard.steam && Array.isArray(steamCard.steam.fallbackApps) && steamCard.steam.fallbackApps.length >= 6,
   'Steam 卡带 fallbackApps 快照（拿不到库存时背景仍有图）');
 
-/* 顺序：在听 → 游戏 → 维修 → 其他 → 邮箱。
-   章节顺序属于内容配置，会变；这里只断言「游戏是第二屏」这一件事。 */
+/* 2026-11-15 顺序：关于我 → 在听 → 游戏 → 其他 → 邮箱（维修屏已下线）。
+   这里守「游戏紧跟在听之后」这个相对关系，不写死绝对下标。 */
 const order = Object.keys(C.sections)
   .filter(k => C.sections[k].enabled !== false)
   .sort((a, b) => C.sections[a].order - C.sections[b].order);
-ok(order.indexOf('gaming') === 1,
-   '游戏是第二屏（' + order.join(' → ') + '）');
+ok(order.indexOf('gaming') === order.indexOf('listen') + 1,
+   '游戏紧跟在「在听」之后（' + order.join(' → ') + '）');
 
 /* ------------------------------------------------ 2. CSS 关键约束 */
 /* Q3 从「6 张卡片的网格」改成了「一块可滚动的战绩板」（参照小黑盒个人主页）：

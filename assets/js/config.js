@@ -18,20 +18,22 @@ window.SITE_CONFIG = {
       footerNote: "ZwZ HUB  by Zotrod · 托管于 GitHub Pages"
     },
   sections: {
-      listen: {
+      /* 2026-11-15：维修屏按用户要求整屏下线（代码、后台入口、自检一并删掉），
+         在第一屏和第二屏之间补一屏「关于我」。order 决定导航与 DOM 顺序。 */
+      about: {
           enabled: true,
           order: 1,
+          label: "关于我"
+        },
+      listen: {
+          enabled: true,
+          order: 2,
           label: "在听"
         },
       gaming: {
           enabled: true,
-          order: 2,
-          label: "游戏"
-        },
-      repair: {
-          enabled: false,
           order: 3,
-          label: "维修"
+          label: "游戏"
         },
       links: {
           enabled: true,
@@ -96,7 +98,7 @@ window.SITE_CONFIG = {
         ]
     },
   listen: {
-      eyebrow: "02 / LISTENING",
+      eyebrow: "03 / LISTENING",
       title: "听歌排行",
       lead: "看看我这周在听什么吧。",
       neteaseUid: "1695307327",
@@ -121,7 +123,7 @@ window.SITE_CONFIG = {
         ]
     },
   gaming: {
-      eyebrow: "03 / GAMES",
+      eyebrow: "04 / GAMES",
       title: "MY GAME'S",
       /* ⚠️ 2026-11-11：Steam 好友码不再可复制（整块点进 Steam 主页），
          所以这句话跟着改 —— 别再承诺一个不存在的动作。 */
@@ -186,167 +188,21 @@ window.SITE_CONFIG = {
             }
         ]
     },
-  repair: {
-      eyebrow: "04 / REPAIR",
-      title: "维修与报价",
-      lead: "价格写在明处。下面可以直接估个价，也可以看完整报价单。",
-      xianyu: {
-          id: "xianyu",
-          icon: "shop",
-          platform: "闲鱼",
-          url: "https://www.goofish.com/personal?spm=a21ybx.home.nav.1.4c053da64wQyXN",
-          title: "我的闲鱼小铺",
-          meta: "维修单 · 实拍 · 芝麻信用",
-          cover: "",
-          stats: [],
-          accent: "#ffe60f"
-        },
-      quote: {
-          title: "闲鱼在售",
-          note: "价格与成色以闲鱼页面为准，点条目可直达。维修类下单请先在上面估个价。",
-          source: "snapshot",
-          profileUrl: "https://www.goofish.com/",
-          updated: "2026-11-11",
-          items: [
-              {
-                  title: "iPhone 13 换总成（原装拆机件）",
-                  price: "¥420",
-                  condition: "已成交",
-                  note: "含工时，当面拆机验机",
-                  url: "https://www.goofish.com/"
-                },
-              {
-                  title: "MacBook 清灰换硅脂 + 换电池",
-                  price: "¥180 起",
-                  condition: "在售",
-                  note: "当天可取，含原厂硅脂",
-                  url: "https://www.goofish.com/"
-                },
-              {
-                  title: "Switch 摇杆漂移维修",
-                  price: "¥60",
-                  condition: "在售",
-                  note: "原装摇杆，当天返机",
-                  url: "https://www.goofish.com/"
-                },
-              {
-                  title: "安卓机换尾插 / 充电口",
-                  price: "¥90 起",
-                  condition: "在售",
-                  note: "视机型，含拆装",
-                  url: "https://www.goofish.com/"
-                }
-            ]
-        },
-      calculator: {
-          title: "估个价",
-          hint: "选完就有结果，不用填任何信息。",
-          currency: "¥",
-          range: [
-              0.85,
-              1.15
-            ],
-          devices: [
-              {
-                  id: "mouse",
-                  name: "鼠标",
-                  factor: 1,
-                  note: "最常见的单"
-                },
-              {
-                  id: "mouse_high",
-                  name: "旗舰鼠标",
-                  factor: 1.35,
-                  note: "多层板 / 无线款，拆装更费工"
-                },
-              {
-                  id: "keyboard",
-                  name: "键盘",
-                  factor: 1.6,
-                  note: "可换轴 / 可换底棉"
-                }
-            ],
-          services: [
-              {
-                  id: "switch",
-                  name: "换微动",
-                  price: 60,
-                  note: "左右键，含拆装与调试"
-                },
-              {
-                  id: "encoder",
-                  name: "换编码器",
-                  price: 50,
-                  note: "滚轮刻度，含校准"
-                },
-              {
-                  id: "both",
-                  name: "微动 + 编码器",
-                  price: 95,
-                  note: "一次拆装，比分开做省"
-                },
-              {
-                  id: "feet",
-                  name: "换脚贴 / 清灰",
-                  price: 30,
-                  note: "顺手做，不单独收工费"
-                },
-              {
-                  id: "complex",
-                  name: "复杂问题",
-                  price: 0,
-                  note: "主板 / 进水 / 断线，需先聊",
-                  quote: true
-                }
-            ],
-          materials: [
-              {
-                  id: "standard",
-                  name: "标准件",
-                  factor: 1,
-                  note: "口碑款微动 / 编码器"
-                },
-              {
-                  id: "premium",
-                  name: "高端件",
-                  factor: 1.5,
-                  note: "静音 / 高寿命款"
-                }
-            ],
-          materialDefault: "standard",
-          methods: [
-              {
-                  id: "local",
-                  name: "同城到店",
-                  add: 0,
-                  note: "当面拆机，当天可取"
-                },
-              {
-                  id: "express",
-                  name: "快递寄修",
-                  add: 15,
-                  note: "含返程运费，2~3 天"
-                }
-            ],
-          rushes: [
-              {
-                  id: "normal",
-                  name: "不着急",
-                  add: 0,
-                  note: "按排期做，通常 1~2 天"
-                },
-              {
-                  id: "rush",
-                  name: "加急",
-                  add: 30,
-                  note: "插单优先，当天处理"
-                }
-            ],
-          askText: "这类问题得先看一眼：拍张照发给我，或者约个时间当面看。下面是联系方式。"
-        }
+  about: {
+      eyebrow: "02 / ABOUT ME",
+      title: "关于我",
+      lead: "看庭前花开花落，望天上云卷云舒。",
+      body: "你好，我是 Zotrod。这里是我的个人主页 —— 写一点关于我的事、我做的事情，以及一些不务正业的爱好。\n" +
+            "平时主要泡在游戏和音乐里，偶尔折腾点小工具。不追求花哨，把复杂的东西做得简单一点就好。",
+      facts: [
+          { icon: "layers",   label: "坐标", value: "中国 · 河南" },
+          { icon: "gamepad",  label: "日常", value: "享受游戏 / 热爱生活" },
+          { icon: "note",     label: "在听", value: "网易云音乐" },
+          { icon: "mail",     label: "联系", value: "Zotrod@163.com" }
+        ]
     },
   links: {
-      eyebrow: "04 / ELSEWHERE",
+      eyebrow: "05 / ELSEWHERE",
       title: "其他账号",
       lead: "挑一个你顺手的方式。",
       /* 2026-11-13 按用户要求重排：哔哩哔哩 → 抖音 → 小红书 → 闲鱼 → X → GitHub → QQ音乐。
@@ -407,7 +263,7 @@ window.SITE_CONFIG = {
         ]
     },
   contact: {
-      eyebrow: "05 / MAIL",
+      eyebrow: "06 / MAIL",
       title: "写信给我",
       lead: "邮件是我最稳定的联系方式。",
       hint: "有项目、有问题，或者只是想聊两句？"
@@ -514,9 +370,8 @@ window.SITE_CONFIG = {
       showThemeToggle: true
     },
   hero: {
-      /* 2026-11-14：primary 原来指向 #repair，而 sections.repair.enabled = false，
-         那个屏早被关掉了 —— 按钮点了完全没反应（用户报的"定向按钮失效"）。
-         改指第一屏内容；render-profile 里另有一道兜底：目标屏不存在/被关，
+      /* 2026-11-14：primary 原来指向已隐藏的维修屏，点了完全没反应。
+         改指 #listen；render-profile 里另有一道兜底：目标屏不存在/被关，
          自动退到第一个启用的屏，不会再留死链。 */
       primary: {
           label: "看看我做什么",

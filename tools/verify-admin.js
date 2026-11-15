@@ -138,13 +138,12 @@ check(typeof ctx.ADMIN_MERGE === 'function', '暴露了 mergeDefaults（旧草�
 if (typeof ctx.ADMIN_MERGE === 'function') {
   const full = JSON.parse(JSON.stringify(ctx.SITE_CONFIG));
   /* 模拟老版本草稿：少若干顶层模块，profile 也缺字段。
-     6 屏重构后原来的 about / services / interests / social 已经不存在，
-     所以这里用现存模块（profile / repair）做同样的「缺字段补全」验证。 */
+     用现存模块（profile / about）做「缺字段补全」验证。 */
   const oldDraft = {
     site: { name: '老名字' },
     sections: { listen: { enabled: false, order: 1, label: '在听' } },
     profile: { greet: '旧问候' },
-    repair: { quote: { title: '旧报价单' } },
+    about: { title: '旧标题' },
     ui: { skin: 'paper' }
   };
   const merged = ctx.ADMIN_MERGE(full, oldDraft);
@@ -159,36 +158,33 @@ if (typeof ctx.ADMIN_MERGE === 'function') {
   check(merged.ui.skin === 'paper', '草稿里改过的主题保留');
   check(Array.isArray(merged.gaming.items) && merged.gaming.items.length > 0,
     '数组缺失时回落到默认值');
+  check(merged.about.title === '旧标题' && Array.isArray(merged.about.facts),
+    '关于我这一屏：草稿标题保留、facts 被补全');
   check(!!merged.live && !!merged.quotes && !!merged.music, '其余模块也补齐');
 
   /* ⚠️ 已删字段不许复活。
-     真实事故：报价单从 quote.rows 改成 quote.items 之后，
-     浏览器里的老草稿仍带 rows，旧版 mergeDefaults 把它原样搬回去 ——
-     发布出来的 config 里 items 与 rows 并存，计算器的
-     methods/rushes 也被老草稿的 extras 顶掉，四步向导少了两步。
-     规则应该是「结构以代码为准，内容以草稿为准」。 */
+     规则是「结构以代码为准，内容以草稿为准」：草稿里 base 没有的键直接忽略。
+     维修屏 2026-11-15 整屏下线后，用关于我的 facts 做同样的验证。 */
   const stale = JSON.parse(JSON.stringify(full));
-  delete stale.repair.quote.items;
-  stale.repair.quote.rows = [{ group: '手机', item: '换电池', price: '90' }];
-  stale.repair.calculator.extras = [{ id: 'onsite', name: '上门', add: 80 }];
+  stale.about.oldFacts = [{ label: '旧信息', value: 'x' }];
+  delete stale.about.body;
   const noRevive = ctx.ADMIN_MERGE(full, stale);
-  check(Array.isArray(noRevive.repair.quote.items),
-    '老草稿里没有的新字段（quote.items）保持默认值，不被清掉');
-  check(!('rows' in noRevive.repair.quote),
-    '老草稿里已删除的字段（quote.rows）不会复活');
-  check(!('extras' in noRevive.repair.calculator),
-    '老草稿里已改名的字段（calculator.extras）不会复活');
-  check(Array.isArray(noRevive.repair.calculator.methods) &&
-        Array.isArray(noRevive.repair.calculator.rushes),
-    '四步向导需要的方法/加急两层仍在');
+  check(typeof noRevive.about.body === 'string' && noRevive.about.body.length > 0,
+    '草稿里删掉的正文字段回落到默认值，不被清成空');
+  check(!('oldFacts' in noRevive.about),
+    '草稿里已删除的字段（about.oldFacts）不会复活');
+  check(Array.isArray(noRevive.about.facts) && noRevive.about.facts.length > 0,
+    '关于我的信息卡数组仍在');
 
-  /* 废弃字段清理：老草稿里的 about / services 等不应被带进新 config */
+  /* 废弃字段清理：老草稿里的 repair / services 等不应被带进新 config。
+     ⚠️ about 已经是正式屏，绝不能出现在丢弃名单里。 */
   const pruned = ctx.ADMIN_PRUNE
-    ? ctx.ADMIN_PRUNE(ctx.ADMIN_MERGE(full, { about: { title: 'x' }, services: { items: [] } }))
+    ? ctx.ADMIN_PRUNE(ctx.ADMIN_MERGE(full, { repair: { quote: {} }, services: { items: [] } }))
     : null;
-  check(pruned && !pruned.about && !pruned.services && !pruned.interests && !pruned.social,
-    '废弃章节（about/services/interests/social）会被清理掉');
-  check(pruned && !!pruned.profile && !!pruned.repair, '清理后新章节完好');
+  check(pruned && !pruned.repair && !pruned.services && !pruned.interests && !pruned.social,
+    '已下线章节（repair/services/interests/social）会被清理掉');
+  check(pruned && !!pruned.profile && !!pruned.about && Array.isArray(pruned.about.facts),
+    '清理后「关于我」等正式章节完好');
 }
 
 /* ---------- 5. 生成的文件能被站点渲染层正常使用 ---------- */

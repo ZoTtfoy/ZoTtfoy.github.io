@@ -83,8 +83,8 @@ function makeEl(id, attrs = {}, opts = {}) {
 const pages = [];
 const hero = makeEl('top', {});
 hero.offsetHeight = 900;
-/* 与 index.html 的 data-section 一一对应（6 屏结构） */
-const secIds = ['listen', 'gaming', 'repair', 'links', 'contact'];
+/* 与 index.html 的 data-section 一一对应（首屏 + 5 屏） */
+const secIds = ['about', 'listen', 'gaming', 'links', 'contact'];
 secIds.forEach((id, i) => {
   const s = makeEl(id, { 'data-section': id });
   s.offsetHeight = 900;
@@ -172,12 +172,12 @@ ctx.SITE_PAGED.init();
 ok(doc.documentElement.dataset.paged === 'on', '初始化为翻页模式');
 
 /* --- 页码生成 --- */
-/* 6 屏结构：首屏 + listen / gaming / repair / links / contact = 6 个页码 */
+/* 6 屏结构：首屏 + about / listen / gaming / links / contact = 6 个页码 */
 ok(pagerList._children.length === 6, '生成 6 个页码项（首页 + 5 区块）');
 const dotBtns = pagerList._children.map(li => li._children[0]);
 ok(dotBtns.every(b => b && b.className === 'pager__dot'), '每项都是一个页码按钮');
 ok(dotBtns[0].attrs['aria-label'].includes('首页'), '第一页标签是「首页」');
-ok(dotBtns[1].attrs['aria-label'].includes('在听'), '区块页标签取自 sections.label（中文名）');
+ok(dotBtns[1].attrs['aria-label'].includes('关于我'), '区块页标签取自 sections.label（中文名）');
 ok(dotBtns.every(b => b.innerHTML.includes('pager__label')), '每个页码都带悬停标签');
 
 /* --- 高个页判定：把第 3 页撑到 1400px --- */

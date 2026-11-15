@@ -128,7 +128,7 @@ function makeCtx(configSource, opts = {}) {
    验的是「打开后能正常工作」，而不是「默认就是开的」。 */
 /* ⚠️ quote 的替换必须带上后文 quoteRemote 做锚点。
    config 里 `quote: true` 出现**两次**：一次是 live 的一言开关，
-   另一次是 repair.calculator.services 里「复杂问题」的报价标记
+   另一次是已下线的维修报价（现只此一处）
    （那个 true 表示"这项要单独聊，不自动报价"）。
    不带锚点的 replace(/quote: true/, 'quote: false') 只换第一个 ——
    也就是**把维修的业务数据改坏了**，而一言开关根本没动，断言于是失败。

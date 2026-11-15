@@ -217,14 +217,13 @@ const META_SEL = [
       tag + '辅助信息 ≥ ' + F.辅助 + 'px' + (badMeta.length
         ? '（' + badMeta.map(([n, v]) => n + ' ' + v).join(',') + '）' : ''));
 
-    /* 6) 该宽松的要宽松：内容少的五屏在主流机型上停在 roomy，
-          只有 Q4 允许单独降档 */
+    /* 6) 该宽松的要宽松：内容较少的屏在主流机型上停在 roomy */
     const isMainstream = d.h >= 800 && d.w >= 360;
     if (isMainstream) {
-      const light = ['top', 'listen', 'gaming', 'links', 'contact'];
+      const light = ['top', 'about', 'listen', 'gaming', 'links', 'contact'];
       const tightOnes = light.filter(id => byId[id] && byId[id].fit !== 'roomy');
       ok(tightOnes.length === 0,
-        tag + '内容较少的五屏保持 roomy' + (tightOnes.length
+        tag + '内容较少的六屏保持 roomy' + (tightOnes.length
           ? '（' + tightOnes.map(id => id + '=' + byId[id].fit).join(',') + '）' : ''));
     }
 

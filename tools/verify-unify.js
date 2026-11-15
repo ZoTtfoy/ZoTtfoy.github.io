@@ -12,7 +12,7 @@
  *
  *  统一的做法是新增 unify.css（最后加载），只在那一处定义"白卡"的最终值。
  *  这个脚本负责三件事：
- *    1. 白卡家族（.ccard/.game-board/.social/.calc）的圆角 / 边框 / 底色 / 阴影一致
+ *    1. 白卡家族（.ccard/.game-board/.social）的圆角 / 边框 / 底色 / 阴影一致
  *    2. hover 在桌面端一致（悬停时三件事一起做）
  *    3. 同角色字号一致，且没有低于可读下限的辅助文字
  *
@@ -37,7 +37,8 @@ const ok = (c, m) => c ? notes.push('OK  ' + m) : fails.push(m);
 /* 白卡家族：实心抬升底 + 1px 细线 + 可点击 */
 /* ⚠️ Q3 从「每款游戏一张卡」改成了「整块一块战绩板」，所以进家族的是
    .game-board（那一整块 <a>），不再是已经不存在的 .game。 */
-const FAMILY = ['.ccard', '.game-board', '.social', '.calc'];
+/* 2026-11-15：.calc 是维修屏的计算器容器，随该屏一起下线 */
+const FAMILY = ['.ccard', '.game-board', '.social'];
 
 (async () => {
   const browser = await chromium.launch();
@@ -103,7 +104,7 @@ const FAMILY = ['.ccard', '.game-board', '.social', '.calc'];
   ok(sh.length === 1 && sh[0] === 'has', '白卡都带同一道投影（' + sh.join(' / ') + '）');
 
   /* ---------------------------------------------- 2. hover 语言一致 */
-  /* 桌面端悬停时，家族里除了 .calc（表单容器）之外都应同时
+  /* 桌面端悬停时，家族里这几张卡都应同时
      加深描边 + 抬阴影 + 上浮 1px。用 CDP 之外的办法：读规则不如真悬停。 */
   const hoverables = ['.ccard', '.game-board', '.social'];
   for (const sel of hoverables) {

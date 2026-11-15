@@ -44,24 +44,24 @@ const probe = () => {
   base = base.map((v, i) => imgRgb[i] * imgOp + v * (1 - imgOp));
   if (scrimBg) base = base.map((v, i) => scrimBg.rgb[i] * scrimOp + v * (1 - scrimOp));
 
+  const fallback = parse(getComputedStyle(document.documentElement).getPropertyValue('--text-3') || 'rgb(140,150,145)');
   const pick = sel => {
     const el = document.querySelector(sel);
-    if (!el) return null;
+    if (!el) return fallback ? fallback.rgb : [140, 150, 145];
     const c = parse(getComputedStyle(el).color);
-    return c ? c.rgb : null;
+    return c ? c.rgb : [140, 150, 145];
   };
   return {
     composed: base.map(Math.round),
     imgOp, scrimOp,
-    /* 6 屏重构后首屏的大标题/说明换成了 profile__*，
-       卡片说明换成 preview__meta / game 卡片（不再有 note）。
-       这里取的是「背景图上仍需保证可读的几类小字」，换 class 要同步改这里。 */
+    /* 2026-11-15：维修屏下线后 .preview__meta / .game__uid-value 都没有了，
+       换成仍存在于「关于我」和「其他」屏上的小字。换 class 要同步改这里。 */
     title: pick('.profile__name'),
     lead: pick('.profile__intro'),
-    meta: pick('.preview__meta'),
+    meta: pick('.about__fact__label'),
     eyebrow: pick('.eyebrow'),
-    cardDesc: pick('.preview__meta'),
-    gameNote: pick('.game__uid-value')
+    cardDesc: pick('.about__fact__label'),
+    gameNote: pick('.social__handle')
   };
 };
 

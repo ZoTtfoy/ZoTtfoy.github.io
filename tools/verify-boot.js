@@ -90,8 +90,8 @@ const ok = (c, m) => c ? notes.push('OK  ' + m) : fails.push(m);
     i === 0 || (idx(names[i - 1]) >= 0 && idx(n) > idx(names[i - 1])));
 
   ok(idx("render") === 0, 'render 第一个启动（它的产物是后面所有步骤的前提）');
-  ok(order("scale", "density", "repair.foldQuote", "paged"),
-     'scale → density → foldQuote → paged 依次执行（measure 三连不能提前）');
+  ok(order("scale", "density", "paged"),
+     'scale → density → paged 依次执行（测量不能提前；维修屏下线后 foldQuote 已删）');
   ok(order("live", "paged"), 'live 早于 paged（时钟/一言会撑高首页）');
   ok(idx("readable") > idx("paged"), 'readable 晚于 paged（要读最终生效的字号）');
 

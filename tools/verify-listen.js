@@ -116,7 +116,12 @@ function restore() {
 
     await page.goto(SITE, { waitUntil: 'load' });
     await page.waitForTimeout(1500);
-    await page.evaluate(() => window.SITE_PAGED.goTo(1));
+    /* 2026-11-15：「关于我」插到首屏之后，「在听」不再是第 2 屏。
+       按 id 找位置，别写死索引。 */
+    await page.evaluate(() => {
+      const ids = window.SITE_PAGED.pages().map(e => e && e.id);
+      window.SITE_PAGED.goTo(ids.indexOf('listen'));
+    });
     await page.waitForTimeout(1500);
 
     const d = await page.evaluate(() => {
@@ -242,9 +247,13 @@ function restore() {
       }));
       await p.goto(SITE, { waitUntil: 'load' });
       await p.waitForTimeout(1500);
-      /* 必须先翻到第二屏：页脚的 getBoundingClientRect 是相对视口的，
-         停在 Q1 时它当然在屏幕外 —— 这条断言会无条件失败。 */
-      await p.evaluate(() => window.SITE_PAGED.goTo(1));
+      /* 必须先翻到「在听」屏：页脚的 getBoundingClientRect 是相对视口的，
+         停在别的屏时它当然在屏幕外 —— 这条断言会无条件失败。 */
+      /* 按 id 找「在听」的位置，屏数变化不影响这条测试 */
+      await p.evaluate(() => {
+        const ids = window.SITE_PAGED.pages().map(e => e && e.id);
+        window.SITE_PAGED.goTo(ids.indexOf('listen'));
+      });
       await p.waitForTimeout(1500);
       const tag = '[' + dev.n + ' ' + dev.w + '×' + dev.h + '] ';
       const r = await p.evaluate(() => {

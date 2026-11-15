@@ -25,21 +25,18 @@ window.SITE_BOOT = (function () {
       why: "把 config 填进 index.html 的骨架；后面每一步都假设 DOM 已经就位" },
 
     /* ---- 各就各位：这些会改变「一屏有多高」，必须在测量之前 ---- */
-    { name: "repair", mod: "SITE_REPAIR", fn: "init",
-      why: "计算器在自己的 DOMContentLoaded 里自举过一次；这里是幂等的补调" },
     { name: "skin", mod: "SITE_SKIN", fn: "init" },
     { name: "backdrop", mod: "SITE_BACKDROP", fn: "init",
       why: "背景要在翻页测量之前就位（kenBurns / 视差只改观感、不改高度）" },
     { name: "live", mod: "SITE_LIVE", fn: "init",
       why: "时钟 / 一言 / 进度条会撑高首页 —— 晚于它就量到没撑开的高度" },
 
-    /* ---- 三连定档：scale → density → foldQuote → paged，一步都不能提前 ---- */
+    /* ---- 定档：scale → density → paged，一步都不能提前 ----
+       2026-11-15：维修屏下线，原来的 repair / repair.foldQuote 两步随之删除。 */
     { name: "scale", mod: "SITE_SCALE", fn: "init",
       why: "它改根字号，全站字号与间距都是 rem —— 它是后面所有测量的基准" },
     { name: "density", mod: "SITE_DENSITY", fn: "init",
       why: "写 <html data-vp>，决定哪些装饰退场；直接影响每屏高度" },
-    { name: "repair.foldQuote", mod: "SITE_REPAIR", fn: "foldQuote",
-      why: "问 density 要不要折起报价表；报价表展开与否是 Q4 高度的大头" },
     { name: "paged", mod: "SITE_PAGED", fn: "init",
       why: "最后测量、定档。上面任何一步提前，量到的都是「还没让位」的旧高度" },
 

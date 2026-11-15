@@ -112,7 +112,7 @@ async function scrollFps(page) {
   if (missing.length) console.log('（未能读取体积:', missing.join(', '), '）');
 
   ok(loadMs < 1200, 'load 事件 ' + loadMs + 'ms < 1200ms');
-  /* 6 屏重构新增了 blocks.css / sync.js / repair.js 三个文件，
+  /* 6 屏重构新增了 blocks.css / sync.js 等文件，
      请求数从 25 涨到 28。这是真实功能带来的，不是回归，
      但仍然要卡住上限 —— 再加模块时应该考虑合并而不是无限增长。
 

@@ -212,7 +212,9 @@ window.ADMIN = {
      老用户浏览器里存着旧草稿，mergeDefaults 会把整个 about / services 对象
      原样搬回来，然后又被序列化进新的 config.js —— 页面不读它们，
      但它们会一直占着文件、让人以为还有用。这里直接丢掉。 */
-  var DROPPED_KEYS = ["about", "services", "interests", "social"];
+  /* 2026-11-15：「关于我」重新成为正式屏，从丢弃名单里拿掉。
+      services / interests / social 仍是 6 屏重构前的老字段，继续丢。 */
+  var DROPPED_KEYS = ["repair", "services", "interests", "social"];
   var DROPPED_SITE = ["tagline", "available", "availableText"];
 
   function pruneDraft(d) {
@@ -306,7 +308,7 @@ window.ADMIN = {
     { id: "profile", label: "我" },
     { id: "listen", label: "在听" },
     { id: "gaming", label: "游戏" },
-    { id: "repair", label: "维修" },
+    { id: "about", label: "关于我" },
     { id: "links", label: "其他" },
     { id: "contact", label: "邮箱" },
     { id: "backdrop", label: "背景" },
@@ -379,15 +381,15 @@ window.ADMIN = {
       ]
     },
 
-    quoteRows: {
-      path: ["repair", "quote", "rows"], title: "报价表",
-      desc: "同一个「分组」名会自动排到同一栏；改分组名就能重新分栏",
-      make: function () { return { group: "手机", item: "新项目", price: "", note: "" }; },
+    /* 2026-11-15：维修屏下线，报价表改成「关于我」的信息卡 */
+    aboutFacts: {
+      path: ["about", "facts"], title: "信息卡",
+      desc: "两列排布，建议 4 张；图标名见 icons.js（layers / gamepad / note / mail …）",
+      make: function () { return { icon: "sparkles", label: "新信息", value: "" }; },
       fields: [
-        { k: "group", label: "分组（手机 / 电脑 …）" },
-        { k: "item",  label: "项目" },
-        { k: "price", label: "价格（可写区间：120 – 260）" },
-        { k: "note",  label: "备注（可留空）", full: true }
+        { k: "icon",  label: "图标名" },
+        { k: "label", label: "标签（坐标 / 日常 …）" },
+        { k: "value", label: "内容", full: true }
       ]
     },
 
@@ -526,7 +528,7 @@ window.ADMIN = {
         ]));
 
       body += group("模块开关", "关掉某一屏，导航栏会自动去掉它（Q1 首屏不受影响）",
-        ["listen", "gaming", "repair", "links", "contact"].map(function (k) {
+        ["about", "listen", "gaming", "links", "contact"].map(function (k) {
           var sec = getPath(draft, ["sections", k]) || {};
           return '<div class="row" style="align-items:center">' +
             '<label class="switch"><input type="checkbox" data-path="sections.' + k + '.enabled"' +
@@ -614,46 +616,24 @@ window.ADMIN = {
     }
 
     /* ---------------------------------------------------------- Q4 · 维修 */
-    if (activeTab === "repair") {
+    /* 2026-11-15：维修屏整屏下线，这里换成插在首屏与「在听」之间的「关于我」。
+       文案与信息卡都从 config.about 读，改完发布即与前台一致。 */
+    if (activeTab === "about") {
       body += group("标题文案", "", scalarFields([
-        { path: ["repair", "eyebrow"], label: "小标签", value: getPath(draft, ["repair", "eyebrow"]) },
-        { path: ["repair", "title"], label: "标题", value: getPath(draft, ["repair", "title"]) },
-        { path: ["repair", "lead"], label: "副标题", value: getPath(draft, ["repair", "lead"]), full: true }
+        { path: ["about", "eyebrow"], label: "小标签", value: getPath(draft, ["about", "eyebrow"]) },
+        { path: ["about", "title"], label: "标题", value: getPath(draft, ["about", "title"]) },
+        { path: ["about", "lead"], label: "副标题", value: getPath(draft, ["about", "lead"]), full: true }
       ]));
 
-      body += group("闲鱼主页卡", "和 Q1 那两个摘要卡是同一个组件",
+      body += group("自我介绍", "换行会原样变成前台的换行；内容别写太长，这一屏要能一屏放下",
         scalarFields([
-          { path: ["repair", "xianyu", "platform"], label: "平台名", value: getPath(draft, ["repair", "xianyu", "platform"]) },
-          { path: ["repair", "xianyu", "icon"], label: "图标名", value: getPath(draft, ["repair", "xianyu", "icon"]) },
-          { path: ["repair", "xianyu", "title"], label: "标题", value: getPath(draft, ["repair", "xianyu", "title"]) },
-          { path: ["repair", "xianyu", "meta"], label: "副标题", value: getPath(draft, ["repair", "xianyu", "meta"]), full: true },
-          { path: ["repair", "xianyu", "url"], label: "闲鱼主页链接", value: getPath(draft, ["repair", "xianyu", "url"]), full: true, mono: true },
-          { path: ["repair", "xianyu", "cover"], label: "封面图地址（留空则为纯文字卡）",
-            value: getPath(draft, ["repair", "xianyu", "cover"]), full: true, mono: true },
-          { path: ["repair", "xianyu", "accent"], label: "平台主色", value: getPath(draft, ["repair", "xianyu", "accent"]) }
+          { path: ["about", "body"], label: "正文", value: getPath(draft, ["about", "body"]),
+            type: "area", full: true }
         ]));
 
-      body += group("报价表抬头", "", scalarFields([
-        { path: ["repair", "quote", "title"], label: "标题", value: getPath(draft, ["repair", "quote", "title"]) },
-        { path: ["repair", "quote", "note"], label: "底部说明", value: getPath(draft, ["repair", "quote", "note"]), type: "area", full: true }
-      ]));
-
-      body += renderList("quoteRows");
-
-      body += group("价格计算器", "",
-        '<p class="sheet__hint">' +
-          '计算器是「设备 → 项目 → 材料 → 加项」四步向导，价格公式：<br>' +
-          '<code>项目价 × 设备系数 × 材料系数 + 加项固定价</code>，再按 ±15% 展开成区间。<br>' +
-          '这四组选项的系数需要细调，请在 <code>config.js</code> 的 ' +
-          '<code>repair.calculator</code> 里改（编辑器不提供，避免误操作把公式弄乱）。' +
-        '</p>' +
-        scalarFields([
-          { path: ["repair", "calculator", "title"], label: "计算器标题", value: getPath(draft, ["repair", "calculator", "title"]) },
-          { path: ["repair", "calculator", "hint"], label: "计算器副标题", value: getPath(draft, ["repair", "calculator", "hint"]), full: true }
-        ]));
+      body += renderList("aboutFacts");
     }
 
-    /* ---------------------------------------------------------- Q5 · 其他 */
     if (activeTab === "links") {
       body += group("标题文案", "", scalarFields([
         { path: ["links", "eyebrow"], label: "小标签", value: getPath(draft, ["links", "eyebrow"]) },

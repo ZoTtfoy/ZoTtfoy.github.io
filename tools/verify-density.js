@@ -77,7 +77,8 @@ const LEVEL_ORDER = ['mini', 'tight', 'compact', 'full'];
       quote: op('#liveQuote'),
       lead: op('#listen .section__lead'),
       n: document.querySelectorAll('#trackList .track').length,
-      tbl: (document.getElementById('quoteDetails') || {}).open
+      /* 2026-11-15：报价表随维修屏下线，这一位留空占位 */
+      tbl: null
     };
   });
 
@@ -119,7 +120,7 @@ const LEVEL_ORDER = ['mini', 'tight', 'compact', 'full'];
            这几个数一摆就能看出是"档位没跟上"还是"真的装不下"。 */
         const detail = await page.evaluate(() => {
           const out = {};
-          ['top', 'listen', 'gaming', 'repair', 'links', 'contact'].forEach(id => {
+          ['top', 'about', 'listen', 'gaming', 'links', 'contact'].forEach(id => {
             const el = document.getElementById(id);
             if (!el) return;
             const inner = el.querySelector('.container') || el.querySelector('.hero__inner');
@@ -135,7 +136,6 @@ const LEVEL_ORDER = ['mini', 'tight', 'compact', 'full'];
           return {
             pages: out,
             n: document.querySelectorAll('#trackList .track').length,
-            quoteOpen: (document.getElementById('quoteDetails') || {}).open,
             vp: document.documentElement.dataset.vp,
             scale: document.documentElement.dataset.scale
           };
@@ -156,7 +156,7 @@ const LEVEL_ORDER = ['mini', 'tight', 'compact', 'full'];
     console.log('\n=== 溢出现场 ===');
     debug.slice(0, 3).forEach(d => {
       console.log(d.at, '→ 首次', d.first, '复检后', d.second);
-      console.log('  曲目', d.detail.n, '| 报价表', d.detail.quoteOpen ? '展开' : '折叠',
+      console.log('  曲目', d.detail.n,
         '| 级别', d.detail.vp, '| 缩放', d.detail.scale);
       Object.entries(d.detail.pages).forEach(([id, v]) => {
         if (v.over > 0) console.log('  ', id, JSON.stringify(v));
@@ -203,31 +203,10 @@ const LEVEL_ORDER = ['mini', 'tight', 'compact', 'full'];
   const after = await probe();
 
   ok(small.quote !== null && small.quote < 0.1, '缩小时一言退场');
-  /* 缩小后报价表**不一定**要折叠 —— 这才是对的。
-     ⚠️ 原来断言"缩小时必须折叠"，但密度分级会把留白压下去：
-     实测 1100×580 从 tight 档进来时，展开态只需 579px，580 的视口装得下 ——
-     那它就该展开（信息更全）。硬要求折叠等于让"压缩生效"变成失败。
-     真正该守的不变式是：**要么展开且装得下，要么折叠** —— 二者皆可，
-     不许出现"展开却溢出"。 */
-  const smallFitOk = await page.evaluate(() => {
-    const el = document.getElementById('repair');
-    const inner = el.querySelector('.container');
-    const d = document.getElementById('quoteDetails');
-    const pcs = getComputedStyle(el);
-    const padY = parseFloat(pcs.paddingTop) + parseFloat(pcs.paddingBottom);
-    const openNow = d.open;
-    if (!openNow) { d.setAttribute('open', ''); void d.offsetHeight; }
-    const need = inner.getBoundingClientRect().height + padY;
-    if (!openNow) { d.removeAttribute('open'); void d.offsetHeight; }
-    return { open: openNow, need: Math.round(need), vh: innerHeight, over: el.offsetHeight - innerHeight };
-  });
-  ok(smallFitOk.open ? (smallFitOk.need <= smallFitOk.vh + 1) : true,
-    '缩小时报价表要么折叠、要么展开也装得下（'
-      + (smallFitOk.open ? '展开，需 ' + smallFitOk.need + ' ≤ ' + smallFitOk.vh : '折叠') + '）');
+  /* 2026-11-15：报价表相关校验随维修屏一并删除。 */
   ok(after.vp === 'full', '放大后级别回到 full');
   ok(after.quote !== null && after.quote > 0.9, '放大后一言回来');
   ok(after.lead !== null && after.lead > 0.9, '放大后章节导语回来');
-  ok(after.tbl === true, '放大后报价表重新展开');
   ok(after.n === before.n, '放大后曲目数恢复（' + before.n + ' → ' + small.n + ' → ' + after.n + '）');
 
   /* --------------------------------------------- 4. 收放是渐变的，不是瞬移 */

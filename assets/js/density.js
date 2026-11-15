@@ -213,6 +213,10 @@ window.SITE_DENSITY = (function () {
 
      这条分工的判据很简单：谁生成那段 DOM，谁就该负责它的度量。
      报价表是 repair 生成的，所以"它展开有多高"只有 repair 说了算。 */
+  /* 2026-11-15：维修屏（含报价表）已整屏下线。
+     这个函数保留是因为下面多处调用都依赖它的存在，且开头两行空保护会让它
+     在没有 #quoteDetails / #repair 时立刻返回 —— 等于一个安全空操作。
+     真要恢复维修屏，把这三行注释删掉即可，逻辑一行没改。 */
   function fitQuote() {
     var d = $("quoteDetails");
     var page = $("repair");

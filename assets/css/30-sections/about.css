@@ -1,0 +1,95 @@
+/* ==========================================================================
+ *  about.css —— Q2「关于我」
+ * --------------------------------------------------------------------------
+ *  整屏只做两件事：左边一段话，右边几张信息卡。
+ *  刻意做得矮 —— 它插在首屏和「在听」之间，翻页档位（density/paged）对
+ *  每屏高度很敏感，内容一高就会把整站降到低档位。
+ *  所以：卡片 2×2 而不是 1×4，正文限宽，间距全部用 clamp 但上限收得很紧。
+ * ========================================================================== */
+.about {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, .85fr);
+  gap: clamp(20px, 3.2vw, 44px);
+  align-items: start;
+  margin-top: clamp(14px, 2.2vh, 26px);
+}
+
+.about__text {
+  margin: 0;
+  max-width: 46ch;
+  font-size: clamp(.98rem, 1.22vw, 1.12rem);
+  line-height: 2;
+  color: var(--text-2);
+  white-space: normal;
+}
+
+.about__facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.about__fact {
+  display: grid;
+  grid-template-columns: 22px 1fr;
+  grid-template-rows: auto auto;
+  column-gap: 10px;
+  row-gap: 2px;
+  padding: 12px 14px;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: color-mix(in srgb, var(--bg-elev) 92%, transparent);
+}
+
+.about__fact__icon {
+  grid-row: 1 / 3;
+  align-self: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  color: var(--accent);
+}
+.about__fact__icon .icon { width: 18px; height: 18px; }
+.about__fact__icon .icon--word { width: auto; height: auto; font-size: 11px; }
+
+.about__fact__label {
+  font-size: .7rem;
+  letter-spacing: .08em;
+  color: var(--text-3);
+}
+.about__fact__value {
+  font-size: .84rem;
+  font-weight: 600;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+/* 窄屏：改成上下两栏，卡片仍保持 2×2，避免一屏被拉长 */
+@media (max-width: 760px) {
+  .about { grid-template-columns: 1fr; gap: 16px; }
+  .about__text { max-width: none; font-size: .92rem; line-height: 1.85; }
+  .about__fact { padding: 9px 11px; }
+  .about__fact__value { font-size: .78rem; }
+}
+
+/* 矮屏：正文行距再收一点，优先保证整屏不溢出 */
+html[data-vp="tight"] .about__text,
+html[data-vp="mini"] .about__text { line-height: 1.7; }
+html[data-vp="mini"] .about__facts { gap: 7px; }
+
+/* 极窄极矮屏（实测 320×568 时这一屏会高 4px，被判成可滚动页）：
+   压正文行距和卡片内边距，优先保证整屏不溢出。
+   只作用在 .about 上，不动全站的字号档位。 */
+html[data-vp="tight"] .about { margin-top: 8px; gap: 12px; }
+html[data-vp="tight"] .about__text { font-size: .86rem; line-height: 1.65; }
+
+html[data-fit="micro"] .about__text { font-size: .82rem; line-height: 1.55; }
+html[data-fit="micro"] .about__facts { gap: 7px; }
+html[data-fit="micro"] .about__fact { padding: 6px 9px; }
+html[data-fit="micro"] .about__fact__label { font-size: .65rem; }
+html[data-fit="micro"] .about__fact__value { font-size: .72rem; }
+html[data-vp="tight"] .about__facts { gap: 7px; }
+html[data-vp="tight"] .about__fact { padding: 7px 10px; }
