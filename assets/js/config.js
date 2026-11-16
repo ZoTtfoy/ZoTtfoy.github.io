@@ -188,39 +188,27 @@ window.SITE_CONFIG = {
             }
         ]
     },
-  /* 2026-11-15 按用户的小红书笔记重写「关于我」。
-     ⚠️ 用户明确要求三件事：
-        ① 不收录「找搭子 / 对搭子的要求」那段；
-        ② 不把笔记里的话题标签（#…）搬上来；
-        ③ 删掉「比较无聊，熟了会分享一些日常」，四张卡写成短句。
-     这一屏只讲喜欢什么，刻意保持口语、不写成简介腔。
+  /* 2026-11-17 按用户要求重写「关于我」：
+      ① 只保留「游戏」「音乐」两张卡，去掉「修修补补」「口味日常」；
+      ② 标题与正文改为书面表达，但保持语句通顺、不堆砌；
+      ③ 仍不收录「找搭子 / 对搭子的要求」与话题标签（#…）。
      cards 是数组，后台「关于我」页可直接增删排序；
      tags 默认留空（后台仍可自己加），前台 :empty 时不占位置。 */
   about: {
       eyebrow: "02 / ABOUT ME",
       title: "关于我",
       lead: "喜欢什么，平时在做什么。",
-      body: "爱好甜食和拌饭，喜欢宅在家里和好朋友打游戏。",
+      body: "业余时间主要花在游戏和音乐上，在专注与放松之间找到自己的节奏。",
       cards: [
           {
               icon: "gamepad",
-              label: "打游戏",
-              text: "瓦 / Apex / 音游，慢的快的都喜欢"
+              label: "游戏",
+              text: "常玩无畏契约、Apex 与音游，快节奏的对抗与慢节奏的打磨都乐在其中"
             },
           {
               icon: "music",
-              label: "听歌写歌",
-              text: "电子、日语、轻音乐；偶尔 FL Studio"
-            },
-          {
-              icon: "wrench",
-              label: "修修补补",
-              text: "鼠标键盘电脑，装系统、解 bug"
-            },
-          {
-              icon: "heart",
-              label: "口味日常",
-              text: "甜食、拌饭，宅家和朋友打游戏"
+              label: "音乐",
+              text: "偏爱电子、日语与轻音乐，偶尔用 FL Studio 尝试创作"
             }
         ],
       tags: []
@@ -335,9 +323,11 @@ window.SITE_CONFIG = {
       scrim: 0.2,
       /* 全屏层的无限 transform 动画，会持续触发整层重合成；关掉。 */
       kenBurns: false,
-      /* 每帧用 JS 写 ambient.style.transform + imageEl.style.translate，
-         实测 scroll 监听 76ms/27 次、视差 loop 11.6ms/61 帧，是 JS 侧最大单项。 */
-      parallax: false
+      /* 2026-11-17 按用户要求重新启用滚动视差。11-12 曾因性能关掉，
+         当时 loop 每帧写 ambient + image 两处 transform；现在位移上限收在
+         视口高度的 4%（≤40px，不露 inset:-6% 的边），且只在滚动时 kick。
+         verify-perf 的 35ms 滚动护栏会守住性能，红了就调回 false。 */
+      parallax: true
     },
   live: {
       loading: true,

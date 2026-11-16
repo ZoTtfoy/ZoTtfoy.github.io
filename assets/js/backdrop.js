@@ -236,11 +236,10 @@ window.SITE_BACKDROP = (function () {
     if (!ambient) return;
 
     var useMouse = finePointer.matches;
-    /* 注意：这里刻意用快照而非实时读 dataset。config.parallax 目前为 false
-       （2026-11-12 性能调优结论：scroll 监听 76ms/27 次 + 视差 loop 11.6ms/61 帧，
-       JS 侧最大单项），initParallax 在开关处就 return 了，这段循环根本不跑。
-       若将来要重新启用滚动视差，必须把 hasImage 改成 loop 内实时读 ——
-       setImage 是异步的，同步快照会恒为 false，视差永不生效。 */
+    /* 位移幅度按视口高度算，且严格小于 .ambient__image 的 inset:-6% 余量 ——
+       否则图片上移到底会露出一条边。取 4%（约 36px @900h），封顶 40px。
+       2026-11-17：config.parallax 已按用户要求重新打开。 */
+    var maxShift = Math.min(40, Math.round(window.innerHeight * 0.04));
 
     function loop() {
       rafId = null;
@@ -261,9 +260,13 @@ window.SITE_BACKDROP = (function () {
       ambient.style.transform = "translate3d(" +
         (sx * 0.7).toFixed(2) + "px," + (sy * 0.7).toFixed(2) + "px,0)";
 
-      // 图片反向轻微位移，形成前景/背景分离（开关关闭时不执行，见上方注释）
-      if (hasImage && imageEl) {
-        var offset = clamp(smoothScrollY * -0.05, -60, 60);
+      /* 图片反向轻微位移，形成前景/背景分离。
+         2026-11-17：实时读 dataset —— setImage 是异步的（probe.onload 里才置
+         backdropImage=on），旧的同步快照 hasImage 会恒为 false，视差永不生效。
+         位移随窗口尺寸变化，resize 时同步刷新上限。 */
+      maxShift = Math.min(40, Math.round(window.innerHeight * 0.04));
+      if (root.dataset.backdropImage === "on" && imageEl) {
+        var offset = clamp(smoothScrollY * -0.05, -maxShift, maxShift);
         imageEl.style.translate = "0 " + offset.toFixed(2) + "px";
       }
 

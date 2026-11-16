@@ -341,10 +341,11 @@ check(count('aboutTags', /class="about__tag"/g) === (aboutCfg.tags || []).length
   '标签数量与配置一致（' + (aboutCfg.tags || []).length + ' 个）');
 check((aboutCfg.tags || []).every(t => H('aboutTags').includes(ctx.SITE_RENDER.esc(t))),
   '标签内容来自配置');
-/* 2026-11-15 用户三条明确要求，用断言守住别又加回来：
+/* 用户明确要求（2026-11-15 提、2026-11-17 修订），用断言守住别又加回来：
    ① 不收录「找搭子 / 对搭子的要求」；
    ② 不搬笔记里的话题标签（#…）；
-   ③ 删掉「比较无聊…」，四张卡写成短句。 */
+   ③ 删掉「比较无聊…」；
+   ④ 2026-11-17：只留「游戏 / 音乐」两张卡书面化描述，去掉「修修补补 / 口味日常」。 */
 const aboutText = [aboutCfg.lead || '', aboutCfg.body || '']
   .concat((aboutCfg.cards || []).reduce((a, c) => a.concat([c.label || '', c.text || '']), []))
   .concat(aboutCfg.tags || [])
@@ -354,9 +355,11 @@ check(!/找搭子|对搭子|菜强都无所谓/.test(aboutText),
 check((aboutCfg.tags || []).length === 0 && !/#[^\s]/.test(aboutText),
   '不收录笔记里的话题标签');
 check(!/比较无聊|熟了会分享/.test(aboutText), '已删掉「比较无聊，熟了会分享一些日常」');
-check((aboutCfg.cards || []).length === 4 &&
-      (aboutCfg.cards || []).every(c => (c.text || '').length > 0 && (c.text || '').length <= 24),
-  '四张描述卡都是短句（≤ 24 字）');
+check((aboutCfg.cards || []).length === 2 &&
+      (aboutCfg.cards || []).map(c => c.label).join('/') === '游戏/音乐',
+  '只留「游戏 / 音乐」两张描述卡');
+check((aboutCfg.cards || []).every(c => (c.text || '').length > 0 && (c.text || '').length <= 40),
+  '两张描述卡都有文案且不过长（≤ 40 字）');
 check(!/undefined|NaN/.test(H('aboutBody') + H('aboutCards') + H('aboutTags')),
   '关于我没有 undefined / NaN 泄漏');
 

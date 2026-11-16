@@ -4,7 +4,7 @@
  *  2026-11-15 按用户的小红书笔记重组：一段自我介绍 + 描述卡 + 标签行。
  *  刻意压高度 —— 这一屏插在首屏与「在听」之间，一旦超高，
  *  density / paged 会把整站降到低档位。所以：
- *    · 卡片保持 2×2（不改成 1×4），窄屏也一样；
+ *    · 卡片保持两列网格（现在是「游戏 / 音乐」两张，一行铺满；窄屏也不改成单列）；
  *    · 正文限宽、标签允许换行但不许把卡片挤出屏；
  *    · 矮屏 / 极小屏单独压字号、行距、内边距。
  *  ⚠️ 笔记里「对搭子的要求」按用户要求不采用，这一屏只讲喜欢什么。
@@ -89,7 +89,7 @@
   white-space: nowrap;
 }
 
-/* 窄屏：仍保持 2×2，只把内边距与字号收一轮 */
+/* 窄屏：仍保持两列，只把内边距与字号收一轮 */
 @media (max-width: 760px) {
   .about__cards { gap: 6px; }
   .about__card { padding: 8px 10px; row-gap: 1px; column-gap: 8px; }
@@ -112,9 +112,9 @@ html[data-fit="micro"] .about__card { padding: 5px 8px; }
 html[data-fit="micro"] .about__tags { margin-top: 6px; }
 html[data-fit="micro"] .about__tag { font-size: .65rem; padding: 2px 7px; }
 
-/* 320×568 这类「又窄又矮」的档位：曾经改成单列，结果 4 张卡变 4 行，
+/* 320×568 这类「又窄又矮」的档位：曾经改成单列，卡片逐行堆叠，
    这一屏被顶到 642px（比视口高 74px，变成可滚动页）。
-   实测保持 2×2、把字号与内边距再收一轮，能收回到一屏内。
+   实测保持两列、把字号与内边距再收一轮，能收回到一屏内。
    ⚠️ 选择器带上 html[data-vp] / html[data-fit]，才能盖过上面同名的规则。 */
 @media (max-width: 380px) {
   html[data-vp="tight"] .about__body,
