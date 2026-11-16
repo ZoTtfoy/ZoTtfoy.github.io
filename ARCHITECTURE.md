@@ -83,8 +83,11 @@ icons → core/render-kit → sections/render-profile → sections/render-listen
 → sections/render-gaming → sections/render-about → sections/render-links
 → render → sync → scale → density → skin → backdrop → live
 → core/perf-tier → steamwall
-→ albumwall → preload → player → paged → readability → effects
+→ albumwall → preload → paged → readability → effects
 → motion → main
+
+（2026-11-13：站内的 `player.js` 已退役，磁贴改成整行外链，启动表里也删了这一项；
+  《README.md》「在听」一节有完整来龙去脉。）
 ```
 
 ### 渲染层：core / sections / render.js
@@ -186,6 +189,7 @@ npm run baseline:check  # 12 张视觉基线（需先 baseline:make）
 | --- | --- | --- |
 | `verify-density` | ✅ 已纳入默认全套（2026-11-13） | 原来 144 档 × 2.3s 实测整脚本 347s，贴着 420s 超时线，于是默认跳过 —— 一道没人跑的闸门等于没有闸门。改成默认 54 档（137s）/ `--full` 144 档；三条高度阈值（560/660/780）两侧仍然都扫到 |
 | `verify-perf` | ✅ 已转绿（2026-11-13） | 把 `archive/2026-11-12-perf` 的三项搬回来后，按类重算体积（文本/字体/图片分开）、DOM 阈值 1400、滚动 35ms（本机无头是软件渲染，20ms 这条线永远达不到） |
+| `verify-albumwall` | ✅ 已转绿（2026-11-17） | 「页面用的是当前 ISO 周」断言把 2026-11-09(周一)~11-15 写死成"本周"，跨周后页面正确地换到新周、断言却还拿旧周比，成了每周一必红的时间炸弹。改成以真实今天推导本周周一/周日/上下周一，永不失效 |
 
 ## 六、欠账与下一步
 
@@ -213,9 +217,15 @@ npm run baseline:check  # 12 张视觉基线（需先 baseline:make）
    配 `tools/verify-boot.js`（11 条断言）守顺序和「漏启动」。
    文件没改名 —— `verify-live` / `verify-paged` / `verify.js` 都按
    `assets/js/main.js` 这个路径断言，为了一个文件名去改三处测试不值。
-5. **死选择器清理**：`.card` / `.interest` / `.game`（`gaming.css` 头部已注明
-   `.game` 那套样式被删除，但 `paged.css` / `motion.css` / `tokens.css` 里还留着
-   选择器列表项）。需要先做一次「HTML + JS 生成的 class 全集」比对，别凭感觉删。
+5. **（已完成 2026-11-17）死选择器清理**：`.card` / `.interest` / `.game` 及其
+   全部子类（`__icon`/`__tags`/`__title`/`__uid`…）已从 `components.css` /
+   `paged.css` / `motion.css` / `tokens.css` / `effects.css` / `gaming.css` /
+   `fit.css` 摘除。做法不是凭感觉：`tools/audit-classes.js` 用 Chromium 加载
+   `index.html` / `themes.html`，把候选选择器逐个 `querySelectorAll` 实测，
+   确认这批类在三个页面全部 0 命中（活类是 `.ccard` / `.game-board` / `.track`
+   / `.social` / `.preview`）。
+   **验收**：改动前后各拍 12 张视觉截图做像素 A/B，12/12 均 0.000% 差异；
+   全量 `npm test` 31 脚本 / 2186 断言全绿。审计脚本保留，供下次清理复用。
 6. **性能搬回**：`archive/2026-11-12-perf` 里有实测有效的六项
    （屏外动画停车、墙面预渲染 WebP、`rootMargin 0px`、顶栏状态收敛等），
    逐项 cherry-pick，每搬一项跑一次 `verify-perf` 与视觉基线。
@@ -228,7 +238,7 @@ npm run baseline:check  # 12 张视觉基线（需先 baseline:make）
    配色/圆角/字体在 `assets/js/themes.js`。
 
 
-## 七、视觉层与设备档位（2026-11-13）
+## 八、视觉层与设备档位（2026-11-13）
 
 ### 判档：只信实测帧，不猜硬件
 

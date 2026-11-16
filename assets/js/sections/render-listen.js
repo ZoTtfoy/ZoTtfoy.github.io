@@ -5,7 +5,7 @@
  *
  *  这一段的内部状态 listenMeta、曲目容量推算 trackCap、页脚 paintListenFoot
  *  都只在本屏内闭环；对外只需要 setTracks / setListenMeta / renderListen。
- *  · setTracks     sync.js 抓到真实排行后重画；density.js / player 校验也会调
+ *  · setTracks     sync.js 抓到真实排行后重画；density.js / verify-listen 校验也会调
  *  · setListenMeta sync.js 只更新累计听歌与同步状态
  *  · renderListen  收进 render.js 的块表（layer 2）
  * ========================================================================== */

@@ -187,56 +187,12 @@
   animation: pulse-ring 2.6s var(--ease-out) infinite;
 }
 
-/* ---------------------------------------------------------------- 业务卡 */
-/* 原来这里叠了三层东西：1px 边框 + box-shadow + 白底，外加 hover 时从顶部
-   渐出一条 accent 色发光线（::after）。这在视觉上等于「同一个层级说了三遍」，
-   再配上一圈彩色阴影，就是典型的 AI 生成落地页质感。
-   现在只保留 两 层：边框 + 底色。::after 发光线整条删掉。 */
-.card {
-  position: relative;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  min-height: 250px;
-  padding: clamp(26px, 3vw, 36px);
-  border: 1px solid var(--line);
-  border-radius: var(--r-lg);
-  background: var(--bg-elev);
-  transition: border-color var(--t) var(--ease), background-color var(--t) var(--ease);
-}
-.card__index {
-  position: absolute;
-  top: clamp(26px, 3vw, 36px);
-  right: clamp(26px, 3vw, 36px);
-  font-family: var(--font-mono);
-  font-size: .72rem;
-  color: var(--text-3);
-  letter-spacing: .06em;
-}
-/* 图标原来是 48×48 的 accent-soft 彩色方块 + accent 色图标 ——
-   这是 2024 年 AI 落地页最标志性的一件东西（每个功能点上面顶一个彩色圆角方块）。
-   现在去掉底色，只留一枚裸图标，颜色降到正文级 --text-2。
-   尺寸刻意保持 48×48 不变：fit.css 的四档压缩是按这个盒模型算的，
-   改尺寸会连带影响每章一屏的适配，收益不值这个风险。 */
-.card__icon {
-  display: grid;
-  place-items: center;
-  width: 48px;
-  height: 48px;
-  margin-bottom: 22px;
-  color: var(--text-2);
-  transition: color var(--t) var(--ease);
-}
-.card__icon .icon { width: 23px; height: 23px; }
-.card__title {
-  font-family: var(--font-display, var(--font-sans));
-  font-size: 1.22rem;
-  font-weight: 600;
-  letter-spacing: -.02em;
-}
-.card__desc { margin-top: 9px; font-size: .9rem; line-height: 1.72; color: var(--text-2); }
-.card__tags { display: flex; flex-wrap: wrap; gap: 6px 10px; margin-top: auto; padding-top: 22px; }
+/* ---------------------------------------------------------------- 业务卡 / 喜好卡 */
+/* 2026-11-17 死选择器清理：原来这里有 .card / .interest 两整套基础样式
+   （含 __index/__icon/__title/__desc/__tags/__text/__meta 子类）。六屏重构后
+   业务卡换成 .ccard、喜好卡并入各屏专属类；tools/audit-classes.js 用真实 DOM
+   比对确认这两个类及其全部子类在 index/themes/admin 三页均 0 命中，故整段删除。
+   .pill 是活类，保留。 */
 
 /* 标签：胶囊 → 小方角。
    原来 pill 和 tag 都是 999px 药丸，一行行堆在卡片底部，很像 SaaS 的
@@ -251,47 +207,6 @@
   font-size: .71rem;
   line-height: 1.65;
   white-space: nowrap;
-}
-
-/* ---------------------------------------------------------------- 喜好卡 */
-/* 和业务卡同样的减法：去阴影、图标去边框去彩色。
-   .interest 之间只靠 1px 线区分，避免每张卡都像一颗漂浮的按钮。 */
-.interest {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  min-height: 190px;
-  padding: 24px;
-  border: 1px solid var(--line);
-  border-radius: var(--r-md);
-  background: var(--bg-elev);
-  transition: border-color var(--t) var(--ease);
-}
-.interest__icon {
-  display: grid;
-  place-items: center;
-  width: 40px;
-  height: 40px;
-  margin-bottom: 18px;
-  color: var(--text-2);
-  transition: color var(--t) var(--ease);
-}
-.interest__icon .icon { width: 21px; height: 21px; }
-.interest__text h3 {
-  font-family: var(--font-display, var(--font-sans));
-  font-size: 1rem;
-  font-weight: 600;
-  letter-spacing: -.01em;
-}
-.interest__text p { margin-top: 6px; font-size: .84rem; line-height: 1.66; color: var(--text-2); }
-.interest__meta {
-  margin-top: auto;
-  padding-top: 16px;
-  font-family: var(--font-mono);
-  font-size: .66rem;
-  letter-spacing: .08em;
-  text-transform: uppercase;
-  color: var(--text-3);
 }
 
 /* -------------------------------------------------------------- 社交链接 */

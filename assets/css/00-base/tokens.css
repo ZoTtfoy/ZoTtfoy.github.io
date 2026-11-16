@@ -133,14 +133,12 @@ body {
    实测一次切换要强制重算样式约 90ms，切主题会明显卡一下。
    这里改成「只给真正有大面积色块改动的元素加过渡」：
    页面底色、卡片、按钮、面板这些。文字颜色靠继承自动跟随，
-   不必逐个元素声明 transition。 */
+   不必逐个元素声明 transition。
+   2026-11-17：删死类 .card/.interest/.game，见 tools/audit-classes.js。 */
 .theme-switching,
 .theme-switching body,
 .theme-switching .site-header,
-.theme-switching .card,
-.theme-switching .interest,
 .theme-switching .social,
-.theme-switching .game,
 .theme-switching .about__side,
 .theme-switching .contact,
 .theme-switching .btn,

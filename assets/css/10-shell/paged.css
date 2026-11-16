@@ -119,19 +119,10 @@ html[data-paged="on"] .site-footer { scroll-snap-align: end; }
 /* ======================================================= 翻页模式：紧凑化
    目标：让每一页真正装进一屏。否则吸附会失效，「翻页」就名存实亡。
    这里只收紧留白与卡片体量，不改字号层级，视觉重量基本不变。 */
-html[data-paged="on"] .card {
-  min-height: 0;
-  padding: clamp(22px, 2.6vw, 30px);
-}
-html[data-paged="on"] .card__icon { margin-bottom: 20px; }
-html[data-paged="on"] .card__tags { padding-top: 18px; }
-
-html[data-paged="on"] .interest {
-  min-height: 0;
-  padding: 20px;
-}
-html[data-paged="on"] .interest__icon { margin-bottom: 16px; }
-html[data-paged="on"] .interest__meta { padding-top: 14px; }
+/* 2026-11-17 死选择器清理：原先这里还有 .card / .interest 及其 __icon/__tags
+   子规则。tools/audit-classes.js 用真实 DOM 比对确认这两个类在 index.html /
+   themes.html / admin.html 全部 0 命中（活类是 .ccard / .game-board / .track），
+   故删除。删前 31 脚本基线全绿、删后须重跑视觉基线。 */
 
 html[data-paged="on"] .contact {
   margin-top: clamp(28px, 4vh, 46px);
@@ -219,28 +210,15 @@ html[data-paged="on"] .section.is-entering > .container > *:nth-child(n+5) { ani
   from { transform: translate3d(0, 20px, 0); }
   to   { transform: none; }
 }
-html[data-paged="on"] .section.is-entering .card,
-html[data-paged="on"] .section.is-entering .interest,
-html[data-paged="on"] .section.is-entering .social,
-html[data-paged="on"] .section.is-entering .game {
+/* 2026-11-17：入场上移只保留活类 .social（.card/.interest/.game 已实测为死类）。
+   nth-child 错开仍按原档位，观感不变。 */
+html[data-paged="on"] .section.is-entering .social {
   animation: chapter-lift .55s var(--ease-out) both;
 }
-html[data-paged="on"] .section.is-entering .card:nth-child(1),
-html[data-paged="on"] .section.is-entering .interest:nth-child(1),
-html[data-paged="on"] .section.is-entering .social:nth-child(1),
-html[data-paged="on"] .section.is-entering .game:nth-child(1) { animation-delay: .34s; }
-html[data-paged="on"] .section.is-entering .card:nth-child(2),
-html[data-paged="on"] .section.is-entering .interest:nth-child(2),
-html[data-paged="on"] .section.is-entering .social:nth-child(2),
-html[data-paged="on"] .section.is-entering .game:nth-child(2) { animation-delay: .40s; }
-html[data-paged="on"] .section.is-entering .card:nth-child(3),
-html[data-paged="on"] .section.is-entering .interest:nth-child(3),
-html[data-paged="on"] .section.is-entering .social:nth-child(3),
-html[data-paged="on"] .section.is-entering .game:nth-child(3) { animation-delay: .46s; }
-html[data-paged="on"] .section.is-entering .card:nth-child(n+4),
-html[data-paged="on"] .section.is-entering .interest:nth-child(n+4),
-html[data-paged="on"] .section.is-entering .social:nth-child(n+4),
-html[data-paged="on"] .section.is-entering .game:nth-child(n+4) { animation-delay: .50s; }
+html[data-paged="on"] .section.is-entering .social:nth-child(1) { animation-delay: .34s; }
+html[data-paged="on"] .section.is-entering .social:nth-child(2) { animation-delay: .40s; }
+html[data-paged="on"] .section.is-entering .social:nth-child(3) { animation-delay: .46s; }
+html[data-paged="on"] .section.is-entering .social:nth-child(n+4) { animation-delay: .50s; }
 
 /* ==================================================== 首次翻页手势提示
    陌生人打开不知道这页是翻页式的，给一次很轻的提示，动一下就消失。 */
@@ -512,12 +490,10 @@ html[data-paged="on"] .pager { display: flex; }
     transition: none !important;
     transform: none !important;
   }
-  /* 章节入场：CSS 层也兜一道，万一 JS 没拦住也不会动 */
-  html[data-paged="on"] .section.is-entering > .container > *,
-  html[data-paged="on"] .section.is-entering .card,
-  html[data-paged="on"] .section.is-entering .interest,
-  html[data-paged="on"] .section.is-entering .social,
-  html[data-paged="on"] .section.is-entering .game {
+  /* 章节入场：CSS 层也兜一道，万一 JS 没拦住也不会动。
+     2026-11-17：`.container > *` 已覆盖所有直接子元素，原来并列的
+     .card/.interest/.social/.game 是冗余（且前三者为死类），删掉。 */
+  html[data-paged="on"] .section.is-entering > .container > * {
     animation: none !important;
     opacity: 1 !important;
     transform: none !important;

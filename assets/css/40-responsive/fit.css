@@ -104,11 +104,8 @@ html[data-paged="on"] [data-fit="tight"] .preview__top { margin-bottom: 4px; }
 html[data-paged="on"] [data-fit="tight"] .track { padding: 10px 12px; }
 html[data-paged="on"] [data-fit="tight"] .listen__foot { margin-top: 10px; }
 
-/* Q3 游戏 */
-html[data-paged="on"] [data-fit="tight"] .game { padding: 12px; }
-html[data-paged="on"] [data-fit="tight"] .game__icon { width: 24px; height: 24px; margin-bottom: 7px; }
-html[data-paged="on"] [data-fit="tight"] .game__icon .icon { width: 16px; height: 16px; }
-html[data-paged="on"] [data-fit="tight"] .game__uid { margin-top: 6px; padding: 5px 8px; }
+/* Q3 游戏：2026-11-17 删除 .game / .game__* 死规则（旧一卡一游戏布局，
+   实测 DOM 0 命中，见 tools/audit-classes.js）；现游戏屏用 .game-board。 */
 
 /* Q4 维修 */
 html[data-paged="on"] [data-fit="tight"] .repair { gap: 14px; }
@@ -156,11 +153,6 @@ html[data-paged="on"] [data-fit="snug"] .preview__meta { display: none; }
 
 html[data-paged="on"] [data-fit="snug"] .track { padding: 8px 10px; }
 html[data-paged="on"] [data-fit="snug"] .listen__foot { margin-top: 8px; }
-
-html[data-paged="on"] [data-fit="snug"] .game { padding: 10px; }
-html[data-paged="on"] [data-fit="snug"] .game__icon { width: 20px; height: 20px; margin-bottom: 5px; }
-html[data-paged="on"] [data-fit="snug"] .game__icon .icon { width: 14px; height: 14px; }
-html[data-paged="on"] [data-fit="snug"] .game__uid { margin-top: 5px; padding: 4px 7px; }
 
 html[data-paged="on"] [data-fit="snug"] .repair { gap: 10px; }
 html[data-paged="on"] [data-fit="snug"] .quote { margin-top: 9px; padding-top: 8px; }
@@ -221,11 +213,7 @@ html[data-paged="on"] [data-fit="micro"] .preview__top { margin-bottom: 2px; }
 html[data-paged="on"] [data-fit="micro"] .track { padding: 6px 9px; }
 html[data-paged="on"] [data-fit="micro"] .listen__foot { margin-top: 6px; }
 
-/* Q3 */
-html[data-paged="on"] [data-fit="micro"] .game { padding: 8px 9px; }
-html[data-paged="on"] [data-fit="micro"] .game__icon { width: 18px; height: 18px; margin-bottom: 3px; }
-html[data-paged="on"] [data-fit="micro"] .game__icon .icon { width: 13px; height: 13px; }
-html[data-paged="on"] [data-fit="micro"] .game__uid { margin-top: 3px; padding: 3px 6px; }
+/* Q3 游戏：.game / .game__* 死规则已于 2026-11-17 删除 */
 
 /* Q4 */
 html[data-paged="on"] [data-fit="micro"] .quote { margin-top: 7px; padding-top: 7px; }
@@ -282,7 +270,6 @@ html[data-paged="on"] [data-fit="micro"] .mailbox__actions .btn { min-height: 36
      现在只在最紧的两档生效，顺序恢复单调。 */
   html[data-paged="on"] [data-fit="snug"] .repair,
   html[data-paged="on"] [data-fit="micro"] .repair { gap: 6px; }
-  html[data-paged="on"] .game { padding: 11px; }
   html[data-paged="on"] .social { padding: 11px; gap: 9px; }
   html[data-paged="on"] .social__icon { width: 30px; height: 30px; }
   html[data-paged="on"] .ccard { padding: 10px 10px 11px; }
@@ -341,9 +328,7 @@ html[data-paged="on"] [data-fit="micro"] .mailbox__actions .btn { min-height: 36
   .track__title { font-size: .84rem; }
   .track__meta { font-size: .72rem; }
 
-  .game { padding: 8px 9px; }
-  .game__name { font-size: .82rem; }
-  .game__uid-value { font-size: .72rem; }
+  /* .game / .game__* 死规则已于 2026-11-17 删除 */
 
   .preview-grid .preview { padding: 8px 10px; }
   .preview-grid .preview__title { font-size: .84rem; }

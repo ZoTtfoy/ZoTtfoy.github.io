@@ -98,14 +98,7 @@ html[data-motion="off"] .ambient__orb { animation: none; }
     border-color: var(--line-strong);
   }
 
-  /* 卡片：只换线色 + 图标提亮 */
-  .card:hover { border-color: var(--line-strong); }
-  .card:hover .card__icon { color: var(--text); }
-  .card__icon { transition: color var(--t) var(--ease); }
-
-  .interest:hover { border-color: var(--line-strong); }
-  .interest:hover .interest__icon { color: var(--text); }
-
+  /* 2026-11-17：.card / .interest 及 __icon 均为死类（见 tools/audit-classes.js），已删 */
   .social:hover { border-color: var(--line-strong); }
   .social:hover .social__icon { background: var(--accent-soft); color: var(--accent); }
   .social:hover .social__arrow { transform: translate(2px, -2px); color: var(--text); }
@@ -125,7 +118,6 @@ html[data-motion="off"] .ambient__orb { animation: none; }
   .icon-btn:active,
   .chip:active,
   .preview:active,
-  .game:active,
   .calc__opt:active,
   .mailbox__mail:active {
     transform: scale(.97);
@@ -139,8 +131,7 @@ html[data-motion="off"] .ambient__orb { animation: none; }
 
   /* 磁贴与摘要在按下时同时压一下边框，给出"被选中"的感觉 */
   .chip:active,
-  .preview:active,
-  .game:active {
+  .preview:active {
     border-color: var(--line-strong);
   }
 }

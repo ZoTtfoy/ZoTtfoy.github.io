@@ -248,11 +248,19 @@ const PERIOD = 1200;
   /* ------------------------------------------- 5. 每周轮换（种子稳定） */
   const weeks = await page.evaluate(() => {
     const f = window.SITE_ALBUMWALL.weekFor;
+    /* 以「今天」为基准推导本周的周一/周日，而不是写死某一周。
+       2026-11-17 修：原来硬编码 2026-11-09(周一)~11-15(周日)，
+       一旦真实日期跨周，页面正确地换到新周，这条断言却还拿旧周去比，
+       变成每周一必红的「时间炸弹」。改成相对今天算，就永远成立。 */
+    const now = new Date();
+    const day = now.getDay() || 7;            // 周日=7，周一=1
+    const monday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - day + 1);
+    const plus = (d, n) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
     return {
-      sameWeekA: f(new Date(2026, 10, 9)),   // 周一
-      sameWeekB: f(new Date(2026, 10, 15)),  // 同周周日
-      nextWeek: f(new Date(2026, 10, 16)),   // 下周一
-      prevWeek: f(new Date(2026, 10, 2))
+      sameWeekA: f(monday),                   // 本周一
+      sameWeekB: f(plus(monday, 6)),          // 本周周日
+      nextWeek: f(plus(monday, 7)),           // 下周一
+      prevWeek: f(plus(monday, -7))           // 上周一
     };
   });
   ok(weeks.sameWeekA === weeks.sameWeekB, '同一周内周数不变（周一与周日同值）');

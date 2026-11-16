@@ -208,13 +208,8 @@ html[data-wall="static"] .albumwall__row { animation: none !important; }
 }
 #gaming .eyebrow { color: var(--text-2); font-weight: 600; }
 
-/* 关卡：这一屏的卡片在拼贴背景上要更实一点，否则图案会从卡片缝里抢注意力。
-   曾经用过 92% 半透明想留一点"若隐若现"，但遮罩本来就压到 78%，
-   那 8% 肉眼几乎看不出，代价却是白卡家族里出现两个底色值（verify-unify 会报）。
-   统一比这点效果值钱 —— 实底。 */
-#gaming .game {
-  background: var(--bg-elev);
-}
+/* 2026-11-17：删死规则 `#gaming .game`（旧「一卡一游戏」时代的关卡卡样式，
+   该布局早已删除，见本文件头部说明）。实测 DOM 无 .game 命中。 */
 
 /* 窄屏不再单独改列数：实例是固定的，JS 的 scale 已经按 max(宽,高)
    等比缩好了。为手机另配一套格子数只会让"填满"这件事重新变得不可控。 */
