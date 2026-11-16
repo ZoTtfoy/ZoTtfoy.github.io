@@ -57,8 +57,12 @@ window.SITE_MOTION = (function () {
       nodes.push(n);
     });
 
-    /* 减少动效 / 不支持 IntersectionObserver：直接可见，不做动画 */
-    if (reduced() || typeof window.IntersectionObserver !== "function") {
+    /* 减少动效 / 低端档 / 不支持 IntersectionObserver：直接可见，不做动画。
+       2026-11-17：低端档不再起观察器 —— 有几十个 data-reveal 节点，
+       低端机上观察器回调 + 逐个加类 + 过渡都是白花的开销；内容仍全部可见。 */
+    var lowTier = false;
+    try { lowTier = document.documentElement.getAttribute("data-perf") === "low"; } catch (e) {}
+    if (reduced() || lowTier || typeof window.IntersectionObserver !== "function") {
       Array.prototype.forEach.call(nodes, function (n) { n.classList.add("is-visible"); });
       return nodes.length;
     }
@@ -453,12 +457,17 @@ window.SITE_MOTION = (function () {
     if (!ambient) return;
 
     function syncFlag() {
-      var off = reduced() || UI.ambientMotion === false;
+      var lowTier = false;
+      try { lowTier = document.documentElement.getAttribute("data-perf") === "low"; } catch (e) {}
+      var off = reduced() || lowTier || UI.ambientMotion === false;
       document.documentElement.dataset.motion = off ? "off" : "on";
     }
     syncFlag();
     if (reduceQuery.addEventListener) reduceQuery.addEventListener("change", syncFlag);
     else if (reduceQuery.addListener) reduceQuery.addListener(syncFlag);
+    /* 运行中降级/升级时重算：perf-tier 先写 data-perf 再派发 site:perf，
+       所以这里读到的是最新档位。 */
+    document.addEventListener("site:perf", syncFlag);
   }
 
   function init() {

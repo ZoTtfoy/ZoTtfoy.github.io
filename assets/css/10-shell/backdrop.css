@@ -280,6 +280,17 @@ html[data-backdrop-image="on"] .hero__role {
   html[data-motion="on"] .ambient__stars { animation: none; }
 }
 
+/* 低端档降级（2026-11-17）：越贵的装饰层先走。
+   光晕 / 星点 / 噪点都是整屏或近整屏的半透明合成层，滚动时要反复混合；
+   纹章是静态 SVG mask（不随帧重算）、封面墙的图也在，所以都保留 —— 内容不减。
+   Ken Burns 与滚动视差也停掉（这两项在 11-12 实测是最大的每帧成本）。 */
+html[data-perf="low"] .ambient__orb,
+html[data-perf="low"] .ambient__stars,
+html[data-perf="low"] .ambient__grain,
+html[data-perf="low"] .ambient__grid { display: none !important; }
+html[data-perf="low"] .ambient__image { animation: none !important; will-change: auto; }
+html[data-perf="low"] .ambient__image { translate: none !important; }
+
 /* 打印：背景一律去掉，省墨也更清楚 */
 @media print {
   .ambient { display: none !important; }

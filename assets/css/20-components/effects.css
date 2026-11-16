@@ -203,6 +203,17 @@ html[data-effects="off"] .about__side::before {
    （effects.js 的 spawnDot 用 dot.animate()），从不加 .is-live / --at，
    这段 CSS 规则永不命中。 */
 
+/* 低端档降级：指针光效整层不显示。JS 侧也同步跳过初始化与 rAF 跟随，
+   CSS 这一层是兜底 —— 即使有脚本漏写，也不会留下常驻的半透明合成层。 */
+html[data-perf="low"] .spotlight,
+html[data-perf="low"] .drag-glow,
+html[data-perf="low"] .drag-trail,
+html[data-perf="low"] .tap-ripple { display: none !important; }
+/* 卡片跟随光斑的低端兜底：把已写入的 --mx/--my 影响抹掉，回到默认居中实底 */
+html[data-perf="low"] .social::before,
+html[data-perf="low"] .contact::before,
+html[data-perf="low"] .about__side::before { display: none !important; }
+
 /* 触屏的拖尾点更小更淡：手指路径密集，点太大会糊成一片 */
 .drag-trail[data-kind="touch"] .drag-trail__dot {
   width: 12px;

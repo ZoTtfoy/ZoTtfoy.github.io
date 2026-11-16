@@ -27,7 +27,17 @@ window.SITE_EFFECTS = (function () {
   var visible = false;
 
   function reduced() { return reduceQuery.matches; }
-  function on() { return enabled && !reduced() && UI.lightEffects !== false; }
+  /* 2026-11-17：实测判为低端（data-perf="low"）时，指针光效整体不跑。
+     这里实时读属性，所以运行中从 high 降到 low 会立即生效 ——
+     下次 pointermove / 下一帧跟随都被 on() 挡住，无需重新初始化。
+     内容不受影响，少的只是"追光 / 光斑 / 涟漪 / 拖尾"这些装饰。 */
+  function lowTier() {
+    try { return document.documentElement.getAttribute("data-perf") === "low"; }
+    catch (e) { return false; }
+  }
+  function on() {
+    return enabled && !reduced() && !lowTier() && UI.lightEffects !== false;
+  }
 
   /* ------------------------------------------------------------- 全局追光 */
   function initSpotlight() {
@@ -51,6 +61,14 @@ window.SITE_EFFECTS = (function () {
     window.addEventListener("scroll", markBusy, { passive: true });
 
     function loop() {
+      /* 运行中降级（实测判低 / 减少动效）时立即停循环并熄灭追光 ——
+         否则已在缓动中的这一串帧会继续写 transform，即便 CSS 已把层隐藏。 */
+      if (!on()) {
+        rafId = null;
+        visible = false;
+        spotlight.classList.remove("is-on");
+        return;
+      }
       // 滚动中：只更新目标值，不动 DOM，等停手后再一次性跟上去
       if (performance.now() < idleUntil) {
         rafId = requestAnimationFrame(loop);
@@ -124,6 +142,9 @@ window.SITE_EFFECTS = (function () {
 
     function loop() {
       raf = null;
+      /* 降级后立刻停：已在缓动中的帧不再写 --glass-lx/--glass-ly。
+         CSS 虽已隐藏玻璃光斑，但省下这些无效的变量写入。 */
+      if (!on()) return;
       if (performance.now() < busyUntil) { raf = requestAnimationFrame(loop); return; }
       cx += (tx - cx) * 0.12;
       cy += (ty - cy) * 0.12;

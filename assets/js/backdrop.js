@@ -72,7 +72,9 @@ window.SITE_BACKDROP = (function () {
     root.style.setProperty("--bd-stars-opacity", String(starsOpacity));
 
     root.dataset.backdropBlur = blur > 0 ? "on" : "off";
-    root.dataset.kenBurns = on(B.kenBurns, false) && !reduced() ? "on" : "off";
+    var lowTier = false;
+    try { lowTier = root.getAttribute("data-perf") === "low"; } catch (e) {}
+    root.dataset.kenBurns = on(B.kenBurns, false) && !reduced() && !lowTier ? "on" : "off";
     root.dataset.backdropMotion = motion ? "on" : "off";
   }
 
@@ -320,10 +322,15 @@ window.SITE_BACKDROP = (function () {
 
     // 主题 / 明暗切换后，遮罩颜色取自 --bg，会自动跟着变，这里只需重算一次 kenBurns 等
     var syncMotion = function () {
-      root.dataset.kenBurns = on(B.kenBurns, false) && !reduced() ? "on" : "off";
+      var lowTier = false;
+      try { lowTier = root.getAttribute("data-perf") === "low"; } catch (e) {}
+      root.dataset.kenBurns = on(B.kenBurns, false) && !reduced() && !lowTier ? "on" : "off";
     };
     if (reduceQuery.addEventListener) reduceQuery.addEventListener("change", syncMotion);
     else if (reduceQuery.addListener) reduceQuery.addListener(syncMotion);
+    /* 实测判低后立刻停 Ken Burns（11-12 实测的每帧大头之一）。
+       CSS 的 html[data-perf="low"] 规则是兜底，JS 改标志让状态自洽。 */
+    document.addEventListener("site:perf", syncMotion);
 
     initParallax();
   }
