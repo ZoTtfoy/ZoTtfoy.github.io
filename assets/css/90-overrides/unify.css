@@ -163,25 +163,53 @@
  * ========================================================================== */
 
 :root {
-  --glass-tint: color-mix(in srgb, var(--bg-elev) 80%, transparent);
+  --glass-tint: color-mix(in srgb, var(--bg-elev) 78%, transparent);
   /* 文字密集的磁贴 / 次级卡用更实的底，别让背景封面把字吃掉 */
-  --glass-tint-strong: color-mix(in srgb, var(--bg-elev) 93%, transparent);
-  --glass-line: color-mix(in srgb, var(--line-strong) 60%, transparent);
-  --glass-hi: rgba(255, 255, 255, .55);
+  --glass-tint-strong: color-mix(in srgb, var(--bg-elev) 92%, transparent);
+  --glass-line: color-mix(in srgb, var(--line-strong) 55%, transparent);
+  /* 2026-11-17 向 iOS Liquid Glass 靠拢：三层边缘光。
+     顶部主高光最强（光从上方来），左侧次高光勾出厚度，底部一圈弱反射。
+     三层都是 inset box-shadow，走合成层，不增加逐卡 backdrop-filter。 */
+  --glass-hi: rgba(255, 255, 255, .78);
+  --glass-hi-soft: rgba(255, 255, 255, .34);
+  --glass-hi-edge: rgba(255, 255, 255, .16);
   --glass-blur: 18px;
-  --glass-sheen: linear-gradient(155deg,
-      rgba(255, 255, 255, .17) 0%,
-      rgba(255, 255, 255, 0) 40%,
+  /* 折射高光的焦点（0~100%），由 effects.js 跟随指针写到 <html> 上。
+     默认停在左上偏中——没有指针的设备（触屏）也有一致的静态观感。 */
+  --glass-lx: 34%;
+  --glass-ly: 14%;
+  /* 双层 sheen：① 跟着光源走的椭圆亮斑（近 iOS 的镜面反射）
+                  ② 固定的斜向流动带（给玻璃一个恒定的受光方向） */
+  --glass-sheen:
+    radial-gradient(120% 95% at var(--glass-lx) var(--glass-ly),
+      rgba(255, 255, 255, .20) 0%,
+      rgba(255, 255, 255, .06) 34%,
+      rgba(255, 255, 255, 0) 64%),
+    linear-gradient(155deg,
+      rgba(255, 255, 255, .15) 0%,
+      rgba(255, 255, 255, 0) 42%,
       rgba(255, 255, 255, .05) 100%);
+  /* 边缘描边也带一点方向性（上亮下暗），强化"一块玻璃"的厚度感 */
+  --glass-border: linear-gradient(160deg,
+      color-mix(in srgb, var(--line-strong) 78%, white) 0%,
+      var(--glass-line) 45%,
+      color-mix(in srgb, var(--line-strong) 70%, transparent) 100%);
   --glass-shadow: 0 1px 2px rgba(12, 24, 36, .05), 0 14px 36px rgba(12, 24, 36, .08);
 }
 
 html[data-theme="dark"] {
-  --glass-hi: rgba(255, 255, 255, .13);
-  --glass-sheen: linear-gradient(155deg,
-      rgba(255, 255, 255, .10) 0%,
+  --glass-hi: rgba(255, 255, 255, .20);
+  --glass-hi-soft: rgba(255, 255, 255, .09);
+  --glass-hi-edge: rgba(255, 255, 255, .05);
+  --glass-sheen:
+    radial-gradient(120% 95% at var(--glass-lx) var(--glass-ly),
+      rgba(255, 255, 255, .12) 0%,
+      rgba(255, 255, 255, .04) 34%,
+      rgba(255, 255, 255, 0) 64%),
+    linear-gradient(155deg,
+      rgba(255, 255, 255, .09) 0%,
       rgba(255, 255, 255, 0) 44%,
-      rgba(255, 255, 255, .035) 100%);
+      rgba(255, 255, 255, .03) 100%);
   --glass-shadow: 0 1px 2px rgba(0, 0, 0, .35), 0 16px 40px rgba(0, 0, 0, .32);
 }
 
@@ -203,8 +231,15 @@ html[data-glass="on"] .site-header {
   border-color: var(--glass-line);
   background-color: var(--glass-tint);
   background-image: var(--glass-sheen);
-  /* 内高光 = 玻璃边缘那道亮线；外影负责把卡片从背景里"抬"出来 */
-  box-shadow: var(--glass-shadow), inset 0 1px 0 var(--glass-hi);
+  /* 三层边缘光（iOS 风格）：顶部主高光 + 左侧次高光 + 底部弱反射，
+     再叠一层外影把玻璃从背景里抬起来。全是 inset，零重排成本。
+     保留 inset 也让 verify-glass / verify-unify 的高光断言继续成立。 */
+  box-shadow:
+    var(--glass-shadow),
+    inset 0 1px 0 var(--glass-hi),
+    inset 1px 0 0 var(--glass-hi-soft),
+    inset -1px 0 0 var(--glass-hi-edge),
+    inset 0 -1px 0 var(--glass-hi-edge);
 }
 
 /* 页码单独一个口子。

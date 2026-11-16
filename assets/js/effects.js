@@ -99,6 +99,50 @@ window.SITE_EFFECTS = (function () {
     });
   }
 
+  /* ------------------------------------------------- 玻璃高光跟随光源（iOS 风格）
+     2026-11-17：unify.css 的 --glass-sheen 用一个以 --glass-lx/--glass-ly 为圆心的
+     径向亮斑模拟 iOS Liquid Glass 的镜面反射。这里把这两个变量跟指针联动，
+     让全站玻璃的受光点跟着光源走，近似的"视角相关"观感。
+
+     性能克制（重要）：
+       · 只在精确指针设备启用；触屏保持默认静态高光，不跑这条循环
+       · passive 监听 + rAF 节流，缓动只在有位移时续帧
+       · 滚动期间暂停写入 —— 改背景渐变会触发玻璃层重绘，滚动时合成器已经很忙，
+         实测关掉跟随才守得住 verify-perf 的 35ms 护栏；停手 200ms 后恢复
+       · 只写 <html> 两个变量，不在每张卡上做逐元素写入 */
+  function initGlassHighlight() {
+    if (!finePointer.matches) return;
+    if (!document.documentElement || !document.documentElement.style) return;
+    var root = document.documentElement;
+    var tx = 34, ty = 14, cx = 34, cy = 14;   // 与 CSS 默认值一致
+    var raf = null, busyUntil = 0;
+
+    function markBusy() { busyUntil = performance.now() + 200; }
+    window.addEventListener("scroll", markBusy, { passive: true });
+    window.addEventListener("wheel", markBusy, { passive: true });
+    window.addEventListener("touchmove", markBusy, { passive: true });
+
+    function loop() {
+      raf = null;
+      if (performance.now() < busyUntil) { raf = requestAnimationFrame(loop); return; }
+      cx += (tx - cx) * 0.12;
+      cy += (ty - cy) * 0.12;
+      root.style.setProperty("--glass-lx", cx.toFixed(1) + "%");
+      root.style.setProperty("--glass-ly", cy.toFixed(1) + "%");
+      if (Math.abs(tx - cx) > 0.15 || Math.abs(ty - cy) > 0.15) {
+        raf = requestAnimationFrame(loop);
+      }
+    }
+
+    window.addEventListener("pointermove", function (e) {
+      if (!on()) return;                       // 减少动效 / lightEffects=off 时不跟
+      if (e.pointerType && e.pointerType !== "mouse") return;
+      tx = Math.max(0, Math.min(100, e.clientX / window.innerWidth * 100));
+      ty = Math.max(0, Math.min(100, e.clientY / window.innerHeight * 100));
+      if (!raf) raf = requestAnimationFrame(loop);
+    }, { passive: true });
+  }
+
   /* --------------------------------------------------------- 卡片跟随光斑 */
   /* 跟着 6 屏重构一起更新：旧结构里的 .card / .interest / .about__side / .contact
      已经不存在了（业务、喜好、关于三屏被删），换成了新组件。
@@ -439,6 +483,7 @@ window.SITE_EFFECTS = (function () {
     if (!active) return;
 
     initSpotlight();
+    initGlassHighlight();
     initCardGlow();
     initRipple();
     initDragGlow();
