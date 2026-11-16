@@ -123,14 +123,39 @@ function headerUrl(appid) {
 /* ⚠️ 有的 appid 在静态 CDN 上一张图都没有（新作 / 分区限定）。
    实测「深空当铺」4348910 的 header / capsule / library 全是 404，
    页面上就是一个空黑框 —— 用户专门圈出来过。
-   所以在这里按"横图优先"挨个探一遍，全挂了就返回空串，
-   让前端走兜底图标（那是有意为之的空态，比碎图好看）。 */
+   所以在这里按"横图优先"挨个探一遍，全挂了再走第二数据源（见 pickCover）。 */
 const COVER_CANDIDATES = [
   "header.jpg",          // 460×215，列表用的就是它
   "capsule_616x353.jpg",
   "library_600x900.jpg", // 竖版，兜底时会被 object-fit 裁一下
   "capsule_231x87.jpg"
 ];
+
+/* 2026-11-17：第二数据源 —— Steam 商店 API。
+   有的新作（实测「How to Fish / 渔力全开」4001890）静态 CDN 的 4 个路径全 404，
+   但商店 API 会返回**带哈希的路径**，图其实存在：
+     shared.akamai.steamstatic.com/store_item_assets/steam/apps/<appid>/<hash>/header.jpg
+   这是公开接口，不需要 key，也不受库存抓取那套 TLS 指纹限制。
+   只在旧路径全挂时才调，避免给每一款都多加一次请求。 */
+async function pickCoverViaStore(appid) {
+  const url = `https://store.steampowered.com/api/appdetails?appids=${appid}&l=schinese`;
+  try {
+    const ctl = new AbortController();
+    const t = setTimeout(() => ctl.abort(), 8000);
+    const r = await fetch(url, { signal: ctl.signal, headers: { "User-Agent": UA } });
+    clearTimeout(t);
+    if (!r.ok) return "";
+    const j = await r.json();
+    const entry = j && j[String(appid)];
+    if (!entry || entry.success !== true || !entry.data) return "";
+    /* header_image 是横版 460×215，和旧 header.jpg 同比例，前端无需改样式。
+       capsule_image 更窄（231×87），只在前者的兜底里用。 */
+    const img = entry.data.header_image || entry.data.capsule_image || "";
+    return typeof img === "string" && /^https:\/\//.test(img) ? img : "";
+  } catch {
+    return "";
+  }
+}
 
 async function pickCover(appid) {
   for (const f of COVER_CANDIDATES) {
@@ -143,7 +168,8 @@ async function pickCover(appid) {
       if (r.ok) return url;
     } catch { /* 试下一个 */ }
   }
-  return "";
+  /* 旧 CDN 全挂 → 试商店 API 的哈希路径；再挂就返回空串走前端兜底图标。 */
+  return await pickCoverViaStore(appid);
 }
 
 async function readApiKey() {
