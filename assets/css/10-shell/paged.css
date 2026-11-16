@@ -185,7 +185,8 @@ html[data-paged="on"][data-resizing="on"] .section > .container {
 /* ==================================================== Apple 式章节递进
    翻到某一页时，页内元素逐项错开淡入并轻微上移——不是整块出现，
    而是一层一层落位。这是「章节衔接」的观感来源。
-   只在这一页刚被翻到时播放一次（is-entering 由 JS 加，920ms 后移除）。 */
+   只在这一页刚被翻到时播放一次（is-entering 由 JS 加，1150ms 后移除 ——
+   1150 = 卡片最长延时 .50s + 时长 .55s + 余量，与 paged.js 的 enterTimer 一致）。 */
 @keyframes chapter-item {
   from { opacity: 0; transform: translate3d(0, 20px, 0); }
   to   { opacity: 1; transform: none; }

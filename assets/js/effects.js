@@ -104,7 +104,11 @@ window.SITE_EFFECTS = (function () {
      已经不存在了（业务、喜好、关于三屏被删），换成了新组件。
      这里刻意**没有**加 .chip 和 .track —— 它们太小，光斑在 26px 的盒子里
      移动会像一只乱窜的亮点，反而廉价。 */
-  var GLOW_TARGETS = ".social, .preview, .game, .calc, .mailbox";
+  /* 2026-11-17：删掉 .game —— 旧「一卡一游戏」时代的死类，实测 DOM 0 命中
+     （见 tools/audit-classes.js），活类是 .game-board。
+     保留 .preview（verify-visual 用它守光斑变量）与 .calc/.mailbox（虽暂无 CSS
+     消费者，但写入零成本，保留以免将来加光斑样式时又要改回）。 */
+  var GLOW_TARGETS = ".social, .preview, .calc, .mailbox";
   var glowRaf = null;
   var pendingGlow = null;
 

@@ -101,7 +101,7 @@ html[data-effects="off"] .about__side::before {
 
    实现要点（都是前面踩坑总结的）：
    · 不用 filter: blur()，模糊画进渐变里
-   · 拖尾点用 CSS 动画淡出，JS 只写 transform/位置，不逐帧改样式属性
+   · 拖尾点用 WAAPI（dot.animate()）淡出，JS 只在创建时写一次位置
    · 点用对象池复用，避免每次移动都创建/销毁 DOM
    · 一切只在按住期间运行，松手立即停止 —— 不影响滚动帧率 */
 .drag-glow {
@@ -199,14 +199,9 @@ html[data-effects="off"] .about__side::before {
   }
 }
 
-/* 撒出去就自己缩小淡出，JS 不再管它 */
-@keyframes trail-fade {
-  0%   { opacity: .5; transform: var(--at) scale(1); }
-  100% { opacity: 0;  transform: var(--at) scale(.35); }
-}
-.drag-trail__dot.is-live {
-  animation: trail-fade .52s var(--ease-out) forwards;
-}
+/* 2026-11-17：删 trail-fade / .is-live —— 拖尾点淡出现在走 WAAPI
+   （effects.js 的 spawnDot 用 dot.animate()），从不加 .is-live / --at，
+   这段 CSS 规则永不命中。 */
 
 /* 触屏的拖尾点更小更淡：手指路径密集，点太大会糊成一片 */
 .drag-trail[data-kind="touch"] .drag-trail__dot {

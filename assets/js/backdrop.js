@@ -236,7 +236,11 @@ window.SITE_BACKDROP = (function () {
     if (!ambient) return;
 
     var useMouse = finePointer.matches;
-    var hasImage = root.dataset.backdropImage === "on";
+    /* 注意：这里刻意用快照而非实时读 dataset。config.parallax 目前为 false
+       （2026-11-12 性能调优结论：scroll 监听 76ms/27 次 + 视差 loop 11.6ms/61 帧，
+       JS 侧最大单项），initParallax 在开关处就 return 了，这段循环根本不跑。
+       若将来要重新启用滚动视差，必须把 hasImage 改成 loop 内实时读 ——
+       setImage 是异步的，同步快照会恒为 false，视差永不生效。 */
 
     function loop() {
       rafId = null;
@@ -257,7 +261,7 @@ window.SITE_BACKDROP = (function () {
       ambient.style.transform = "translate3d(" +
         (sx * 0.7).toFixed(2) + "px," + (sy * 0.7).toFixed(2) + "px,0)";
 
-      // 图片反向轻微位移，形成前景/背景分离
+      // 图片反向轻微位移，形成前景/背景分离（开关关闭时不执行，见上方注释）
       if (hasImage && imageEl) {
         var offset = clamp(smoothScrollY * -0.05, -60, 60);
         imageEl.style.translate = "0 " + offset.toFixed(2) + "px";
