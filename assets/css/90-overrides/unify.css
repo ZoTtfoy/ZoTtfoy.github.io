@@ -163,32 +163,34 @@
  * ========================================================================== */
 
 :root {
-  --glass-tint: color-mix(in srgb, var(--bg-elev) 78%, transparent);
+  /* 2026-11-17 二次调优：更通透、动态光更含蓄。
+     实底占比降 6~8 个点，让背景多透一点；背景图本身被 scrim 压到 ≤12% 露出，
+     所以通透感是"看得出层次"而不是"字被吃掉"。 */
+  --glass-tint: color-mix(in srgb, var(--bg-elev) 72%, transparent);
   /* 文字密集的磁贴 / 次级卡用更实的底，别让背景封面把字吃掉 */
-  --glass-tint-strong: color-mix(in srgb, var(--bg-elev) 92%, transparent);
+  --glass-tint-strong: color-mix(in srgb, var(--bg-elev) 88%, transparent);
   --glass-line: color-mix(in srgb, var(--line-strong) 55%, transparent);
-  /* 2026-11-17 向 iOS Liquid Glass 靠拢：三层边缘光。
-     顶部主高光最强（光从上方来），左侧次高光勾出厚度，底部一圈弱反射。
-     三层都是 inset box-shadow，走合成层，不增加逐卡 backdrop-filter。 */
-  --glass-hi: rgba(255, 255, 255, .78);
-  --glass-hi-soft: rgba(255, 255, 255, .34);
-  --glass-hi-edge: rgba(255, 255, 255, .16);
+  /* 三层边缘光改柔：顶部主高光 .78→.52、左侧 .34→.20、底部 .16→.10。
+     仍是 inset box-shadow，保留厚度感但不再"发亮"。 */
+  --glass-hi: rgba(255, 255, 255, .52);
+  --glass-hi-soft: rgba(255, 255, 255, .20);
+  --glass-hi-edge: rgba(255, 255, 255, .10);
   --glass-blur: 18px;
   /* 折射高光的焦点（0~100%），由 effects.js 跟随指针写到 <html> 上。
      默认停在左上偏中——没有指针的设备（触屏）也有一致的静态观感。 */
   --glass-lx: 34%;
   --glass-ly: 14%;
-  /* 双层 sheen：① 跟着光源走的椭圆亮斑（近 iOS 的镜面反射）
-                  ② 固定的斜向流动带（给玻璃一个恒定的受光方向） */
+  /* 双层 sheen：① 跟着光源走的椭圆亮斑 —— 峰值 .20→.10、尾端 .06→.03，
+        随指针移动时不再像一盏探照灯；② 固定斜向带 .15→.10，只留受光方向。 */
   --glass-sheen:
     radial-gradient(120% 95% at var(--glass-lx) var(--glass-ly),
-      rgba(255, 255, 255, .20) 0%,
-      rgba(255, 255, 255, .06) 34%,
+      rgba(255, 255, 255, .10) 0%,
+      rgba(255, 255, 255, .03) 34%,
       rgba(255, 255, 255, 0) 64%),
     linear-gradient(155deg,
-      rgba(255, 255, 255, .15) 0%,
+      rgba(255, 255, 255, .10) 0%,
       rgba(255, 255, 255, 0) 42%,
-      rgba(255, 255, 255, .05) 100%);
+      rgba(255, 255, 255, .035) 100%);
   /* 边缘描边也带一点方向性（上亮下暗），强化"一块玻璃"的厚度感 */
   --glass-border: linear-gradient(160deg,
       color-mix(in srgb, var(--line-strong) 78%, white) 0%,
@@ -198,18 +200,19 @@
 }
 
 html[data-theme="dark"] {
-  --glass-hi: rgba(255, 255, 255, .20);
-  --glass-hi-soft: rgba(255, 255, 255, .09);
-  --glass-hi-edge: rgba(255, 255, 255, .05);
+  /* 2026-11-17 二次调优：深色下动态高光过亮，同浅色一起收敛 */
+  --glass-hi: rgba(255, 255, 255, .14);
+  --glass-hi-soft: rgba(255, 255, 255, .06);
+  --glass-hi-edge: rgba(255, 255, 255, .03);
   --glass-sheen:
     radial-gradient(120% 95% at var(--glass-lx) var(--glass-ly),
-      rgba(255, 255, 255, .12) 0%,
-      rgba(255, 255, 255, .04) 34%,
+      rgba(255, 255, 255, .06) 0%,
+      rgba(255, 255, 255, .02) 34%,
       rgba(255, 255, 255, 0) 64%),
     linear-gradient(155deg,
-      rgba(255, 255, 255, .09) 0%,
+      rgba(255, 255, 255, .05) 0%,
       rgba(255, 255, 255, 0) 44%,
-      rgba(255, 255, 255, .03) 100%);
+      rgba(255, 255, 255, .02) 100%);
   --glass-shadow: 0 1px 2px rgba(0, 0, 0, .35), 0 16px 40px rgba(0, 0, 0, .32);
 }
 

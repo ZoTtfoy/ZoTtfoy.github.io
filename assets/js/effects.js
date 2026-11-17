@@ -146,8 +146,9 @@ window.SITE_EFFECTS = (function () {
          CSS 虽已隐藏玻璃光斑，但省下这些无效的变量写入。 */
       if (!on()) return;
       if (performance.now() < busyUntil) { raf = requestAnimationFrame(loop); return; }
-      cx += (tx - cx) * 0.12;
-      cy += (ty - cy) * 0.12;
+      /* 2026-11-17：缓动 0.12→0.07，亮斑跟得更慢更柔，避免"探照灯"跟着鼠标跑 */
+      cx += (tx - cx) * 0.07;
+      cy += (ty - cy) * 0.07;
       root.style.setProperty("--glass-lx", cx.toFixed(1) + "%");
       root.style.setProperty("--glass-ly", cy.toFixed(1) + "%");
       if (Math.abs(tx - cx) > 0.15 || Math.abs(ty - cy) > 0.15) {
