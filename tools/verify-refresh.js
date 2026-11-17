@@ -77,6 +77,51 @@ const state = page => page.evaluate(() => ({
   ok(fresh.y === 0, '全新标签从第一屏开始（y=' + fresh.y + '）');
   await ctx3.close();
 
+  /* ---------- ④ 加载期抖动不把恢复带偏 ----------
+     真实浏览器里，splash 退场 / 字体 swap / 滚动条出现 / 原生恢复
+     都会在加载期改滚动位置并触发 resize。这里主动注入这些干扰，
+     验证"恢复窗口"守卫能把页面稳定钉在记住的那一屏。 */
+  const ctx4 = await newCtx(browser);
+  const p4 = await ctx4.newPage();
+  await p4.goto(SITE + '?bg=0', { waitUntil: 'load' });
+  await p4.waitForTimeout(1000);
+  await p4.evaluate(() => window.SITE_PAGED.goTo(2));
+  await p4.waitForTimeout(900);
+  await p4.addInitScript(() => {
+    window.addEventListener('DOMContentLoaded', () => {
+      let n = 0;
+      const tick = () => {
+        n++;
+        window.scrollTo(0, n % 2 ? 900 : 2700);   // 故意带偏
+        window.dispatchEvent(new Event('resize'));
+        if (n < 10) setTimeout(tick, 120);
+      };
+      setTimeout(tick, 60);
+    });
+  });
+  await p4.reload({ waitUntil: 'load' });
+  await p4.waitForTimeout(2600);
+  const hostile = await state(p4);
+  ok(Math.abs(hostile.y - 2 * hostile.vh) < 12,
+    '加载期被反复带偏+resize，最终仍稳定在第 3 屏（y=' + hostile.y + '）');
+  await ctx4.close();
+
+  /* ---------- ⑤ 用户主动操作应能立刻接管（不被守卫拉回） ---------- */
+  const ctx5 = await newCtx(browser);
+  const p5 = await ctx5.newPage();
+  await p5.goto(SITE + '?bg=0', { waitUntil: 'load' });
+  await p5.waitForTimeout(900);
+  await p5.evaluate(() => window.SITE_PAGED.goTo(2));
+  await p5.waitForTimeout(800);
+  await p5.reload({ waitUntil: 'load' });
+  await p5.waitForTimeout(350);            // 仍在恢复窗口内
+  await p5.evaluate(() => window.SITE_PAGED.goTo(4));
+  await p5.waitForTimeout(1600);
+  const taken = await state(p5);
+  ok(Math.abs(taken.y - 4 * taken.vh) < 12,
+    '恢复窗口内用户主动翻页可立即接管（y=' + taken.y + '）');
+  await ctx5.close();
+
   await browser.close();
   console.log(notes.join('\n'));
   console.log('\n检查项: ' + (notes.length + fails.length) + '，失败: ' + fails.length);

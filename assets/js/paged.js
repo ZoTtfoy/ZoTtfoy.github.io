@@ -39,6 +39,23 @@ window.SITE_PAGED = (function () {
      所有访问都要 typeof 守卫 + try/catch，否则整条 init 会被打断。 */
   var PAGE_KEY = "zotrod-page";
   var restoring = false;          // 恢复定位期间，别被 scroll 事件带偏
+  /* 2026-11-17 二次修复：加载期（splash 退场、字体 swap、滚动条出现）
+     会触发 visualViewport/resize，onResize 用 pageAtTop() 在 y=0 时
+     捕到锚点 0，随后 pinToActivePage 把刚恢复的屏钉回第一屏。
+     设一个"恢复窗口"：窗口内所有落点修正一律以记住的页索引为准。 */
+  var restoreWindowUntil = 0;
+  var restoreIndex = -1;
+
+  function inRestoreWindow() {
+    return restoreIndex > 0 &&
+      (typeof performance !== "undefined" ? performance.now() : Date.now()) < restoreWindowUntil;
+  }
+  /* 用户一旦主动操作（滚轮/触摸/按键/点页码），立即结束恢复窗口，
+     别在人家刚想翻页时把页面拉回去。 */
+  function endRestoreWindow() {
+    restoreWindowUntil = 0;
+    restoreIndex = -1;
+  }
 
   function readPage() {
     try {
@@ -397,8 +414,10 @@ window.SITE_PAGED = (function () {
        原来一次翻页 pagechange 来回派发 4 次，连带入场动画裁决、
        scheduleSettle 反复重来。用独立时间闸门，不影响吸附归位。 */
     if (typeof performance !== "undefined" && performance.now() < flipGuardUntil) return;
-    /* 刷新恢复定位期间同理：别让首帧的 scroll 事件把刚恢复的屏又改回 0 */
+    /* 刷新恢复定位期间同理：别让首帧的 scroll 事件把刚恢复的屏又改回 0。
+       恢复窗口内更进一步：直接以记住的页索引为准，不看当前 y。 */
     if (restoring) return;
+    if (inRestoreWindow()) { setActive(restoreIndex); return; }
 
     var y = window.scrollY || window.pageYOffset || 0;
     var vh = window.innerHeight;
@@ -472,6 +491,8 @@ window.SITE_PAGED = (function () {
   /* ------------------------------------------------------------ 跳转某页 */
   function goTo(i) {
     if (i < 0 || i >= pages.length) return;
+    /* goTo 是用户主动翻页的统一入口，走到这里就别再维持恢复窗口了 */
+    if (inRestoreWindow()) endRestoreWindow();
     if (!pageTops.length) measureTops();
     var top = pageTops[i];
     if (top === undefined) {
@@ -524,7 +545,7 @@ window.SITE_PAGED = (function () {
   function reanchor() {
     if (reanchored) return;
     reanchored = true;
-    var want = activeIndex;
+    var want = inRestoreWindow() ? restoreIndex : activeIndex;
     if (want > 0 && pageTops[want] !== undefined) {
       var y = window.scrollY || 0;
       /* 已经落在正确位置（±4px）就别再写，避免无谓的一次 scroll 事件 */
@@ -543,6 +564,10 @@ window.SITE_PAGED = (function () {
       top = pages[i].getBoundingClientRect().top + (window.scrollY || window.pageYOffset || 0);
     }
     restoring = true;
+    /* 恢复窗口 2.5s：覆盖 splash 退场(.5s) + 字体 swap + 图片 decode +
+       scrollbar 出现引发的 resize。窗口内所有落点修正都钉在这一屏。 */
+    restoreIndex = i;
+    restoreWindowUntil = (typeof performance !== "undefined" ? performance.now() : Date.now()) + 2500;
     markProgrammatic(400);
     instantScrollTo(top);
     setActive(i);
@@ -550,6 +575,26 @@ window.SITE_PAGED = (function () {
     pages.forEach(function (p) { p.setAttribute("data-entered", "1"); });
     lastAnimated = i;
     setTimeout(function () { restoring = false; }, 120);
+
+    /* 兜底：恢复窗口内按短间隔复查落点，谁把页面带偏了都拉回来。
+       真实浏览器里能改滚动位置的力量很多：原生恢复（即使设了 manual，
+       某些版本仍会在 load 后补一次）、splash 退场、字体 swap、滚动条
+       出现触发的 resize/visualViewport、以及 preload 闸门放行。
+       与其逐个猜时序，不如在窗口内以"记住的页索引"为唯一真值反复对齐。
+       窗口 2.5s 后自动停，不会妨碍用户之后的自由翻页。 */
+    [0, 60, 160, 320, 600, 1000, 1600, 2300].forEach(function (ms) {
+      setTimeout(function () {
+        if (!inRestoreWindow()) return;
+        if (!pageTops.length) measureTops();
+        var want = pageTops[restoreIndex];
+        if (want === undefined) return;
+        var y = window.scrollY || 0;
+        if (Math.abs(y - want) > 4) {
+          instantScrollTo(want);
+          setActive(restoreIndex);
+        }
+      }, ms);
+    });
   }
 
   function goBy(delta) {
@@ -978,6 +1023,18 @@ window.SITE_PAGED = (function () {
     /* 位置缓存立刻作废：拖动中任何一次滚动/跳页都要用新尺寸算落点 */
     queueMeasure();
 
+    /* 恢复窗口内：锚点强制用记住的页索引。
+       此时浏览器原生恢复已被 head 关掉，y 多半还是 0，按 pageAtTop()
+       反推只会得到 0，把刚恢复的屏钉回首页（实测的跳屏根因）。 */
+    if (inRestoreWindow()) {
+      resizeAnchor = restoreIndex;
+      markTall();
+      measureTops();
+      pinToActivePage(restoreIndex);
+      setActive(restoreIndex);
+      return;
+    }
+
     if (document.documentElement.dataset.resizing !== "on") {
       document.documentElement.dataset.resizing = "on";
       /* 在第一次 resize 时锁定锚点：用 pageAtTop() 反推，而不是读 activeIndex。 */
@@ -1088,8 +1145,16 @@ window.SITE_PAGED = (function () {
     /* ⚠️ 必须**先**把记住的屏读出来再跑 updateActive：
        init 里的 updateActive() 会按浏览器恢复的 scrollY 调 setActive()，
        而 setActive 现在会写 sessionStorage —— 刷新瞬间浏览器多半还在 y=0，
-       于是 "2" 会被立刻覆盖成 "0"（实测踩到）。 */
+       于是 "2" 会被立刻覆盖成 "0"（实测踩到）。
+       双重来源：sessionStorage 为准，<head> 最早写下的 data-restore 兜底
+       （万一有别的脚本在 defer 阶段动过 sessionStorage）。 */
     var remembered = readPage();
+    if (remembered < 0) {
+      try {
+        var dr = parseInt(document.documentElement.getAttribute("data-restore"), 10);
+        if (!isNaN(dr) && dr >= 0) remembered = dr;
+      } catch (e) {}
+    }
 
     markTall();
     buildPager();
@@ -1125,6 +1190,14 @@ window.SITE_PAGED = (function () {
     if (window.visualViewport) {
       window.visualViewport.addEventListener("resize", onResize, { passive: true });
     }
+
+    /* 用户主动操作 → 立刻结束恢复窗口（一次性监听，各自移除）。
+       注意不监听 scroll：加载期的布局抖动本身也会发 scroll，
+       那正是我们要抵抗的东西，不能当成用户意图。 */
+    ["wheel", "touchstart", "keydown", "pointerdown"].forEach(function (ev) {
+      var stop = function () { endRestoreWindow(); window.removeEventListener(ev, stop); };
+      window.addEventListener(ev, stop, { passive: true });
+    });
 
     // 字体晚到会改变高度，加载完再量一次；若刚做过刷新恢复，重测后重新定位到那一屏
     if (document.fonts && document.fonts.ready) {

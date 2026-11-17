@@ -74,6 +74,21 @@
     (function () {
       var d = document.documentElement;
       d.classList.add('js');
+
+      /* ⚠️ 刷新保持当前屏：必须在 <head> 最早期（任何 defer 脚本、
+         字体、图片之前）关掉浏览器原生滚动恢复。
+         原生恢复记的是**像素值**，页面加载中各屏高度还在变，它会把
+         页面落到错误的屏；而我们的 paged.js 是按「页索引」恢复的，
+         两者会赛跑 —— 用户反复反馈"刷新跳到第三屏"就是这个。
+         设成 manual 后，滚动位置完全由我们接管，不再有竞争。
+         同时把记住的页索引挂到 <html> 上，供 paged.js 在恢复窗口内
+         抵抗 resize/splash/字体带来的锚点漂移。 */
+      try {
+        if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+        var rp = parseInt(sessionStorage.getItem('zotrod-page'), 10);
+        d.dataset.restore = (isNaN(rp) || rp < 0) ? '' : String(rp);
+      } catch (e) { d.dataset.restore = ''; }
+
       try {
         var T = window.SITE_THEMES, UI = (window.SITE_CONFIG || {}).ui || {};
         var skinId = localStorage.getItem('zotrod-skin') || UI.skin || (T && T.defaultSkin) || 'ink';
