@@ -85,6 +85,25 @@ html[data-backdrop-image="on"] .ambient__scrim {
   opacity: var(--bd-scrim, .65);
 }
 
+/* 2026-11-17：亮色主题整体偏亮 —— 照片本身是高调的（白车、白墙、亮天空），
+   再叠 88% 的近白遮罩和白色卡片，整屏发白、层次全被冲掉。
+
+   ⚠️ 第一版用 filter: brightness(.86) saturate(.88) 压照片，视觉效果对，
+      但在**滚动视差下整屏 filter 每帧重算**：软件渲染实测滚动从 ~23ms
+      涨到 40ms，直接破 verify-perf 的 35ms 护栏。已废弃。
+
+   改用**静态渐变叠层**：在遮罩上叠一层固定的冷灰渐变（background-image），
+   它是一张不随视差移动、无需逐帧重算的静态层，合成开销可忽略。
+   ⚠️ 仍不动 .ambient__scrim 的 background-color / opacity —— verify-backdrop
+      读这两个值做 WCAG 对比度合成；background-image 不参与它的计算，
+      且冷灰让深色文字更易读，对比度方向安全。 */
+html[data-theme="light"][data-backdrop-image="on"] .ambient__scrim {
+  background-image: linear-gradient(180deg,
+    rgba(28, 42, 52, .10) 0%,
+    rgba(28, 42, 52, .055) 48%,
+    rgba(28, 42, 52, .12) 100%);
+}
+
 /* ============================================================ 3. 光晕 */
 /* ⚠️ 这一块是逐项实测调出来的，改之前先看结论（1440×900，每项 4 轮采样）：
  *

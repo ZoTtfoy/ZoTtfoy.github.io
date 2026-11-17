@@ -291,6 +291,11 @@ html[data-paged="on"] .section.is-entering .social:nth-child(n+4) { animation-de
   right: max(12px,
     calc((100vw - min(var(--w), 100vw - 2 * var(--gutter))) / 4
          - var(--pager-w) / 2));
+  /* 2026-11-17 16:9 宽屏贴边：1920×1080 这类视口留白很大（单侧 320px），
+     上面的"居中留白"公式算出 right=141px，页码看着像飘在半空、不贴边。
+     这类视口改成贴右边缘一个小margin。非 16:9（16:10 笔记本 / 竖屏）
+     仍走居中留白 —— 那边留白窄，贴边容易和正文挤在一起。
+     见下方 @media 里的详细注释。 */
   z-index: 50;
   transform: translateY(-50%);
   display: none;                 /* 只有翻页模式才出现 */
@@ -309,6 +314,20 @@ html[data-paged="on"] .section.is-entering .social:nth-child(n+4) { animation-de
   backdrop-filter: blur(10px);
 }
 html[data-paged="on"] .pager { display: flex; }
+
+/* -------------------------------------------------- 16:9 宽屏：页码贴右边缘
+   2026-11-17：1920×1080 / 1440×810 / 2560×1440 这类视口，内容宽固定
+   --w(1180/1280)，单侧留白可到 320px。"居中留白"把页码放在留白正中，
+   离屏幕右边 141px，看起来飘在半空。用户要它贴边。
+
+   用 min-aspect-ratio 精确圈出 16:9 及更宽的横屏，不动 16:10 笔记本
+   （1440×900 / 1280×800 是 16:10，留白窄，仍走居中留白避免压正文）。
+   贴边值 clamp 到 14~28px：留一点呼吸，又明显比 141px 靠边。
+   ⚠️ 下面的 1181~1319 窄留白分档里也有自己的 right，靠 min-width:1400px
+      把两者错开 —— 那段是窄桌面，不该套贴边。 */
+@media (min-aspect-ratio: 16/9) and (min-width: 1400px) {
+  .pager { right: clamp(14px, 1.4vw, 28px); }
+}
 
 .pager__list { display: flex; flex-direction: column; gap: 2px; }
 

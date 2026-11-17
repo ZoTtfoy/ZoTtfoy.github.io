@@ -216,6 +216,38 @@ html[data-theme="dark"] {
   --glass-shadow: 0 1px 2px rgba(0, 0, 0, .35), 0 16px 40px rgba(0, 0, 0, .32);
 }
 
+/* ==========================================================================
+ *  亮色主题专属玻璃（2026-11-17）
+ * --------------------------------------------------------------------------
+ *  问题：亮色 --bg-elev 是纯白 #fff，页面底也是近白 #fbfbf9 ——
+ *  "白底 + 白色高光"叠在一起，卡片看起来就是一块没有层次的纯白，
+ *  玻璃感完全消失（深色主题反而有，因为白高光在深底上显影）。
+ *
+ *  iOS 在浅色背景上的玻璃不是靠"更白"，而是靠**折射对比**：
+ *    · 略带冷调的半透明底，让背景照片能透出一点、又不至于糊掉文字
+ *    · 底部一条深色的"折射暗边"（光穿过玻璃边缘时的吸收），这是关键
+ *    · 顶部一道细亮高光 + 更实的描边，把轮廓从近白背景里勾出来
+ *  只用 CSS 变量覆盖，不改结构、不加逐卡 backdrop-filter。
+ * ========================================================================== */
+html[data-theme="light"] {
+  /* 冷调半透：纯白 68% + 一点石板灰，压住整体亮度又保留通透 */
+  --glass-tint: color-mix(in srgb, var(--bg-elev) 68%, #8fa3ad 32%);
+  --glass-tint-strong: color-mix(in srgb, var(--bg-elev) 84%, #9fb0b8 16%);
+  --glass-line: color-mix(in srgb, var(--line-strong) 72%, transparent);
+  /* 顶部亮边保留（白卡上仍要有一点镜面感），但底部/侧边改成深色吸收边 */
+  --glass-hi: rgba(255, 255, 255, .85);
+  --glass-hi-soft: rgba(255, 255, 255, .42);
+  --glass-hi-edge: rgba(22, 34, 42, .16);
+  /* sheen 改成"上亮下暗"的折射渐变，不再是一团加白的亮斑 */
+  --glass-sheen:
+    linear-gradient(168deg,
+      rgba(255, 255, 255, .34) 0%,
+      rgba(255, 255, 255, .06) 26%,
+      rgba(255, 255, 255, 0) 52%,
+      rgba(24, 38, 48, .045) 100%);
+  --glass-shadow: 0 1px 2px rgba(18, 32, 42, .07), 0 10px 28px -8px rgba(18, 32, 42, .20);
+}
+
 /* 手机上把模糊半径收小：卡片面积小，8px 足够有"透"的感觉，成本也低 */
 @media (max-width: 900px) {
   :root { --glass-blur: 8px; }
@@ -263,6 +295,54 @@ html[data-glass="on"] .site-header {
   background-color: var(--glass-tint-strong);
 }
 
+/* 亮色主题：重写玻璃边缘光的方向。
+   通用规则里四条边都用同一个 --glass-hi-edge；浅色下改成"上边亮、下边暗"，
+   才有 iOS 那种光穿过玻璃边缘被吸收的折射感，而不是一块发白的平板。 */
+html[data-glass="on"][data-theme="light"] .ccard,
+html[data-glass="on"][data-theme="light"] .game-board,
+html[data-glass="on"][data-theme="light"] .social,
+html[data-glass="on"][data-theme="light"] .calc,
+html[data-glass="on"][data-theme="light"] .preview,
+html[data-glass="on"][data-theme="light"] .track,
+html[data-glass="on"][data-theme="light"] .gb-cta,
+html[data-glass="on"][data-theme="light"] .skin-panel,
+html[data-glass="on"][data-theme="light"] .mobile-nav {
+  box-shadow:
+    var(--glass-shadow),
+    inset 0 1px 0 var(--glass-hi),
+    inset 1px 0 0 var(--glass-hi-soft),
+    inset -1px 0 0 var(--glass-hi-edge),
+    inset 0 -1px 0 var(--glass-hi-edge);
+}
+/* 页码/顶栏是细长浮层，浅色下沿用同一组折射边，但顶栏单独在下面处理光斑 */
+html[data-glass="on"][data-theme="light"] .pager {
+  box-shadow: var(--pager-shadow, var(--glass-shadow)),
+    inset 0 1px 0 var(--glass-hi),
+    inset 0 -1px 0 var(--glass-hi-edge);
+}
+
+/* ==========================================================================
+ *  顶栏光效失真修复（2026-11-17）
+ * --------------------------------------------------------------------------
+ *  顶栏是整屏宽（1920px）× 72px 的一条，却被套上了为卡片设计的
+ *  radial-gradient(120% 95% at --glass-lx --glass-ly) 亮斑：
+ *    · 这个椭圆在超宽元素上被拉成一条横贯全屏的光带
+ *    · 亮斑焦点跟着指针左右移动 = 整条顶栏忽明忽暗地"扫"，就是失真
+ *    · 再叠 saturate(1.15) 过饱和，浅色下更刺眼
+ *  顶栏只需要"一层安静的磨砂玻璃"：固定的极淡竖向渐变（不跟指针）、
+ *  中性模糊（去掉 saturate 增强）、更实的底。其余玻璃件不受影响。
+ * ========================================================================== */
+html[data-glass="on"] .site-header {
+  background-image: linear-gradient(180deg,
+    rgba(255, 255, 255, .06) 0%,
+    rgba(255, 255, 255, 0) 55%);
+  box-shadow: none;
+  border-bottom-color: var(--line);
+}
+html[data-glass="on"][data-theme="light"] .site-header {
+  background-color: var(--glass-tint-strong);
+}
+
 /* 游戏屏的战绩板正压在**彩色封面墙**上：20% 透明度会被封面染成一整片
    彩虹渐变，数字虽仍能读但非常花（截图实测）。它比别处更需要实底。 */
 html[data-glass="on"] .game-board {
@@ -287,8 +367,10 @@ html[data-glass="on"] .game-board {
   html[data-glass="on"][data-perf="high"] .pager,
   html[data-glass="on"][data-perf="high"] .skin-panel,
   html[data-glass="on"][data-perf="high"] .mobile-nav {
-    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.15);
-    backdrop-filter: blur(var(--glass-blur)) saturate(1.15);
+    /* 2026-11-17：去掉 saturate(1.15)。整屏宽的顶栏上它会把背景照片
+       的颜色整体推高，配合亮色主题就是"过艳/失真"；中性模糊更接近 iOS。 */
+    -webkit-backdrop-filter: blur(var(--glass-blur));
+    backdrop-filter: blur(var(--glass-blur));
   }
   /* 顶栏是整屏宽的一层，手机上无论档位都不模糊 */
   @media (max-width: 900px) {
