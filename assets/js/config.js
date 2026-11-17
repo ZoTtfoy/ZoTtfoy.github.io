@@ -50,18 +50,21 @@ window.SITE_CONFIG = {
       greet: "你好，我是",
       tagline: "看庭前花开花落，望天上云卷云舒",
       intro: "你好，很高兴认识你，看看我在做什么吧。",
+      /* 2026-11-17 按用户要求：微信放左、QQ 放右；
+         右侧提示改成具体的「点击复制微信号 / 点击复制QQ号」。
+         hint 由 render-profile.js 读取并渲染到 .ccard__hint 上。 */
       contacts: [
-          {
-              icon: "qq",
-              label: "QQ",
-              value: "3605921064",
-              hint: "点击复制"
-            },
           {
               icon: "wechat",
               label: "微信",
               value: "Zotrod",
-              hint: "点击复制"
+              hint: "点击复制微信号"
+            },
+          {
+              icon: "qq",
+              label: "QQ",
+              value: "3605921064",
+              hint: "点击复制QQ号"
             }
         ],
       previews: [

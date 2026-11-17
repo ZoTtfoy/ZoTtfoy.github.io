@@ -46,7 +46,10 @@
                '<span class="ccard__icon">' + icon(c.icon) + "</span>" +
                '<span class="ccard__label">' + esc(c.label) + "</span>" +
                '<span class="ccard__act">' +
-                 '<span class="ccard__hint" data-copy-hint>点击复制</span>' +
+                 /* 2026-11-17：改用配置里的 hint（"点击复制微信号 / 点击复制QQ号"），
+                    原先这里写死了"点击复制"，config 的 hint 字段形同虚设。
+                    留一个兜底值，后台没填 hint 的旧草稿也不会空白。 */
+                 '<span class="ccard__hint" data-copy-hint>' + esc(c.hint || "点击复制") + "</span>" +
                  icon("copy") +
                "</span>" +
              "</button>";

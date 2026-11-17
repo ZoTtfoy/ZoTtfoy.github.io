@@ -163,6 +163,7 @@ const SNAP = ([sel, i]) => {
     return nodes.map((el, i) => ({
       label: list[i] && list[i].label,
       value: list[i] && list[i].value,
+      hintCfg: (list[i] && list[i].hint) || '',
       text: (el.innerText || '').replace(/\s+/g, ' ').trim(),
       hint: (el.querySelector('.ccard__hint') || {}).textContent || '',
       aria: el.getAttribute('aria-label') || ''
@@ -171,9 +172,15 @@ const SNAP = ([sel, i]) => {
   cards.forEach(c => {
     ok(c.text.indexOf(c.value) < 0, '[联系卡] 卡面不出现账号明文（' + c.label + '）');
     ok(c.text.indexOf(c.label) === 0, '[联系卡] 卡面第一行是平台名「' + c.label + '」');
-    ok(c.hint === '点击复制', '[联系卡] 右侧是「点击复制」');
+    /* 2026-11-17：提示改为按平台区分的「点击复制微信号 / 点击复制QQ号」，
+       且由 config.profile.contacts[].hint 驱动，不再写死在渲染里。 */
+    ok(c.hint === c.hintCfg && /^点击复制.+号$/.test(c.hint),
+      '[联系卡] 右侧提示与配置一致且指明账号类型（' + c.hint + '）');
     ok(c.aria.indexOf(c.value) >= 0, '[联系卡] aria-label 仍带账号（读屏用户拿得到）');
   });
+  /* 顺序：微信在左、QQ 在右（2026-11-17 用户要求） */
+  ok(cards.length === 2 && cards[0].label === '微信' && cards[1].label === 'QQ',
+    '联系卡顺序为「微信在左、QQ 在右」（' + cards.map(c => c.label).join(' / ') + '）');
 
   ok(errs.length === 0, '没有 JS 报错' + (errs.length ? '：' + errs[0] : ''));
 
