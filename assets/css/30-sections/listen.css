@@ -169,6 +169,32 @@
 #listen .listen__foot * {
   text-shadow: 0 0 6px var(--bg), 0 0 16px var(--bg), 0 0 30px var(--bg);
 }
+
+/* 2026-11-17：浅色主题去掉光晕。
+   var(--bg) 在浅色下是近白，16/30px 的扩散圈会在深色字周围糊出一层
+   明显白雾（用户明确要求去掉）。改成紧贴笔画的 1px 实色描边 ——
+   只护住笔画边缘，不向外扩散，视觉上是清晰的描边而不是发光。
+   深色主题仍用上面的三层光晕（近黑扩散圈不显脏，且是必要的可读性保障）。
+   配合下面把标题区遮罩略加强，保证彩色封面上仍然读得清。 */
+html[data-theme="light"] #listen .section__head > *,
+html[data-theme="light"] #listen .listen__foot,
+html[data-theme="light"] #listen .listen__foot * {
+  text-shadow:
+    -1px -1px 0 var(--bg), 1px -1px 0 var(--bg),
+    -1px  1px 0 var(--bg), 1px  1px 0 var(--bg);
+}
+/* 浅色：标题/页脚所在的两端把封面多压一点，替代光晕的可读性作用。
+   只动首尾，中段仍保持通透，不把整面墙糊白。 */
+html[data-theme="light"] .albumwall__scrim {
+  background:
+    linear-gradient(to bottom,
+      color-mix(in srgb, var(--bg) 88%, transparent) 0%,
+      color-mix(in srgb, var(--bg) 74%, transparent) 12%,
+      color-mix(in srgb, var(--bg) 30%, transparent) 35%,
+      color-mix(in srgb, var(--bg) 28%, transparent) 65%,
+      color-mix(in srgb, var(--bg) 62%, transparent) 88%,
+      color-mix(in srgb, var(--bg) 86%, transparent) 100%);
+}
 #listen .section__lead,
 #listen .eyebrow,
 #listen .listen__foot { color: var(--text); font-weight: 500; }

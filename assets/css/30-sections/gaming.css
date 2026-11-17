@@ -200,6 +200,24 @@ html[data-wall="static"] .albumwall__row { animation: none !important; }
     0 0 18px var(--bg),
     0 0 34px var(--bg);
 }
+/* 2026-11-17：浅色主题去掉扩散光晕，改紧贴笔画的 1px 实色描边。
+   理由同 listen.css：近白的扩散圈在深色字周围是明显白雾。深色主题不动。 */
+html[data-theme="light"] #gaming .section__head > * {
+  text-shadow:
+    -1px -1px 0 var(--bg), 1px -1px 0 var(--bg),
+    -1px  1px 0 var(--bg), 1px  1px 0 var(--bg);
+}
+/* 浅色：首尾加强遮罩替代光晕，中段保持通透 */
+html[data-theme="light"] .steamwall__scrim {
+  background:
+    linear-gradient(to bottom,
+      color-mix(in srgb, var(--bg) 86%, transparent) 0%,
+      color-mix(in srgb, var(--bg) 72%, transparent) 12%,
+      color-mix(in srgb, var(--bg) 30%, transparent) 34%,
+      color-mix(in srgb, var(--bg) 26%, transparent) 56%,
+      color-mix(in srgb, var(--bg) 58%, transparent) 80%,
+      color-mix(in srgb, var(--bg) 84%, transparent) 100%);
+}
 /* 副标题比标题细、颜色又浅一档，光晕推得开背景但抬不动笔画本身的对比度。
    在这一屏单独提到正文色并加半档字重 —— 只有 Q3，其它屏维持原设计。 */
 #gaming .section__lead {
