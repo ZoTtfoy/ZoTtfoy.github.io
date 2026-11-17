@@ -29,47 +29,15 @@ window.SITE_PAGED = (function () {
   var ticking = false;
   var rafId = null;
 
-  /* ------------------------------------------------- 刷新时记住所在屏
-     2026-11-17：原先 init 强制 scrollRestoration=manual + scrollTo(0,0)，
-     刷新一律回第一屏；但真实浏览器里原生滚动恢复常与它竞争，反而会
-     跳到某一屏（用户反馈"刷新跳到第三屏"）。用户要的是**刷新仍在当前屏**。
-     做法：每次 setActive 把页索引写进 sessionStorage（标签页级，新标签
-     不继承），init 时读回来即时定位，不做平滑滚动、不播入场动画。
-     ⚠️ 自检跑在极简 DOM 桩里，没有 sessionStorage / history.scrollRestoration，
-     所有访问都要 typeof 守卫 + try/catch，否则整条 init 会被打断。 */
-  var PAGE_KEY = "zotrod-page";
-  var restoring = false;          // 恢复定位期间，别被 scroll 事件带偏
-  /* 2026-11-17 二次修复：加载期（splash 退场、字体 swap、滚动条出现）
-     会触发 visualViewport/resize，onResize 用 pageAtTop() 在 y=0 时
-     捕到锚点 0，随后 pinToActivePage 把刚恢复的屏钉回第一屏。
-     设一个"恢复窗口"：窗口内所有落点修正一律以记住的页索引为准。 */
-  var restoreWindowUntil = 0;
-  var restoreIndex = -1;
-
-  function inRestoreWindow() {
-    return restoreIndex > 0 &&
-      (typeof performance !== "undefined" ? performance.now() : Date.now()) < restoreWindowUntil;
-  }
-  /* 用户一旦主动操作（滚轮/触摸/按键/点页码），立即结束恢复窗口，
-     别在人家刚想翻页时把页面拉回去。 */
-  function endRestoreWindow() {
-    restoreWindowUntil = 0;
-    restoreIndex = -1;
-  }
-
-  function readPage() {
-    try {
-      if (typeof sessionStorage === "undefined") return -1;
-      var v = parseInt(sessionStorage.getItem(PAGE_KEY), 10);
-      return isNaN(v) ? -1 : v;
-    } catch (e) { return -1; }
-  }
-  function savePage(i) {
-    try {
-      if (typeof sessionStorage !== "undefined") sessionStorage.setItem(PAGE_KEY, String(i));
-    } catch (e) { /* 隐私模式/桩环境：记不住就算了，不影响翻页 */ }
-  }
-
+  /* ------------------------------------------------- 刷新一律回主页屏
+     2026-11-18 定稿：刷新后总是从第一屏（top / 主页屏）开始，不记住之前
+     翻到过哪一屏。之前两轮误把需求理解成「记住当前屏并恢复」，加了
+     sessionStorage 记忆 + 2.5s 恢复窗口，结果记忆值一旦是 2（音乐屏）
+     或 3（游戏屏），人在主页屏刷新也会被强行拉过去 —— 这才是用户反复
+     反馈「刷新跳到第三屏」的根因。全部撤掉，只保留两件真正有用的事：
+       ① <head> 最早期 history.scrollRestoration="manual"（杜绝原生按像素恢复）
+       ② init 里即时归零（不走 CSS 平滑滚动），且加载期重锚也钉在首页
+     屏序：0:top(主页) 1:about 2:listen(音乐) 3:gaming(游戏) 4:links 5:contact */
   function reduced() { return reduceQuery.matches; }
   function smooth() { return reduced() ? "auto" : "smooth"; }
   function headerH() {
@@ -334,7 +302,6 @@ window.SITE_PAGED = (function () {
   function setActive(i) {
     if (i === activeIndex || i < 0 || i >= pages.length) return;
     activeIndex = i;
-    savePage(i);                 // 记住当前屏，供刷新恢复
 
     pages.forEach(function (p, k) {
       p.classList.toggle("is-page-active", k === i);
@@ -414,10 +381,6 @@ window.SITE_PAGED = (function () {
        原来一次翻页 pagechange 来回派发 4 次，连带入场动画裁决、
        scheduleSettle 反复重来。用独立时间闸门，不影响吸附归位。 */
     if (typeof performance !== "undefined" && performance.now() < flipGuardUntil) return;
-    /* 刷新恢复定位期间同理：别让首帧的 scroll 事件把刚恢复的屏又改回 0。
-       恢复窗口内更进一步：直接以记住的页索引为准，不看当前 y。 */
-    if (restoring) return;
-    if (inRestoreWindow()) { setActive(restoreIndex); return; }
 
     var y = window.scrollY || window.pageYOffset || 0;
     var vh = window.innerHeight;
@@ -450,6 +413,13 @@ window.SITE_PAGED = (function () {
      掉帧从 4 升到 19 —— 均匀的小开销比不均匀的大跳变更友好。
      所以保持每帧计算。 */
   function onScroll() {
+    /* load 之后，只要不是守卫自己写的归零，就把滚动视作外部意图
+       （用户滚动 / 拖拽滚动条 / 自检脚本的 window.scrollTo），
+       立刻停止 home guard —— 不能把人家翻页拉回主页。
+       load 之前的滚动多半是原生恢复或版面抖动，仍由守卫抵抗。 */
+    if (pageLoaded && !guardScrolling && !startedByUser) {
+      startedByUser = true;
+    }
     /* 任何滚动（含触摸自由滑动，它不走 goTo）都进入翻页期；
        滚动每帧续期，停手 220ms 后摘标记。 */
     if (flipping) flipRenew();
@@ -491,8 +461,8 @@ window.SITE_PAGED = (function () {
   /* ------------------------------------------------------------ 跳转某页 */
   function goTo(i) {
     if (i < 0 || i >= pages.length) return;
-    /* goTo 是用户主动翻页的统一入口，走到这里就别再维持恢复窗口了 */
-    if (inRestoreWindow()) endRestoreWindow();
+    /* 任何 goTo（页码/键盘/按钮）都算用户主动翻页，停止归位守卫 */
+    startedByUser = true;
     if (!pageTops.length) measureTops();
     var top = pageTops[i];
     if (top === undefined) {
@@ -538,63 +508,44 @@ window.SITE_PAGED = (function () {
     }
   }
 
-  /* 字体 / 图片晚到会改变每屏高度，刷新恢复的落点会偏。
-     这两个时机各重锚一次；reanchored 保证只在刚进页面时生效，
-     用户之后自己翻页不会被强行拉回来。 */
-  var reanchored = false;
-  function reanchor() {
-    if (reanchored) return;
-    reanchored = true;
-    var want = inRestoreWindow() ? restoreIndex : activeIndex;
-    if (want > 0 && pageTops[want] !== undefined) {
-      var y = window.scrollY || 0;
-      /* 已经落在正确位置（±4px）就别再写，避免无谓的一次 scroll 事件 */
-      if (Math.abs(y - pageTops[want]) > 4) instantScrollTo(pageTops[want]);
+  /* 加载期把滚动位置收归第一屏（主页屏）。
+     字体 / 图片晚到、splash 退场、滚动条出现都会改版面甚至触发原生
+     滚动恢复，所以这几个时机各归零一次。⚠️ 只在「刚进页面且还没被用户
+     操作过」时生效：startedByUser 一旦置真就彻底停手，绝不抢用户的翻页。 */
+  var startedByUser = false;
+  var pageLoaded = false;         // load 事件之后，任何滚动都视为用户/外部意图
+  var guardScrolling = false;     // 标记「这次归零是守卫自己写的」
+  var homeGuardUntil = (typeof performance !== "undefined" ? performance.now() : Date.now()) + 2500;
+
+  function pinHome() {
+    if (startedByUser || pageLoaded) return;
+    if ((typeof performance !== "undefined" ? performance.now() : Date.now()) > homeGuardUntil) return;
+    var y = window.scrollY || 0;
+    if (Math.abs(y) > 2) {
+      guardScrolling = true;
+      instantScrollTo(0);
+      if (typeof requestAnimationFrame === "function") {
+        requestAnimationFrame(function () { guardScrolling = false; });
+      } else { guardScrolling = false; }
     }
+    if (activeIndex !== 0) setActive(0);
   }
 
-  /* 刷新恢复专用：即时跳到目标屏，不播平滑滚动、不播入场动画。
-     用 behavior:"auto" 并且提前量一次 pageTops，避免字体/图片晚到时落点偏。
-     restoring 标志让 onScroll 在这期间不要抢着改 activeIndex。 */
-  function restorePage(i) {
-    if (i <= 0 || i >= pages.length) { restoring = false; return; }
+  /* hash 显式跳转（从别处点 #xxx 进来）走这个：即时定位，不播入场动画。 */
+  function jumpToHash(i) {
+    if (i <= 0 || i >= pages.length) return;
     if (!pageTops.length) measureTops();
     var top = pageTops[i];
     if (top === undefined) {
       top = pages[i].getBoundingClientRect().top + (window.scrollY || window.pageYOffset || 0);
     }
-    restoring = true;
-    /* 恢复窗口 2.5s：覆盖 splash 退场(.5s) + 字体 swap + 图片 decode +
-       scrollbar 出现引发的 resize。窗口内所有落点修正都钉在这一屏。 */
-    restoreIndex = i;
-    restoreWindowUntil = (typeof performance !== "undefined" ? performance.now() : Date.now()) + 2500;
     markProgrammatic(400);
     instantScrollTo(top);
     setActive(i);
-    /* 别补播入场动画：所有屏都标记为已入场，刷新后不该再淡一次 */
     pages.forEach(function (p) { p.setAttribute("data-entered", "1"); });
     lastAnimated = i;
-    setTimeout(function () { restoring = false; }, 120);
-
-    /* 兜底：恢复窗口内按短间隔复查落点，谁把页面带偏了都拉回来。
-       真实浏览器里能改滚动位置的力量很多：原生恢复（即使设了 manual，
-       某些版本仍会在 load 后补一次）、splash 退场、字体 swap、滚动条
-       出现触发的 resize/visualViewport、以及 preload 闸门放行。
-       与其逐个猜时序，不如在窗口内以"记住的页索引"为唯一真值反复对齐。
-       窗口 2.5s 后自动停，不会妨碍用户之后的自由翻页。 */
-    [0, 60, 160, 320, 600, 1000, 1600, 2300].forEach(function (ms) {
-      setTimeout(function () {
-        if (!inRestoreWindow()) return;
-        if (!pageTops.length) measureTops();
-        var want = pageTops[restoreIndex];
-        if (want === undefined) return;
-        var y = window.scrollY || 0;
-        if (Math.abs(y - want) > 4) {
-          instantScrollTo(want);
-          setActive(restoreIndex);
-        }
-      }, ms);
-    });
+    /* 有显式 hash 时，home guard 不再介入（尊重外部链接） */
+    startedByUser = true;
   }
 
   function goBy(delta) {
@@ -1023,15 +974,13 @@ window.SITE_PAGED = (function () {
     /* 位置缓存立刻作废：拖动中任何一次滚动/跳页都要用新尺寸算落点 */
     queueMeasure();
 
-    /* 恢复窗口内：锚点强制用记住的页索引。
-       此时浏览器原生恢复已被 head 关掉，y 多半还是 0，按 pageAtTop()
-       反推只会得到 0，把刚恢复的屏钉回首页（实测的跳屏根因）。 */
-    if (inRestoreWindow()) {
-      resizeAnchor = restoreIndex;
+    /* 刚进页面且用户还没操作：加载期的 resize 一律归位到主页屏，
+       别让原生恢复 / 字体 / 滚动条把页面带到别的屏。 */
+    if (!startedByUser && !pageLoaded &&
+        (typeof performance !== "undefined" ? performance.now() : Date.now()) < homeGuardUntil) {
       markTall();
       measureTops();
-      pinToActivePage(restoreIndex);
-      setActive(restoreIndex);
+      pinHome();
       return;
     }
 
@@ -1130,31 +1079,16 @@ window.SITE_PAGED = (function () {
     collect();
     if (!pages.length) return;
 
-    /* ------------------------------------------- 刷新时留在当前屏
-       2026-11-17 改版：用户要求刷新后仍停在当前屏。
-       ⚠️ 浏览器的原生 scrollRestoration="auto" 会自己把 scrollY 恢复到
-       上次位置，但它恢复的是**像素值**，字体/图片晚到会改变每屏高度，
-       于是落点常常偏到另一屏（用户反馈"刷新跳到第三屏"就是这个）。
-       所以我们仍然设 manual 关掉原生恢复，改由自己按**页索引**恢复：
-       记的是第几屏，不是多少像素，重测高度后再定位，落点一定准。 */
+    /* ------------------------------------------- 刷新一律回主页屏（第一屏）
+       2026-11-18 定稿。<head> 最早期已设 scrollRestoration=manual 关掉
+       浏览器原生「按像素」恢复；这里再主动即时归零一次，双保险。
+       ⚠️ 不再读取任何 sessionStorage 记忆 —— 之前误做成「记住当前屏」，
+       记忆值为 2/3 时人在主页屏刷新也会被拉到音乐/游戏屏，正是用户
+       反复反馈的「刷新跳到第三屏」。 */
     try {
       if (typeof history !== "undefined" && "scrollRestoration" in history)
         history.scrollRestoration = "manual";
     } catch (e) {}
-
-    /* ⚠️ 必须**先**把记住的屏读出来再跑 updateActive：
-       init 里的 updateActive() 会按浏览器恢复的 scrollY 调 setActive()，
-       而 setActive 现在会写 sessionStorage —— 刷新瞬间浏览器多半还在 y=0，
-       于是 "2" 会被立刻覆盖成 "0"（实测踩到）。
-       双重来源：sessionStorage 为准，<head> 最早写下的 data-restore 兜底
-       （万一有别的脚本在 defer 阶段动过 sessionStorage）。 */
-    var remembered = readPage();
-    if (remembered < 0) {
-      try {
-        var dr = parseInt(document.documentElement.getAttribute("data-restore"), 10);
-        if (!isNaN(dr) && dr >= 0) remembered = dr;
-      } catch (e) {}
-    }
 
     markTall();
     buildPager();
@@ -1163,10 +1097,9 @@ window.SITE_PAGED = (function () {
     activeIndex = -1;
     updateActive();
 
-    /* 目的地优先级：① URL 显式 hash（从别处点 #xxx 进来）
-       ② sessionStorage 记住的屏（刷新）  ③ 都没有 → 第一屏
-       ⚠️ 自检跑在极简 DOM 桩里，location 可能没有 hash 字段，
-       所有访问都 typeof 守卫 + try/catch，别把 init 打断。 */
+    /* URL 显式 hash 优先（从别处点 #xxx 进来就落到那一屏），
+       这是唯一允许「不回主页屏」的情况。
+       ⚠️ 自检跑在极简 DOM 桩里没有 location，必须 typeof 守卫。 */
     var hash = "";
     try { hash = (typeof location !== "undefined" && location.hash) ? location.hash : ""; }
     catch (e) {}
@@ -1176,10 +1109,12 @@ window.SITE_PAGED = (function () {
       try { t = document.querySelector(hash); } catch (e2) {}
       if (t) target = pages.indexOf(t);
     }
-    if (target < 0) target = remembered;     // 刷新恢复：用进 init 时读到的值
-    if (target > 0) restorePage(target);     // 即时定位，不播动画
-    else if ((window.scrollY || 0) > 1) {
-      try { window.scrollTo(0, 0); } catch (e3) {}
+    if (target > 0) {
+      jumpToHash(target);
+    } else {
+      /* 无 hash：即时归零到主页屏（instantScrollTo 会临时压掉 CSS 平滑滚动） */
+      if ((window.scrollY || 0) > 1) instantScrollTo(0);
+      pinHome();
     }
     // 首帧就把「已播放入场的页」对齐当前页，避免一进页面就动一次
     lastAnimated = activeIndex;
@@ -1191,28 +1126,35 @@ window.SITE_PAGED = (function () {
       window.visualViewport.addEventListener("resize", onResize, { passive: true });
     }
 
-    /* 用户主动操作 → 立刻结束恢复窗口（一次性监听，各自移除）。
-       注意不监听 scroll：加载期的布局抖动本身也会发 scroll，
-       那正是我们要抵抗的东西，不能当成用户意图。 */
+    /* 用户主动操作 → 停止 home guard（一次性监听，各自移除）。
+       注意不监听 scroll：加载期布局抖动本身会发 scroll，那正是要抵抗的。
+       这样用户刷新后想立刻翻页也不会被拉回主页。 */
     ["wheel", "touchstart", "keydown", "pointerdown"].forEach(function (ev) {
-      var stop = function () { endRestoreWindow(); window.removeEventListener(ev, stop); };
+      var stop = function () { startedByUser = true; window.removeEventListener(ev, stop); };
       window.addEventListener(ev, stop, { passive: true });
     });
 
-    // 字体晚到会改变高度，加载完再量一次；若刚做过刷新恢复，重测后重新定位到那一屏
+    // 字体 / 图片晚到会改变版面，这几个时机各量一次并归位到主页屏
     if (document.fonts && document.fonts.ready) {
       document.fonts.ready.then(function () {
         markTall();
         measureTops();
-        reanchor();
+        pinHome();
         updateActive();
       }).catch(function () {});
     }
     window.addEventListener("load", function () {
       markTall();
       measureTops();
-      reanchor();
+      pinHome();               // load 这一刻仍算加载期，最后归位一次
       updateActive();
+      pageLoaded = true;       // 之后任何滚动都交给用户/外部
+    });
+    /* 加载期再按短间隔复查几次：原生恢复若迟到，也拉回主页屏。
+       ⚠️ 每个 timer 都先判 pageLoaded / startedByUser，load 之后自动失效，
+       不会干扰自检脚本或用户自主翻页。 */
+    [60, 200, 500, 1000, 1800].forEach(function (ms) {
+      setTimeout(function () { if (!pageLoaded) pinHome(); }, ms);
     });
 
     // 页面尺寸或内容变化时重算位置缓存
