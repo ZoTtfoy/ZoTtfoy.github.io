@@ -1,0 +1,19 @@
+{
+  "name": "zotrod-vercel-ssr",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Zotrod 主页的 Vercel SSR 迁移起点（独立于现有静态站）",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start"
+  },
+  "dependencies": {
+    "next": "^15.5.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
