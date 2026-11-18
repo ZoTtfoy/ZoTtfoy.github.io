@@ -230,27 +230,55 @@ window.SITE_RENDER = (function () {
     });
   }
 
-  /* ---------- 功能性按钮里的图标 ---------- */
+  /* ---------- 功能性按钮里的图标 ----------
+     2026-11-18 精简：以前这里无条件重写 4 个按钮的内联 SVG
+     （themeToggle / menuToggle / toTop / skinBtn），而 HTML 里本来就有
+     现成的 SVG —— 每次载入都丢弃重建 4 段 DOM，纯浪费。
+     现在：
+       · menu / toTop / skin 的图标完全不再碰（HTML 已正确）
+       · theme 图标只在明暗状态真的变化时切换（首次由 head 内联脚本
+         已定好 data-theme，这里对齐一次；之后主题切换时再更新）
+       · hidden 开关由 <head> 前置到 CSS（data-show-*），这里只在
+         CSS 未加载的兜底场景写，且只在值真的不同时才写，避免无谓重排。 */
   function renderControls() {
     var dark = document.documentElement.dataset.theme === "dark";
-    set("themeToggle", icon(dark ? "sun" : "moon"));
     var t = $("themeToggle");
     if (t) {
-      t.setAttribute("aria-label", dark ? "切换到浅色主题" : "切换到深色主题");
-      t.setAttribute("title", dark ? "切换到浅色主题" : "切换到深色主题");
-      if (C.ui && C.ui.showThemeToggle === false) t.hidden = true;
+      var wantIcon = dark ? "sun" : "moon";
+      /* 只在图标真的不对时才替换，别每次 set() 都重建 SVG */
+      if (t.dataset.iconState !== wantIcon) {
+        set("themeToggle", icon(wantIcon));
+        t.dataset.iconState = wantIcon;
+      }
+      var label = dark ? "切换到浅色主题" : "切换到深色主题";
+      if (t.getAttribute("aria-label") !== label) {
+        t.setAttribute("aria-label", label);
+        t.setAttribute("title", label);
+      }
+      if (C.ui && C.ui.showThemeToggle === false && !t.hidden) t.hidden = true;
     }
-    set("menuToggle", icon("menu"));
-    set("toTop", icon("arrow-up"));
 
-    set("skinBtn", icon("palette"));
+    /* 菜单 / 回到顶部 / 风格按钮的 SVG 已在 HTML 里预置（首屏零渲染）。
+       只在元素内容为空时补注入 —— 兼容极简 DOM 桩与后台动态插入的场景，
+       真实页面里因为有现成 SVG 会直接跳过，不再每次重建。 */
+    var empty = function (id) {
+      var el = $(id);
+      return !!el && !(el.innerHTML || "").trim();
+    };
+    if (empty("menuToggle")) set("menuToggle", icon("menu"));
+    if (empty("toTop")) set("toTop", icon("arrow-up"));
+    if (empty("skinBtn")) set("skinBtn", icon("palette"));
+
     var sk = $("skinBtn");
-    if (sk && C.ui && C.ui.showSkinPicker === false) sk.hidden = true;
+    if (sk && C.ui && C.ui.showSkinPicker === false && !sk.hidden) sk.hidden = true;
     var cnt = $("skinCount");
-    if (cnt && window.SITE_THEMES) cnt.textContent = window.SITE_THEMES.list.length + " 套可选";
+    if (cnt && window.SITE_THEMES) {
+      var n = window.SITE_THEMES.list.length + " 套可选";
+      if (cnt.textContent !== n) cnt.textContent = n;
+    }
 
     var top = $("toTop");
-    if (top && C.ui && C.ui.showBackToTop === false) top.hidden = true;
+    if (top && C.ui && C.ui.showBackToTop === false && !top.hidden) top.hidden = true;
   }
 
   /* ======================================================================

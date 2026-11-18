@@ -28,21 +28,22 @@
 
   /* --------------------------------------------------------------- 工具 */
   function getJSON(url) {
+    /* 2026-11-18：改用共享缓存 —— albumwall 也读 netease.json、steamwall 也读
+       steam.json，同一 URL 合并为一次请求（保留本模块原有的超时值）。
+       data-cache.js 未加载时（老浏览器 / 自检桩）退回原来的独立 fetch。 */
+    if (window.SITE_DATA && typeof window.SITE_DATA.getJSON === "function") {
+      return window.SITE_DATA.getJSON(url, { timeout: TIMEOUT });
+    }
     if (!url || typeof fetch !== "function") return Promise.resolve(null);
-
     var ctl = typeof AbortController === "function" ? new AbortController() : null;
     var timer = setTimeout(function () { if (ctl) ctl.abort(); }, TIMEOUT);
-
     return fetch(url, {
-      cache: "no-cache",                       // 每次都跟服务器核对，避免看到上次的旧歌单
+      cache: "no-cache",
       signal: ctl ? ctl.signal : undefined,
       headers: { accept: "application/json" }
     })
-      .then(function (r) {
-        if (!r.ok) return null;                // 404 → 当作"还没同步过"，不是错误
-        return r.json();
-      })
-      .catch(function () { return null; })     // 超时 / 断网 / JSON 坏 → 一律降级
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .catch(function () { return null; })
       .then(function (v) { clearTimeout(timer); return v; });
   }
 

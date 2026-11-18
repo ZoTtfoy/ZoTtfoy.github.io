@@ -148,6 +148,10 @@ window.SITE_STEAMWALL = (function () {
   }
 
   function getJSON(url) {
+    /* 2026-11-18：与 sync.js 共享请求（两边都读 steam.json） */
+    if (window.SITE_DATA && typeof window.SITE_DATA.getJSON === "function") {
+      return window.SITE_DATA.getJSON(url, { timeout: 4000 });
+    }
     if (!url || typeof fetch !== "function") return Promise.resolve(null);
     var ctl = typeof AbortController === "function" ? new AbortController() : null;
     var timer = setTimeout(function () { if (ctl) ctl.abort(); }, 4000);

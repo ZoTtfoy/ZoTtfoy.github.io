@@ -2,6 +2,16 @@
  *  layout.css —— 骨架与栅格：页头 / 首页 / 各区块 / 页脚 / 响应式
  * ========================================================================== */
 
+/* ------------------------------------------------------ 首屏开关（前置）
+   2026-11-18：<head> 内联脚本按 config.ui 在 <html> 上写好 data-show-*，
+   这里在元素被解析时就隐藏，避免「按钮先渲染 → defer JS 再 hidden」的
+   闪烁与无谓重排。JS 里原有的 hidden 赋值保留作 CSS 未加载时的兜底。 */
+html[data-show-skin="0"] #skinBtn,
+html[data-show-theme="0"] #themeToggle,
+html[data-show-top="0"] #toTop,
+html[data-show-pager="0"] .pager,
+html[data-show-prog="0"] .scroll-progress { display: none !important; }
+
 .container {
   width: min(calc(100% - var(--gutter) * 2), var(--w));
   margin-inline: auto;

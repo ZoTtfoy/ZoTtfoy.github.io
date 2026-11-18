@@ -308,11 +308,19 @@ window.SITE_MOTION = (function () {
     var btn = $("themeToggle");
     if (!btn) return;
     var dark = document.documentElement.dataset.theme === "dark";
-    btn.innerHTML = window.siteIcon(dark ? "sun" : "moon");
+    var wantIcon = dark ? "sun" : "moon";
+    /* 只在明暗真的变化时重建 SVG；render.js 首帧已写好同一状态标记，
+       这里读到相同就跳过，避免每次主题操作都丢弃重建图标 DOM */
+    if (btn.dataset.iconState !== wantIcon) {
+      btn.innerHTML = window.siteIcon(wantIcon);
+      btn.dataset.iconState = wantIcon;
+    }
     var label = dark ? "切换到浅色" : "切换到深色";
-    btn.setAttribute("aria-label", label);
-    btn.setAttribute("title", label);
-    if (C.ui && C.ui.showThemeToggle === false) btn.hidden = true;
+    if (btn.getAttribute("aria-label") !== label) {
+      btn.setAttribute("aria-label", label);
+      btn.setAttribute("title", label);
+    }
+    if (C.ui && C.ui.showThemeToggle === false && !btn.hidden) btn.hidden = true;
     // theme-color 由 skin.js 依据当前主题底色写入，这里不再固定
   }
 

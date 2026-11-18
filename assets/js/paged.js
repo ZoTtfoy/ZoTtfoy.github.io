@@ -225,7 +225,9 @@ window.SITE_PAGED = (function () {
       }
     });
 
-    if (UI.showPager === false) pager.hidden = true;
+    /* CSS 已由 <head> 的 data-show-pager 前置隐藏；这里只在未隐藏时兜底写，
+       避免对同一元素重复写 hidden 触发样式失效 */
+    if (UI.showPager === false && !pager.hidden) pager.hidden = true;
   }
 
   /* ------------------------------------------------------------ 状态同步 */

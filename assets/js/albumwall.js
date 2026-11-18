@@ -120,6 +120,10 @@ window.SITE_ALBUMWALL = (function () {
   }
 
   function getJSON(url) {
+    /* 2026-11-18：与 sync.js 共享请求（两边都读 netease.json） */
+    if (window.SITE_DATA && typeof window.SITE_DATA.getJSON === "function") {
+      return window.SITE_DATA.getJSON(url);
+    }
     if (!url || typeof fetch !== "function") return Promise.resolve(null);
     return fetch(url, { cache: "no-cache" })
       .then(function (r) { return r.ok ? r.json() : null; })

@@ -68,6 +68,8 @@
   <!-- config.js 只定义数据，放最前面：既供下方主题初始化使用，也避免刷新闪白屏 -->
   <script src="assets/js/config.js?v=202611152051"></script>
   <script src="assets/js/themes.js?v=202611152051"></script>
+  <!-- 共享 JSON 请求：同步加载，供后面所有 defer 模块去重使用（2026-11-18） -->
+  <script src="assets/js/core/data-cache.js?v=202611152051"></script>
   <script>
     /* 首屏立即套用主题，避免刷新时闪一下默认配色。
        这里只做「注入变量」这一件事，完整逻辑在 assets/js/skin.js。 */
@@ -82,6 +84,22 @@
          设成 manual 后由 paged.js 统一即时归零，杜绝竞争。 */
       try {
         if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+      } catch (e) {}
+
+      /* ------------------------------------------------- 首屏开关前置
+         2026-11-18：这些按钮以前是「HTML 里先渲染 → defer 脚本再写 hidden」，
+         用户能看见它们闪一下再消失，还白做一次布局。
+         现在 config.js 已在 head 同步加载，这里直接把开关写到 <html> 上，
+         由 CSS 在元素解析时就不显示；JS 里原有的 hidden 赋值保留作兜底
+         （值已相同就不会触发重排），后台改配置后刷新即生效。 */
+      try {
+        var u = (window.SITE_CONFIG || {}).ui || {};
+        /* showSkinPicker 默认 false —— skinBtn 是最明显的"先显示后隐藏" */
+        d.dataset.showSkin   = u.showSkinPicker   === false ? '0' : '1';
+        d.dataset.showTheme  = u.showThemeToggle  === false ? '0' : '1';
+        d.dataset.showTop    = u.showBackToTop    === false ? '0' : '1';
+        d.dataset.showPager  = u.showPager        === false ? '0' : '1';
+        d.dataset.showProg   = u.showProgress     === false ? '0' : '1';
       } catch (e) {}
 
       try {
