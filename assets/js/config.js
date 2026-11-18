@@ -310,11 +310,19 @@ window.SITE_CONFIG = {
         "assets/backdrop/miku-d2.webp",
         "assets/backdrop/scene-d3.webp"
       ],
+      /* 2026-11-18 本地预览用：4 张逐张识图筛出的竖屏 MIKU，
+         与实拍场景交错（照桌面 images 的惯例，方便看出池子里有两类）。
+         均为 900 宽 WebP、无水印文字、白裙梦幻插画风，与 miku-d1/d2 同源。
+         ⚠️ 尚未上线，等用户确认后再定最终保留哪几张。 */
       imagesMobile: [
         "assets/backdrop/scene-m1.webp",
+        "assets/backdrop/miku-m17.webp",
         "assets/backdrop/scene-m2.webp",
+        "assets/backdrop/miku-m51.webp",
         "assets/backdrop/scene-m3.webp",
+        "assets/backdrop/miku-m20.webp",
         "assets/backdrop/scene-m4.webp",
+        "assets/backdrop/miku-m28.webp",
         "assets/backdrop/scene-m5.webp"
       ],
       image: "assets/backdrop/scene-d1.webp",

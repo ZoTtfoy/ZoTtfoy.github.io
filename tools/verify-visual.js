@@ -161,7 +161,11 @@ await page.goto(URL, { waitUntil: 'load' });
       };
     });
 
-    if (pager) {
+    /* 2026-11-18：移动端（≤900px）不显示侧边页码栏，只在桌面端启用。
+       注意 evaluate 里 `display:none` 时直接返回 null，所以这里按视口分开断言。 */
+    if (vp.width <= 900) {
+      ok(pager === null, tag + '移动端侧边页码栏已隐藏（仅桌面端启用）');
+    } else if (pager) {
       ok(pager.insideViewport, tag + '页码完整在视口内');
       /* 用真实的矩形相交面积判断，比单看一边的距离可靠 */
       ok(pager.intersectArea === 0,
@@ -185,12 +189,11 @@ await page.goto(URL, { waitUntil: 'load' });
       ok(Math.abs(pager.cy - pager.vh / 2) <= 2,
         tag + '页码垂直居中于视口（中心 ' + pager.cy + ' / 视口中线 ' + (pager.vh / 2) + '）');
       ok(pager.dotCount === pager.pageCount, tag + '页码数量与页数一致（' + pager.dotCount + '）');
-      // 2026-11-13：底部分段式进度条已移除，窄屏也改为侧边圆点
-      // （用户要求"只保留侧边进度提示"）。所以两种视口守同一条不变量。
+      // 底部分段式进度条已移除，桌面统一用侧边圆点
       ok(pager.listVisible && !pager.trackVisible, tag + '用侧边圆点，没有底部分段');
       ok(pager.x > vp.width * 0.8, tag + '页码贴在右侧（x=' + pager.x + '）');
     } else {
-      fails.push(tag + '页码未显示');
+      fails.push(tag + '桌面端页码未显示');
     }
 
     /* ---------- 3. 对比度（真实计算色值） ---------- */
@@ -280,8 +283,11 @@ await page.goto(URL, { waitUntil: 'load' });
       [...document.querySelectorAll('.hero, .section')]
         .map(p => Math.round(p.getBoundingClientRect().top + window.scrollY)));
 
-    /* --- 点页码：应精确落在该页顶部 --- */
-    if (vp.w > 900) {
+    /* --- 点页码：应精确落在该页顶部 ---
+       ⚠️ 2026-11-18 修正：原来写的是 vp.w（undefined），条件恒为 false，
+       这条断言其实一直没跑过。视口对象的字段是 width / height。
+       移动端已隐藏页码栏，这里只在桌面端（>900px）点。 */
+    if (vp.width > 900) {
       await page.locator('.pager__dot').nth(2).click();
       await page.waitForTimeout(1400);
       const y = await page.evaluate(() => Math.round(window.scrollY));
@@ -335,10 +341,11 @@ await page.goto(URL, { waitUntil: 'load' });
     }
     ok(consistent, tag + '连翻 4 页，高亮页码与落位始终一致' + (detail ? '（' + detail + '）' : ''));
 
-    /* --- 触屏点按涟漪（手机） --- */
-    if (vp.w <= 900) {
+    /* --- 触屏点按涟漪（手机） ---
+       同样修正 vp.w / vp.h 的笔误（原为 undefined）。 */
+    if (vp.width <= 900) {
       const before = await page.evaluate(() => document.querySelectorAll('.tap-ripple').length);
-      await page.touchscreen.tap(vp.w / 2, vp.h / 2);
+      await page.touchscreen.tap(vp.width / 2, vp.height / 2);
       await page.waitForTimeout(120);
       const during = await page.evaluate(() => document.querySelectorAll('.tap-ripple').length);
       ok(during > before, tag + '手指点按出现涟漪（' + during + ' 个）');
