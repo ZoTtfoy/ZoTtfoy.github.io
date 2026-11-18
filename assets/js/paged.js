@@ -1099,12 +1099,44 @@ window.SITE_PAGED = (function () {
     activeIndex = -1;
     updateActive();
 
-    /* URL 显式 hash 优先（从别处点 #xxx 进来就落到那一屏），
-       这是唯一允许「不回主页屏」的情况。
-       ⚠️ 自检跑在极简 DOM 桩里没有 location，必须 typeof 守卫。 */
+    /* ---------------------------------------------------- 刷新 vs 深链
+       ⚠️ 2026-11-19 第四次修「刷新跳到第三页听歌排行」的真正根因：
+       motion.js 的锚点点击会 pushState 把 #listen / #gaming 写进 URL。
+       首屏最显眼的主按钮就是 #listen —— 用户点过它之后按 F5，URL 仍带
+       #listen，而下面这段原本把「有 hash」一律当作外部深链处理，
+       jumpToHash(2) 直接把页面送到第三屏，绕过了「刷新回主页屏」。
+       之前三轮自检全用无 hash 的 ?bg=N URL，从没覆盖这条最典型路径。
+
+       正确区分：用 Navigation Timing 的 type 判断本次载入是否 reload。
+         · navigate / 其它（含从别处带 #xxx 进来）→ 尊重 hash，直达那一屏
+         · reload（F5 / 地址栏回车重进）→ 忽略 hash、回到主页屏，
+           并用 replaceState 清掉 URL 里的残留 hash（不新增历史记录），
+           免得它一直赖在地址栏里影响后续刷新。 */
+    var isReload = false;
+    try {
+      var nav = (typeof performance !== "undefined" && performance.getEntriesByType)
+        ? performance.getEntriesByType("navigation")[0] : null;
+      isReload = !!(nav && nav.type === "reload");
+      /* 老 Safari 没有 navigation timing：用 performance.navigation.type===1 兜底 */
+      if (!nav && typeof performance !== "undefined" && performance.navigation) {
+        isReload = performance.navigation.type === 1;
+      }
+    } catch (e) { /* 极简 DOM 桩里没有 performance：按普通导航处理 */ }
+
+    if (isReload) {
+      try {
+        if (typeof location !== "undefined" && location.hash &&
+            typeof history !== "undefined" && history.replaceState) {
+          history.replaceState(history.state, "", location.pathname + location.search);
+        }
+      } catch (e) {}
+    }
+
     var hash = "";
-    try { hash = (typeof location !== "undefined" && location.hash) ? location.hash : ""; }
-    catch (e) {}
+    if (!isReload) {
+      try { hash = (typeof location !== "undefined" && location.hash) ? location.hash : ""; }
+      catch (e) {}
+    }
     var target = -1;
     if (hash.length > 1) {
       var t = null;
@@ -1114,7 +1146,7 @@ window.SITE_PAGED = (function () {
     if (target > 0) {
       jumpToHash(target);
     } else {
-      /* 无 hash：即时归零到主页屏（instantScrollTo 会临时压掉 CSS 平滑滚动） */
+      /* 无 hash 或刷新：即时归零到主页屏（instantScrollTo 会压掉 CSS 平滑滚动） */
       if ((window.scrollY || 0) > 1) instantScrollTo(0);
       pinHome();
     }

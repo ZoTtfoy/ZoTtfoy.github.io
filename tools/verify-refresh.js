@@ -10,12 +10,22 @@
  *     音乐/游戏屏 —— 用户反复反馈的"刷新跳到第三屏"就是这么来的。
  *     现在整套记忆机制已删除，本自检守住正确行为，防止再被改回去。
  *
- *  守四条：
+ *  ⚠️⚠️ 2026-11-19 第四轮根因（前三轮全绿却仍复现）：
+ *     motion.js 点锚点会 pushState 把 #listen / #gaming 写进 URL，
+ *     首屏最显眼的主按钮就是 #listen。用户点过它之后按 F5，URL 仍带
+ *     #listen，而 paged.js 原本把「有 hash」一律当外部深链处理 →
+ *     jumpToHash(2) 直接送到第三屏，绕过「刷新回主页屏」。
+ *     之前所有用例都用无 hash 的 ?bg=N URL，从没覆盖这条最典型路径。
+ *     修复：用 Navigation Timing 的 type==='reload' 区分刷新与深链，
+ *     刷新时忽略 hash、清掉 URL 残留并回主页；外部深链仍直达。
+ *
+ *  守五条：
  *    ① 在任意屏刷新，都回到主页屏（y=0）
  *    ② 即使 sessionStorage 里残留脏值 2/3，也不影响落点
- *    ③ 显式 URL hash 仍优先（外部链接能直达指定屏）
- *    ④ 加载期干扰（强行滚动 + resize）不能把页面带离主页屏；
- *       但用户主动翻页必须能立刻接管，不被守卫拉回
+ *    ③ 外部深链首次打开仍直达指定屏
+ *    ④ 加载期干扰不能把页面带离主页屏；用户主动翻页能立刻接管
+ *    ⑤ 【真实路径】点首屏主按钮产生 #listen 后刷新 → 回主页且清 hash；
+ *       多种 hash 值刷新同样回主页（这条就是之前漏掉的）
  * ========================================================================== */
 const { chromium } = require('playwright-core');
 
@@ -74,14 +84,14 @@ const state = page => page.evaluate(() => ({
   ok(dirty.y === 0, '残留脏值 zotrod-page=2 时，刷新仍回主页屏（y=' + dirty.y + '）');
   await ctx2.close();
 
-  /* ---------- ③ 显式 hash 仍优先 ---------- */
+  /* ---------- ③ 外部深链首次打开仍直达 ---------- */
   const ctx3 = await newCtx(browser);
   const p3 = await ctx3.newPage();
   await p3.goto(SITE + '?bg=0#about', { waitUntil: 'load' });
   await p3.waitForTimeout(1900);
   const h = await state(p3);
   ok(h.y > 0 && Math.abs(h.y - h.vh) < 12,
-    '显式 #about 直达关于我屏（y=' + h.y + '）');
+    '外部深链 #about 直达关于我屏（y=' + h.y + '）');
   await ctx3.close();
 
   /* ---------- ④ 加载期干扰不能带偏，用户能立刻接管 ---------- */
@@ -119,6 +129,57 @@ const state = page => page.evaluate(() => ({
   ok(Math.abs(taken.y - 3 * taken.vh) < 12,
     '用户主动翻页可立即接管，不被守卫拉回（y=' + taken.y + '）');
   await ctx5.close();
+
+  /* ---------- ⑤ 真实路径：点主按钮产生 #listen 后刷新 ----------
+     这正是用户反复反馈的操作序列，也是前三轮自检漏掉的用例。 */
+  const ctx6 = await newCtx(browser);
+  const p6 = await ctx6.newPage();
+  await p6.goto(SITE + '?bg=0', { waitUntil: 'load' });
+  await p6.waitForTimeout(1300);
+  const href = await p6.evaluate(() => {
+    const a = document.getElementById('heroPrimary');
+    if (!a) return null;
+    a.click();
+    return a.getAttribute('href');
+  });
+  ok(href === '#listen', '首屏主按钮指向 #listen（实际 ' + href + '）');
+  await p6.waitForTimeout(1400);
+  ok(p6.url().includes('#listen'), '点击后 URL 带上 #listen');
+  const onListen = await state(p6);
+  ok(onListen.y > 0, '点击后确实到了听歌屏（y=' + onListen.y + '）');
+
+  await p6.reload({ waitUntil: 'load' });
+  await p6.waitForTimeout(2400);
+  const afterReload = await state(p6);
+  ok(afterReload.y === 0,
+    '★ 带 #listen 刷新后回到主页屏（y=' + afterReload.y + '）');
+  ok(!p6.url().includes('#listen'), '刷新时清掉了 URL 残留的 hash');
+
+  // 连刷第二次仍稳（hash 已清，且不会因历史状态再被带偏）
+  await p6.reload({ waitUntil: 'load' });
+  await p6.waitForTimeout(2200);
+  ok((await state(p6)).y === 0, '再次刷新仍回主页屏');
+
+  // 刷新之后用户主动翻页仍可正常接管
+  await p6.evaluate(() => window.SITE_PAGED.goTo(2));
+  await p6.waitForTimeout(1300);
+  const canNav = await state(p6);
+  ok(Math.abs(canNav.y - 2 * canNav.vh) < 12,
+    '刷新后主动翻页不受影响（y=' + canNav.y + '）');
+  await ctx6.close();
+
+  /* ---------- ⑤b 多种 hash 值刷新一律回主页 ---------- */
+  const ctx7 = await newCtx(browser);
+  const p7 = await ctx7.newPage();
+  for (const hsh of ['#gaming', '#about', '#top']) {
+    await p7.goto(SITE + '?bg=0' + hsh, { waitUntil: 'load' });
+    await p7.waitForTimeout(1700);
+    await p7.reload({ waitUntil: 'load' });
+    await p7.waitForTimeout(2200);
+    const y = (await state(p7)).y;
+    ok(y === 0, '深链 ' + hsh + ' 刷新后回主页屏（y=' + y + '）');
+  }
+  await ctx7.close();
 
   await browser.close();
   console.log(notes.join('\n'));
