@@ -1,5 +1,5 @@
 {
-  "updated": "2026-11-17T10:40:35.284Z",
+  "updated": "2026-11-18T10:05:13.735Z",
   "steamId": "76561199120970154",
   "source": "inventory",
   "inventoryTotal": 280,
@@ -62,6 +62,7 @@
     282140,
     287700,
     391220,
+    406150,
     413150,
     431960,
     493340,
@@ -221,8 +222,8 @@
   ],
   "lib": {
     "source": "api",
-    "totalGames": 143,
-    "totalHours": 3794,
+    "totalGames": 144,
+    "totalHours": 3796,
     "perfect": 5,
     "partial": false
   },
@@ -230,8 +231,8 @@
     {
       "appid": 1172470,
       "name": "Apex Legends",
-      "hours": 2497.9,
-      "hours2w": 24.1,
+      "hours": 2499.7,
+      "hours2w": 24.9,
       "last": "",
       "cover": "https://cdn.akamai.steamstatic.com/steam/apps/1172470/header.jpg",
       "coverFallback": "",
@@ -445,8 +446,8 @@
     {
       "appid": 4001890,
       "name": "How to Fish",
-      "hours": 16.4,
-      "hours2w": 0.6,
+      "hours": 16.6,
+      "hours2w": 0.8,
       "last": "",
       "cover": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/4001890/45c4ddff4901e32c4b8b643e1b97d0d01898d299/header.jpg?t=1792508550",
       "coverFallback": "",
@@ -741,6 +742,10 @@
     {
       "appid": 323190,
       "name": "Frostpunk"
+    },
+    {
+      "appid": 324800,
+      "name": "Shadow Warrior 2"
     },
     {
       "appid": 365450,
@@ -1183,6 +1188,12 @@
       "name": "BOMBANANA!"
     }
   ],
-  "added": [],
+  "added": [
+    {
+      "appid": 324800,
+      "name": "Shadow Warrior 2",
+      "at": "2026-11-18"
+    }
+  ],
   "ownedSince": "2026-11-11"
 }
