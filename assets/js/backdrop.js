@@ -27,9 +27,13 @@ window.SITE_BACKDROP = (function () {
 
   var ambient = null;
   var imageEl = null;
+  var grainEl = null;
   var rafId = null;
   var scrollY = 0, smoothScrollY = 0;
   var px = 0, py = 0, sx = 0, sy = 0;
+  /* 陀螺仪（移动端）：目标角度经过限幅与缓动后并入上面的 px/py，
+     与桌面指针视差共用同一套 loop，不新增逐帧循环。 */
+  var gyro = { on: false, beta: 0, gamma: 0 };
 
   function reduced() { return reduceQuery.matches; }
   function on(v, dflt) { return v === undefined ? dflt : v !== false; }
@@ -228,6 +232,88 @@ window.SITE_BACKDROP = (function () {
   }
 
 
+  /* ==========================================================================
+   *  陀螺仪视差（移动端，2026-11-18）
+   * --------------------------------------------------------------------------
+   *  手机没有指针，视差原本只剩滚动；用 deviceorientation 的 beta/gamma
+   *  （前后/左右倾角）把同一套 px/py 目标值驱动起来，倾斜手机时背景会有
+   *  轻微的相对位移，和桌面移动鼠标是同一种手感。
+   *
+   *  约束：
+   *    · 只在粗指针 / 移动端启用，桌面不注册
+   *    · 遵守 reduced-motion、config.parallax、data-perf=low
+   *    · iOS 13+ 必须用户手势里调 DeviceOrientationEvent.requestPermission()，
+   *      所以挂在首次 touchstart 上；Android/其它浏览器直接监听
+   *    · 角度限幅 ±18°、缓动由 loop 里的 0.055 承担，事件里做 0.6° 阈值
+   *      节流，设备静置时不 kick，不白耗 rAF
+   *    · 拿不到权限 / 不支持传感器时静默降级为"只有滚动视差"
+   * ========================================================================== */
+  function initGyro(kick) {
+    if (finePointer.matches) return;             // 桌面：走指针视差
+    if (reduced()) return;
+    if (!on(B.parallax, true)) return;
+    if (root.getAttribute("data-perf") === "low") return;
+    if (typeof window.DeviceOrientationEvent === "undefined") return;
+
+    var lastBeta = 0, lastGamma = 0, attached = false;
+
+    function onOrient(e) {
+      if (!gyro.on) return;
+      if (root.getAttribute("data-perf") === "low") return;
+      var beta = e.beta, gamma = e.gamma;
+      if (typeof beta !== "number" || typeof gamma !== "number") return;
+      /* 屏旋转时 gamma 的语义会变，这里只做最朴素的限幅，避免极端角度
+         把背景推到露边；横屏下幅度再收一半。 */
+      var landscape = Math.abs(window.orientation || 0) === 90;
+      var cap = landscape ? 9 : 18;
+      beta = clamp(beta - 45, -cap, cap);       // 以常见持机角 45° 为零点
+      gamma = clamp(gamma, -cap, cap);
+      /* 阈值节流：变化小于 0.6° 不处理（传感器噪声），静置时自然停帧 */
+      if (Math.abs(beta - lastBeta) < 0.6 && Math.abs(gamma - lastGamma) < 0.6) return;
+      lastBeta = beta; lastGamma = gamma;
+      gyro.beta = beta; gyro.gamma = gamma;
+      /* 与桌面 pointermove 的 ±26px 同量级：beta/gamma 满幅 → ±13px */
+      px = (gamma / 18) * 13;
+      py = (beta / 18) * 13;
+      kick();
+    }
+
+    function attach() {
+      if (attached || gyro.on) return;
+      attached = true;
+      gyro.on = true;
+      window.addEventListener("deviceorientation", onOrient, { passive: true });
+      /* 运行中实测判低：立刻停用陀螺仪并把目标值归零，
+         让背景缓缓回到中立位置，别留下一个歪着的视差。 */
+      document.addEventListener("site:perf", function () {
+        if (root.getAttribute("data-perf") !== "low") return;
+        gyro.on = false;
+        px = 0; py = 0;
+        window.removeEventListener("deviceorientation", onOrient);
+      });
+    }
+
+    /* 先直接挂监听：Android / 桌面浏览器 / 已授权环境只要有事件就能用，
+       不依赖权限 Promise 的返回（实测 headless Chromium 里 requestPermission
+       既不 resolve 也不 reject，死等它会让陀螺仪永远不启用）。
+       ⚠️ onOrient 里已有 gyro.on 保护，未授权时即便误触发也不会生效。 */
+    attach();
+
+    /* iOS 13+：还必须在用户手势里显式申请一次系统权限，否则上面的监听
+       收不到数据。首次触摸时请求；被拒绝就静默降级为"仅滚动视差"。
+       已授权的设备调用它也会直接返回 granted，重复 attach 有 attached 保护。 */
+    if (typeof window.DeviceOrientationEvent.requestPermission === "function") {
+      window.addEventListener("touchstart", function request() {
+        window.removeEventListener("touchstart", request);
+        try {
+          window.DeviceOrientationEvent.requestPermission()
+            .then(function (state) { if (state === "granted") attach(); })
+            .catch(function () { /* 用户拒绝：降级，不报错 */ });
+        } catch (e) { /* 老版 API 抛错也降级 */ }
+      }, { passive: true, once: true });
+    }
+  }
+
   /* -------------------------------------------------------------- 视差
      两个方向叠加，幅度都很小：
        · 鼠标视差：光晕层 ±26px（原有的手感，保留）
@@ -251,14 +337,14 @@ window.SITE_BACKDROP = (function () {
       smoothScrollY += (scrollY - smoothScrollY) * 0.08;
       if (Math.abs(scrollY - smoothScrollY) > 0.3) moving = true;
 
-      /* 鼠标视差 */
-      if (useMouse) {
+      /* 指针 / 陀螺仪视差：两者都写进 px/py，共用这一套缓动 */
+      if (useMouse || gyro.on) {
         sx += (px - sx) * 0.055;
         sy += (py - sy) * 0.055;
         if (Math.abs(px - sx) > 0.06 || Math.abs(py - sy) > 0.06) moving = true;
       }
 
-      // 光晕整体轻微跟随鼠标
+      // 光晕整体轻微跟随光源（指针或陀螺仪）
       ambient.style.transform = "translate3d(" +
         (sx * 0.7).toFixed(2) + "px," + (sy * 0.7).toFixed(2) + "px,0)";
 
@@ -272,6 +358,20 @@ window.SITE_BACKDROP = (function () {
         imageEl.style.translate = "0 " + offset.toFixed(2) + "px";
       }
 
+      /* ------------------------------------------------ 颗粒层视差（2026-11-18）
+         颗粒是"贴在玻璃上"的前景层，应该比背景图动得快一点，且方向相反，
+         才有近/中/远三层分离。幅度取图片位移的 35% + 指针位移的小分量，
+         总和受 maxShift 限制；CSS 已给 .ambient__grain 留 inset:-3% 余量。
+         ⚠️ 单独写 translate 属性，不碰它的 transform:translateZ(0) 合成层提示。 */
+      if (grainEl && root.dataset.bdGrain === "on") {
+        var gScroll = clamp(smoothScrollY * 0.018, -maxShift * 0.4, maxShift * 0.4);
+        var gx = clamp(sx * 0.35, -maxShift * 0.4, maxShift * 0.4);
+        var gy = clamp(gScroll + sy * 0.35, -maxShift * 0.4, maxShift * 0.4);
+        grainEl.style.translate = gx.toFixed(2) + "px " + gy.toFixed(2) + "px";
+      }
+
+      /* 循环按 moving 自动停，不因陀螺仪常驻而永久自续（移动端省电）。
+         陀螺仪事件里做阈值节流后按需 kick()，设备放平不动时自然停帧。 */
       if (moving) rafId = requestAnimationFrame(loop);
     }
 
@@ -293,6 +393,9 @@ window.SITE_BACKDROP = (function () {
       }, { passive: true });
     }
 
+    /* 移动端陀螺仪：注册在 kick 之后，事件里复用同一个 rAF 循环 */
+    initGyro(kick);
+
     scrollY = smoothScrollY = window.scrollY || 0;
     kick();
   }
@@ -301,6 +404,7 @@ window.SITE_BACKDROP = (function () {
   function init() {
     ambient = $("ambient");
     imageEl = $("ambientImage");
+    grainEl = document.querySelector(".ambient__grain");
 
     applyFlags();
     /* 后台开关：关掉就一张都不加载，连预加载都不发 —— 只剩底色与动效。 */
@@ -339,6 +443,10 @@ window.SITE_BACKDROP = (function () {
     init: init,
     setImage: setImage,
     flags: applyFlags,
+    /* 自检用：陀螺仪是否启用 / 当前目标值（verify-gyro.js 会读） */
+    gyro: function () {
+      return { on: gyro.on, beta: gyro.beta, gamma: gyro.gamma, px: px, py: py };
+    },
     /* 主题 / 明暗切换后必须重算小字保护色（--text-3 会被 skin.js 重新注入） */
     refresh: function () {
       applyFlags();
