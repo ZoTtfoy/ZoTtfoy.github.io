@@ -1,8 +1,8 @@
 {
-  "updated": "2026-11-19T10:16:04.859Z",
+  "updated": "2026-11-20T09:58:40.966Z",
   "steamId": "76561199120970154",
   "source": "inventory",
-  "inventoryTotal": 280,
+  "inventoryTotal": 282,
   "apps": [
     220,
     550,
@@ -13,6 +13,7 @@
     275850,
     282140,
     287700,
+    324800,
     391220,
     406150,
     413150,
@@ -38,6 +39,7 @@
     1406990,
     1426210,
     1761390,
+    1802720,
     1817230,
     2243810,
     2459330,
@@ -61,6 +63,7 @@
     275850,
     282140,
     287700,
+    324800,
     391220,
     406150,
     413150,
@@ -85,12 +88,13 @@
     1406990,
     1426210,
     1761390,
+    1802720,
     1817230,
     2593370,
     3186040,
     3339420
   ],
-  "portraitChecked": 45,
+  "portraitChecked": 47,
   "games": [
     {
       "appid": 220,
@@ -127,6 +131,10 @@
     {
       "appid": 287700,
       "name": "METAL GEAR SOLID V: THE PHANTOM PAIN"
+    },
+    {
+      "appid": 324800,
+      "name": "影子武士2"
     },
     {
       "appid": 391220,
@@ -183,10 +191,6 @@
     {
       "appid": 1082430,
       "name": "历历在目"
-    },
-    {
-      "appid": 1098340,
-      "name": "Zup! 9 稀有 迷你"
     }
   ],
   "events": [
@@ -222,8 +226,8 @@
   ],
   "lib": {
     "source": "api",
-    "totalGames": 144,
-    "totalHours": 3796,
+    "totalGames": 145,
+    "totalHours": 3802,
     "perfect": 5,
     "partial": false
   },
@@ -231,8 +235,8 @@
     {
       "appid": 1172470,
       "name": "Apex Legends",
-      "hours": 2500.3,
-      "hours2w": 21.1,
+      "hours": 2503.6,
+      "hours2w": 17.3,
       "last": "",
       "cover": "https://cdn.akamai.steamstatic.com/steam/apps/1172470/header.jpg",
       "coverFallback": "",
@@ -257,8 +261,8 @@
     {
       "appid": 960170,
       "name": "DJMAX RESPECT V",
-      "hours": 132.4,
-      "hours2w": 0,
+      "hours": 132.8,
+      "hours2w": 0.4,
       "last": "",
       "cover": "https://cdn.akamai.steamstatic.com/steam/apps/960170/header.jpg",
       "coverFallback": "",
@@ -446,8 +450,8 @@
     {
       "appid": 4001890,
       "name": "How to Fish",
-      "hours": 16.6,
-      "hours2w": 0.8,
+      "hours": 16.8,
+      "hours2w": 1,
       "last": "",
       "cover": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/4001890/45c4ddff4901e32c4b8b643e1b97d0d01898d299/header.jpg?t=1792508550",
       "coverFallback": "",
@@ -1168,6 +1172,10 @@
       "name": "Bongo Cat"
     },
     {
+      "appid": 3430470,
+      "name": "PLATiNA :: LAB"
+    },
+    {
       "appid": 3527290,
       "name": "PEAK"
     },
@@ -1189,6 +1197,11 @@
     }
   ],
   "added": [
+    {
+      "appid": 3430470,
+      "name": "PLATiNA :: LAB",
+      "at": "2026-11-20"
+    },
     {
       "appid": 324800,
       "name": "Shadow Warrior 2",
