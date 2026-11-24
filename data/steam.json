@@ -1,5 +1,5 @@
 {
-  "updated": "2026-11-23T10:42:12.343Z",
+  "updated": "2026-11-24T12:24:46.388Z",
   "steamId": "76561199120970154",
   "source": "inventory",
   "inventoryTotal": 282,
@@ -227,7 +227,7 @@
   "lib": {
     "source": "api",
     "totalGames": 145,
-    "totalHours": 3811,
+    "totalHours": 3816,
     "perfect": 5,
     "partial": false
   },
@@ -235,8 +235,8 @@
     {
       "appid": 1172470,
       "name": "Apex Legends",
-      "hours": 2510.3,
-      "hours2w": 19.6,
+      "hours": 2515.1,
+      "hours2w": 24.4,
       "last": "",
       "cover": "https://cdn.akamai.steamstatic.com/steam/apps/1172470/header.jpg",
       "coverFallback": "",
@@ -288,7 +288,7 @@
       "appid": 3009140,
       "name": "Salt Player for Windows",
       "hours": 109.3,
-      "hours2w": 10,
+      "hours2w": 1.8,
       "last": "",
       "cover": "https://cdn.akamai.steamstatic.com/steam/apps/3009140/header.jpg",
       "coverFallback": "",
@@ -414,8 +414,8 @@
     {
       "appid": 4001890,
       "name": "How to Fish",
-      "hours": 17.4,
-      "hours2w": 1.6,
+      "hours": 17.6,
+      "hours2w": 1.8,
       "last": "",
       "cover": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/4001890/45c4ddff4901e32c4b8b643e1b97d0d01898d299/header.jpg?t=1792508550",
       "coverFallback": "",
