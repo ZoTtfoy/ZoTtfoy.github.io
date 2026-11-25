@@ -1,5 +1,5 @@
 {
-  "updated": "2026-11-24T12:24:46.388Z",
+  "updated": "2026-11-25T11:13:01.494Z",
   "steamId": "76561199120970154",
   "source": "inventory",
   "inventoryTotal": 282,
@@ -227,7 +227,7 @@
   "lib": {
     "source": "api",
     "totalGames": 145,
-    "totalHours": 3816,
+    "totalHours": 3819,
     "perfect": 5,
     "partial": false
   },
@@ -235,8 +235,8 @@
     {
       "appid": 1172470,
       "name": "Apex Legends",
-      "hours": 2515.1,
-      "hours2w": 24.4,
+      "hours": 2518.7,
+      "hours2w": 28,
       "last": "",
       "cover": "https://cdn.akamai.steamstatic.com/steam/apps/1172470/header.jpg",
       "coverFallback": "",
@@ -288,7 +288,7 @@
       "appid": 3009140,
       "name": "Salt Player for Windows",
       "hours": 109.3,
-      "hours2w": 1.8,
+      "hours2w": 0,
       "last": "",
       "cover": "https://cdn.akamai.steamstatic.com/steam/apps/3009140/header.jpg",
       "coverFallback": "",
