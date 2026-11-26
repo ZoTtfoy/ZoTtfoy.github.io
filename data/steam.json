@@ -1,5 +1,5 @@
 {
-  "updated": "2026-11-25T11:13:01.494Z",
+  "updated": "2026-11-26T10:49:47.719Z",
   "steamId": "76561199120970154",
   "source": "inventory",
   "inventoryTotal": 282,
@@ -78,7 +78,6 @@
     986800,
     1038740,
     1082430,
-    1098340,
     1139900,
     1172470,
     1222140,
@@ -91,8 +90,7 @@
     1802720,
     1817230,
     2593370,
-    3186040,
-    3339420
+    3186040
   ],
   "portraitChecked": 47,
   "games": [
@@ -227,7 +225,7 @@
   "lib": {
     "source": "api",
     "totalGames": 145,
-    "totalHours": 3819,
+    "totalHours": 3831,
     "perfect": 5,
     "partial": false
   },
@@ -235,8 +233,8 @@
     {
       "appid": 1172470,
       "name": "Apex Legends",
-      "hours": 2518.7,
-      "hours2w": 28,
+      "hours": 2522.6,
+      "hours2w": 31.9,
       "last": "",
       "cover": "https://cdn.akamai.steamstatic.com/steam/apps/1172470/header.jpg",
       "coverFallback": "",
@@ -285,6 +283,19 @@
       }
     },
     {
+      "appid": 431960,
+      "name": "Wallpaper Engine",
+      "hours": 111.7,
+      "hours2w": 7.4,
+      "last": "",
+      "cover": "https://cdn.akamai.steamstatic.com/steam/apps/431960/header.jpg",
+      "coverFallback": "",
+      "ach": {
+        "have": 13,
+        "total": 17
+      }
+    },
+    {
       "appid": 3009140,
       "name": "Salt Player for Windows",
       "hours": 109.3,
@@ -293,19 +304,6 @@
       "cover": "https://cdn.akamai.steamstatic.com/steam/apps/3009140/header.jpg",
       "coverFallback": "",
       "ach": null
-    },
-    {
-      "appid": 431960,
-      "name": "Wallpaper Engine",
-      "hours": 104.4,
-      "hours2w": 0,
-      "last": "",
-      "cover": "https://cdn.akamai.steamstatic.com/steam/apps/431960/header.jpg",
-      "coverFallback": "",
-      "ach": {
-        "have": 13,
-        "total": 17
-      }
     },
     {
       "appid": 1426210,
