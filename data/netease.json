@@ -1,7 +1,7 @@
 {
-  "updated": "2026-11-27T10:57:56.892Z",
+  "updated": "2026-11-28T10:19:32.644Z",
   "uid": "1695307327",
-  "totalSongs": 77331,
+  "totalSongs": 77345,
   "level": 10,
   "source": "rank",
   "likedName": "",
@@ -15,51 +15,43 @@
       "url": "https://music.163.com/song?id=1497087398"
     },
     {
-      "title": "Galway Girl",
-      "artist": "Ed Sheeran",
-      "album": "÷ (Deluxe)",
+      "title": "with U",
+      "artist": "t+pazolite / Massive New Krew / 青木志貴",
+      "album": "WACCA テーマソングセレクション",
       "playCount": 0,
-      "score": 86,
-      "url": "https://music.163.com/song?id=460043704"
+      "score": 81,
+      "url": "https://music.163.com/song?id=1965624741"
     },
     {
       "title": "パプリカ",
       "artist": "Foorin",
       "album": "パプリカ",
       "playCount": 0,
-      "score": 86,
+      "score": 81,
       "url": "https://music.163.com/song?id=1294889666"
-    },
-    {
-      "title": "with U",
-      "artist": "t+pazolite / Massive New Krew / 青木志貴",
-      "album": "WACCA テーマソングセレクション",
-      "playCount": 0,
-      "score": 83,
-      "url": "https://music.163.com/song?id=1965624741"
     },
     {
       "title": "Everywhere We Go",
       "artist": "陈冠希 / MC仁 / 厨房仔 / 应采儿",
       "album": "三角度",
       "playCount": 0,
-      "score": 81,
+      "score": 78,
       "url": "https://music.163.com/song?id=65739"
     },
     {
-      "title": "小城夏天",
-      "artist": "LBI利比",
-      "album": "小城夏天",
+      "title": "Galway Girl",
+      "artist": "Ed Sheeran",
+      "album": "÷ (Deluxe)",
       "playCount": 0,
-      "score": 81,
-      "url": "https://music.163.com/song?id=1934251776"
+      "score": 78,
+      "url": "https://music.163.com/song?id=460043704"
     },
     {
       "title": "옥탑방 (Rooftop)",
       "artist": "N.Flying",
       "album": "봄이 부시게",
       "playCount": 0,
-      "score": 81,
+      "score": 78,
       "url": "https://music.163.com/song?id=1361002917"
     },
     {
@@ -67,7 +59,7 @@
       "artist": "花粥 / 王胜娚",
       "album": "粥请客（四）",
       "playCount": 0,
-      "score": 81,
+      "score": 78,
       "url": "https://music.163.com/song?id=1313354324"
     },
     {
@@ -75,23 +67,39 @@
       "artist": "あれくん / 『ユイカ』",
       "album": "あのね。",
       "playCount": 0,
-      "score": 76,
+      "score": 75,
       "url": "https://music.163.com/song?id=1942631186"
+    },
+    {
+      "title": "小城夏天",
+      "artist": "LBI利比",
+      "album": "小城夏天",
+      "playCount": 0,
+      "score": 75,
+      "url": "https://music.163.com/song?id=1934251776"
     },
     {
       "title": "Trouble",
       "artist": "Avicii / Wayne Hector",
       "album": "Stories",
       "playCount": 0,
-      "score": 74,
+      "score": 72,
       "url": "https://music.163.com/song?id=35090546"
+    },
+    {
+      "title": "キセキ～未来へ～",
+      "artist": "whiteeeen",
+      "album": "キセキ～未来へ～",
+      "playCount": 0,
+      "score": 69,
+      "url": "https://music.163.com/song?id=426850114"
     },
     {
       "title": "YY",
       "artist": "ロイ-RöE-",
       "album": "YY",
       "playCount": 0,
-      "score": 74,
+      "score": 69,
       "url": "https://music.163.com/song?id=1862102742"
     },
     {
@@ -99,7 +107,7 @@
       "artist": "接个吻，开一枪 / 沈以诚 / 薛明媛",
       "album": "失眠飞行",
       "playCount": 0,
-      "score": 74,
+      "score": 69,
       "url": "https://music.163.com/song?id=1365898499"
     },
     {
@@ -107,23 +115,15 @@
       "artist": "冯沁苑(买辣椒也用券)",
       "album": "起风了",
       "playCount": 0,
-      "score": 74,
+      "score": 69,
       "url": "https://music.163.com/song?id=1330348068"
-    },
-    {
-      "title": "キセキ～未来へ～",
-      "artist": "whiteeeen",
-      "album": "キセキ～未来へ～",
-      "playCount": 0,
-      "score": 72,
-      "url": "https://music.163.com/song?id=426850114"
     },
     {
       "title": "泡と鎖*",
       "artist": "ロイ-RöE-",
       "album": "ウカ*",
       "playCount": 0,
-      "score": 72,
+      "score": 66,
       "url": "https://music.163.com/song?id=1318519746"
     },
     {
@@ -131,7 +131,7 @@
       "artist": "ハルカトミユキ",
       "album": "17才",
       "playCount": 0,
-      "score": 69,
+      "score": 63,
       "url": "https://music.163.com/song?id=1313107917"
     },
     {
@@ -139,7 +139,7 @@
       "artist": "はりーP / 初音ミク",
       "album": "僕が最後に鳴らした音は",
       "playCount": 0,
-      "score": 32,
+      "score": 42,
       "url": "https://music.163.com/song?id=562675526"
     },
     {
@@ -147,7 +147,7 @@
       "artist": "Elliot Hsu",
       "album": "Utopia",
       "playCount": 0,
-      "score": 32,
+      "score": 42,
       "url": "https://music.163.com/song?id=38679061"
     },
     {
@@ -155,7 +155,7 @@
       "artist": "Mount Dreams",
       "album": "Début Album",
       "playCount": 0,
-      "score": 32,
+      "score": 42,
       "url": "https://music.163.com/song?id=36492803"
     },
     {
@@ -163,7 +163,7 @@
       "artist": "橘猫烧鲷鱼",
       "album": "有人喜欢（你有多久都没有看到过蓝天）",
       "playCount": 0,
-      "score": 32,
+      "score": 42,
       "url": "https://music.163.com/song?id=3381878429"
     },
     {
@@ -171,7 +171,7 @@
       "artist": "月詠み",
       "album": "世界の歩き方",
       "playCount": 0,
-      "score": 32,
+      "score": 42,
       "url": "https://music.163.com/song?id=3372743662"
     },
     {
@@ -179,7 +179,7 @@
       "artist": "半梦人乐队",
       "album": "我该怎么和你告别",
       "playCount": 0,
-      "score": 32,
+      "score": 42,
       "url": "https://music.163.com/song?id=3360382135"
     },
     {
@@ -187,7 +187,7 @@
       "artist": "メル / 初音ミク",
       "album": "さようなら、花泥棒さん",
       "playCount": 0,
-      "score": 32,
+      "score": 42,
       "url": "https://music.163.com/song?id=3354771761"
     },
     {
@@ -195,7 +195,7 @@
       "artist": "n-buna / 初音ミク",
       "album": "花と水飴、最終電車",
       "playCount": 0,
-      "score": 32,
+      "score": 42,
       "url": "https://music.163.com/song?id=33367332"
     },
     {
@@ -203,7 +203,7 @@
       "artist": "洛天依 / 乌龟Sui / 亚小琨",
       "album": "玉兰开花三月三",
       "playCount": 0,
-      "score": 32,
+      "score": 42,
       "url": "https://music.163.com/song?id=3325266889"
     },
     {
@@ -211,7 +211,7 @@
       "artist": "ヒトリエ",
       "album": "イマジナリー・モノフィクション",
       "playCount": 0,
-      "score": 32,
+      "score": 42,
       "url": "https://music.163.com/song?id=28267742"
     },
     {
@@ -219,7 +219,7 @@
       "artist": "Guiano",
       "album": "光線歌",
       "playCount": 0,
-      "score": 32,
+      "score": 42,
       "url": "https://music.163.com/song?id=2704274431"
     },
     {
@@ -227,7 +227,7 @@
       "artist": "One Direction",
       "album": "Take Me Home (Special Deluxe Edition)",
       "playCount": 0,
-      "score": 32,
+      "score": 42,
       "url": "https://music.163.com/song?id=26608504"
     },
     {
@@ -235,7 +235,7 @@
       "artist": "MIMI / 初音ミク / 重音テト",
       "album": "劣等哀歌 (feat. 初音ミク & 重音テト)",
       "playCount": 0,
-      "score": 32,
+      "score": 42,
       "url": "https://music.163.com/song?id=2644623438"
     },
     {
@@ -243,7 +243,7 @@
       "artist": "うたたね歌菜",
       "album": "負けヒロインが多すぎる！オリジナル・サウンドトラック VOL.1",
       "playCount": 0,
-      "score": 32,
+      "score": 42,
       "url": "https://music.163.com/song?id=2635226403"
     },
     {
@@ -251,7 +251,7 @@
       "artist": "Enya",
       "album": "Paint the Sky with Stars",
       "playCount": 0,
-      "score": 32,
+      "score": 42,
       "url": "https://music.163.com/song?id=2530437"
     },
     {
@@ -259,7 +259,7 @@
       "artist": "Evan Call",
       "album": "TVアニメ『葬送のフリーレン』Original Soundtrack～Pre-release～",
       "playCount": 0,
-      "score": 32,
+      "score": 42,
       "url": "https://music.163.com/song?id=2116383140"
     },
     {
@@ -267,7 +267,7 @@
       "artist": "すりぃ / 初音ミク",
       "album": "パラドックス",
       "playCount": 0,
-      "score": 32,
+      "score": 42,
       "url": "https://music.163.com/song?id=1914695652"
     },
     {
@@ -275,7 +275,7 @@
       "artist": "livetune / 初音ミク",
       "album": "初音ミク Project DIVA MEGA39’s 10th アニバーサリーコレクション",
       "playCount": 0,
-      "score": 32,
+      "score": 42,
       "url": "https://music.163.com/song?id=1824721966"
     },
     {
@@ -283,7 +283,7 @@
       "artist": "DECO*27 / 初音ミク",
       "album": "アンデッドアリス",
       "playCount": 0,
-      "score": 32,
+      "score": 42,
       "url": "https://music.163.com/song?id=1497529942"
     },
     {
@@ -291,23 +291,15 @@
       "artist": "Joel Hanson / Sara Groves",
       "album": "Traveling Light",
       "playCount": 0,
-      "score": 32,
+      "score": 42,
       "url": "https://music.163.com/song?id=1491585"
-    },
-    {
-      "title": "Don't Walk Away",
-      "artist": "Johannes Hager / Jacob Alm",
-      "album": "Don't Walk Away",
-      "playCount": 0,
-      "score": 30,
-      "url": "https://music.163.com/song?id=511921174"
     },
     {
       "title": "A Thousand Miles",
       "artist": "Vanessa Carlton",
       "album": "Best of Vanessa Carlton",
       "playCount": 0,
-      "score": 30,
+      "score": 39,
       "url": "https://music.163.com/song?id=3795680"
     },
     {
@@ -315,7 +307,7 @@
       "artist": "洛天依Official / 亞細亞曠世奇才",
       "album": "一一",
       "playCount": 0,
-      "score": 30,
+      "score": 39,
       "url": "https://music.163.com/song?id=3438968283"
     },
     {
@@ -323,7 +315,7 @@
       "artist": "The Piano Guys",
       "album": "Fight Song / Amazing Grace",
       "playCount": 0,
-      "score": 30,
+      "score": 39,
       "url": "https://music.163.com/song?id=34200785"
     },
     {
@@ -331,7 +323,7 @@
       "artist": "S Club 7",
       "album": "Best: The Greatest Hits Of S Club 7",
       "playCount": 0,
-      "score": 30,
+      "score": 39,
       "url": "https://music.163.com/song?id=3409020"
     },
     {
@@ -339,7 +331,7 @@
       "artist": "阿鲲",
       "album": "苍兰诀 影视原声带",
       "playCount": 0,
-      "score": 30,
+      "score": 39,
       "url": "https://music.163.com/song?id=3357948959"
     },
     {
@@ -347,7 +339,7 @@
       "artist": "摄音记 / 张天奕ZTYick / 杨世贸",
       "album": "有一天、我跳下了船",
       "playCount": 0,
-      "score": 30,
+      "score": 39,
       "url": "https://music.163.com/song?id=3338418186"
     },
     {
@@ -355,7 +347,7 @@
       "artist": "ラックライフ",
       "album": "アイトユウ",
       "playCount": 0,
-      "score": 30,
+      "score": 39,
       "url": "https://music.163.com/song?id=32544813"
     },
     {
@@ -363,7 +355,7 @@
       "artist": "すこっぷ / 初音ミク",
       "album": "VOCAROCK collection 4 feat. 初音ミク",
       "playCount": 0,
-      "score": 30,
+      "score": 39,
       "url": "https://music.163.com/song?id=28411815"
     },
     {
@@ -371,7 +363,7 @@
       "artist": "口ロロ (クチロロ)",
       "album": "everyday is a symphony",
       "playCount": 0,
-      "score": 30,
+      "score": 39,
       "url": "https://music.163.com/song?id=26093207"
     },
     {
@@ -379,7 +371,7 @@
       "artist": "May'n",
       "album": "15Colors -nu skool-",
       "playCount": 0,
-      "score": 30,
+      "score": 39,
       "url": "https://music.163.com/song?id=1487501535"
     },
     {
@@ -387,7 +379,7 @@
       "artist": "末吉秀太",
       "album": "夏恋バスケット♪",
       "playCount": 0,
-      "score": 30,
+      "score": 39,
       "url": "https://music.163.com/song?id=1460572578"
     },
     {
@@ -395,7 +387,7 @@
       "artist": "ヨルシカ",
       "album": "思想犯",
       "playCount": 0,
-      "score": 30,
+      "score": 39,
       "url": "https://music.163.com/song?id=1457709580"
     },
     {
@@ -403,7 +395,7 @@
       "artist": "AliA",
       "album": "AliVe",
       "playCount": 0,
-      "score": 30,
+      "score": 39,
       "url": "https://music.163.com/song?id=1349892107"
     },
     {
@@ -411,7 +403,7 @@
       "artist": "Hanie Soraya",
       "album": "PANAS! PANAS! PANAS!",
       "playCount": 0,
-      "score": 30,
+      "score": 39,
       "url": "https://music.163.com/song?id=1315735222"
     },
     {
@@ -419,7 +411,7 @@
       "artist": "めありー / Orangestar",
       "album": "彼はきっと魔法を使う。",
       "playCount": 0,
-      "score": 27,
+      "score": 36,
       "url": "https://music.163.com/song?id=557583474"
     },
     {
@@ -427,15 +419,23 @@
       "artist": "じん / IA",
       "album": "IA/04 -STAR-",
       "playCount": 0,
-      "score": 27,
+      "score": 36,
       "url": "https://music.163.com/song?id=551339691"
+    },
+    {
+      "title": "Don't Walk Away",
+      "artist": "Johannes Hager / Jacob Alm",
+      "album": "Don't Walk Away",
+      "playCount": 0,
+      "score": 36,
+      "url": "https://music.163.com/song?id=511921174"
     },
     {
       "title": "Endless Tears ~終わらないメロディー~ feat. メロディー・チューバック",
       "artist": "CLIFF EDGE",
       "album": "あなたの声が聞こえる",
       "playCount": 0,
-      "score": 27,
+      "score": 36,
       "url": "https://music.163.com/song?id=41645156"
     },
     {
@@ -443,7 +443,7 @@
       "artist": "こっちのけんと / SO-SO",
       "album": "ことのは (feat. SO-SO)",
       "playCount": 0,
-      "score": 27,
+      "score": 36,
       "url": "https://music.163.com/song?id=3446361359"
     },
     {
@@ -451,7 +451,7 @@
       "artist": "MONKEY MAJIK / 友成空",
       "album": "haneto feat. 友成空",
       "playCount": 0,
-      "score": 27,
+      "score": 36,
       "url": "https://music.163.com/song?id=3409597072"
     },
     {
@@ -459,7 +459,7 @@
       "artist": "Kinder / Paps 'n' Skar",
       "album": "最新热歌慢摇94",
       "playCount": 0,
-      "score": 27,
+      "score": 36,
       "url": "https://music.163.com/song?id=30903415"
     },
     {
@@ -467,7 +467,7 @@
       "artist": "乃紫",
       "album": "1000日間",
       "playCount": 0,
-      "score": 27,
+      "score": 36,
       "url": "https://music.163.com/song?id=2691780768"
     },
     {
@@ -475,7 +475,7 @@
       "artist": "拂言",
       "album": "与风告别",
       "playCount": 0,
-      "score": 27,
+      "score": 36,
       "url": "https://music.163.com/song?id=2668035349"
     },
     {
@@ -483,7 +483,7 @@
       "artist": "ミセカイ",
       "album": "泡沫少女",
       "playCount": 0,
-      "score": 27,
+      "score": 36,
       "url": "https://music.163.com/song?id=2615141994"
     },
     {
@@ -491,7 +491,7 @@
       "artist": "Hilcrhyme",
       "album": "Best of Hilcrhyme ～SILVER～",
       "playCount": 0,
-      "score": 27,
+      "score": 36,
       "url": "https://music.163.com/song?id=22685570"
     },
     {
@@ -499,7 +499,7 @@
       "artist": "emon (Tes.) / 鏡音リン",
       "album": "メタモリボン",
       "playCount": 0,
-      "score": 27,
+      "score": 36,
       "url": "https://music.163.com/song?id=2010289108"
     },
     {
@@ -507,7 +507,7 @@
       "artist": "Versutus",
       "album": "fuzzy wuzzy",
       "playCount": 0,
-      "score": 27,
+      "score": 36,
       "url": "https://music.163.com/song?id=2009660470"
     },
     {
@@ -515,7 +515,7 @@
       "artist": "MAISONdes / Aimer / 和ぬか",
       "album": "いつのまに",
       "playCount": 0,
-      "score": 27,
+      "score": 36,
       "url": "https://music.163.com/song?id=2006821621"
     },
     {
@@ -523,7 +523,7 @@
       "artist": "Seth Staton Watkins",
       "album": "Rocky Road to Dublin",
       "playCount": 0,
-      "score": 27,
+      "score": 36,
       "url": "https://music.163.com/song?id=1986912334"
     },
     {
@@ -531,7 +531,7 @@
       "artist": "CHiCO with HoneyWorks / まふまふ",
       "album": "ビビっとラブ",
       "playCount": 0,
-      "score": 27,
+      "score": 36,
       "url": "https://music.163.com/song?id=1928722004"
     },
     {
@@ -539,7 +539,7 @@
       "artist": "Tim Bergling",
       "album": "Calico (Avicii)",
       "playCount": 0,
-      "score": 27,
+      "score": 36,
       "url": "https://music.163.com/song?id=1917154797"
     },
     {
@@ -547,7 +547,7 @@
       "artist": "Anly",
       "album": "VOLTAGE",
       "playCount": 0,
-      "score": 27,
+      "score": 36,
       "url": "https://music.163.com/song?id=1916680026"
     },
     {
@@ -555,7 +555,7 @@
       "artist": "十五少女",
       "album": "死にたいと言ってくれ。",
       "playCount": 0,
-      "score": 27,
+      "score": 36,
       "url": "https://music.163.com/song?id=1872369793"
     },
     {
@@ -563,7 +563,7 @@
       "artist": "辻村有記",
       "album": "Pop",
       "playCount": 0,
-      "score": 25,
+      "score": 33,
       "url": "https://music.163.com/song?id=534445937"
     },
     {
@@ -571,7 +571,7 @@
       "artist": "Shawn Mendes",
       "album": "There's Nothing Holdin' Me Back",
       "playCount": 0,
-      "score": 25,
+      "score": 33,
       "url": "https://music.163.com/song?id=473602620"
     },
     {
@@ -579,7 +579,7 @@
       "artist": "星野源",
       "album": "恋",
       "playCount": 0,
-      "score": 25,
+      "score": 33,
       "url": "https://music.163.com/song?id=432821964"
     },
     {
@@ -587,7 +587,7 @@
       "artist": "Westlife",
       "album": "Chariot",
       "playCount": 0,
-      "score": 25,
+      "score": 33,
       "url": "https://music.163.com/song?id=2755837187"
     },
     {
@@ -595,7 +595,7 @@
       "artist": "クラムボン",
       "album": "3peace2",
       "playCount": 0,
-      "score": 25,
+      "score": 33,
       "url": "https://music.163.com/song?id=22647519"
     },
     {
@@ -603,7 +603,7 @@
       "artist": "舟津真翔",
       "album": "一目惚れ",
       "playCount": 0,
-      "score": 25,
+      "score": 33,
       "url": "https://music.163.com/song?id=2149396691"
     },
     {
@@ -611,7 +611,7 @@
       "artist": "Star Boy",
       "album": "CEO",
       "playCount": 0,
-      "score": 25,
+      "score": 33,
       "url": "https://music.163.com/song?id=2120514204"
     },
     {
@@ -619,7 +619,7 @@
       "artist": "shallm",
       "album": "センチメンタル☆ラッキーガール",
       "playCount": 0,
-      "score": 25,
+      "score": 33,
       "url": "https://music.163.com/song?id=2083075632"
     },
     {
@@ -627,7 +627,7 @@
       "artist": "Islet / 倚水",
       "album": "春を待つ (feat. 倚水)",
       "playCount": 0,
-      "score": 25,
+      "score": 33,
       "url": "https://music.163.com/song?id=1833847964"
     },
     {
@@ -635,7 +635,7 @@
       "artist": "HoneyWorks / Kotoha",
       "album": "告白実行委員会 -FLYING SONGS- 愛してる",
       "playCount": 0,
-      "score": 25,
+      "score": 33,
       "url": "https://music.163.com/song?id=1832675219"
     },
     {
@@ -643,7 +643,7 @@
       "artist": "春野",
       "album": "filia",
       "playCount": 0,
-      "score": 23,
+      "score": 30,
       "url": "https://music.163.com/song?id=1454429727"
     },
     {
@@ -651,7 +651,7 @@
       "artist": "MIMI / 初音ミク",
       "album": "19歳の未来駅 (feat. 初音ミク)",
       "playCount": 0,
-      "score": 20,
+      "score": 27,
       "url": "https://music.163.com/song?id=3429188417"
     },
     {
@@ -659,7 +659,7 @@
       "artist": "十明",
       "album": "NEW ERA",
       "playCount": 0,
-      "score": 20,
+      "score": 27,
       "url": "https://music.163.com/song?id=2149019899"
     },
     {
@@ -667,7 +667,7 @@
       "artist": "Marc-André Hamelin / Johann Sebastian Bach",
       "album": "Hamelin: A Classical Evening",
       "playCount": 0,
-      "score": 18,
+      "score": 24,
       "url": "https://music.163.com/song?id=3463085653"
     },
     {
@@ -675,7 +675,7 @@
       "artist": "Guiano",
       "album": "花火",
       "playCount": 0,
-      "score": 18,
+      "score": 24,
       "url": "https://music.163.com/song?id=3407903244"
     },
     {
@@ -683,7 +683,7 @@
       "artist": "MIMI / 初音ミク",
       "album": "ソラの議事録 (feat. 初音ミク)",
       "playCount": 0,
-      "score": 18,
+      "score": 24,
       "url": "https://music.163.com/song?id=3384325722"
     },
     {
@@ -691,7 +691,7 @@
       "artist": "TAK / 初音ミク",
       "album": "MTMTM (feat. Hatsune Miku)",
       "playCount": 0,
-      "score": 18,
+      "score": 24,
       "url": "https://music.163.com/song?id=3348753834"
     },
     {
@@ -699,7 +699,7 @@
       "artist": "東京真中 / 重音テト",
       "album": "ブレインロット",
       "playCount": 0,
-      "score": 18,
+      "score": 24,
       "url": "https://music.163.com/song?id=3348197008"
     },
     {
@@ -707,7 +707,7 @@
       "artist": "ナユタン星人",
       "album": "ナユタン星からの物体V",
       "playCount": 0,
-      "score": 18,
+      "score": 24,
       "url": "https://music.163.com/song?id=2723402036"
     },
     {
@@ -715,7 +715,7 @@
       "artist": "yama",
       "album": "us",
       "playCount": 0,
-      "score": 18,
+      "score": 24,
       "url": "https://music.163.com/song?id=2719781863"
     },
     {
@@ -723,7 +723,7 @@
       "artist": "Guiano",
       "album": "星くずのうた",
       "playCount": 0,
-      "score": 18,
+      "score": 24,
       "url": "https://music.163.com/song?id=2639634957"
     },
     {
@@ -731,7 +731,7 @@
       "artist": "缶缶 / ナツノセ",
       "album": "青染 (feat. ナツノセ)",
       "playCount": 0,
-      "score": 18,
+      "score": 24,
       "url": "https://music.163.com/song?id=2632142879"
     },
     {
@@ -739,7 +739,7 @@
       "artist": "雄之助 / CircusP / 初音ミク",
       "album": "Intergalactic Bound",
       "playCount": 0,
-      "score": 18,
+      "score": 24,
       "url": "https://music.163.com/song?id=2132233401"
     },
     {
@@ -747,7 +747,7 @@
       "artist": "TeiTech",
       "album": "Japanese Lofi",
       "playCount": 0,
-      "score": 18,
+      "score": 24,
       "url": "https://music.163.com/song?id=2034649438"
     },
     {
@@ -755,7 +755,7 @@
       "artist": "すりぃ",
       "album": "フクロウさん (すりぃ ver.)",
       "playCount": 0,
-      "score": 18,
+      "score": 24,
       "url": "https://music.163.com/song?id=1909236053"
     },
     {
@@ -763,7 +763,7 @@
       "artist": "ナユタン星人 / MORE MORE JUMP！ / 初音ミク",
       "album": "アイドル新鋭隊/モア！ジャンプ！モア！",
       "playCount": 0,
-      "score": 18,
+      "score": 24,
       "url": "https://music.163.com/song?id=1854231422"
     },
     {
@@ -771,7 +771,7 @@
       "artist": "Chinozo",
       "album": "グッバイ宣言",
       "playCount": 0,
-      "score": 18,
+      "score": 24,
       "url": "https://music.163.com/song?id=1826139261"
     },
     {
@@ -779,7 +779,7 @@
       "artist": "吐息 / v flower / Arh",
       "album": "ひとえに",
       "playCount": 0,
-      "score": 18,
+      "score": 24,
       "url": "https://music.163.com/song?id=1813850521"
     },
     {
@@ -787,7 +787,7 @@
       "artist": "DECO*27 / 初音ミク",
       "album": "アンデッドアリス",
       "playCount": 0,
-      "score": 18,
+      "score": 24,
       "url": "https://music.163.com/song?id=1500428577"
     },
     {
@@ -795,7 +795,7 @@
       "artist": "DECO*27 / 初音ミク",
       "album": "ポジティブ・パレード",
       "playCount": 0,
-      "score": 18,
+      "score": 24,
       "url": "https://music.163.com/song?id=1436919586"
     },
     {
@@ -803,7 +803,7 @@
       "artist": "DUFF",
       "album": "君に贈る詩",
       "playCount": 0,
-      "score": 16,
+      "score": 21,
       "url": "https://music.163.com/song?id=461728746"
     }
   ],
@@ -861,7 +861,7 @@
       "artist": "RADWIMPS",
       "album": "君の名は。",
       "playCount": 0,
-      "score": 68,
+      "score": 67,
       "url": "https://music.163.com/song?id=426881480"
     },
     {
@@ -877,7 +877,7 @@
       "artist": "沐轻 / 花娆 / 姬七汐 / 鹿鸣",
       "album": "千里邀月",
       "playCount": 0,
-      "score": 62,
+      "score": 61,
       "url": "https://music.163.com/song?id=1390592883"
     },
     {
@@ -933,7 +933,7 @@
       "artist": "Yunomi / 鬼頭明里",
       "album": "恋のうた  feat. 由崎司",
       "playCount": 0,
-      "score": 56,
+      "score": 55,
       "url": "https://music.163.com/song?id=1484336476"
     },
     {
@@ -997,7 +997,7 @@
       "artist": "陈冠希 / MC仁 / 厨房仔 / 应采儿",
       "album": "三角度",
       "playCount": 0,
-      "score": 51,
+      "score": 52,
       "url": "https://music.163.com/song?id=65739"
     },
     {
@@ -1021,7 +1021,7 @@
       "artist": "A-39 / 沙包P / 初音ミク",
       "album": "雪降り、メリクリ",
       "playCount": 0,
-      "score": 51,
+      "score": 50,
       "url": "https://music.163.com/song?id=1806728549"
     },
     {
@@ -1093,7 +1093,7 @@
       "artist": "Jim Guthrie / JJ Ipsen",
       "album": "You, Me & Gravity: The Music of Planet Coaster",
       "playCount": 0,
-      "score": 48,
+      "score": 47,
       "url": "https://music.163.com/song?id=447076277"
     },
     {
@@ -1117,7 +1117,7 @@
       "artist": "TheFatRat",
       "album": "Fly Away",
       "playCount": 0,
-      "score": 47,
+      "score": 46,
       "url": "https://music.163.com/song?id=486814379"
     },
     {
@@ -1125,7 +1125,7 @@
       "artist": "HOPE-T",
       "album": "没时间解释了，快上车！",
       "playCount": 0,
-      "score": 47,
+      "score": 46,
       "url": "https://music.163.com/song?id=413829329"
     },
     {
@@ -1209,6 +1209,14 @@
       "url": "https://music.163.com/song?id=1956712935"
     },
     {
+      "title": "パプリカ",
+      "artist": "Foorin",
+      "album": "パプリカ",
+      "playCount": 0,
+      "score": 42,
+      "url": "https://music.163.com/song?id=1294889666"
+    },
+    {
       "title": "うぉ",
       "artist": "優里",
       "album": "うぉ",
@@ -1223,14 +1231,6 @@
       "playCount": 0,
       "score": 42,
       "url": "https://music.163.com/song?id=1969664817"
-    },
-    {
-      "title": "パプリカ",
-      "artist": "Foorin",
-      "album": "パプリカ",
-      "playCount": 0,
-      "score": 42,
-      "url": "https://music.163.com/song?id=1294889666"
     },
     {
       "title": "Too Far",
@@ -1373,7 +1373,7 @@
       "artist": "陈小春",
       "album": "绝对收藏",
       "playCount": 0,
-      "score": 37,
+      "score": 36,
       "url": "https://music.163.com/song?id=25642694"
     },
     {
@@ -1405,7 +1405,7 @@
       "artist": "橙汁本色",
       "album": "像素方块",
       "playCount": 0,
-      "score": 36,
+      "score": 35,
       "url": "https://music.163.com/song?id=1480707379"
     },
     {
@@ -1553,20 +1553,20 @@
       "url": "https://music.163.com/song?id=31356499"
     },
     {
-      "title": "めんどくさいのうた",
-      "artist": "関取花",
-      "album": "朝",
-      "playCount": 0,
-      "score": 31,
-      "url": "https://music.163.com/song?id=546724231"
-    },
-    {
       "title": "YY",
       "artist": "ロイ-RöE-",
       "album": "YY",
       "playCount": 0,
       "score": 31,
       "url": "https://music.163.com/song?id=1862102742"
+    },
+    {
+      "title": "めんどくさいのうた",
+      "artist": "関取花",
+      "album": "朝",
+      "playCount": 0,
+      "score": 31,
+      "url": "https://music.163.com/song?id=546724231"
     },
     {
       "title": "glory MAX -나의 최대치로 너와 함께할게- (glory MAX -to the MAXimum-)",
@@ -1601,12 +1601,12 @@
       "url": "https://music.163.com/song?id=1979236210"
     },
     {
-      "title": "你的故事·回响",
-      "artist": "王者荣耀 / 无限王者团",
-      "album": "王者荣耀 游戏原声 九周年 你的故事",
+      "title": "起风了",
+      "artist": "冯沁苑(买辣椒也用券)",
+      "album": "起风了",
       "playCount": 0,
       "score": 30,
-      "url": "https://music.163.com/song?id=2637448154"
+      "url": "https://music.163.com/song?id=1330348068"
     }
   ],
   "tracks": [
@@ -1621,13 +1621,13 @@
       "playable": true
     },
     {
-      "title": "Galway Girl",
-      "artist": "Ed Sheeran",
-      "album": "÷ (Deluxe)",
+      "title": "with U",
+      "artist": "t+pazolite / Massive New Krew / 青木志貴",
+      "album": "WACCA テーマソングセレクション",
       "playCount": 0,
-      "score": 86,
-      "url": "https://music.163.com/song?id=460043704",
-      "cover": "https://p1.music.126.net/99_i681E6ZE74t_xue6PUA==/109951166151204092.jpg?param=120y120",
+      "score": 81,
+      "url": "https://music.163.com/song?id=1965624741",
+      "cover": "https://p1.music.126.net/k_Rbxw6j2lU3YmmY6jFGCw==/109951167696876520.jpg?param=120y120",
       "playable": false
     },
     {
@@ -1635,19 +1635,9 @@
       "artist": "Foorin",
       "album": "パプリカ",
       "playCount": 0,
-      "score": 86,
+      "score": 81,
       "url": "https://music.163.com/song?id=1294889666",
       "cover": "https://p1.music.126.net/73Mr8_bi4jJEvvN5AhWkRA==/109951166200175284.jpg?param=120y120",
-      "playable": false
-    },
-    {
-      "title": "with U",
-      "artist": "t+pazolite / Massive New Krew / 青木志貴",
-      "album": "WACCA テーマソングセレクション",
-      "playCount": 0,
-      "score": 83,
-      "url": "https://music.163.com/song?id=1965624741",
-      "cover": "https://p1.music.126.net/k_Rbxw6j2lU3YmmY6jFGCw==/109951167696876520.jpg?param=120y120",
       "playable": false
     },
     {
@@ -1655,19 +1645,19 @@
       "artist": "陈冠希 / MC仁 / 厨房仔 / 应采儿",
       "album": "三角度",
       "playCount": 0,
-      "score": 81,
+      "score": 78,
       "url": "https://music.163.com/song?id=65739",
       "cover": "https://p1.music.126.net/hDa6w1Bw7LfUPw2VSa0HAw==/18564154325374364.jpg?param=120y120",
       "playable": false
     },
     {
-      "title": "小城夏天",
-      "artist": "LBI利比",
-      "album": "小城夏天",
+      "title": "Galway Girl",
+      "artist": "Ed Sheeran",
+      "album": "÷ (Deluxe)",
       "playCount": 0,
-      "score": 81,
-      "url": "https://music.163.com/song?id=1934251776",
-      "cover": "https://p1.music.126.net/wYuFxK1i_5jqs58xXQ-Jfg==/109951167350445378.jpg?param=120y120",
+      "score": 78,
+      "url": "https://music.163.com/song?id=460043704",
+      "cover": "https://p1.music.126.net/99_i681E6ZE74t_xue6PUA==/109951166151204092.jpg?param=120y120",
       "playable": false
     },
     {
@@ -1675,7 +1665,7 @@
       "artist": "N.Flying",
       "album": "봄이 부시게",
       "playCount": 0,
-      "score": 81,
+      "score": 78,
       "url": "https://music.163.com/song?id=1361002917",
       "cover": "https://p1.music.126.net/jyHl0k-trQUYgC36ikcIDw==/109951173909673277.jpg?param=120y120",
       "playable": false
@@ -1685,7 +1675,7 @@
       "artist": "花粥 / 王胜娚",
       "album": "粥请客（四）",
       "playCount": 0,
-      "score": 81,
+      "score": 78,
       "url": "https://music.163.com/song?id=1313354324",
       "cover": "https://p1.music.126.net/xUAfdMHdXhu3BmO4g8nOYA==/109951163573311341.jpg?param=120y120",
       "playable": true
@@ -1695,9 +1685,19 @@
       "artist": "あれくん / 『ユイカ』",
       "album": "あのね。",
       "playCount": 0,
-      "score": 76,
+      "score": 75,
       "url": "https://music.163.com/song?id=1942631186",
-      "cover": "https://p2.music.126.net/lT4lIr6Wq-LZ2tm43NpbsQ==/109951167354012562.jpg?param=120y120",
+      "cover": "https://p1.music.126.net/lT4lIr6Wq-LZ2tm43NpbsQ==/109951167354012562.jpg?param=120y120",
+      "playable": false
+    },
+    {
+      "title": "小城夏天",
+      "artist": "LBI利比",
+      "album": "小城夏天",
+      "playCount": 0,
+      "score": 75,
+      "url": "https://music.163.com/song?id=1934251776",
+      "cover": "https://p1.music.126.net/wYuFxK1i_5jqs58xXQ-Jfg==/109951167350445378.jpg?param=120y120",
       "playable": false
     },
     {
@@ -1705,39 +1705,9 @@
       "artist": "Avicii / Wayne Hector",
       "album": "Stories",
       "playCount": 0,
-      "score": 74,
+      "score": 72,
       "url": "https://music.163.com/song?id=35090546",
-      "cover": "https://p2.music.126.net/oB7Mf4_Aoao3DQ2diw2sqg==/109951170289966580.jpg?param=120y120",
-      "playable": false
-    },
-    {
-      "title": "YY",
-      "artist": "ロイ-RöE-",
-      "album": "YY",
-      "playCount": 0,
-      "score": 74,
-      "url": "https://music.163.com/song?id=1862102742",
-      "cover": "https://p2.music.126.net/UHjAsIY8wZYPbLcnHj3_Yg==/109951166189424838.jpg?param=120y120",
-      "playable": false
-    },
-    {
-      "title": "失眠飞行",
-      "artist": "接个吻，开一枪 / 沈以诚 / 薛明媛",
-      "album": "失眠飞行",
-      "playCount": 0,
-      "score": 74,
-      "url": "https://music.163.com/song?id=1365898499",
-      "cover": "https://p2.music.126.net/Bq6Io8lpY1l2HsQ28QKFlw==/109951164083996255.jpg?param=120y120",
-      "playable": true
-    },
-    {
-      "title": "起风了",
-      "artist": "冯沁苑(买辣椒也用券)",
-      "album": "起风了",
-      "playCount": 0,
-      "score": 74,
-      "url": "https://music.163.com/song?id=1330348068",
-      "cover": "https://p2.music.126.net/diGAyEmpymX8G7JcnElncQ==/109951163699673355.jpg?param=120y120",
+      "cover": "https://p1.music.126.net/oB7Mf4_Aoao3DQ2diw2sqg==/109951170289966580.jpg?param=120y120",
       "playable": false
     },
     {
@@ -1745,9 +1715,39 @@
       "artist": "whiteeeen",
       "album": "キセキ～未来へ～",
       "playCount": 0,
-      "score": 72,
+      "score": 69,
       "url": "https://music.163.com/song?id=426850114",
-      "cover": "https://p2.music.126.net/TL5XWwmLdJzjCmlXEDNlRQ==/109951169749884214.jpg?param=120y120",
+      "cover": "https://p1.music.126.net/TL5XWwmLdJzjCmlXEDNlRQ==/109951169749884214.jpg?param=120y120",
+      "playable": false
+    },
+    {
+      "title": "YY",
+      "artist": "ロイ-RöE-",
+      "album": "YY",
+      "playCount": 0,
+      "score": 69,
+      "url": "https://music.163.com/song?id=1862102742",
+      "cover": "https://p1.music.126.net/UHjAsIY8wZYPbLcnHj3_Yg==/109951166189424838.jpg?param=120y120",
+      "playable": false
+    },
+    {
+      "title": "失眠飞行",
+      "artist": "接个吻，开一枪 / 沈以诚 / 薛明媛",
+      "album": "失眠飞行",
+      "playCount": 0,
+      "score": 69,
+      "url": "https://music.163.com/song?id=1365898499",
+      "cover": "https://p1.music.126.net/Bq6Io8lpY1l2HsQ28QKFlw==/109951164083996255.jpg?param=120y120",
+      "playable": true
+    },
+    {
+      "title": "起风了",
+      "artist": "冯沁苑(买辣椒也用券)",
+      "album": "起风了",
+      "playCount": 0,
+      "score": 69,
+      "url": "https://music.163.com/song?id=1330348068",
+      "cover": "https://p1.music.126.net/diGAyEmpymX8G7JcnElncQ==/109951163699673355.jpg?param=120y120",
       "playable": false
     },
     {
@@ -1755,9 +1755,9 @@
       "artist": "ロイ-RöE-",
       "album": "ウカ*",
       "playCount": 0,
-      "score": 72,
+      "score": 66,
       "url": "https://music.163.com/song?id=1318519746",
-      "cover": "https://p2.music.126.net/HiydWbNoNAkaNuBRYv2yHw==/109951163608744834.jpg?param=120y120",
+      "cover": "https://p1.music.126.net/HiydWbNoNAkaNuBRYv2yHw==/109951163608744834.jpg?param=120y120",
       "playable": false
     },
     {
@@ -1765,9 +1765,9 @@
       "artist": "ハルカトミユキ",
       "album": "17才",
       "playCount": 0,
-      "score": 69,
+      "score": 63,
       "url": "https://music.163.com/song?id=1313107917",
-      "cover": "https://p2.music.126.net/dbRwC2mdbxAnMvt9lQ05mA==/109951169169681813.jpg?param=120y120",
+      "cover": "https://p1.music.126.net/dbRwC2mdbxAnMvt9lQ05mA==/109951169169681813.jpg?param=120y120",
       "playable": false
     },
     {
@@ -1775,9 +1775,9 @@
       "artist": "はりーP / 初音ミク",
       "album": "僕が最後に鳴らした音は",
       "playCount": 0,
-      "score": 32,
+      "score": 42,
       "url": "https://music.163.com/song?id=562675526",
-      "cover": "https://p2.music.126.net/Tq1Tq_plpiTfanGUd9VYiQ==/109951164170951824.jpg?param=120y120",
+      "cover": "https://p1.music.126.net/Tq1Tq_plpiTfanGUd9VYiQ==/109951164170951824.jpg?param=120y120",
       "playable": false
     },
     {
@@ -1785,9 +1785,9 @@
       "artist": "Elliot Hsu",
       "album": "Utopia",
       "playCount": 0,
-      "score": 32,
+      "score": 42,
       "url": "https://music.163.com/song?id=38679061",
-      "cover": "https://p2.music.126.net/IsGGJNx51XFX71CsM8ZsFA==/109951164445290612.jpg?param=120y120",
+      "cover": "https://p1.music.126.net/IsGGJNx51XFX71CsM8ZsFA==/109951164445290612.jpg?param=120y120",
       "playable": false
     },
     {
@@ -1795,9 +1795,9 @@
       "artist": "Mount Dreams",
       "album": "Début Album",
       "playCount": 0,
-      "score": 32,
+      "score": 42,
       "url": "https://music.163.com/song?id=36492803",
-      "cover": "https://p2.music.126.net/ueXFOYrF9xHh_SW4F39sQw==/109951165778404422.jpg?param=120y120",
+      "cover": "https://p1.music.126.net/ueXFOYrF9xHh_SW4F39sQw==/109951165778404422.jpg?param=120y120",
       "playable": false
     },
     {
@@ -1805,9 +1805,9 @@
       "artist": "橘猫烧鲷鱼",
       "album": "有人喜欢（你有多久都没有看到过蓝天）",
       "playCount": 0,
-      "score": 32,
+      "score": 42,
       "url": "https://music.163.com/song?id=3381878429",
-      "cover": "https://p2.music.126.net/0tojwcuNCC56MPex0Dr6BA==/109951173218441287.jpg?param=120y120",
+      "cover": "https://p1.music.126.net/0tojwcuNCC56MPex0Dr6BA==/109951173218441287.jpg?param=120y120",
       "playable": false
     },
     {
@@ -1815,9 +1815,9 @@
       "artist": "月詠み",
       "album": "世界の歩き方",
       "playCount": 0,
-      "score": 32,
+      "score": 42,
       "url": "https://music.163.com/song?id=3372743662",
-      "cover": "https://p2.music.126.net/7pS3w-TUJszIGAsWnRl_Ag==/109951173097165560.jpg?param=120y120",
+      "cover": "https://p1.music.126.net/7pS3w-TUJszIGAsWnRl_Ag==/109951173097165560.jpg?param=120y120",
       "playable": false
     },
     {
@@ -1825,9 +1825,9 @@
       "artist": "半梦人乐队",
       "album": "我该怎么和你告别",
       "playCount": 0,
-      "score": 32,
+      "score": 42,
       "url": "https://music.163.com/song?id=3360382135",
-      "cover": "https://p2.music.126.net/3z-2l7Yi5Fujwnq2wYFUMw==/109951172903418761.jpg?param=120y120",
+      "cover": "https://p1.music.126.net/3z-2l7Yi5Fujwnq2wYFUMw==/109951172903418761.jpg?param=120y120",
       "playable": true
     },
     {
@@ -1835,9 +1835,9 @@
       "artist": "メル / 初音ミク",
       "album": "さようなら、花泥棒さん",
       "playCount": 0,
-      "score": 32,
+      "score": 42,
       "url": "https://music.163.com/song?id=3354771761",
-      "cover": "https://p2.music.126.net/sjY5DXnx_TEBXcQHZ-pUQg==/109951172825558071.jpg?param=120y120",
+      "cover": "https://p1.music.126.net/sjY5DXnx_TEBXcQHZ-pUQg==/109951172825558071.jpg?param=120y120",
       "playable": false
     },
     {
@@ -1845,9 +1845,9 @@
       "artist": "n-buna / 初音ミク",
       "album": "花と水飴、最終電車",
       "playCount": 0,
-      "score": 32,
+      "score": 42,
       "url": "https://music.163.com/song?id=33367332",
-      "cover": "https://p2.music.126.net/HmBB9fECQ8DCCnrxYzYwWA==/109951172804116153.jpg?param=120y120",
+      "cover": "https://p1.music.126.net/HmBB9fECQ8DCCnrxYzYwWA==/109951172804116153.jpg?param=120y120",
       "playable": false
     },
     {
@@ -1855,9 +1855,9 @@
       "artist": "洛天依 / 乌龟Sui / 亚小琨",
       "album": "玉兰开花三月三",
       "playCount": 0,
-      "score": 32,
+      "score": 42,
       "url": "https://music.163.com/song?id=3325266889",
-      "cover": "https://p2.music.126.net/VKyykN7jSgTDVyY33HOaHA==/109951172388353900.jpg?param=120y120",
+      "cover": "https://p1.music.126.net/VKyykN7jSgTDVyY33HOaHA==/109951172388353900.jpg?param=120y120",
       "playable": true
     },
     {
@@ -1865,9 +1865,9 @@
       "artist": "ヒトリエ",
       "album": "イマジナリー・モノフィクション",
       "playCount": 0,
-      "score": 32,
+      "score": 42,
       "url": "https://music.163.com/song?id=28267742",
-      "cover": "https://p2.music.126.net/MNvRbYURpnMGdUmNcGGq0g==/109951165946360025.jpg?param=120y120",
+      "cover": "https://p1.music.126.net/MNvRbYURpnMGdUmNcGGq0g==/109951165946360025.jpg?param=120y120",
       "playable": false
     },
     {
@@ -1875,9 +1875,9 @@
       "artist": "Guiano",
       "album": "光線歌",
       "playCount": 0,
-      "score": 32,
+      "score": 42,
       "url": "https://music.163.com/song?id=2704274431",
-      "cover": "https://p2.music.126.net/E_rAiBKjCBIToHPBcHsMqg==/109951170977763770.jpg?param=120y120",
+      "cover": "https://p1.music.126.net/E_rAiBKjCBIToHPBcHsMqg==/109951170977763770.jpg?param=120y120",
       "playable": false
     },
     {
@@ -1885,7 +1885,7 @@
       "artist": "One Direction",
       "album": "Take Me Home (Special Deluxe Edition)",
       "playCount": 0,
-      "score": 32,
+      "score": 42,
       "url": "https://music.163.com/song?id=26608504",
       "cover": "https://p2.music.126.net/S3oxolo9xyPL_APfyJ0wEQ==/6650945837331786.jpg?param=120y120",
       "playable": false
@@ -1895,7 +1895,7 @@
       "artist": "MIMI / 初音ミク / 重音テト",
       "album": "劣等哀歌 (feat. 初音ミク & 重音テト)",
       "playCount": 0,
-      "score": 32,
+      "score": 42,
       "url": "https://music.163.com/song?id=2644623438",
       "cover": "https://p2.music.126.net/FeCtPwsogrivYchUcZldAw==/109951170131470677.jpg?param=120y120",
       "playable": false
@@ -1905,7 +1905,7 @@
       "artist": "うたたね歌菜",
       "album": "負けヒロインが多すぎる！オリジナル・サウンドトラック VOL.1",
       "playCount": 0,
-      "score": 32,
+      "score": 42,
       "url": "https://music.163.com/song?id=2635226403",
       "cover": "https://p2.music.126.net/yQaTRh8AJBkgUgQI6cwlAg==/109951172291944712.jpg?param=120y120",
       "playable": false
@@ -1915,7 +1915,7 @@
       "artist": "Enya",
       "album": "Paint the Sky with Stars",
       "playCount": 0,
-      "score": 32,
+      "score": 42,
       "url": "https://music.163.com/song?id=2530437",
       "cover": "https://p2.music.126.net/KGAvFqAXckXeGGuD2fkAVw==/109951172576815764.jpg?param=120y120",
       "playable": false
@@ -1925,7 +1925,7 @@
       "artist": "Evan Call",
       "album": "TVアニメ『葬送のフリーレン』Original Soundtrack～Pre-release～",
       "playCount": 0,
-      "score": 32,
+      "score": 42,
       "url": "https://music.163.com/song?id=2116383140",
       "cover": "https://p2.music.126.net/8RdmkeoexrTxI7PdasUkhA==/109951169761664617.jpg?param=120y120",
       "playable": false
@@ -1935,7 +1935,7 @@
       "artist": "すりぃ / 初音ミク",
       "album": "パラドックス",
       "playCount": 0,
-      "score": 32,
+      "score": 42,
       "url": "https://music.163.com/song?id=1914695652",
       "cover": "https://p2.music.126.net/d2bHzLLH4VE1yDaXja4v5A==/109951166974631413.jpg?param=120y120",
       "playable": false
@@ -1945,7 +1945,7 @@
       "artist": "livetune / 初音ミク",
       "album": "初音ミク Project DIVA MEGA39’s 10th アニバーサリーコレクション",
       "playCount": 0,
-      "score": 32,
+      "score": 42,
       "url": "https://music.163.com/song?id=1824721966",
       "cover": "https://p2.music.126.net/tgxgEriYZw5mopc3xUjuaw==/109951165777115374.jpg?param=120y120",
       "playable": false
@@ -1955,7 +1955,7 @@
       "artist": "DECO*27 / 初音ミク",
       "album": "アンデッドアリス",
       "playCount": 0,
-      "score": 32,
+      "score": 42,
       "url": "https://music.163.com/song?id=1497529942",
       "cover": "https://p2.music.126.net/K_zli8pM7cREvUOwn_4f4A==/109951170600293577.jpg?param=120y120",
       "playable": false
@@ -1965,19 +1965,9 @@
       "artist": "Joel Hanson / Sara Groves",
       "album": "Traveling Light",
       "playCount": 0,
-      "score": 32,
+      "score": 42,
       "url": "https://music.163.com/song?id=1491585",
       "cover": "https://p2.music.126.net/iYWdWKJuRPlZUNGsV8IW7w==/109951173249717330.jpg?param=120y120",
-      "playable": false
-    },
-    {
-      "title": "Don't Walk Away",
-      "artist": "Johannes Hager / Jacob Alm",
-      "album": "Don't Walk Away",
-      "playCount": 0,
-      "score": 30,
-      "url": "https://music.163.com/song?id=511921174",
-      "cover": "https://p2.music.126.net/xPLo3xmGDoblRfmnUa3Hzw==/109951163039891565.jpg?param=120y120",
       "playable": false
     },
     {
@@ -1985,7 +1975,7 @@
       "artist": "Vanessa Carlton",
       "album": "Best of Vanessa Carlton",
       "playCount": 0,
-      "score": 30,
+      "score": 39,
       "url": "https://music.163.com/song?id=3795680",
       "cover": "https://p2.music.126.net/_0O0Aw-yBMAS1fUaLqD2aw==/109951166228967540.jpg?param=120y120",
       "playable": false
@@ -1995,7 +1985,7 @@
       "artist": "洛天依Official / 亞細亞曠世奇才",
       "album": "一一",
       "playCount": 0,
-      "score": 30,
+      "score": 39,
       "url": "https://music.163.com/song?id=3438968283",
       "cover": "https://p2.music.126.net/VIrCAMliVwGP-ylAvyVvPg==/109951174264430497.jpg?param=120y120",
       "playable": false
@@ -2005,7 +1995,7 @@
       "artist": "The Piano Guys",
       "album": "Fight Song / Amazing Grace",
       "playCount": 0,
-      "score": 30,
+      "score": 39,
       "url": "https://music.163.com/song?id=34200785",
       "cover": "https://p2.music.126.net/bARF8CvVVjtRmq0MNUk7iw==/109951163464823711.jpg?param=120y120",
       "playable": false
@@ -2015,7 +2005,7 @@
       "artist": "S Club 7",
       "album": "Best: The Greatest Hits Of S Club 7",
       "playCount": 0,
-      "score": 30,
+      "score": 39,
       "url": "https://music.163.com/song?id=3409020",
       "cover": "https://p2.music.126.net/gv4ca23vHzLOwXsVjiHS5w==/109951168476348373.jpg?param=120y120",
       "playable": false
@@ -2025,7 +2015,7 @@
       "artist": "阿鲲",
       "album": "苍兰诀 影视原声带",
       "playCount": 0,
-      "score": 30,
+      "score": 39,
       "url": "https://music.163.com/song?id=3357948959",
       "cover": "https://p2.music.126.net/bW5MT6xRY8qcXH8sEUwQJg==/109951167805472579.jpg?param=120y120",
       "playable": false
@@ -2035,7 +2025,7 @@
       "artist": "摄音记 / 张天奕ZTYick / 杨世贸",
       "album": "有一天、我跳下了船",
       "playCount": 0,
-      "score": 30,
+      "score": 39,
       "url": "https://music.163.com/song?id=3338418186",
       "cover": "https://p2.music.126.net/XVZPT7Nxr_uIzm3D-6glfg==/109951172576032644.jpg?param=120y120",
       "playable": true
@@ -2045,9 +2035,9 @@
       "artist": "ラックライフ",
       "album": "アイトユウ",
       "playCount": 0,
-      "score": 30,
+      "score": 39,
       "url": "https://music.163.com/song?id=32544813",
-      "cover": "https://p1.music.126.net/OG2YpI23eJonleYw4zx9vA==/109951168771557658.jpg?param=120y120",
+      "cover": "https://p2.music.126.net/OG2YpI23eJonleYw4zx9vA==/109951168771557658.jpg?param=120y120",
       "playable": false
     },
     {
@@ -2055,9 +2045,9 @@
       "artist": "すこっぷ / 初音ミク",
       "album": "VOCAROCK collection 4 feat. 初音ミク",
       "playCount": 0,
-      "score": 30,
+      "score": 39,
       "url": "https://music.163.com/song?id=28411815",
-      "cover": "https://p1.music.126.net/OGC_-6NGZUag4pETRlkvSQ==/6041816394875075.jpg?param=120y120",
+      "cover": "https://p2.music.126.net/OGC_-6NGZUag4pETRlkvSQ==/6041816394875075.jpg?param=120y120",
       "playable": false
     },
     {
@@ -2065,9 +2055,9 @@
       "artist": "口ロロ (クチロロ)",
       "album": "everyday is a symphony",
       "playCount": 0,
-      "score": 30,
+      "score": 39,
       "url": "https://music.163.com/song?id=26093207",
-      "cover": "https://p1.music.126.net/q818EAB_qW3isNdv76WHqQ==/18714787418198950.jpg?param=120y120",
+      "cover": "https://p2.music.126.net/q818EAB_qW3isNdv76WHqQ==/18714787418198950.jpg?param=120y120",
       "playable": false
     },
     {
@@ -2075,9 +2065,9 @@
       "artist": "May'n",
       "album": "15Colors -nu skool-",
       "playCount": 0,
-      "score": 30,
+      "score": 39,
       "url": "https://music.163.com/song?id=1487501535",
-      "cover": "https://p1.music.126.net/jkNWazF_oTmiNqh_18EDww==/109951170165166068.jpg?param=120y120",
+      "cover": "https://p2.music.126.net/jkNWazF_oTmiNqh_18EDww==/109951170165166068.jpg?param=120y120",
       "playable": false
     },
     {
@@ -2085,9 +2075,9 @@
       "artist": "末吉秀太",
       "album": "夏恋バスケット♪",
       "playCount": 0,
-      "score": 30,
+      "score": 39,
       "url": "https://music.163.com/song?id=1460572578",
-      "cover": "https://p1.music.126.net/aMSW1WMQsV_gKnB9k1rvBQ==/109951165114780620.jpg?param=120y120",
+      "cover": "https://p2.music.126.net/aMSW1WMQsV_gKnB9k1rvBQ==/109951165114780620.jpg?param=120y120",
       "playable": false
     },
     {
@@ -2095,9 +2085,9 @@
       "artist": "ヨルシカ",
       "album": "思想犯",
       "playCount": 0,
-      "score": 30,
+      "score": 39,
       "url": "https://music.163.com/song?id=1457709580",
-      "cover": "https://p1.music.126.net/OWvCQnwUzt-LOcWSCYqW9Q==/109951165084906395.jpg?param=120y120",
+      "cover": "https://p2.music.126.net/OWvCQnwUzt-LOcWSCYqW9Q==/109951165084906395.jpg?param=120y120",
       "playable": false
     },
     {
@@ -2105,9 +2095,9 @@
       "artist": "AliA",
       "album": "AliVe",
       "playCount": 0,
-      "score": 30,
+      "score": 39,
       "url": "https://music.163.com/song?id=1349892107",
-      "cover": "https://p1.music.126.net/pf9irFwAOevgwcw8bzSGTQ==/109951167874347450.jpg?param=120y120",
+      "cover": "https://p2.music.126.net/pf9irFwAOevgwcw8bzSGTQ==/109951167874347450.jpg?param=120y120",
       "playable": false
     },
     {
@@ -2115,9 +2105,9 @@
       "artist": "Hanie Soraya",
       "album": "PANAS! PANAS! PANAS!",
       "playCount": 0,
-      "score": 30,
+      "score": 39,
       "url": "https://music.163.com/song?id=1315735222",
-      "cover": "https://p1.music.126.net/MoFdgawLF0RbGxKjcsMZsQ==/109951163588851150.jpg?param=120y120",
+      "cover": "https://p2.music.126.net/MoFdgawLF0RbGxKjcsMZsQ==/109951163588851150.jpg?param=120y120",
       "playable": false
     },
     {
@@ -2125,9 +2115,9 @@
       "artist": "めありー / Orangestar",
       "album": "彼はきっと魔法を使う。",
       "playCount": 0,
-      "score": 27,
+      "score": 36,
       "url": "https://music.163.com/song?id=557583474",
-      "cover": "https://p1.music.126.net/VaBRPQTtkEjGMUta2-f5Ow==/109951170961702497.jpg?param=120y120",
+      "cover": "https://p2.music.126.net/VaBRPQTtkEjGMUta2-f5Ow==/109951170961702497.jpg?param=120y120",
       "playable": false
     },
     {
@@ -2135,9 +2125,19 @@
       "artist": "じん / IA",
       "album": "IA/04 -STAR-",
       "playCount": 0,
-      "score": 27,
+      "score": 36,
       "url": "https://music.163.com/song?id=551339691",
-      "cover": "https://p1.music.126.net/lbvRS9GqvUN4Z3wL5H-OCQ==/109951171933334436.jpg?param=120y120",
+      "cover": "https://p2.music.126.net/lbvRS9GqvUN4Z3wL5H-OCQ==/109951171933334436.jpg?param=120y120",
+      "playable": false
+    },
+    {
+      "title": "Don't Walk Away",
+      "artist": "Johannes Hager / Jacob Alm",
+      "album": "Don't Walk Away",
+      "playCount": 0,
+      "score": 36,
+      "url": "https://music.163.com/song?id=511921174",
+      "cover": "https://p1.music.126.net/xPLo3xmGDoblRfmnUa3Hzw==/109951163039891565.jpg?param=120y120",
       "playable": false
     },
     {
@@ -2145,7 +2145,7 @@
       "artist": "CLIFF EDGE",
       "album": "あなたの声が聞こえる",
       "playCount": 0,
-      "score": 27,
+      "score": 36,
       "url": "https://music.163.com/song?id=41645156",
       "cover": "https://p1.music.126.net/_MWvKKaRMwi6f24TeVZxTg==/3273246124834732.jpg?param=120y120",
       "playable": false
@@ -2155,7 +2155,7 @@
       "artist": "こっちのけんと / SO-SO",
       "album": "ことのは (feat. SO-SO)",
       "playCount": 0,
-      "score": 27,
+      "score": 36,
       "url": "https://music.163.com/song?id=3446361359",
       "cover": "https://p1.music.126.net/pQsKRDa345bR28X-xb2IMA==/109951174087528977.jpg?param=120y120",
       "playable": false
@@ -2165,7 +2165,7 @@
       "artist": "MONKEY MAJIK / 友成空",
       "album": "haneto feat. 友成空",
       "playCount": 0,
-      "score": 27,
+      "score": 36,
       "url": "https://music.163.com/song?id=3409597072",
       "cover": "https://p1.music.126.net/NuknmRgNvSUaT8lMh6SLtQ==/109951173610302108.jpg?param=120y120",
       "playable": false
@@ -2175,7 +2175,7 @@
       "artist": "Kinder / Paps 'n' Skar",
       "album": "最新热歌慢摇94",
       "playCount": 0,
-      "score": 27,
+      "score": 36,
       "url": "https://music.163.com/song?id=30903415",
       "cover": "https://p1.music.126.net/FZX7XAjsmEPGyVOqm4H7aQ==/109951166361039007.jpg?param=120y120",
       "playable": false
@@ -2185,7 +2185,7 @@
       "artist": "乃紫",
       "album": "1000日間",
       "playCount": 0,
-      "score": 27,
+      "score": 36,
       "url": "https://music.163.com/song?id=2691780768",
       "cover": "https://p1.music.126.net/PFNazWpn4OHFau6KXPYNaw==/109951170696167214.jpg?param=120y120",
       "playable": false
@@ -2195,7 +2195,7 @@
       "artist": "拂言",
       "album": "与风告别",
       "playCount": 0,
-      "score": 27,
+      "score": 36,
       "url": "https://music.163.com/song?id=2668035349",
       "cover": "https://p1.music.126.net/sTJqKkPy7Dt29VMN7mcoNQ==/109951170409795793.jpg?param=120y120",
       "playable": false
@@ -2205,7 +2205,7 @@
       "artist": "ミセカイ",
       "album": "泡沫少女",
       "playCount": 0,
-      "score": 27,
+      "score": 36,
       "url": "https://music.163.com/song?id=2615141994",
       "cover": "https://p1.music.126.net/TpGmJ0CO6yAL7qiI_YtKuQ==/109951169852230453.jpg?param=120y120",
       "playable": false
@@ -2215,7 +2215,7 @@
       "artist": "Hilcrhyme",
       "album": "Best of Hilcrhyme ～SILVER～",
       "playCount": 0,
-      "score": 27,
+      "score": 36,
       "url": "https://music.163.com/song?id=22685570",
       "cover": "https://p1.music.126.net/GethbEC90CzBfD0G8qOAJg==/109951169577800920.jpg?param=120y120",
       "playable": false
@@ -2225,7 +2225,7 @@
       "artist": "emon (Tes.) / 鏡音リン",
       "album": "メタモリボン",
       "playCount": 0,
-      "score": 27,
+      "score": 36,
       "url": "https://music.163.com/song?id=2010289108",
       "cover": "https://p1.music.126.net/OZFSrzZ_9yYEJ9dc0bnWgQ==/109951168189425209.jpg?param=120y120",
       "playable": false
@@ -2235,7 +2235,7 @@
       "artist": "Versutus",
       "album": "fuzzy wuzzy",
       "playCount": 0,
-      "score": 27,
+      "score": 36,
       "url": "https://music.163.com/song?id=2009660470",
       "cover": "https://p1.music.126.net/i6OgEMYUzpFBdqQzlwUsQw==/109951168180584449.jpg?param=120y120",
       "playable": false
@@ -2245,7 +2245,7 @@
       "artist": "MAISONdes / Aimer / 和ぬか",
       "album": "いつのまに",
       "playCount": 0,
-      "score": 27,
+      "score": 36,
       "url": "https://music.163.com/song?id=2006821621",
       "cover": "https://p1.music.126.net/rP_9VNM74Fyb0U7sp7VV4w==/109951168147945959.jpg?param=120y120",
       "playable": false
@@ -2255,7 +2255,7 @@
       "artist": "Seth Staton Watkins",
       "album": "Rocky Road to Dublin",
       "playCount": 0,
-      "score": 27,
+      "score": 36,
       "url": "https://music.163.com/song?id=1986912334",
       "cover": "https://p1.music.126.net/xJapOj2iv5yp-o5rEmfObw==/109951173517149066.jpg?param=120y120",
       "playable": false
@@ -2265,7 +2265,7 @@
       "artist": "CHiCO with HoneyWorks / まふまふ",
       "album": "ビビっとラブ",
       "playCount": 0,
-      "score": 27,
+      "score": 36,
       "url": "https://music.163.com/song?id=1928722004",
       "cover": "https://p1.music.126.net/0jbv7CBVqdqHAb1guLX_pg==/109951167156624589.jpg?param=120y120",
       "playable": false
@@ -2275,7 +2275,7 @@
       "artist": "Tim Bergling",
       "album": "Calico (Avicii)",
       "playCount": 0,
-      "score": 27,
+      "score": 36,
       "url": "https://music.163.com/song?id=1917154797",
       "cover": "https://p1.music.126.net/JklKuOxibBFDEvX2kK6seg==/109951167014848969.jpg?param=120y120",
       "playable": true
@@ -2285,9 +2285,9 @@
       "artist": "Anly",
       "album": "VOLTAGE",
       "playCount": 0,
-      "score": 27,
+      "score": 36,
       "url": "https://music.163.com/song?id=1916680026",
-      "cover": "https://p2.music.126.net/H6VN2KSURi_gs8LPcNtUig==/109951167002273695.jpg?param=120y120",
+      "cover": "https://p1.music.126.net/H6VN2KSURi_gs8LPcNtUig==/109951167002273695.jpg?param=120y120",
       "playable": false
     },
     {
@@ -2295,9 +2295,9 @@
       "artist": "十五少女",
       "album": "死にたいと言ってくれ。",
       "playCount": 0,
-      "score": 27,
+      "score": 36,
       "url": "https://music.163.com/song?id=1872369793",
-      "cover": "https://p2.music.126.net/6H6zb_Zv3Ysz34BMM5g5Mw==/109951166317145924.jpg?param=120y120",
+      "cover": "https://p1.music.126.net/6H6zb_Zv3Ysz34BMM5g5Mw==/109951166317145924.jpg?param=120y120",
       "playable": false
     },
     {
@@ -2305,9 +2305,9 @@
       "artist": "辻村有記",
       "album": "Pop",
       "playCount": 0,
-      "score": 25,
+      "score": 33,
       "url": "https://music.163.com/song?id=534445937",
-      "cover": "https://p2.music.126.net/y9j5NjgvLq9d_LY3h0vrtA==/109951163125537666.jpg?param=120y120",
+      "cover": "https://p1.music.126.net/y9j5NjgvLq9d_LY3h0vrtA==/109951163125537666.jpg?param=120y120",
       "playable": false
     },
     {
@@ -2315,9 +2315,9 @@
       "artist": "Shawn Mendes",
       "album": "There's Nothing Holdin' Me Back",
       "playCount": 0,
-      "score": 25,
+      "score": 33,
       "url": "https://music.163.com/song?id=473602620",
-      "cover": "https://p2.music.126.net/XElJy-5P4gm4cKOYD2CjJA==/18880813672259939.jpg?param=120y120",
+      "cover": "https://p1.music.126.net/XElJy-5P4gm4cKOYD2CjJA==/18880813672259939.jpg?param=120y120",
       "playable": false
     },
     {
@@ -2325,9 +2325,9 @@
       "artist": "星野源",
       "album": "恋",
       "playCount": 0,
-      "score": 25,
+      "score": 33,
       "url": "https://music.163.com/song?id=432821964",
-      "cover": "https://p2.music.126.net/ElaxIg9-mHVoNWrvfZ_G4g==/109951164332825582.jpg?param=120y120",
+      "cover": "https://p1.music.126.net/ElaxIg9-mHVoNWrvfZ_G4g==/109951164332825582.jpg?param=120y120",
       "playable": false
     },
     {
@@ -2335,9 +2335,9 @@
       "artist": "Westlife",
       "album": "Chariot",
       "playCount": 0,
-      "score": 25,
+      "score": 33,
       "url": "https://music.163.com/song?id=2755837187",
-      "cover": "https://p2.music.126.net/7WU7befVnzELjadfTaaEag==/109951172179723784.jpg?param=120y120",
+      "cover": "https://p1.music.126.net/7WU7befVnzELjadfTaaEag==/109951172179723784.jpg?param=120y120",
       "playable": false
     },
     {
@@ -2345,9 +2345,9 @@
       "artist": "クラムボン",
       "album": "3peace2",
       "playCount": 0,
-      "score": 25,
+      "score": 33,
       "url": "https://music.163.com/song?id=22647519",
-      "cover": "https://p2.music.126.net/ecMyFOLtWo-_A-WrSQsn7Q==/109951163968222108.jpg?param=120y120",
+      "cover": "https://p1.music.126.net/ecMyFOLtWo-_A-WrSQsn7Q==/109951163968222108.jpg?param=120y120",
       "playable": false
     },
     {
@@ -2355,9 +2355,9 @@
       "artist": "舟津真翔",
       "album": "一目惚れ",
       "playCount": 0,
-      "score": 25,
+      "score": 33,
       "url": "https://music.163.com/song?id=2149396691",
-      "cover": "https://p2.music.126.net/fkU5UWlKYglLSIjmjQ4qWQ==/109951169530495944.jpg?param=120y120",
+      "cover": "https://p1.music.126.net/fkU5UWlKYglLSIjmjQ4qWQ==/109951169530495944.jpg?param=120y120",
       "playable": false
     },
     {
@@ -2365,9 +2365,9 @@
       "artist": "Star Boy",
       "album": "CEO",
       "playCount": 0,
-      "score": 25,
+      "score": 33,
       "url": "https://music.163.com/song?id=2120514204",
-      "cover": "https://p2.music.126.net/TC7nLXIZ4fDjTX9CaxEHYQ==/109951169287181341.jpg?param=120y120",
+      "cover": "https://p1.music.126.net/TC7nLXIZ4fDjTX9CaxEHYQ==/109951169287181341.jpg?param=120y120",
       "playable": false
     },
     {
@@ -2375,9 +2375,9 @@
       "artist": "shallm",
       "album": "センチメンタル☆ラッキーガール",
       "playCount": 0,
-      "score": 25,
+      "score": 33,
       "url": "https://music.163.com/song?id=2083075632",
-      "cover": "https://p2.music.126.net/PtNK6I5uaWr_1KAqV90JVw==/109951168923802211.jpg?param=120y120",
+      "cover": "https://p1.music.126.net/PtNK6I5uaWr_1KAqV90JVw==/109951168923802211.jpg?param=120y120",
       "playable": false
     },
     {
@@ -2385,9 +2385,9 @@
       "artist": "Islet / 倚水",
       "album": "春を待つ (feat. 倚水)",
       "playCount": 0,
-      "score": 25,
+      "score": 33,
       "url": "https://music.163.com/song?id=1833847964",
-      "cover": "https://p2.music.126.net/CXI2gpHyoej0oRToDujq3A==/109951173136990931.jpg?param=120y120",
+      "cover": "https://p1.music.126.net/CXI2gpHyoej0oRToDujq3A==/109951173136990931.jpg?param=120y120",
       "playable": false
     },
     {
@@ -2395,9 +2395,9 @@
       "artist": "HoneyWorks / Kotoha",
       "album": "告白実行委員会 -FLYING SONGS- 愛してる",
       "playCount": 0,
-      "score": 25,
+      "score": 33,
       "url": "https://music.163.com/song?id=1832675219",
-      "cover": "https://p2.music.126.net/rFcgKZrg9oJX_4mH1QMkPQ==/109951165836006152.jpg?param=120y120",
+      "cover": "https://p1.music.126.net/rFcgKZrg9oJX_4mH1QMkPQ==/109951165836006152.jpg?param=120y120",
       "playable": false
     },
     {
@@ -2405,9 +2405,9 @@
       "artist": "春野",
       "album": "filia",
       "playCount": 0,
-      "score": 23,
+      "score": 30,
       "url": "https://music.163.com/song?id=1454429727",
-      "cover": "https://p2.music.126.net/f2HUgTBzxv9woe_LiKFz6Q==/109951168610325518.jpg?param=120y120",
+      "cover": "https://p1.music.126.net/f2HUgTBzxv9woe_LiKFz6Q==/109951168610325518.jpg?param=120y120",
       "playable": false
     },
     {
@@ -2415,9 +2415,9 @@
       "artist": "MIMI / 初音ミク",
       "album": "19歳の未来駅 (feat. 初音ミク)",
       "playCount": 0,
-      "score": 20,
+      "score": 27,
       "url": "https://music.163.com/song?id=3429188417",
-      "cover": "https://p2.music.126.net/gdK5PrVv7y1VRNxj23gfZw==/109951173865104556.jpg?param=120y120",
+      "cover": "https://p1.music.126.net/gdK5PrVv7y1VRNxj23gfZw==/109951173865104556.jpg?param=120y120",
       "playable": false
     },
     {
@@ -2425,9 +2425,9 @@
       "artist": "十明",
       "album": "NEW ERA",
       "playCount": 0,
-      "score": 20,
+      "score": 27,
       "url": "https://music.163.com/song?id=2149019899",
-      "cover": "https://p2.music.126.net/Lw9ERU4CLH9HmIDnLxqsWg==/109951169527487695.jpg?param=120y120",
+      "cover": "https://p1.music.126.net/Lw9ERU4CLH9HmIDnLxqsWg==/109951169527487695.jpg?param=120y120",
       "playable": false
     },
     {
@@ -2435,9 +2435,9 @@
       "artist": "Marc-André Hamelin / Johann Sebastian Bach",
       "album": "Hamelin: A Classical Evening",
       "playCount": 0,
-      "score": 18,
+      "score": 24,
       "url": "https://music.163.com/song?id=3463085653",
-      "cover": "https://p2.music.126.net/32EaI54LMwfaxHWl47L9YQ==/109951174309060598.jpg?param=120y120",
+      "cover": "https://p1.music.126.net/32EaI54LMwfaxHWl47L9YQ==/109951174309060598.jpg?param=120y120",
       "playable": false
     },
     {
@@ -2445,9 +2445,9 @@
       "artist": "Guiano",
       "album": "花火",
       "playCount": 0,
-      "score": 18,
+      "score": 24,
       "url": "https://music.163.com/song?id=3407903244",
-      "cover": "https://p2.music.126.net/80D5CFedDsnGBkKrOccnOQ==/109951173579737859.jpg?param=120y120",
+      "cover": "https://p1.music.126.net/80D5CFedDsnGBkKrOccnOQ==/109951173579737859.jpg?param=120y120",
       "playable": false
     },
     {
@@ -2455,9 +2455,9 @@
       "artist": "MIMI / 初音ミク",
       "album": "ソラの議事録 (feat. 初音ミク)",
       "playCount": 0,
-      "score": 18,
+      "score": 24,
       "url": "https://music.163.com/song?id=3384325722",
-      "cover": "https://p2.music.126.net/pO5q2yduFqpxNqecsBu46g==/109951173253422988.jpg?param=120y120",
+      "cover": "https://p1.music.126.net/pO5q2yduFqpxNqecsBu46g==/109951173253422988.jpg?param=120y120",
       "playable": false
     },
     {
@@ -2465,9 +2465,9 @@
       "artist": "TAK / 初音ミク",
       "album": "MTMTM (feat. Hatsune Miku)",
       "playCount": 0,
-      "score": 18,
+      "score": 24,
       "url": "https://music.163.com/song?id=3348753834",
-      "cover": "https://p2.music.126.net/oQN1i0zh3WcB8dAWtoDjcQ==/109951172728643174.jpg?param=120y120",
+      "cover": "https://p1.music.126.net/oQN1i0zh3WcB8dAWtoDjcQ==/109951172728643174.jpg?param=120y120",
       "playable": false
     },
     {
@@ -2475,9 +2475,9 @@
       "artist": "東京真中 / 重音テト",
       "album": "ブレインロット",
       "playCount": 0,
-      "score": 18,
+      "score": 24,
       "url": "https://music.163.com/song?id=3348197008",
-      "cover": "https://p2.music.126.net/Vs2s1f1mWnF7re46nKI9SQ==/109951172719761839.jpg?param=120y120",
+      "cover": "https://p1.music.126.net/Vs2s1f1mWnF7re46nKI9SQ==/109951172719761839.jpg?param=120y120",
       "playable": false
     },
     {
@@ -2485,9 +2485,9 @@
       "artist": "ナユタン星人",
       "album": "ナユタン星からの物体V",
       "playCount": 0,
-      "score": 18,
+      "score": 24,
       "url": "https://music.163.com/song?id=2723402036",
-      "cover": "https://p2.music.126.net/IpHLnVNfvk4PhjRwJYUgxQ==/109951171416110081.jpg?param=120y120",
+      "cover": "https://p1.music.126.net/IpHLnVNfvk4PhjRwJYUgxQ==/109951171416110081.jpg?param=120y120",
       "playable": false
     },
     {
@@ -2495,9 +2495,9 @@
       "artist": "yama",
       "album": "us",
       "playCount": 0,
-      "score": 18,
+      "score": 24,
       "url": "https://music.163.com/song?id=2719781863",
-      "cover": "https://p2.music.126.net/7bxQfPNFDSlAwlR9NHiDZQ==/109951171363112167.jpg?param=120y120",
+      "cover": "https://p1.music.126.net/7bxQfPNFDSlAwlR9NHiDZQ==/109951171363112167.jpg?param=120y120",
       "playable": false
     },
     {
@@ -2505,9 +2505,9 @@
       "artist": "Guiano",
       "album": "星くずのうた",
       "playCount": 0,
-      "score": 18,
+      "score": 24,
       "url": "https://music.163.com/song?id=2639634957",
-      "cover": "https://p2.music.126.net/y2IzgXRk2avCkt5hPQ3Hcg==/109951170070194322.jpg?param=120y120",
+      "cover": "https://p1.music.126.net/y2IzgXRk2avCkt5hPQ3Hcg==/109951170070194322.jpg?param=120y120",
       "playable": false
     },
     {
@@ -2515,9 +2515,9 @@
       "artist": "缶缶 / ナツノセ",
       "album": "青染 (feat. ナツノセ)",
       "playCount": 0,
-      "score": 18,
+      "score": 24,
       "url": "https://music.163.com/song?id=2632142879",
-      "cover": "https://p2.music.126.net/yaVaPtAz1U-LFfui0GAr1A==/109951170002456450.jpg?param=120y120",
+      "cover": "https://p1.music.126.net/yaVaPtAz1U-LFfui0GAr1A==/109951170002456450.jpg?param=120y120",
       "playable": false
     },
     {
@@ -2525,9 +2525,9 @@
       "artist": "雄之助 / CircusP / 初音ミク",
       "album": "Intergalactic Bound",
       "playCount": 0,
-      "score": 18,
+      "score": 24,
       "url": "https://music.163.com/song?id=2132233401",
-      "cover": "https://p1.music.126.net/4-BA-CXDop0g1fPGNJFqhw==/109951169385162828.jpg?param=120y120",
+      "cover": "https://p2.music.126.net/4-BA-CXDop0g1fPGNJFqhw==/109951169385162828.jpg?param=120y120",
       "playable": false
     },
     {
@@ -2535,9 +2535,9 @@
       "artist": "TeiTech",
       "album": "Japanese Lofi",
       "playCount": 0,
-      "score": 18,
+      "score": 24,
       "url": "https://music.163.com/song?id=2034649438",
-      "cover": "https://p1.music.126.net/vGuRqHmh_XPFvR461ay-oA==/109951168506246777.jpg?param=120y120",
+      "cover": "https://p2.music.126.net/vGuRqHmh_XPFvR461ay-oA==/109951168506246777.jpg?param=120y120",
       "playable": false
     },
     {
@@ -2545,9 +2545,9 @@
       "artist": "すりぃ",
       "album": "フクロウさん (すりぃ ver.)",
       "playCount": 0,
-      "score": 18,
+      "score": 24,
       "url": "https://music.163.com/song?id=1909236053",
-      "cover": "https://p1.music.126.net/vw9iEQRfkNO00JG-1D79wQ==/109951166890080789.jpg?param=120y120",
+      "cover": "https://p2.music.126.net/vw9iEQRfkNO00JG-1D79wQ==/109951166890080789.jpg?param=120y120",
       "playable": false
     },
     {
@@ -2555,9 +2555,9 @@
       "artist": "ナユタン星人 / MORE MORE JUMP！ / 初音ミク",
       "album": "アイドル新鋭隊/モア！ジャンプ！モア！",
       "playCount": 0,
-      "score": 18,
+      "score": 24,
       "url": "https://music.163.com/song?id=1854231422",
-      "cover": "https://p1.music.126.net/PIZdmUbEUFLbfQy6rDm4sA==/109951166097068861.jpg?param=120y120",
+      "cover": "https://p2.music.126.net/PIZdmUbEUFLbfQy6rDm4sA==/109951166097068861.jpg?param=120y120",
       "playable": false
     },
     {
@@ -2565,9 +2565,9 @@
       "artist": "Chinozo",
       "album": "グッバイ宣言",
       "playCount": 0,
-      "score": 18,
+      "score": 24,
       "url": "https://music.163.com/song?id=1826139261",
-      "cover": "https://p1.music.126.net/Z1AFIihesYf82qg1T6Mspg==/109951165791544099.jpg?param=120y120",
+      "cover": "https://p2.music.126.net/Z1AFIihesYf82qg1T6Mspg==/109951165791544099.jpg?param=120y120",
       "playable": false
     },
     {
@@ -2575,9 +2575,9 @@
       "artist": "吐息 / v flower / Arh",
       "album": "ひとえに",
       "playCount": 0,
-      "score": 18,
+      "score": 24,
       "url": "https://music.163.com/song?id=1813850521",
-      "cover": "https://p1.music.126.net/GyxUk69XSr4_C4a_5DqJxQ==/109951165646990771.jpg?param=120y120",
+      "cover": "https://p2.music.126.net/GyxUk69XSr4_C4a_5DqJxQ==/109951165646990771.jpg?param=120y120",
       "playable": false
     },
     {
@@ -2585,9 +2585,9 @@
       "artist": "DECO*27 / 初音ミク",
       "album": "アンデッドアリス",
       "playCount": 0,
-      "score": 18,
+      "score": 24,
       "url": "https://music.163.com/song?id=1500428577",
-      "cover": "https://p1.music.126.net/K_zli8pM7cREvUOwn_4f4A==/109951170600293577.jpg?param=120y120",
+      "cover": "https://p2.music.126.net/K_zli8pM7cREvUOwn_4f4A==/109951170600293577.jpg?param=120y120",
       "playable": false
     },
     {
@@ -2595,9 +2595,9 @@
       "artist": "DECO*27 / 初音ミク",
       "album": "ポジティブ・パレード",
       "playCount": 0,
-      "score": 18,
+      "score": 24,
       "url": "https://music.163.com/song?id=1436919586",
-      "cover": "https://p1.music.126.net/9CZ7IzglxR_T6e2TImlGuw==/109951164863816310.jpg?param=120y120",
+      "cover": "https://p2.music.126.net/9CZ7IzglxR_T6e2TImlGuw==/109951164863816310.jpg?param=120y120",
       "playable": false
     },
     {
@@ -2605,9 +2605,9 @@
       "artist": "DUFF",
       "album": "君に贈る詩",
       "playCount": 0,
-      "score": 16,
+      "score": 21,
       "url": "https://music.163.com/song?id=461728746",
-      "cover": "https://p1.music.126.net/dDoFUoNjTJzdsdrUFf20zg==/18192519393703915.jpg?param=120y120",
+      "cover": "https://p2.music.126.net/dDoFUoNjTJzdsdrUFf20zg==/18192519393703915.jpg?param=120y120",
       "playable": false
     }
   ]

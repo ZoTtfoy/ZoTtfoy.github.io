@@ -1,5 +1,5 @@
 {
-  "updated": "2026-11-27T10:49:32.635Z",
+  "updated": "2026-11-28T10:19:12.591Z",
   "steamId": "76561199120970154",
   "source": "inventory",
   "inventoryTotal": 282,
@@ -78,6 +78,7 @@
     986800,
     1038740,
     1082430,
+    1098340,
     1139900,
     1172470,
     1222140,
@@ -226,7 +227,7 @@
   "lib": {
     "source": "api",
     "totalGames": 145,
-    "totalHours": 3834,
+    "totalHours": 3838,
     "perfect": 5,
     "partial": false
   },
@@ -234,8 +235,8 @@
     {
       "appid": 1172470,
       "name": "Apex Legends",
-      "hours": 2526.1,
-      "hours2w": 35.1,
+      "hours": 2529.6,
+      "hours2w": 34.4,
       "last": "",
       "cover": "https://cdn.akamai.steamstatic.com/steam/apps/1172470/header.jpg",
       "coverFallback": "",
@@ -263,7 +264,7 @@
       "hours": 133,
       "hours2w": 0.6,
       "last": "",
-      "cover": "https://cdn.akamai.steamstatic.com/steam/apps/960170/capsule_616x353.jpg",
+      "cover": "https://cdn.akamai.steamstatic.com/steam/apps/960170/header.jpg",
       "coverFallback": "",
       "ach": {
         "have": 51,
